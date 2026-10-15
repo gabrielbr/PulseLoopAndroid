@@ -78,6 +78,14 @@ class ColmiSyncEngine(
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private val watchdogTimeoutMs = 10_000L
     private val activityWatchdogTimeoutMs = 20_000L
+    /**
+     * Wait for the legacy big-data temperature request (`0xBC 0x25`, rings without the 0x3C
+     * interval-temperature bit). An R06 on `R06_1.00.06_240921` never answers it, so every sync
+     * sat out the full 10 s stage watchdog before finishing — 10 s of an open radio link per sync.
+     * Big-data replies on the same link (SpO2, sleep) arrive within ~50 ms of the request in that
+     * ring's capture, so 3 s still leaves a ring that does answer ample room.
+     */
+    internal val legacyTemperatureWatchdogTimeoutMs = 3_000L
 
     // Realtime HR keepalive.
     // Volatile: written on Main (start/stop actions), read on the notify thread —
@@ -591,7 +599,11 @@ class ColmiSyncEngine(
     private fun armWatchdog() {
         watchdogJob?.cancel()
         val expected = stage
-        val timeout = if (expected == Stage.ACTIVITY) activityWatchdogTimeoutMs else watchdogTimeoutMs
+        val timeout = when {
+            expected == Stage.ACTIVITY -> activityWatchdogTimeoutMs
+            expected == Stage.TEMPERATURE && !supportsIntervalTemp -> legacyTemperatureWatchdogTimeoutMs
+            else -> watchdogTimeoutMs
+        }
         watchdogJob = scope.launch {
             delay(timeout)
             if (isActive) forceAdvanceStage(expected)

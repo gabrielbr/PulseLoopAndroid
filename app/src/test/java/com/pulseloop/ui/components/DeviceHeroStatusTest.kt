@@ -48,6 +48,29 @@ class DeviceHeroStatusTest {
     }
 
     @Test
+    fun `ring idling between syncs reads idle, not disconnected`() {
+        val s = DeviceHeroStatus.make(
+            state = RingConnectionState.DISCONNECTED, connectedName = null,
+            knownName = "Colmi R06", batteryPercent = 100, lastSyncAt = now - 60_000, now = now,
+            idle = true,
+        )
+        assertEquals("Idle between syncs", s.statusLine)
+        // Still one tap to bring it back for a live reading.
+        assertEquals(DeviceHeroStatus.Action.CONNECT, s.action)
+        assertEquals("Synced 1m ago", s.syncText)
+    }
+
+    @Test
+    fun `idle flag is ignored once the ring is connecting`() {
+        val s = DeviceHeroStatus.make(
+            state = RingConnectionState.CONNECTING, connectedName = null,
+            knownName = "Colmi R06", batteryPercent = null, lastSyncAt = null, now = now,
+            idle = true,
+        )
+        assertEquals("Connecting…", s.statusLine)
+    }
+
+    @Test
     fun `no device shows set up`() {
         val s = DeviceHeroStatus.make(
             state = RingConnectionState.IDLE, connectedName = null,

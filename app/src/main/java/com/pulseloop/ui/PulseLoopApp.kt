@@ -430,6 +430,7 @@ fun PulseLoopApp() {
                                     else storedDevice?.state ?: ble.connectionState,
                                 batteryPercent = ble.batteryPercent ?: storedDevice?.batteryPercent,
                                 onOpenSettings = { navController.navigate("settings") },
+                                idle = ble.idleSince != null,
                             )
                             // Thin sync-progress accent under the greeting while history streams in.
                             val syncPct = coordinator.syncProgress.collectAsState().value

@@ -63,6 +63,7 @@ fun DeviceHeroCard(
         batteryPercent = battery,
         lastSyncAt = lastSyncAt,
         now = System.currentTimeMillis(),
+        idle = bleState.idleSince != null,
     )
 
     Column(

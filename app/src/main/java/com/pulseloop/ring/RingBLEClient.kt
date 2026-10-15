@@ -78,6 +78,9 @@ class RingBLEClient(
         val firmwareVersion: String? = null,
         /** Bounded, persistent-for-this-process BLE trace for hardware diagnosis. */
         val diagnostics: List<String> = emptyList(),
+        /** When the ring hung up after a completed sync ([IdleLinkPolicy]). Non-null only while
+         *  [connectionState] is DISCONNECTED; the UI reads it as "idle", not as a fault. */
+        val idleSince: Long? = null,
     )
 
     data class DiscoveredRing(
@@ -209,6 +212,16 @@ class RingBLEClient(
     private var ownershipRetryJob: Job? = null
     @Volatile private var watchdogReconnectPaused = false
 
+    // MARK: Idle drops (see IdleLinkPolicy)
+    //
+    // A Colmi ring hangs up ~20 s after its last command. These record whether this link
+    // finished a sync (so a later quiet drop is the ring idling, not a fault) and how long the
+    // watchdog should leave the ring alone afterwards.
+    @Volatile private var syncCompletedOnLink = false
+    @Volatile private var idleRestUntil = 0L
+    // When the reconnect budget ran out (0 = not spent); lets unattended retries resume later.
+    private var budgetExhaustedAt = 0L
+
     // MARK: Service-discovery gate
     //
     // Android permits exactly ONE outstanding GATT operation. requestMtu() starts an ATT
@@ -223,7 +236,20 @@ class RingBLEClient(
     // after ~1000ms if rejected, and never overlaps discovery with another GATT op.
     private val serviceDiscoveryStarted = java.util.concurrent.atomic.AtomicBoolean(false)
 
-    init { startConnectionWatchdog() }
+    init {
+        startConnectionWatchdog()
+        // The sync engines report completion on the bus, not to the client. Remember it per
+        // link so handleDisconnect can tell an idle hang-up from a drop mid-sync.
+        scope.launch {
+            PulseEventBus.events.collect { event ->
+                if (event is PulseEvent.SyncProgress && event.stage == "done" &&
+                    _state.value.connectionState == RingConnectionState.CONNECTED
+                ) {
+                    syncCompletedOnLink = true
+                }
+            }
+        }
+    }
 
     // MARK: Public API
 
@@ -333,6 +359,9 @@ class RingBLEClient(
      */
     fun connectLastKnown() {
         watchdogReconnectPaused = false
+        // An explicit caller (app foreground, the background sync worker, the coach) wants the
+        // ring now; the idle rest only holds back the unattended watchdog.
+        idleRestUntil = 0L
         connectLastKnownInternal()
     }
 
@@ -344,7 +373,15 @@ class RingBLEClient(
         // here, so this one guard makes "Disconnect" actually stick.
         if (prefs.getBoolean(USER_DISCONNECTED_KEY, false)) return
         val lastId = lastKnownIdentifier ?: return
-        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) return
+        if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+            // The cap stops back-to-back churn; it must not strand the ring offline until the
+            // user happens to reopen the app. After a cool-down, unattended retries resume.
+            val now = System.currentTimeMillis()
+            if (budgetExhaustedAt == 0L) budgetExhaustedAt = now
+            if (!IdleLinkPolicy.budgetCooledDown(budgetExhaustedAt, now)) return
+            recordDiagnostic("reconnect budget cooled down — retrying")
+            resetReconnectBackoff()
+        }
         // A still-pending reconnect scan means the last attempt never sighted the ring.
         if (reconnectScanPending) {
             reconnectScanPending = false
@@ -382,6 +419,7 @@ class RingBLEClient(
     /** Clear the reconnect throttling — called on user action and app foreground. */
     private fun resetReconnectBackoff() {
         reconnectAttempts = 0
+        budgetExhaustedAt = 0L
         sightlessScans = 0
         reconnectScanPending = false
     }
@@ -481,7 +519,11 @@ class RingBLEClient(
             }
             RingConnectionState.DISCONNECTED,
             RingConnectionState.FAILED,
-            RingConnectionState.IDLE -> connectLastKnownInternal()
+            RingConnectionState.IDLE -> {
+                // A ring that just idled out is left alone for a while (IdleLinkPolicy).
+                if (IdleLinkPolicy.isResting(idleRestUntil, System.currentTimeMillis())) return
+                connectLastKnownInternal()
+            }
             // CONNECTING is handled above (before the last-known-ring guard).
             else -> {
                 // SCANNING: a pairing scan proceeds untouched, but a reconnect scan that
@@ -793,6 +835,7 @@ class RingBLEClient(
             return
         }
         ownershipRetryJob = null
+        syncCompletedOnLink = false  // a new link has synced nothing yet
         scanner?.stopScan(scanCallback)
         // Close any stale GATT from a previous (now-dead) connection before opening a new
         // one. Reconnect attempts after an idle drop would otherwise leak GATT clients and
@@ -1246,7 +1289,14 @@ class RingBLEClient(
     }
 
     private inline fun updateState(crossinline update: BLEState.() -> BLEState) {
-        _state.update { it.update() }
+        _state.update {
+            val next = it.update()
+            // Idle only describes a dropped link; any other state retires it in one place,
+            // so no connect/scan path has to remember to clear it.
+            if (next.idleSince != null && next.connectionState != RingConnectionState.DISCONNECTED) {
+                next.copy(idleSince = null)
+            } else next
+        }
     }
 
     @Synchronized
@@ -1898,14 +1948,29 @@ class RingBLEClient(
         )
 
         val requestedByUser = prefs.getBoolean(USER_DISCONNECTED_KEY, false)
+        val idleDrop = !requestedByUser && IdleLinkPolicy.isIdleDrop(
+            deviceType = activeCoordinator?.deviceType,
+            syncCompletedOnLink = syncCompletedOnLink,
+            status = status,
+        )
+        syncCompletedOnLink = false
+        val now = System.currentTimeMillis()
+        if (idleDrop) {
+            // The ring hung up after syncing: let it rest instead of redialling straight away,
+            // which fails while it is still settling and burns the reconnect budget.
+            idleRestUntil = now + IdleLinkPolicy.REST_MS
+            recordDiagnostic("idle drop (status=$status) — resting ${IdleLinkPolicy.REST_MS / 60_000}m")
+        }
         updateState {
             copy(
                 connectionState = RingConnectionState.DISCONNECTED,
                 lastError = when {
                     requestedByUser -> lastError
+                    idleDrop -> null
                     status == BluetoothGatt.GATT_SUCCESS -> null
                     else -> "Ring disconnected (GATT $status)"
                 },
+                idleSince = if (idleDrop) now else null,
             )
         }
     }

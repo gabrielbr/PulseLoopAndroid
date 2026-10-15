@@ -51,6 +51,8 @@ data class DeviceHeroStatus(
             batteryPercent: Int?,
             lastSyncAt: Long?,
             now: Long,
+            /** The ring hung up between syncs on its own (`IdleLinkPolicy`), not a fault. */
+            idle: Boolean = false,
         ): DeviceHeroStatus {
             val title = connectedName ?: knownName ?: "No ring connected"
 
@@ -70,7 +72,11 @@ data class DeviceHeroStatus(
                     statusLine = "Connection failed"; statusTint = PulseColors.danger
                 }
                 RingConnectionState.IDLE, RingConnectionState.DISCONNECTED -> {
-                    statusLine = if (knownName == null) "No ring paired" else "Disconnected"
+                    statusLine = when {
+                        knownName == null -> "No ring paired"
+                        idle && state == RingConnectionState.DISCONNECTED -> "Idle between syncs"
+                        else -> "Disconnected"
+                    }
                     statusTint = PulseColors.textSecondary
                 }
             }

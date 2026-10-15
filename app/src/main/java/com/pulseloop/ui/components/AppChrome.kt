@@ -40,6 +40,8 @@ fun AppHeader(
     state: RingConnectionState,
     batteryPercent: Int?,
     onOpenSettings: () -> Unit,
+    /** The ring hung up between syncs on its own (see `IdleLinkPolicy`), not a fault. */
+    idle: Boolean = false,
 ) {
     Row(
         modifier = Modifier
@@ -70,6 +72,7 @@ fun AppHeader(
         ConnectionStatusPill(
             state = state,
             batteryPercent = batteryPercent,
+            idle = idle,
             modifier = Modifier.clickable(onClick = onOpenSettings),
         )
         IconButton(onClick = onOpenSettings) {
@@ -88,19 +91,24 @@ fun ConnectionStatusPill(
     state: RingConnectionState,
     batteryPercent: Int?,
     modifier: Modifier = Modifier,
+    /** Disconnected because the ring idled out after a sync — shown neutral, not as an error. */
+    idle: Boolean = false,
 ) {
+    val idleNow = idle && state == RingConnectionState.DISCONNECTED
     val isPulsing = state == RingConnectionState.CONNECTING || state == RingConnectionState.RECONNECTING
     val dotColor = when (state) {
         RingConnectionState.CONNECTED -> PulseColors.success
         RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> PulseColors.accent
-        else -> PulseColors.danger  // scanning/failed/idle/disconnected all read "not connected"
+        else -> if (idleNow) PulseColors.textMuted else PulseColors.danger  // scanning/failed/idle/disconnected all read "not connected"
     }
     val label = when (state) {
         RingConnectionState.CONNECTED ->
             if (batteryPercent != null && batteryPercent > 0) "Connected · $batteryPercent%" else "Connected"
         RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> "Connecting…"
         RingConnectionState.FAILED -> "Sync failed"
-        else -> "Disconnected"
+        else -> if (idleNow) {
+            if (batteryPercent != null && batteryPercent > 0) "Idle · $batteryPercent%" else "Idle"
+        } else "Disconnected"
     }
     val pulse by rememberInfiniteTransition(label = "pill").animateFloat(
         initialValue = 1f,
