@@ -25,8 +25,9 @@ android {
         versionName = (project.findProperty("appVersionName") as String?) ?: "2.7.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Repo the self-updater polls for new releases.
-        buildConfigField("String", "GITHUB_REPO", "\"foureight84/PulseLoopAndroid\"")
+        // Repo the self-updater polls for new releases. This fork ships its own releases, so it
+        // polls the fork; upstream is foureight84/PulseLoopAndroid.
+        buildConfigField("String", "GITHUB_REPO", "\"gabrielbr/PulseLoopAndroid\"")
 
         // Strava OAuth — credentials from local.properties (gitignored), fall back to
         // empty placeholders so non-Strava builds compile without the file.
