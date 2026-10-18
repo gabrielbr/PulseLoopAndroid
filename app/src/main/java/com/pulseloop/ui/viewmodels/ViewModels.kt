@@ -275,7 +275,7 @@ class SleepViewModel(
         val todayReference = TimeUtil.referenceNightLocal()
         val night = db.sleepSessionDao().byDay(todayReference)?.takeIf { it.totalMinutes > 0 }
         val nightBlocks = night?.let { blocksFor(it.id) } ?: emptyList()
-        val scoreResult = night?.let { SleepScore.calculate(it, nightBlocks) }
+        val scoreResult = night?.let { SleepScore.calculate(it, nightBlocks, goal ?: 480) }
 
         // ── Day view (the currently shown day; may be a past day when navigating) ──
         val offset = _state.value.dayOffset

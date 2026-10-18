@@ -132,9 +132,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.dayItems(
             item { SleepStageSummaryCards(deep = "—", light = "—", awake = "—") }
         }
         // Single session: render exactly as before, no carousel chrome.
-        sessions.size == 1 -> sessionPageItems(sessions[0], state.dayBlocks[sessions[0].id] ?: emptyList(), viewModel)
+        sessions.size == 1 -> sessionPageItems(sessions[0], state.dayBlocks[sessions[0].id] ?: emptyList(), viewModel, state.goalMinutes)
         // Multiple sessions (night + naps): horizontal paged carousel with dot indicators.
-        else -> item { SleepCarousel(sessions, state.dayBlocks, viewModel) }
+        else -> item { SleepCarousel(sessions, state.dayBlocks, viewModel, state.goalMinutes) }
     }
 
     item {
@@ -155,8 +155,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sessionPageItems(
     session: SleepSessionEntity,
     blocks: List<SleepStageBlockEntity>,
     viewModel: SleepViewModel? = null,
+    goalMinutes: Int? = null,
 ) {
-    item { SessionHero(session, blocks) }
+    item { SessionHero(session, blocks, goalMinutes) }
     item {
         VisualizationCard(eyebrow = "Stages", title = "Sleep architecture", legend = true) {
             SleepHypnogram(blocks = remember(blocks) { com.pulseloop.service.hypnogramBlocks(blocks) }, spanMin = session.spanMinutes, startTs = session.startAt)
@@ -183,15 +184,21 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sessionPageItems(
 
 /** Hero card for one session, with its score computed from that session's own blocks. */
 @Composable
-private fun SessionHero(session: SleepSessionEntity, blocks: List<SleepStageBlockEntity>) {
-    val score = remember(session.id, blocks) { com.pulseloop.service.SleepScore.calculate(session, blocks) }
-    SleepHeroCard(
-        label = "Last Sleep",
-        value = SleepFormat.duration(session.totalMinutes),
-        support = "${clockTime(session.startAt)} to ${clockTime(session.endAt)}",
-        score = score.score,
-        scoreLabel = qualityText(score.label),
-    )
+private fun SessionHero(session: SleepSessionEntity, blocks: List<SleepStageBlockEntity>, goalMinutes: Int?) {
+    val score = remember(session.id, blocks, goalMinutes) {
+        com.pulseloop.service.SleepScore.calculate(session, blocks, goalMinutes ?: 480)
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        SleepHeroCard(
+            label = "Last Sleep",
+            value = SleepFormat.duration(session.totalMinutes),
+            support = "${clockTime(session.startAt)} to ${clockTime(session.endAt)}",
+            score = score.score,
+            scoreLabel = qualityText(score.label),
+        )
+        // Oura-style breakdown of the score (docs/oura-ux-analysis.md phase 3).
+        ContributorsCard(score.contributors, title = "Sleep contributors")
+    }
 }
 
 /** Horizontal paged carousel across a day's sleep sessions, with a per-page header and dot row. */
@@ -200,6 +207,7 @@ private fun SleepCarousel(
     sessions: List<SleepSessionEntity>,
     blocksBySession: Map<String, List<SleepStageBlockEntity>>,
     viewModel: SleepViewModel? = null,
+    goalMinutes: Int? = null,
 ) {
     // Reset to the first page whenever the day's session set changes (a different day / fewer
     // pages): keying the composable recreates the pager state.
@@ -221,7 +229,7 @@ private fun SleepCarousel(
                     fontSize = 11.sp, fontWeight = FontWeight.Medium,
                     letterSpacing = 0.8.sp, color = PulseColors.textSecondary,
                 )
-                SessionHero(s, blocks)
+                SessionHero(s, blocks, goalMinutes)
                 VisualizationCard(eyebrow = "Stages", title = "Sleep architecture", legend = true) {
                     SleepHypnogram(blocks = remember(blocks) { com.pulseloop.service.hypnogramBlocks(blocks) }, spanMin = s.spanMinutes, startTs = s.startAt)
                 }

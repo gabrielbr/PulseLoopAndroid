@@ -136,6 +136,31 @@ class SleepInsightsTest {
     }
 
     @Test
+    fun `the sleep score lists its contributors and skips stages the ring cannot see`() {
+        val s = session(480)
+        val noRem = buildList {
+            repeat(390) { add(SleepStageBlockEntity(sessionId = s.id, startAt = 0, startMinute = 0, durationMinutes = 1, stageRaw = "LIGHT")) }
+            repeat(90) { add(SleepStageBlockEntity(sessionId = s.id, startAt = 0, startMinute = 0, durationMinutes = 1, stageRaw = "DEEP")) }
+        }
+        val titles = SleepScore.calculate(s, noRem).contributors.map { it.title }
+        assertTrue(titles.containsAll(listOf("Total sleep", "Deep sleep", "Timing")))
+        assertTrue("no REM blocks → no REM contributor", "REM sleep" !in titles)
+
+        val withRem = noRem + List(60) { SleepStageBlockEntity(sessionId = s.id, startAt = 0, startMinute = 0, durationMinutes = 1, stageRaw = "REM") }
+        assertTrue("REM sleep" in SleepScore.calculate(s, withRem).contributors.map { it.title })
+    }
+
+    @Test
+    fun `the sleep goal sets what a full night is`() {
+        val s = session(420)
+        val blocks = List(420) { SleepStageBlockEntity(sessionId = s.id, startAt = 0, startMinute = 0, durationMinutes = 1, stageRaw = "LIGHT") }
+        fun total(goal: Int) = SleepScore.calculate(s, blocks, goalMinutes = goal).contributors.first { it.title == "Total sleep" }
+        assertEquals(100, total(420).score)
+        assertTrue(total(540).score < 90)
+        assertEquals("7h 00m of 9h 00m goal", total(540).detail)
+    }
+
+    @Test
     fun testQualityLabelThresholds() {
         assertEquals(SleepQualityLabel.EXCELLENT, SleepScore.qualityLabel(85))
         assertEquals(SleepQualityLabel.GOOD, SleepScore.qualityLabel(72))

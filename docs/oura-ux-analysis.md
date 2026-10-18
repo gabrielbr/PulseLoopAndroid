@@ -144,7 +144,7 @@ Plain Kotlin, no UI, unit-tested (`service/Readiness.kt`, `service/ReadinessRepo
      sleep score wearing a readiness label.
    Every score carries `derived = true` and the night's coverage.
 
-### Phase 2: Today header and Readiness screen (next, needs your OK on the design)
+### Phase 2: Today header and Readiness screen (done, v2.11.3)
 
 - **Today, top**: three score rings (Readiness, Sleep, Activity) in their own accents, with
   the readiness sentence under them. While learning: "Learning your baseline: 4 of 7
@@ -156,11 +156,15 @@ Plain Kotlin, no UI, unit-tested (`service/Readiness.kt`, `service/ReadinessRepo
 - **Copy rules**: plain words, deviation from *your* normal, no diagnoses, low scores
   suggest rest rather than blame.
 
-### Phase 3: one sleep score, with contributors
+### Phase 3: one sleep score, with contributors (done)
 
-Replace the two current sleep scores with one Oura-shaped score (total sleep, efficiency,
-deep, REM, latency, timing, restfulness where the ring gives movement), shown with the same
-contributor rows. The old `SleepSessionEntity.score` column is left alone for history.
+`SleepScore.calculate` is now Oura-shaped: total sleep vs the user's goal (35%), efficiency
+(15%), deep (20%), REM (10%), restfulness (10%) and timing (10%), weights renormalised over
+what the ring can see. REM only counts when the ring reports REM, efficiency and restfulness
+only when it reports wakefulness. Latency is left out: the ring doesn't record when the wearer
+got into bed. Every surface that showed a sleep score now shows this one, and the Sleep tab
+lists the contributors with the same rows as Readiness (`ContributorsCard`). The old
+`SleepSessionEntity.score` column is left alone for history.
 
 ### Phase 4: activity score
 

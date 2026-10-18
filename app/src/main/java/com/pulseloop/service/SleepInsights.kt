@@ -27,35 +27,11 @@ data class SleepScoreResult(
     val deepPct: Int,
     val lightPct: Int,
     val awakePct: Int?,  // null when no usable awake signal
+    /** The parts the score is made of, in display order (docs/oura-ux-analysis.md phase 3). */
+    val contributors: List<ScoreContributor> = emptyList(),
 )
 
 object SleepScore {
-    private fun clamp(value: Double, lo: Double, hi: Double): Double =
-        min(hi, max(lo, value))
-
-    private fun bandScore(
-        value: Double, idealLow: Double, idealHigh: Double,
-        softLow: Double, softHigh: Double, hardLow: Double, hardHigh: Double,
-        points: Double,
-    ): Double {
-        if (!value.isFinite()) return 0.0
-        if (value in idealLow..idealHigh) return points
-        if (value < idealLow && value >= softLow)
-            return points * (0.65 + 0.35 * ((value - softLow) / (idealLow - softLow)))
-        if (value > idealHigh && value <= softHigh)
-            return points * (0.65 + 0.35 * ((softHigh - value) / (softHigh - idealHigh)))
-        if (value < softLow)
-            return points * 0.65 * clamp((value - hardLow) / (softLow - hardLow), 0.0, 1.0)
-        return points * 0.65 * clamp((hardHigh - value) / (hardHigh - softHigh), 0.0, 1.0)
-    }
-
-    private fun awakeScore(awakePct: Double?, points: Double): Double {
-        if (awakePct == null || !awakePct.isFinite()) return points * 0.55
-        if (awakePct <= 10) return points
-        if (awakePct <= 20) return points * (1 - 0.65 * ((awakePct - 10) / 10))
-        return points * 0.35 * clamp((35 - awakePct) / 15, 0.0, 1.0)
-    }
-
     fun qualityLabel(score: Int): SleepQualityLabel = when {
         score >= 85 -> SleepQualityLabel.EXCELLENT
         score >= 70 -> SleepQualityLabel.GOOD
@@ -67,6 +43,8 @@ object SleepScore {
     fun calculate(
         session: SleepSessionEntity,
         blocks: List<SleepStageBlockEntity>,
+        goalMinutes: Int = 480,
+        zone: ZoneId = ZoneId.systemDefault(),
     ): SleepScoreResult {
         // Two denominators, because since issue #63 a session carries two numbers. `total` is
         // time asleep: stage shares and the duration band are judged against it, as sleep-stage
@@ -78,8 +56,8 @@ object SleepScore {
         val total = if (session.totalMinutes > 0) session.totalMinutes.toDouble() else 0.0
         val span = session.spanMinutes.toDouble().takeIf { it > 0 } ?: total
         // stageRaw is persisted as the SleepStage enum name (uppercase) — match it exactly.
-        // Some rings report REM in big-data sleep; the score model has no REM band, so fold
-        // REM into deep (both are restorative sleep the deep band rewards).
+        // deepPct keeps its historical meaning (deep + REM, the restorative share the stage
+        // cards show); the score itself scores deep and REM separately in [contributors].
         fun minutesFor(vararg stages: SleepStage) =
             blocks.filter { b -> stages.any { it.name == b.stageRaw } }.sumOf { it.durationMinutes }.toDouble()
         val deep = minutesFor(SleepStage.DEEP, SleepStage.REM)
@@ -89,16 +67,12 @@ object SleepScore {
         val hasAwakeSignal = blocks.any { it.stageRaw == SleepStage.AWAKE.name } ||
             awake > 0 || (span > 0 && coveredStageMin >= span * 0.95)
 
-        val totalHours = total / 60
         val deepPct = if (total > 0) (deep / total) * 100 else 0.0
         val lightPct = if (total > 0) (light / total) * 100 else 0.0
         val awakePct: Double? = if (span > 0 && hasAwakeSignal) (awake / span) * 100 else null
 
-        val duration = bandScore(totalHours, 7.5, 8.5, 6.0, 9.5, 3.0, 12.0, 35.0)
-        val deepScore = bandScore(deepPct, 13.0, 23.0, 5.0, 35.0, 0.0, 45.0, 30.0)
-        val lightScore = bandScore(lightPct, 50.0, 60.0, 35.0, 75.0, 20.0, 90.0, 20.0)
-        val awakeSub = awakeScore(awakePct, 15.0)
-        val score = clamp((duration + deepScore + lightScore + awakeSub).roundToInt().toDouble(), 0.0, 100.0).toInt()
+        val contributors = contributors(session, blocks, total, span, hasAwakeSignal, goalMinutes, zone)
+        val score = ScoreContributor.combine(contributors) ?: 0
 
         return SleepScoreResult(
             score = score,
@@ -106,7 +80,91 @@ object SleepScore {
             deepPct = deepPct.roundToInt(),
             lightPct = lightPct.roundToInt(),
             awakePct = awakePct?.roundToInt(),
+            contributors = contributors,
         )
+    }
+
+    /**
+     * Oura's sleep contributors (docs/oura-ux-analysis.md §1.3), minus latency: the ring doesn't
+     * record when the wearer got into bed, so time-to-fall-asleep isn't knowable. REM only counts
+     * when the ring reports REM at all, and restfulness only when it reports wakefulness; a ring
+     * that can't see a stage is not penalised for it, its weight is renormalised away.
+     */
+    private fun contributors(
+        session: SleepSessionEntity,
+        blocks: List<SleepStageBlockEntity>,
+        asleep: Double,
+        span: Double,
+        hasAwakeSignal: Boolean,
+        goalMinutes: Int,
+        zone: ZoneId,
+    ): List<ScoreContributor> {
+        fun minutes(stage: SleepStage) = blocks.filter { it.stageRaw == stage.name }.sumOf { it.durationMinutes }
+        val out = mutableListOf<ScoreContributor>()
+        if (asleep > 0 && goalMinutes > 0) {
+            val r = asleep / goalMinutes
+            out += ScoreContributor(
+                "Total sleep",
+                Readiness.curve(r, listOf(0.0 to 0.0, 0.5 to 30.0, 0.7 to 60.0, 0.85 to 80.0, 1.0 to 100.0)),
+                "${SleepFormat.duration(asleep.roundToInt())} of ${SleepFormat.duration(goalMinutes)} goal",
+                "How long you were asleep, compared with your sleep goal. Most adults need 7 to 9 hours.",
+                0.35,
+            )
+        }
+        if (asleep > 0 && span > 0 && hasAwakeSignal) {
+            val eff = (asleep / span).coerceAtMost(1.0)
+            out += ScoreContributor(
+                "Efficiency",
+                Readiness.curve(eff, listOf(0.4 to 0.0, 0.6 to 40.0, 0.75 to 70.0, 0.85 to 90.0, 0.9 to 100.0)),
+                "${(eff * 100).roundToInt()}% of the night asleep",
+                "The share of your time in bed spent asleep. Around 85% or more is considered good.",
+                0.15,
+            )
+        }
+        if (blocks.isNotEmpty()) {
+            val deepMin = minutes(SleepStage.DEEP)
+            out += ScoreContributor(
+                "Deep sleep",
+                Readiness.curve(deepMin.toDouble(), listOf(0.0 to 0.0, 30.0 to 50.0, 45.0 to 70.0, 60.0 to 85.0, 75.0 to 100.0)),
+                SleepFormat.duration(deepMin),
+                "Deep sleep is when the body does most of its physical recovery. Around 1 to 1.5 hours is typical for younger adults, and it tends to shrink with age.",
+                0.20,
+            )
+        }
+        if (blocks.any { it.stageRaw == SleepStage.REM.name }) {
+            val remMin = minutes(SleepStage.REM)
+            out += ScoreContributor(
+                "REM sleep",
+                Readiness.curve(remMin.toDouble(), listOf(0.0 to 0.0, 30.0 to 50.0, 60.0 to 80.0, 90.0 to 100.0)),
+                SleepFormat.duration(remMin),
+                "REM sleep supports memory and mood. It usually makes up 20 to 25% of a night, about 90 minutes or more.",
+                0.10,
+            )
+        }
+        if (hasAwakeSignal && blocks.isNotEmpty()) {
+            val awakeMin = awakeMinutes(blocks)
+            out += ScoreContributor(
+                "Restfulness",
+                Readiness.curve(awakeMin.toDouble(), listOf(20.0 to 100.0, 40.0 to 80.0, 60.0 to 60.0, 120.0 to 20.0, 180.0 to 0.0)),
+                "${SleepFormat.duration(awakeMin)} awake during the night",
+                "How much you were awake once asleep. Some waking is normal; long or frequent wake-ups lower this.",
+                0.10,
+            )
+        }
+        run {
+            val mid = Instant.ofEpochMilli((session.startAt + session.endAt) / 2).atZone(zone)
+            // Minutes past midnight, with the evening before counted as negative.
+            val minutes = mid.hour * 60 + mid.minute
+            val m = (if (minutes >= 12 * 60) minutes - 24 * 60 else minutes).toDouble()
+            out += ScoreContributor(
+                "Timing",
+                Readiness.curve(m, listOf(-240.0 to 40.0, -60.0 to 100.0, 210.0 to 100.0, 300.0 to 70.0, 420.0 to 40.0)),
+                "Midpoint of sleep at %02d:%02d".format(mid.hour, mid.minute),
+                "Whether your sleep lines up with your body clock. A midpoint between midnight and about 3:30 am is ideal for most people.",
+                0.10,
+            )
+        }
+        return out
     }
 }
 

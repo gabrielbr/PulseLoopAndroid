@@ -31,6 +31,8 @@ import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.service.Readiness
 import com.pulseloop.service.ReadinessCopy
 import com.pulseloop.service.ReadinessRepository
+import com.pulseloop.service.ScoreContributor
+import com.pulseloop.service.asScoreContributor
 import com.pulseloop.ui.theme.PulseColors
 
 /*
@@ -190,7 +192,6 @@ private fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modi
 @Composable
 fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     val result = rememberReadiness(db, Unit)
-    var expanded by remember { mutableStateOf<Readiness.ContributorKind?>(null) }
 
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -237,17 +238,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
             }
 
             if (score != null) {
-                Text("Contributors", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
-                Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(PulseColors.card),
-                ) {
-                    score.contributors.forEachIndexed { i, c ->
-                        ContributorRow(c, expanded == c.kind) { expanded = if (expanded == c.kind) null else c.kind }
-                        if (i < score.contributors.lastIndex) {
-                            Box(Modifier.fillMaxWidth().height(1.dp).background(PulseColors.borderSubtle))
-                        }
-                    }
-                }
+                ContributorsCard(score.contributors.map { it.asScoreContributor() })
                 if (score.missing.isNotEmpty()) {
                     Text(
                         "Not enough data yet: " + score.missing.joinToString { it.title.lowercase() } + ".",
@@ -262,20 +253,38 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     }
 }
 
+/** "Contributors" heading and a card of tappable rows; shared by Readiness, Sleep and Activity. */
 @Composable
-private fun ContributorRow(c: Readiness.Contributor, expanded: Boolean, onTap: () -> Unit) {
+fun ContributorsCard(contributors: List<ScoreContributor>, title: String = "Contributors") {
+    if (contributors.isEmpty()) return
+    var expanded by remember(contributors) { mutableStateOf<String?>(null) }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(PulseColors.card)) {
+            contributors.forEachIndexed { i, c ->
+                ContributorRow(c, expanded == c.title) { expanded = if (expanded == c.title) null else c.title }
+                if (i < contributors.lastIndex) {
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(PulseColors.borderSubtle))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clickable(onClick = onTap).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(c.kind.title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+            Text(c.title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
             Text(c.band.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = bandColor(c.band))
         }
         ProgressBar(c.score / 100f, bandColor(c.band))
         Text(c.detail, fontSize = 12.sp, color = PulseColors.textSecondary)
         if (expanded) {
-            Text(ReadinessCopy.explanation(c.kind), fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 4.dp))
+            Text(c.explanation, fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
