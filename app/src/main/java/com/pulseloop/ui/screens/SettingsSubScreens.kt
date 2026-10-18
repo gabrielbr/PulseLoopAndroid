@@ -1047,6 +1047,59 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                 }
             }
         }
+
+        DailyGuidanceSettingsCard()
+    }
+}
+
+/**
+ * Daily guidance switches (docs/health-app-feature-research.md). They work without the AI coach:
+ * every message is built on the phone from ring data.
+ */
+@Composable
+private fun DailyGuidanceSettingsCard() {
+    val context = LocalContext.current
+    val prefs = remember { com.pulseloop.notifications.GuidancePrefs(context) }
+    var vitals by remember { mutableStateOf(prefs.vitalsAlerts) }
+    var weekly by remember { mutableStateOf(prefs.weeklyReport) }
+    var bedtime by remember { mutableStateOf(prefs.bedtimeReminder) }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text("Daily guidance", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                "Built on your phone from your ring's data. No AI key needed.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            GuidanceSwitch(
+                "Unusual signals alert",
+                "When two or more of last night's signals are outside your usual range.",
+                vitals,
+            ) { vitals = it; prefs.vitalsAlerts = it }
+            GuidanceSwitch(
+                "Weekly report",
+                "Sunday evening: your week compared with the last one, and one thing to focus on.",
+                weekly,
+            ) { weekly = it; prefs.weeklyReport = it }
+            GuidanceSwitch(
+                "Wind-down reminder",
+                "A nudge about 30 minutes before your suggested bedtime.",
+                bedtime,
+            ) { bedtime = it; prefs.bedtimeReminder = it }
+        }
+    }
+}
+
+@Composable
+private fun GuidanceSwitch(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = checked, onCheckedChange = onChange)
     }
 }
 

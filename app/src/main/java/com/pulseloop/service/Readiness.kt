@@ -77,6 +77,8 @@ data class NightSummary(
      * the ring covered 30% of is not the same evidence as one it covered fully, and the UI says so.
      */
     val coverage: Double,
+    /** Median SpO₂ inside the sleep window (70–100 only), or null when too few readings. */
+    val spo2: Double? = null,
 ) {
     /** Clock midpoint of the night, in minutes past local midnight of the waking day (may be negative). */
     fun midpointMinutes(zone: ZoneId): Int {
@@ -99,6 +101,7 @@ object NightlyVitals {
         asleepMinutes: Int,
         heartRate: List<VitalSample>,
         hrv: List<VitalSample>,
+        spo2: List<VitalSample> = emptyList(),
     ): NightSummary {
         fun inNight(s: VitalSample) = s.timestampMs in startAt..endAt && s.value > 0
         val hr = ReadingQuality.dropSpikes(heartRate.filter(::inNight))
@@ -122,6 +125,9 @@ object NightlyVitals {
             restingHr = restingHr?.let { (it * 10).roundToInt() / 10.0 },
             hrv = hrvValue?.let { (it * 10).roundToInt() / 10.0 },
             coverage = (covered.toDouble() / slots).coerceIn(0.0, 1.0),
+            spo2 = spo2.filter { it.timestampMs in startAt..endAt && it.value in 70.0..100.0 }
+                .takeIf { it.size >= MIN_HRV_SAMPLES }
+                ?.let { s -> median(s.map { it.value }) }?.let { (it * 10).roundToInt() / 10.0 },
         )
     }
 }
