@@ -1,0 +1,51 @@
+name: Upstream sync
+
+# Weekly check for new commits on the upstream repo this fork tracks. When there are any, opens
+# (or leaves open) one pull request from upstream's main into this fork's main, so upstream work
+# is reviewed and merged here instead of overwriting the fork's own changes.
+#
+# The PR's head is upstream's branch itself (same fork network), so nothing is pushed here and
+# upstream changes to .github/workflows need no extra token permission. Merge it with a merge
+# commit, never rebase or squash: rebasing rewrites the fork's commits and orphans release tags.
+#
+# Needs Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".
+on:
+  schedule:
+    - cron: '17 9 * * 1'   # Mondays 09:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  UPSTREAM: foureight84/PulseLoopAndroid
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Open a PR for new upstream commits
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          OWNER="${UPSTREAM%%/*}"
+          AHEAD=$(gh api "repos/$REPO/compare/main...$OWNER:main" --jq '.ahead_by')
+          echo "Upstream is $AHEAD commit(s) ahead of main"
+          if [ "$AHEAD" = "0" ]; then exit 0; fi
+
+          EXISTING=$(gh pr list --repo "$REPO" --base main --head "$OWNER:main" --state open --json number --jq '.[0].number')
+          if [ -n "$EXISTING" ]; then
+            echo "PR #$EXISTING already open; it tracks upstream main as it moves."
+            exit 0
+          fi
+
+          gh pr create --repo "$REPO" --base main --head "$OWNER:main" \
+            --title "Merge upstream ($UPSTREAM) into main" \
+            --body "Upstream \`$UPSTREAM\` has $AHEAD new commit(s) on \`main\`.
+
+          Review, resolve any conflicts, and merge with a **merge commit** (not squash or rebase).
+          After merging, release with a versionCode above both upstream's latest tag and this fork's.
+
+          Opened by the weekly upstream-sync workflow."

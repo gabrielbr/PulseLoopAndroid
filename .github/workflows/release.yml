@@ -4,10 +4,18 @@ name: Release
 # signs, and attaches the universal APKs to a GitHub release for that tag.
 #   - versionCode (the integer after `+`) is what the in-app updater compares.
 #   - versionName (before `+`) is display-only; change it freely.
+#
+# Can also be run by hand (workflow_dispatch) with the tag to create: the release step then
+# creates that tag on the commit being built.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create, e.g. v1.0.0+5 or v1.0.0+5-rc1'
+        required: true
 
 permissions:
   contents: write
@@ -21,7 +29,7 @@ jobs:
       - name: Parse version from tag
         id: ver
         run: |
-          TAG="${GITHUB_REF_NAME}"            # e.g. v1.0.0+5 or v1.0.0+5-rc1 (prerelease)
+          TAG="${{ inputs.tag || github.ref_name }}" # e.g. v1.0.0+5 or v1.0.0+5-rc1 (prerelease)
           NAME="${TAG#v}"; NAME="${NAME%%+*}" # 1.0.0
           CODE="${TAG##*+}"                   # 5 or 5-rc1
           # A '-suffix' on the versionCode marks a prerelease test build (e.g. v1.0.0+26-rc1).
@@ -99,7 +107,8 @@ jobs:
       - name: Create / update release and attach APKs
         uses: softprops/action-gh-release@v3
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          target_commitish: ${{ github.sha }}
           name: PulseLoop ${{ steps.ver.outputs.name }} (${{ steps.ver.outputs.code }})
           prerelease: ${{ steps.ver.outputs.prerelease }}
           generate_release_notes: true

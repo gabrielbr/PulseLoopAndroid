@@ -144,12 +144,10 @@ class CoachNotificationSlotRunner(
 
             // (2) Slot window — iOS: current() ?: (force ? forcedSlot(now) : nil). A sync that
             // completes outside a window is SkippedNoSlot (silence). The data trigger relies on
-            // this strictness: it only ever fires the slot that is actually due. The periodic
-            // worker passes fallbackToForcedSlot because Android's 24h WorkManager periodic fires
-            // wherever the cycle lands (it is NOT scheduled inside a slot window the way iOS's
-            // CoachNotificationScheduler is), so without the fallback an out-of-window fire would
-            // silently drop the day's check-in. The dedupe below still makes it safe to combine
-            // with the trigger (no double-send).
+            // this strictness: it only ever fires the slot that is actually due. So does the
+            // periodic worker: it runs hourly, so each window gets several chances. Don't hand it
+            // fallbackToForcedSlot again: the old 24h periodic did, and forcedSlot labels every
+            // hour before 14 "morning", which sent "Good morning" at 02:00.
             val slot = CoachNotificationSlot.current(hour, s.morningHour, s.eveningHour)
                 ?: if (force || fallbackToForcedSlot) CoachNotificationSlot.forcedSlot(hour)
                 else return CoachNotificationOutcome.SkippedNoSlot

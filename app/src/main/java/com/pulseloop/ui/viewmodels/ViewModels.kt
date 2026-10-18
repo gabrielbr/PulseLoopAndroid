@@ -761,6 +761,16 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         val derivedStressSeries = derived.map { (i, score) -> VitalSample(hrv[i].timestamp, score.toDouble()) }
         val derivedStress = derivedStressSeries.map { it.value }
 
+        // Temperature on the Colmi family is the same static-capability trap as stress above:
+        // every Colmi model is catalogued with TEMPERATURE, but some have no sensor. An R06
+        // (`R06_1.00.06_240921`) never answers the legacy temperature request and doesn't set the
+        // 0x3C interval-temperature bit, so its card could never fill. Show the card only once the
+        // ring has delivered a real temperature reading. Asked of the whole history, not the 24 h
+        // window, for the same reason as stress.
+        val supportsTemp = caps.contains(WearableCapability.TEMPERATURE) &&
+            (device?.deviceType != RingDeviceType.COLMI_R02 ||
+                db.measurementDao().hasReal(MeasurementKind.TEMPERATURE.name))
+
         return VitalsState(
             hrSamples = hr.map { it.value },
             spo2Samples = spo2.map { it.value },
@@ -805,7 +815,7 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             supportsHrv = caps.contains(WearableCapability.HRV),
             supportsStress = caps.contains(WearableCapability.STRESS),
             supportsFatigue = caps.contains(WearableCapability.FATIGUE),
-            supportsTemp = caps.contains(WearableCapability.TEMPERATURE),
+            supportsTemp = supportsTemp,
             supportsBP = caps.contains(WearableCapability.BLOOD_PRESSURE),
             supportsGlucose = caps.contains(WearableCapability.BLOOD_SUGAR),
             supportsManualHr = caps.contains(WearableCapability.MANUAL_HEART_RATE),

@@ -39,6 +39,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Wearable settings → "Reliable background sync": asks to exempt the app from battery
+         optimisation so the periodic ring sync isn't deferred for hours while the phone idles. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <!-- Phase 8: Health Connect export (write-only). Exactly the Phase 1–4 data types from
          docs/health-connect-integration.md — Phase 5 types (blood pressure, glucose, respiratory
          rate, VO2max, resting HR, nutrition) - the Phase 5 "beyond iOS" types, added in Phase 5 so the
