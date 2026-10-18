@@ -48,6 +48,7 @@ object ReadinessRepository {
             .map { VitalSample(it.timestamp, it.value) }
         val hr = samples(MeasurementKind.HEART_RATE)
         val hrv = samples(MeasurementKind.HRV)
+        val spo2 = samples(MeasurementKind.SPO2)
 
         val nights = sessions.map { s ->
             val day = Instant.ofEpochMilli(s.date).atZone(zone).toLocalDate()
@@ -58,6 +59,7 @@ object ReadinessRepository {
                 asleepMinutes = s.totalMinutes,
                 heartRate = hr.filter { it.timestampMs in s.startAt..s.endAt },
                 hrv = hrv.filter { it.timestampMs in s.startAt..s.endAt },
+                spo2 = spo2.filter { it.timestampMs in s.startAt..s.endAt },
             )
         }
         val lastNight = nights.firstOrNull { it.day == today }

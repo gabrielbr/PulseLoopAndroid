@@ -90,6 +90,7 @@ fun TodayScreen(
     val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
     val readiness = rememberReadiness(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
     val activityScore = rememberActivityScore(db, listOf(state.lastUpdated, state.steps))
+    val guidance = rememberGuidance(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
 
     // Per-metric visibility + user order (iOS #64), read reactively so a hide/show/reorder
     // recomposes immediately (this is also the iOS #70 reactivity).
@@ -156,6 +157,14 @@ fun TodayScreen(
                     onSleep = { navController?.navigate("sleep") },
                     onActivity = { navController?.navigate("activity_score") },
                 )
+            }
+
+            // Daily guidance (docs/health-app-feature-research.md).
+            guidance?.let { g ->
+                if (com.pulseloop.service.VitalsCheck.shouldAlert(g.offSignals)) {
+                    item { UnusualSignalsCard(g.offSignals) }
+                }
+                g.bedtime?.let { b -> item { TonightCard(b, g.sleepGoalMinutes) } }
             }
 
             // Top insight card. When the coach is on it owns this slot (tap → chat);
