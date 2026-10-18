@@ -144,7 +144,7 @@ Plain Kotlin, no UI, unit-tested (`service/Readiness.kt`, `service/ReadinessRepo
      sleep score wearing a readiness label.
    Every score carries `derived = true` and the night's coverage.
 
-### Phase 2: Today header and Readiness screen (next, needs your OK on the design)
+### Phase 2: Today header and Readiness screen (done, v2.11.3)
 
 - **Today, top**: three score rings (Readiness, Sleep, Activity) in their own accents, with
   the readiness sentence under them. While learning: "Learning your baseline: 4 of 7
@@ -156,23 +156,35 @@ Plain Kotlin, no UI, unit-tested (`service/Readiness.kt`, `service/ReadinessRepo
 - **Copy rules**: plain words, deviation from *your* normal, no diagnoses, low scores
   suggest rest rather than blame.
 
-### Phase 3: one sleep score, with contributors
+### Phase 3: one sleep score, with contributors (done)
 
-Replace the two current sleep scores with one Oura-shaped score (total sleep, efficiency,
-deep, REM, latency, timing, restfulness where the ring gives movement), shown with the same
-contributor rows. The old `SleepSessionEntity.score` column is left alone for history.
+`SleepScore.calculate` is now Oura-shaped: total sleep vs the user's goal (35%), efficiency
+(15%), deep (20%), REM (10%), restfulness (10%) and timing (10%), weights renormalised over
+what the ring can see. REM only counts when the ring reports REM, efficiency and restfulness
+only when it reports wakefulness. Latency is left out: the ring doesn't record when the wearer
+got into bed. Every surface that showed a sleep score now shows this one, and the Sleep tab
+lists the contributors with the same rows as Readiness (`ContributorsCard`). The old
+`SleepSessionEntity.score` column is left alone for history.
 
-### Phase 4: activity score
+### Phase 4: activity score (done)
 
-Contributors from what we have: daily goal, sedentary stretches (15-minute step buckets),
-training frequency and volume (workouts), recovery days.
+`service/ActivityScore.kt`: daily goal progress (25%), meet daily goals over the last week
+(20%), move every hour from 15-minute step buckets between 08:00 and 21:00 (15%), training
+frequency (15%) and volume (15%) from logged workouts, and recovery days (10%). Oura's "stay
+active" needs minute-level intensity the ring doesn't give, so today's goal progress stands in.
+The Today header's Activity ring shows this score and opens an Activity score screen with the
+same contributor rows.
 
-### Phase 5: night-only baselines everywhere, and the coach
+### Phase 5: night-only baselines and the coach (done, except chart bands)
 
-- Switch the resting-HR baseline (also exported to Health Connect) to the nightly value.
-- Vital charts get a "your usual range" band from the nightly baselines.
-- The coach packets get readiness, its weakest contributor and the baseline deviations, so
-  morning check-ins can say *why* today is a rest day.
+- `RestingHRBaselineService` now uses the median nightly resting HR (sleep window only, spikes
+  filtered) once 7 nights exist, and falls back to the all-day 10th percentile before that.
+  That baseline drives the "auto" HR zones and the Health Connect resting-HR export.
+- `ScoresContext` puts readiness, its contributors, coverage and the activity score into both
+  the coach summary packet and the check-in notification packet, and the check-in prompt tells
+  the model to treat them as estimates and not to quote readiness while it is still learning.
+- Not done yet: a "your usual range" band on every vital chart from the nightly baselines. The
+  HRV card already draws a baseline band; the rest is a follow-up.
 
 ### Not planned (hardware)
 

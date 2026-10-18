@@ -9,8 +9,9 @@ import kotlin.math.roundToInt
 
 /**
  * Ported from RestingHRBaselineService.swift (iOS #95).
- * Learns a personalized resting-HR baseline from the 10th percentile of the trailing 30 days
- * of HR samples. Needs ≥20 samples spanning ≥7 days to establish.
+ * Learns a personalized resting-HR baseline: the median nightly resting HR over the trailing 30
+ * days once 7 nights are recorded (docs/oura-ux-analysis.md phase 5), otherwise the 10th
+ * percentile of the trailing 30 days of HR samples (≥20 samples spanning ≥7 days).
  *
  * Called from [EventPersistenceSubscriber] on sync completion. That wiring is load-bearing: with no
  * caller, `hrRestingBaseline` stays null forever and [VitalsThresholdEngine]'s default `"auto"` HR
@@ -24,6 +25,7 @@ object RestingHRBaselineService {
     private const val MIN_SAMPLES = 20
     private const val MIN_CALENDAR_DAYS = 7
     private const val REFRESH_INTERVAL_MS = 6 * 3600_000L
+    private const val MIN_NIGHTS = 7
 
     suspend fun refreshIfStale(db: PulseLoopDatabase) {
         val profile = db.userProfileDao().get() ?: return
@@ -42,6 +44,15 @@ object RestingHRBaselineService {
         // clears it. A demo-derived p10 is then PERSISTED to `hrRestingBaseline` and drives the
         // `"auto"` HR zones applied to real readings, surviving a Clear Demo Data by up to the
         // 6-hour refresh interval (`DemoDataPolicy`).
+        // Preferred: the median of nightly resting HR (lowest sustained HR inside each sleep window,
+        // spikes filtered — NightlyVitals), as Oura defines resting HR. Daytime samples carry
+        // posture, movement and caffeine, so an all-day percentile is only the fallback for users
+        // without enough recorded nights.
+        nightlyBaseline(db, start, now)?.let { nightly ->
+            store(db, profile, (nightly * 2).roundToInt() / 2.0, now)
+            return
+        }
+
         val samples = db.measurementDao().rangeReal(MeasurementKind.HEART_RATE.name, start, now)
         if (samples.size < MIN_SAMPLES) return
 
@@ -54,9 +65,24 @@ object RestingHRBaselineService {
         val baselineP10 = percentile(values, 0.10)
         val rounded = (baselineP10 * 2).roundToInt() / 2.0 // round to nearest 0.5
 
-        if (profile.hrRestingBaseline != rounded) {
+        store(db, profile, rounded, now)
+    }
+
+    /** Median nightly resting HR over the baseline window, or null with fewer than [MIN_NIGHTS] nights. */
+    internal suspend fun nightlyBaseline(db: PulseLoopDatabase, start: Long, now: Long): Double? {
+        val inputs = runCatching { ReadinessRepository.loadInputs(db, now) }.getOrNull() ?: return null
+        val values = (inputs.history + listOfNotNull(inputs.lastNight))
+            .filter { it.endAt >= start }
+            .mapNotNull { it.restingHr }
+            .sorted()
+        if (values.size < MIN_NIGHTS) return null
+        return percentile(values, 0.5)
+    }
+
+    private suspend fun store(db: PulseLoopDatabase, profile: UserProfileEntity, value: Double, now: Long) {
+        if (profile.hrRestingBaseline != value) {
             db.userProfileDao().upsert(profile.copy(
-                hrRestingBaseline = rounded,
+                hrRestingBaseline = value,
                 hrRestingBaselineUpdatedAt = now,
                 updatedAt = now,
             ))

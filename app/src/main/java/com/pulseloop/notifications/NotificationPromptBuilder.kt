@@ -27,6 +27,7 @@ object NotificationPromptBuilder {
             appendLine("- Ground every claim in the provided data. If data is thin, keep it light and honest; never invent numbers.")
             appendLine("- No medical diagnosis or alarming language. Wellness tone only.")
             appendLine("- When an `environment` block (city + weather) is present, actively consider it when shaping the check-in (outdoor vs indoor, timing around rain, hydration). If conditions are extreme (very hot, very cold, storms, heavy rain), call it out with one practical adjustment — hydrate more, layer up, or move indoors.")
+            appendLine("- When a `scores` block is present, the morning check-in may lead with readiness and its weakest contributor (e.g. \"resting heart rate 6 bpm above your usual\"). Call them estimates, never measurements; if readinessStatus is \"learning\", don't quote a readiness number.")
             appendLine("- A coaching angle and your recent check-ins are provided — vary your voice and structure; never open two check-ins the same way.")
         }
     }

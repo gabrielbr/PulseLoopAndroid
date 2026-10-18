@@ -89,6 +89,7 @@ fun TodayScreen(
     // Readiness recomputes whenever Today's data or last night's session changes.
     val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
     val readiness = rememberReadiness(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
+    val activityScore = rememberActivityScore(db, listOf(state.lastUpdated, state.steps))
 
     // Per-metric visibility + user order (iOS #64), read reactively so a hide/show/reorder
     // recomposes immediately (this is also the iOS #70 reactivity).
@@ -150,12 +151,10 @@ fun TodayScreen(
                 ScoreHeader(
                     readiness = readiness,
                     sleepScore = sleep.score?.score ?: sleep.lastNight?.score,
-                    stepsPercent = state.steps?.let { steps ->
-                        if (state.stepGoal > 0) (steps * 100 / state.stepGoal) else null
-                    },
+                    activity = activityScore,
                     onReadiness = { navController?.navigate("readiness") },
                     onSleep = { navController?.navigate("sleep") },
-                    onActivity = { navController?.navigate("activity") },
+                    onActivity = { navController?.navigate("activity_score") },
                 )
             }
 

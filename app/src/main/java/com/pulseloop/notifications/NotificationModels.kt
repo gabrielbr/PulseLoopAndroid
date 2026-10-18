@@ -50,6 +50,8 @@ data class NotificationContextPacket(
     val dataQualityWarnings: List<String>,
     /** Opt-in city + weather (iOS #65d), null when the toggle is off/denied/failed. */
     val environment: EnvironmentContext? = null,
+    /** Readiness and activity scores (docs/oura-ux-analysis.md phase 5). */
+    val scores: com.pulseloop.service.ScoresContext? = null,
 ) {
     data class GoalContext(
         val stepsDaily: Int,
@@ -128,6 +130,7 @@ data class NotificationContextPacket(
         },
         dataQualityWarnings = dataQualityWarnings,
         environment = environment,
+        scores = scores,
     )
 
     fun toJsonString(): String {
@@ -153,6 +156,7 @@ data class NotificationContextPacket(
             val memories: List<SerializableMemoryContext> = emptyList(),
             val dataQualityWarnings: List<String> = emptyList(),
             val environment: EnvironmentContext? = null,
+            val scores: com.pulseloop.service.ScoresContext? = null,
         ) {
             @kotlinx.serialization.Serializable
             data class SerializableGoalContext(val stepsDaily: Int, val activeMinutesDaily: Int, val sleepHours: Int, val exerciseDaysWeekly: Int)

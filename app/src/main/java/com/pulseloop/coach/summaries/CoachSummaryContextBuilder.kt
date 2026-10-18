@@ -43,6 +43,8 @@ object CoachSummaryContextBuilder {
             val latestHr: Double?,
             val latestSpo2: Double?,
             val dataQualityWarnings: List<String>,
+            /** Readiness and activity scores (docs/oura-ux-analysis.md phase 5). */
+            val scores: com.pulseloop.service.ScoresContext? = null,
         )
         val activity = db.activityDailyDao().byDay(
             java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
@@ -60,6 +62,7 @@ object CoachSummaryContextBuilder {
             latestHr = latestHr,
             latestSpo2 = latestSpo2,
             dataQualityWarnings = packet.dataQualityWarnings,
+            scores = com.pulseloop.service.ScoresContext.build(db),
         )
         val contextJson = json.encodeToString(tp)
 
@@ -67,6 +70,7 @@ object CoachSummaryContextBuilder {
             activity?.steps?.toString(), activity?.calories?.toInt()?.toString(),
             activity?.activeMinutes?.toString(), tp.distanceKm?.toString(),
             latestHr?.toInt()?.toString(), latestSpo2?.toInt()?.toString(),
+            tp.scores?.signature(),
         ))
 
         // Scripted fallback
