@@ -19,6 +19,7 @@ import com.pulseloop.service.SleepRangeKey
 import com.pulseloop.service.SleepScore
 import com.pulseloop.service.SleepScoreResult
 import com.pulseloop.service.UserPhysiologyProfile
+import com.pulseloop.service.UsualRange
 import com.pulseloop.service.VitalSample
 import com.pulseloop.settings.ApiKeyStore
 import com.pulseloop.settings.UnitConverter
@@ -611,6 +612,8 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
 @OptIn(kotlinx.coroutines.FlowPreview::class)
 class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore? = null) : ViewModel() {
     data class VitalsState(
+        /** The user's own 30-day usual range per metric (service/UsualRange), for chart bands. */
+        val usualRanges: Map<com.pulseloop.service.MetricKind, ClosedFloatingPointRange<Double>> = emptyMap(),
         val hrSamples: List<Double> = emptyList(),
         val spo2Samples: List<Double> = emptyList(),
         val hrvSamples: List<Double> = emptyList(),
@@ -771,7 +774,20 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             (device?.deviceType != RingDeviceType.COLMI_R02 ||
                 db.measurementDao().hasReal(MeasurementKind.TEMPERATURE.name))
 
+        // "Your usual range" bands (docs/oura-ux-analysis.md phase 5). Real rows only; derived stress
+        // gets none, since it has no measured history to be usual against.
+        val usualRanges = mutableMapOf<com.pulseloop.service.MetricKind, ClosedFloatingPointRange<Double>>()
+        suspend fun addUsual(metric: com.pulseloop.service.MetricKind, kind: MeasurementKind) {
+            UsualRange.load(db, kind, now)?.let { usualRanges[metric] = it }
+        }
+        addUsual(com.pulseloop.service.MetricKind.HEART_RATE, MeasurementKind.HEART_RATE)
+        addUsual(com.pulseloop.service.MetricKind.SPO2, MeasurementKind.SPO2)
+        if (caps.contains(WearableCapability.HRV)) addUsual(com.pulseloop.service.MetricKind.HRV, MeasurementKind.HRV)
+        if (ringEverReportedStress) addUsual(com.pulseloop.service.MetricKind.STRESS, MeasurementKind.STRESS)
+        if (supportsTemp) addUsual(com.pulseloop.service.MetricKind.TEMPERATURE, MeasurementKind.TEMPERATURE)
+
         return VitalsState(
+            usualRanges = usualRanges,
             hrSamples = hr.map { it.value },
             spo2Samples = spo2.map { it.value },
             hrvSamples = hrv.map { it.value },
@@ -875,6 +891,7 @@ fun VitalsViewModel.VitalsState.toCardInputs(units: UnitSystem): VitalsCardFacto
         unitSystem = units,
         hasBPReference = hasBPReference,
         isGlucoseCalibrated = isGlucoseCalibrated,
+        usualRanges = usualRanges,
     )
 
 /**
@@ -1128,6 +1145,8 @@ class VitalDetailViewModel(
          *  A derived figure shown as a measurement would be worse than the empty chart it replaces,
          *  which is why it travels with the data instead of being re-inferred at the display layer. */
         val isDerived: Boolean = false,
+        /** The user's own 30-day usual range in display units, drawn as a band (service/UsualRange). */
+        val usualRange: ClosedFloatingPointRange<Double>? = null,
     )
 
     /**
@@ -1367,6 +1386,10 @@ class VitalDetailViewModel(
                 com.pulseloop.service.VitalsThresholdEngine.zones(k, physiology, baseline = baseline)
             } ?: emptyList()
 
+            val usualRange = if (derived.isEmpty() && kind in USUAL_RANGE_KINDS)
+                UsualRange.load(db, kind, now)?.let { convert(it.start)..convert(it.endInclusive) }
+            else null
+
             val readings = samples.map {
                 Reading(
                     ids = listOf(it.id),
@@ -1389,6 +1412,7 @@ class VitalDetailViewModel(
                 trend = trend,
                 engineZones = engineZones,
                 isDerived = derived.isNotEmpty(),
+                usualRange = usualRange,
                 loading = false,
             ) }
         }
@@ -1401,6 +1425,14 @@ class VitalDetailViewModel(
      * These are not rows: nothing stored them and [deleteReading] has nothing to remove, which is
      * why the readings list below stays empty on a derived chart.
      */
+    private companion object {
+        /** Vitals whose detail chart gets a "your usual range" band. */
+        val USUAL_RANGE_KINDS = setOf(
+            MeasurementKind.HEART_RATE, MeasurementKind.SPO2, MeasurementKind.HRV,
+            MeasurementKind.STRESS, MeasurementKind.TEMPERATURE,
+        )
+    }
+
     private suspend fun derivedStressIn(from: Long, to: Long): List<VitalSample> {
         val hrv = db.measurementDao().range(MeasurementKind.HRV.name, from, to)
         if (hrv.isEmpty()) return emptyList()

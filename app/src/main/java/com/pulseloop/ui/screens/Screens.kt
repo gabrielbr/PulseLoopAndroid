@@ -757,7 +757,16 @@ fun VitalDetailScreen(
                                 tooltipTimeFormatter = { ts -> tooltipTime(ts, state.period) },
                                 // The whole calendar period, gaps included (issue #102).
                                 timeDomain = state.windowStart to state.windowEnd,
+                                usualRange = state.usualRange,
                             )
+                            if (state.usualRange != null) {
+                                Text(
+                                    "Shaded: your usual range over the last 30 days",
+                                    fontSize = 11.sp,
+                                    color = PulseColors.textMuted,
+                                    modifier = Modifier.padding(top = 6.dp),
+                                )
+                            }
                         }
                     }
                 }

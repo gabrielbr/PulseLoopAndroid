@@ -182,6 +182,8 @@ object VitalsCardFactory {
         /** Calibration state (iOS `Calibration`): drives BP/glucose "needs calibration" quality. */
         val hasBPReference: Boolean = false,
         val isGlucoseCalibrated: Boolean = false,
+        /** The user's own 30-day usual range per metric, in canonical units (service/UsualRange). */
+        val usualRanges: Map<MetricKind, ClosedFloatingPointRange<Double>> = emptyMap(),
     )
 
     fun card(metric: MetricKind, inputs: Inputs, profile: UserPhysiologyProfile): VitalCardState =
@@ -216,7 +218,7 @@ object VitalsCardFactory {
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = "$resting · $peak",
             samples = samples, zones = VitalsThresholdEngine.zones(MetricKind.HEART_RATE, profile),
-            yDomain = domain, referenceBands = normalBand(MetricKind.HEART_RATE, profile, domain),
+            yDomain = domain, referenceBands = usualBand(MetricKind.HEART_RATE, inputs) ?: normalBand(MetricKind.HEART_RATE, profile, domain),
             dashedRules = emptyList(),
             trend = TrendSummary.compute(samples, MetricKind.HEART_RATE, unitLabel = "bpm"),
             sourceQuality = quality, isEstimated = false, confidenceLabel = null,
@@ -243,7 +245,7 @@ object VitalsCardFactory {
             subtitleText = subtitle,
             samples = samples, zones = VitalsThresholdEngine.zones(MetricKind.SPO2, profile),
             yDomain = 88.0..100.0,
-            referenceBands = listOf(ReferenceBand(95.0, 100.0, VitalColorToken.Cyan)),
+            referenceBands = usualBand(MetricKind.SPO2, inputs) ?: listOf(ReferenceBand(95.0, 100.0, VitalColorToken.Cyan)),
             dashedRules = listOf(92.0),
             trend = TrendSummary.compute(samples, MetricKind.SPO2, unitLabel = "%"),
             sourceQuality = quality, isEstimated = false, confidenceLabel = null,
@@ -261,8 +263,8 @@ object VitalsCardFactory {
         val quality = quality(MetricKind.HRV, samples.lastOrNull()?.timestampMs, inputs)
         val interp = latest?.let { VitalsThresholdEngine.interpret(it, MetricKind.HRV, profile, baseline = baseline) }
         val domain = clampedDomain(samples, 0.0..120.0, pad = 10.0, hardLower = 0.0, hardUpper = 250.0)
-        var bands = emptyList<ReferenceBand>()
-        if (baseline != null && baseline.isEstablished) {
+        var bands = usualBand(MetricKind.HRV, inputs) ?: emptyList()
+        if (bands.isEmpty() && baseline != null && baseline.isEstablished) {
             val half = max(6.0, baseline.mean * 0.12)
             bands = listOf(
                 ReferenceBand(baseline.mean - half, baseline.mean + half, MetricKind.HRV.accentToken, opacity = 0.12f),
@@ -310,7 +312,7 @@ object VitalsCardFactory {
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = subtitle,
             samples = samples, zones = VitalsThresholdEngine.zones(metric, profile),
-            yDomain = 0.0..100.0, referenceBands = emptyList(), dashedRules = emptyList(),
+            yDomain = 0.0..100.0, referenceBands = usualBand(metric, inputs) ?: emptyList(), dashedRules = emptyList(),
             trend = TrendSummary.compute(samples, metric),
             sourceQuality = quality, isEstimated = false, confidenceLabel = null,
             lastUpdatedText = lastUpdated(samples.lastOrNull()?.timestampMs, inputs.nowMs),
@@ -352,7 +354,9 @@ object VitalsCardFactory {
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = null,
             samples = dispSamples, zones = zones,
-            yDomain = domain, referenceBands = emptyList(), dashedRules = emptyList(),
+            yDomain = domain,
+            referenceBands = usualBand(MetricKind.TEMPERATURE, inputs) { tempValue(it, units) } ?: emptyList(),
+            dashedRules = emptyList(),
             trend = TrendSummary.compute(dispSamples, MetricKind.TEMPERATURE, unitLabel = tempUnit(units)),
             sourceQuality = quality, isEstimated = false, confidenceLabel = null,
             lastUpdatedText = lastUpdated(rawSamples.lastOrNull()?.timestampMs, inputs.nowMs),
@@ -490,6 +494,19 @@ object VitalsCardFactory {
         val lower = max(hardLower, min(fallback.start, lo - pad))
         val upper = min(hardUpper, max(fallback.endInclusive, hi + pad))
         return if (lower < upper) lower..upper else fallback
+    }
+
+    /**
+     * The user's own usual range as a band, or null before there is one (callers fall back to the
+     * population band). [toDisplay] converts canonical units for display (°C→°F).
+     */
+    private fun usualBand(
+        metric: MetricKind,
+        inputs: Inputs,
+        toDisplay: (Double) -> Double = { it },
+    ): List<ReferenceBand>? {
+        val r = inputs.usualRanges[metric] ?: return null
+        return listOf(ReferenceBand(toDisplay(r.start), toDisplay(r.endInclusive), metric.accentToken, opacity = 0.14f))
     }
 
     /** Reference bands derived from the engine's "normal" zone, for charts that want a soft band. */

@@ -175,7 +175,7 @@ active" needs minute-level intensity the ring doesn't give, so today's goal prog
 The Today header's Activity ring shows this score and opens an Activity score screen with the
 same contributor rows.
 
-### Phase 5: night-only baselines and the coach (done, except chart bands)
+### Phase 5: night-only baselines, chart bands and the coach (done)
 
 - `RestingHRBaselineService` now uses the median nightly resting HR (sleep window only, spikes
   filtered) once 7 nights exist, and falls back to the all-day 10th percentile before that.
@@ -183,8 +183,11 @@ same contributor rows.
 - `ScoresContext` puts readiness, its contributors, coverage and the activity score into both
   the coach summary packet and the check-in notification packet, and the check-in prompt tells
   the model to treat them as estimates and not to quote readiness while it is still learning.
-- Not done yet: a "your usual range" band on every vital chart from the nightly baselines. The
-  HRV card already draws a baseline band; the rest is a follow-up.
+- "Your usual range" bands (`service/UsualRange.kt`): the 25th–75th percentile of the user's
+  own real readings over 30 days, once there are 20+ readings across 7+ days. Drawn on the
+  Today and Vitals chart cards for HR, SpO₂, HRV, stress and temperature (replacing the
+  population band once established) and on each vital's detail chart, captioned "Shaded: your
+  usual range over the last 30 days". Derived stress gets none.
 
 ### Not planned (hardware)
 

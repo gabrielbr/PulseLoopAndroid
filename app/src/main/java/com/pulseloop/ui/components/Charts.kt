@@ -255,6 +255,9 @@ fun TrendChart(
     tooltipTimeFormatter: ((Long) -> String)? = null,
     interactive: Boolean = true,
     timeDomain: Pair<Long, Long>? = null,
+    /** The user's own usual range, shaded behind the line (service/UsualRange). */
+    usualRange: ClosedFloatingPointRange<Double>? = null,
+    usualColor: Color = color,
 ) {
     if (points.isEmpty()) return
 
@@ -418,6 +421,19 @@ fun TrendChart(
 
             // No zone-band background: the iOS detail chart plots on a clean card, with the
             // zone-split line + the REFERENCE ZONES card carrying the range context.
+            // Except the user's own usual range (docs/oura-ux-analysis.md phase 5), clipped to the
+            // plot so a range outside the visible values never paints over the axis.
+            usualRange?.let { r ->
+                val top = yForValue(r.endInclusive).coerceIn(plotTop, plotBottom)
+                val bottom = yForValue(r.start).coerceIn(plotTop, plotBottom)
+                if (bottom - top > 0.5f) {
+                    drawRect(
+                        color = usualColor.copy(alpha = 0.14f),
+                        topLeft = androidx.compose.ui.geometry.Offset(plotLeft, top),
+                        size = androidx.compose.ui.geometry.Size(plotW, bottom - top),
+                    )
+                }
+            }
 
             // Quiet axes (iOS #35): ≤3 faint horizontal gridlines with trailing value labels.
             val gridCount = 3
