@@ -166,17 +166,25 @@ got into bed. Every surface that showed a sleep score now shows this one, and th
 lists the contributors with the same rows as Readiness (`ContributorsCard`). The old
 `SleepSessionEntity.score` column is left alone for history.
 
-### Phase 4: activity score
+### Phase 4: activity score (done)
 
-Contributors from what we have: daily goal, sedentary stretches (15-minute step buckets),
-training frequency and volume (workouts), recovery days.
+`service/ActivityScore.kt`: daily goal progress (25%), meet daily goals over the last week
+(20%), move every hour from 15-minute step buckets between 08:00 and 21:00 (15%), training
+frequency (15%) and volume (15%) from logged workouts, and recovery days (10%). Oura's "stay
+active" needs minute-level intensity the ring doesn't give, so today's goal progress stands in.
+The Today header's Activity ring shows this score and opens an Activity score screen with the
+same contributor rows.
 
-### Phase 5: night-only baselines everywhere, and the coach
+### Phase 5: night-only baselines and the coach (done, except chart bands)
 
-- Switch the resting-HR baseline (also exported to Health Connect) to the nightly value.
-- Vital charts get a "your usual range" band from the nightly baselines.
-- The coach packets get readiness, its weakest contributor and the baseline deviations, so
-  morning check-ins can say *why* today is a rest day.
+- `RestingHRBaselineService` now uses the median nightly resting HR (sleep window only, spikes
+  filtered) once 7 nights exist, and falls back to the all-day 10th percentile before that.
+  That baseline drives the "auto" HR zones and the Health Connect resting-HR export.
+- `ScoresContext` puts readiness, its contributors, coverage and the activity score into both
+  the coach summary packet and the check-in notification packet, and the check-in prompt tells
+  the model to treat them as estimates and not to quote readiness while it is still learning.
+- Not done yet: a "your usual range" band on every vital chart from the nightly baselines. The
+  HRV card already draws a baseline band; the rest is a follow-up.
 
 ### Not planned (hardware)
 

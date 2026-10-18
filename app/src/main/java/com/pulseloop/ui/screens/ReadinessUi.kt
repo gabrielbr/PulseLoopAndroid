@@ -115,13 +115,12 @@ private fun HeaderRing(
 
 /**
  * Today's header: Readiness, Sleep and Activity side by side, then one sentence about today.
- * Activity is goal progress, not a score yet (phase 4), and its caption says so.
  */
 @Composable
 fun ScoreHeader(
     readiness: Readiness.Result?,
     sleepScore: Int?,
-    stepsPercent: Int?,
+    activity: com.pulseloop.service.ActivityScore.Result?,
     onReadiness: () -> Unit,
     onSleep: () -> Unit,
     onActivity: () -> Unit,
@@ -155,9 +154,8 @@ fun ScoreHeader(
             )
             HeaderRing(
                 label = "Activity",
-                value = stepsPercent?.coerceAtMost(100),
-                centerText = stepsPercent?.let { "$it%" } ?: "—",
-                caption = "of step goal",
+                value = activity?.value,
+                caption = activity?.band?.label ?: "No data",
                 color = PulseColors.steps,
                 onTap = onActivity,
                 modifier = Modifier.weight(1f),
@@ -286,5 +284,72 @@ private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> 
         if (expanded) {
             Text(c.explanation, fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 4.dp))
         }
+    }
+}
+
+/** Loads today's activity score, recomputing whenever [key] changes. */
+@Composable
+fun rememberActivityScore(db: PulseLoopDatabase, key: Any?): com.pulseloop.service.ActivityScore.Result? {
+    val result by produceState<com.pulseloop.service.ActivityScore.Result?>(initialValue = null, db, key) {
+        value = runCatching { com.pulseloop.service.ActivityScore.load(db) }.getOrNull()
+    }
+    return result
+}
+
+/** Activity score detail: score, band, contributors, and the estimate footer. */
+@Composable
+fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivity: () -> Unit) {
+    val result = rememberActivityScore(db, Unit)
+    Column(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
+                Icon(Icons.Filled.ArrowBack, "Back")
+            }
+            Text(
+                "Activity", modifier = Modifier.align(Alignment.Center),
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScoreRing(
+                    value = result?.value,
+                    color = result?.let { bandColor(it.band) } ?: PulseColors.steps,
+                    size = 168.dp, stroke = 12.dp, centerSize = 48,
+                )
+                result?.let {
+                    Text(it.band.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = bandColor(it.band))
+                }
+                Text(
+                    activityHeadline(result), fontSize = 15.sp, color = PulseColors.textSecondary,
+                    textAlign = TextAlign.Center,
+                )
+            }
+            result?.let { ContributorsCard(it.contributors) }
+            Text(
+                "Open today's activity",
+                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.steps,
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpenActivity).padding(8.dp),
+            )
+            Text(
+                "Activity is estimated by PulseLoop from your ring's steps and the workouts you log. It is not a medical measurement.",
+                fontSize = 12.sp, color = PulseColors.textMuted,
+            )
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+fun activityHeadline(result: com.pulseloop.service.ActivityScore.Result?): String {
+    if (result == null) return "No activity recorded yet. Sync your ring to see today's score."
+    val weakest = result.contributors.minByOrNull { it.score }?.takeIf { it.score < 70 }?.title?.lowercase()
+    return when (result.band) {
+        Readiness.Band.OPTIMAL -> "Great balance of movement and recovery. Keep it up."
+        Readiness.Band.GOOD -> "A solid active day so far."
+        Readiness.Band.FAIR, Readiness.Band.PAY_ATTENTION ->
+            if (weakest != null) "There's room to move more. Start with your $weakest." else "There's room to move more today."
     }
 }
