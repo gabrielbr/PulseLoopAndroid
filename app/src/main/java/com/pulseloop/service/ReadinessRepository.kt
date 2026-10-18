@@ -43,7 +43,7 @@ object ReadinessRepository {
 
         val windowStart = sessions.minOfOrNull { it.startAt } ?: from
         val windowEnd = sessions.maxOfOrNull { it.endAt } ?: now
-        fun samples(kind: MeasurementKind) = db.measurementDao()
+        suspend fun samples(kind: MeasurementKind) = db.measurementDao()
             .rangeReal(kind.name, windowStart, windowEnd)
             .map { VitalSample(it.timestamp, it.value) }
         val hr = samples(MeasurementKind.HEART_RATE)

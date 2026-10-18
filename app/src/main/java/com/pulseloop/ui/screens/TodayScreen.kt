@@ -86,6 +86,9 @@ fun TodayScreen(
         MetricKind.entries.associateWith { VitalsCardFactory.card(it, inputs, vitals.profile) }
     }
     val hero = remember(state, sleep) { deriveHero(state, sleep) }
+    // Readiness recomputes whenever Today's data or last night's session changes.
+    val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
+    val readiness = rememberReadiness(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
 
     // Per-metric visibility + user order (iOS #64), read reactively so a hide/show/reorder
     // recomposes immediately (this is also the iOS #70 reactivity).
@@ -142,6 +145,20 @@ fun TodayScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            // Oura-style score header (docs/oura-ux-analysis.md, phase 2).
+            item {
+                ScoreHeader(
+                    readiness = readiness,
+                    sleepScore = sleep.score?.score ?: sleep.lastNight?.score,
+                    stepsPercent = state.steps?.let { steps ->
+                        if (state.stepGoal > 0) (steps * 100 / state.stepGoal) else null
+                    },
+                    onReadiness = { navController?.navigate("readiness") },
+                    onSleep = { navController?.navigate("sleep") },
+                    onActivity = { navController?.navigate("activity") },
+                )
+            }
+
             // Top insight card. When the coach is on it owns this slot (tap → chat);
             // otherwise the deterministic hero fills it. Only ever one card here, so the coach
             // summary and the hero can't render the same content twice on one screen (iOS #42).

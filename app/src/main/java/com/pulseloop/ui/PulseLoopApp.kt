@@ -638,6 +638,9 @@ fun PulseLoopApp() {
                     })
                     DebugScreen(debugVM, onBack = { navController.popBackStack() })
                 }
+                paddedComposable("readiness") {
+                    com.pulseloop.ui.screens.ReadinessScreen(db = db, onBack = { navController.popBackStack() })
+                }
                 paddedComposable("vitals/{metric}") { backStackEntry ->
                     val metric = backStackEntry.arguments?.getString("metric") ?: return@paddedComposable
                     VitalDetailScreen(

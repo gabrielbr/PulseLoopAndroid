@@ -342,3 +342,62 @@ private fun median(values: List<Double>?): Double? {
     val mid = s.size / 2
     return if (s.size % 2 == 1) s[mid] else (s[mid - 1] + s[mid]) / 2
 }
+
+/**
+ * The words around the score, kept beside the engine so they're testable and every surface says
+ * the same thing. Tone follows Oura's: plain, about the user's own normal, never a diagnosis, and
+ * a low score suggests rest rather than assigning blame.
+ */
+object ReadinessCopy {
+
+    /** One sentence for under the score. */
+    fun headline(result: Readiness.Result): String = when (result) {
+        is Readiness.Result.Score -> {
+            val weakest = result.contributors.minByOrNull { it.score }
+                ?.takeIf { it.score < 70 }?.kind?.title?.lowercase()
+            when (result.band) {
+                Readiness.Band.OPTIMAL -> "You're well recovered. A good day to take on something demanding."
+                Readiness.Band.GOOD -> "You're in good shape today. Your usual plans should feel fine."
+                Readiness.Band.FAIR -> if (weakest != null)
+                    "Your body is still recovering. Go a little easier today and watch your $weakest."
+                else "Your body is still recovering. Go a little easier today."
+                Readiness.Band.PAY_ATTENTION -> if (weakest != null)
+                    "Your body is asking for rest. Make recovery today's priority: your $weakest is furthest from your usual."
+                else "Your body is asking for rest. Make recovery today's priority."
+            }
+        }
+        is Readiness.Result.Learning ->
+            "Learning your baseline: ${result.nightsCollected} of ${result.nightsNeeded} nights. Keep wearing your ring to bed."
+        Readiness.Result.NoSleep -> "No sleep recorded for last night yet. Sync your ring after you wake up."
+    }
+
+    /** A visible caution when the ring missed much of the night, or null when coverage is fine. */
+    fun coverageNote(result: Readiness.Result.Score): String? {
+        val c = result.nightCoverage ?: return null
+        if (c >= LOW_COVERAGE) return null
+        return "Your ring captured only ${(c * 100).roundToInt()}% of last night, so today's score is less certain."
+    }
+
+    const val LOW_COVERAGE = 0.6
+
+    const val DERIVED_FOOTER =
+        "Readiness is estimated by PulseLoop from your ring's sleep, heart rate, HRV and activity, compared with your own recent nights. It is not a medical measurement."
+
+    /** What each contributor measures, for its detail sheet. */
+    fun explanation(kind: Readiness.ContributorKind): String = when (kind) {
+        Readiness.ContributorKind.RESTING_HR ->
+            "Your lowest sustained heart rate last night, compared with your usual over recent nights. A resting heart rate a few beats above normal can mean your body is working on recovery, stress, or an oncoming illness."
+        Readiness.ContributorKind.HRV_BALANCE ->
+            "Your heart rate variability over the last few nights, weighted toward last night, compared with your usual. Higher than usual generally means you're well recovered; a drop suggests strain."
+        Readiness.ContributorKind.SLEEP ->
+            "How much you slept last night compared with your sleep goal."
+        Readiness.ContributorKind.SLEEP_BALANCE ->
+            "Your average sleep over the last two weeks compared with your goal. It shows whether sleep debt is building up."
+        Readiness.ContributorKind.SLEEP_REGULARITY ->
+            "How consistent the timing of your sleep has been over the last two weeks. A steady rhythm helps recovery."
+        Readiness.ContributorKind.PREVIOUS_DAY_ACTIVITY ->
+            "Yesterday's steps compared with your usual. Both a very inactive day and an unusually heavy one lower this."
+        Readiness.ContributorKind.ACTIVITY_BALANCE ->
+            "This week's activity compared with your monthly average. It flags both overdoing it and a drop in activity."
+    }
+}

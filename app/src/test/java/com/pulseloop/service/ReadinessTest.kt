@@ -152,6 +152,30 @@ class ReadinessTest {
     }
 
     @Test
+    fun `a low score names the weakest contributor and suggests rest`() {
+        val r = Readiness.compute(inputs(last = night(today, rhr = 66.0, hrv = 20.0, asleep = 150))) as Readiness.Result.Score
+        assertEquals(Readiness.Band.PAY_ATTENTION, r.band)
+        val text = ReadinessCopy.headline(r)
+        assertTrue(text, text.startsWith("Your body is asking for rest"))
+        assertTrue(text, text.contains("resting heart rate"))
+    }
+
+    @Test
+    fun `learning copy shows progress and low coverage gets a caution`() {
+        assertEquals(
+            "Learning your baseline: 4 of 7 nights. Keep wearing your ring to bed.",
+            ReadinessCopy.headline(Readiness.Result.Learning(4, 7)),
+        )
+        val full = Readiness.compute(inputs()) as Readiness.Result.Score
+        assertNull(ReadinessCopy.coverageNote(full))
+        val thin = Readiness.compute(inputs(last = night(today, coverage = 0.4))) as Readiness.Result.Score
+        assertEquals(
+            "Your ring captured only 40% of last night, so today's score is less certain.",
+            ReadinessCopy.coverageNote(thin),
+        )
+    }
+
+    @Test
     fun `bands follow Oura's published cut-offs`() {
         assertEquals(Readiness.Band.OPTIMAL, Readiness.Band.of(85))
         assertEquals(Readiness.Band.GOOD, Readiness.Band.of(84))
