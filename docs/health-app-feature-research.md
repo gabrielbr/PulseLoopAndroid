@@ -16,9 +16,18 @@ budget ring like the Colmi R06 can measure (HR, HRV, SpO₂, steps, sleep stages
 
 All are switchable under Settings → Coach Check-Ins → Daily guidance, and work without an AI key.
 
+## Built (journal)
+
+**Tags and "what affects you"** (WHOOP Journal, Oura tags). Ten tags (alcohol, caffeine after
+2 pm, late meal, hard workout, stressful day, screens in bed, feeling unwell, travel, meditation
+or relaxing, daytime nap) on a Today card (six most common) and a Journal screen (today and
+yesterday). `service/JournalInsights.kt` reads each tag's effect from the night after the tagged
+day, against nights after untagged days: HRV (shown when it differs by 5%+), resting HR (2+ bpm)
+and sleep (15+ min), with at least 3 nights on each side. Stored in `journal_entries` (DB v29),
+carried in the data archive.
+
 ## Next candidates
 
-- **Tags and journal**, then "what affects you" correlations (WHOOP Journal, Oura tags). Medium effort.
 - **Breathing session with live heart rate** (WHOOP stress monitor). Medium effort.
 - **Training load**: 7-day vs 28-day workout load (Apple, WHOOP Strain, Garmin). Only logged workouts have HR.
 

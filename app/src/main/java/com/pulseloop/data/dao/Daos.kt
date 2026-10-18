@@ -866,3 +866,25 @@ data class SleepRecordEditBounds(
     val newStartAt: Long,
     val newEndAt: Long,
 )
+
+/** Journal tags (docs/health-app-feature-research.md). */
+@Dao
+interface JournalDao {
+    @Query("SELECT * FROM journal_entries WHERE day = :day")
+    fun forDayFlow(day: Long): Flow<List<JournalEntryEntity>>
+
+    @Query("SELECT * FROM journal_entries WHERE day >= :from ORDER BY day ASC")
+    suspend fun since(from: Long): List<JournalEntryEntity>
+
+    @Query("SELECT * FROM journal_entries ORDER BY day ASC")
+    suspend fun all(): List<JournalEntryEntity>
+
+    @Upsert
+    suspend fun upsert(entry: JournalEntryEntity)
+
+    @Upsert
+    suspend fun upsertAll(entries: List<JournalEntryEntity>)
+
+    @Query("DELETE FROM journal_entries WHERE id = :id")
+    suspend fun delete(id: String)
+}

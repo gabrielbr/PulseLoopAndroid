@@ -319,6 +319,9 @@ object DataArchiveService {
                     timestamp = c.long("timestamp"), deletedAt = c.long("deletedAt"),
                 )
             },
+            journalEntries = collect("journal_entries") { c ->
+                JournalEntryDTO(id = c.str("id"), day = c.long("day"), tag = c.str("tag"), createdAt = c.long("createdAt"))
+            },
         )
     }
 
@@ -389,6 +392,11 @@ object DataArchiveService {
                         )
                     }
                 )
+            }
+            if (archive.journalEntries.isNotEmpty()) {
+                db.journalDao().upsertAll(archive.journalEntries.map {
+                    JournalEntryEntity(id = it.id, day = it.day, tag = it.tag, createdAt = it.createdAt)
+                })
             }
             for (a in archive.activityDaily) {
                 db.activityDailyDao().upsert(ActivityDailyEntity(

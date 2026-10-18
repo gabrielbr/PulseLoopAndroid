@@ -43,8 +43,9 @@ import com.pulseloop.data.entity.*
         MealEntryEntity::class,
         CachedFoodProductEntity::class,
         MeasurementDeletionEntity::class,
+        JournalEntryEntity::class,
     ],
-    version = 28,
+    version = 29,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -77,6 +78,8 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     // iOS #96: Nutrition
     abstract fun mealEntryDao(): MealEntryDao
     abstract fun foodProductDao(): FoodProductDao
+    /** Journal tags for "what affects you" insights. */
+    abstract fun journalDao(): JournalDao
 
     /**
      * Empty every table, atomically. Goes through Room's [withTransaction] rather than a raw
@@ -112,6 +115,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "raw_packets", "derived_updates", "coach_summaries",
             "wearable_logs", "coach_notification_records",
             "meal_entries", "food_products", "measurement_deletions",
+            "journal_entries",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -523,6 +527,17 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** v28 → v29: journal tags (docs/health-app-feature-research.md). */
+        private val MIGRATION_28_29 = object : Migration(28, 29) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `journal_entries` (`id` TEXT NOT NULL, `day` INTEGER NOT NULL, " +
+                        "`tag` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_journal_entries_day` ON `journal_entries` (`day`)")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -617,6 +632,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_25_26,
                         MIGRATION_26_27,
                         MIGRATION_27_28,
+                        MIGRATION_28_29,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and
