@@ -60,7 +60,11 @@ object CoachNotifications {
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) return
 
-        val request = PeriodicWorkRequestBuilder<CoachNotificationWorker>(24, TimeUnit.HOURS)
+        // Hourly, not daily: a 24h periodic runs at whatever hour it was first enqueued, so it
+        // used to land at e.g. 02:00 and send "Good morning" there. Each hourly run only sends
+        // inside the device-local morning/evening window and the per-day dedupe makes the rest
+        // no-ops, so the check-in follows the phone's clock, including after a timezone change.
+        val request = PeriodicWorkRequestBuilder<CoachNotificationWorker>(1, TimeUnit.HOURS)
             .setConstraints(
                 Constraints.Builder()
                     .setRequiresBatteryNotLow(true)
@@ -68,9 +72,11 @@ object CoachNotifications {
             )
             .build()
 
+        // UPDATE, not KEEP, so installs that already hold the old 24h schedule pick up the
+        // hourly one instead of keeping their mistimed cycle forever.
         WorkManager.getInstance(context).enqueueUniquePeriodicWork(
             DAILY_WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
+            ExistingPeriodicWorkPolicy.UPDATE,
             request,
         )
     }
@@ -148,12 +154,10 @@ class CoachNotificationWorker(
             return Result.success()
         }
 
-        // fallbackToForcedSlot: this is the 24h periodic, which fires wherever the cycle lands
-        // (not inside a slot window, unlike iOS's scheduler). Fall back to a forced slot so it
-        // still delivers the day's check-in; the data trigger (strict, in-window) covers the
-        // other slot and the shared (dateKey, slotRaw) dedupe stops either from double-sending.
-        val outcome = CoachNotificationSlotRunner.forContext(applicationContext)
-            .runDueSlot(fallbackToForcedSlot = true)
+        // Strict slot window, no forced-slot fallback: the worker runs hourly, so the morning and
+        // evening windows each get several chances. The fallback was for the old 24h periodic and
+        // is what sent "Good morning" at 02:00 (forcedSlot calls every hour before 14 morning).
+        val outcome = CoachNotificationSlotRunner.forContext(applicationContext).runDueSlot()
         Log.i(TAG, "due slot -> $outcome")
         // Every outcome is a normal completion: the skipped ones are a gate deciding
         // "not now" (the data trigger, a +45min sleep retry, or the next periodic

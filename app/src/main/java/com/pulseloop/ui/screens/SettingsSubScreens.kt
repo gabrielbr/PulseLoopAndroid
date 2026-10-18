@@ -1961,6 +1961,10 @@ fun WearableSettingsScreen(
         }
 
         if (device != null) {
+            BackgroundSyncCard()
+        }
+
+        if (device != null) {
             QuietHoursCard()
         }
 
@@ -2063,6 +2067,74 @@ fun WearableSettingsScreen(
                 TextButton(onClick = { showFactoryReset = false }) { Text("Cancel") }
             },
         )
+    }
+}
+
+/**
+ * Opt-in exemption from battery optimisation, so the ~30-minute [RingSyncWorker] runs on time.
+ *
+ * Without it Android defers that job while the phone sits idle (Doze, app-standby buckets, and
+ * harder on some OEMs), so overnight syncs can be hours apart. A persistent foreground-service
+ * notification would not fix that: it keeps the process alive but Doze still defers the job, and
+ * the ring ends the link itself ~20 s after a sync anyway (see IdleLinkPolicy). The exemption is
+ * what lets the scheduled sync run. The ring logs everything to its own memory meanwhile, so
+ * this changes how fresh the app is, never whether data is kept.
+ */
+@Composable
+private fun BackgroundSyncCard() {
+    val context = LocalContext.current
+    val powerManager = remember { context.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager }
+    var exempt by remember { mutableStateOf(powerManager.isIgnoringBatteryOptimizations(context.packageName)) }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                exempt = powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Reliable background sync", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (exempt) {
+                    "On. PulseLoop syncs your ring about every 30 minutes, even while the phone is idle."
+                } else {
+                    "Android may delay background syncs by hours while your phone is idle. Your ring " +
+                        "keeps recording either way; allowing this keeps the app up to date."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = {
+                    val intent = if (exempt) {
+                        // Turning it back off is only possible from the system list.
+                        Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                    } else {
+                        Intent(
+                            android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:${context.packageName}"),
+                        )
+                    }
+                    runCatching { context.startActivity(intent) }
+                        .onFailure {
+                            runCatching {
+                                context.startActivity(Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+                            }
+                        }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (exempt) "Manage in Android settings" else "Allow background sync")
+            }
+        }
     }
 }
 
