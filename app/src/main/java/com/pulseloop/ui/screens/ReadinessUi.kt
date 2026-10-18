@@ -91,13 +91,21 @@ fun ScoreRing(
 }
 
 @Composable
-private fun HeaderRing(label: String, value: Int?, caption: String, color: Color, onTap: () -> Unit, modifier: Modifier) {
+private fun HeaderRing(
+    label: String,
+    value: Int?,
+    caption: String,
+    color: Color,
+    onTap: () -> Unit,
+    modifier: Modifier,
+    centerText: String = value?.toString() ?: "—",
+) {
     Column(
         modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onTap).padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        ScoreRing(value = value, color = color, size = 84.dp, stroke = 7.dp)
+        ScoreRing(value = value, color = color, size = 84.dp, stroke = 7.dp, centerText = centerText)
         Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Text(caption, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
     }
