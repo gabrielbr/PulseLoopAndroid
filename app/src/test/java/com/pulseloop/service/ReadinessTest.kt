@@ -157,7 +157,8 @@ class ReadinessTest {
         assertEquals(Readiness.Band.PAY_ATTENTION, r.band)
         val text = ReadinessCopy.headline(r)
         assertTrue(text, text.startsWith("Your body is asking for rest"))
-        assertTrue(text, text.contains("resting heart rate"))
+        val weakest = r.contributors.minBy { it.score }.kind.title.lowercase()
+        assertTrue(text, text.contains("your $weakest is furthest from your usual"))
     }
 
     @Test
