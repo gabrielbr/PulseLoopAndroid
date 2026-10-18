@@ -41,7 +41,11 @@ data class PulseArchive(
      * the days behind them, and the next sync would put every deleted reading back.
      */
     val measurementDeletions: List<MeasurementDeletionDTO> = emptyList(),
+    /** Journal tags (docs/health-app-feature-research.md). */
+    val journalEntries: List<JournalEntryDTO> = emptyList(),
 )
+
+@Serializable data class JournalEntryDTO(val id: String, val day: Long, val tag: String, val createdAt: Long)
 
 @Serializable data class DeviceDTO(
     val id: String, val name: String, val advertisedName: String? = null,

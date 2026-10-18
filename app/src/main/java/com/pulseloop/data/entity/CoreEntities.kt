@@ -304,3 +304,21 @@ data class MeasurementDeletionEntity(
     val timestamp: Long,
     val deletedAt: Long = System.currentTimeMillis(),
 )
+
+/**
+ * One journal tag on one day ("Alcohol" on 2026-10-17), for "what affects you" insights
+ * (docs/health-app-feature-research.md). [day] is the local midnight of the day the behaviour
+ * happened; its effect is read from the night that follows. The id is "<day>:<tag>", so tagging
+ * the same thing twice on one day is idempotent and untagging is a delete by id.
+ */
+@Entity(tableName = "journal_entries", indices = [Index("day")])
+data class JournalEntryEntity(
+    @PrimaryKey val id: String,
+    val day: Long,
+    val tag: String,
+    val createdAt: Long = System.currentTimeMillis(),
+) {
+    companion object {
+        fun idFor(day: Long, tag: String) = "$day:$tag"
+    }
+}

@@ -640,6 +640,9 @@ fun PulseLoopApp() {
                     })
                     DebugScreen(debugVM, onBack = { navController.popBackStack() })
                 }
+                paddedComposable("journal") {
+                    com.pulseloop.ui.screens.JournalScreen(db = db, onBack = { navController.popBackStack() })
+                }
                 paddedComposable("activity_score") {
                     com.pulseloop.ui.screens.ActivityScoreScreen(
                         db = db,

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -165,6 +166,19 @@ fun TodayScreen(
                     item { UnusualSignalsCard(g.offSignals) }
                 }
                 g.bedtime?.let { b -> item { TonightCard(b, g.sleepGoalMinutes) } }
+            }
+            // Journal tags (docs/health-app-feature-research.md).
+            item {
+                JournalTagsCard(
+                    db, java.time.LocalDate.now(), "Tag your day",
+                    tags = com.pulseloop.service.JournalInsights.Tag.entries.take(6),
+                ) {
+                    Text(
+                        "See what affects you",
+                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
+                        modifier = Modifier.clickable { navController?.navigate("journal") }.padding(top = 4.dp),
+                    )
+                }
             }
 
             // Top insight card. When the coach is on it owns this slot (tap → chat);
