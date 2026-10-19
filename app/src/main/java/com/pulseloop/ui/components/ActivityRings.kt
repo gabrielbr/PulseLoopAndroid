@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.trackBrush
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -67,7 +68,7 @@ fun ActivityRings(
 
             // Muted full-circle track.
             drawArc(
-                color = trackColor,
+                brush = trackBrush(trackColor),
                 startAngle = 0f,
                 sweepAngle = 360f,
                 useCenter = false,

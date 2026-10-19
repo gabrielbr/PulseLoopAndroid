@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +47,7 @@ fun UnusualSignalsCard(signals: List<OffSignal>) {
     if (!VitalsCheck.shouldAlert(signals)) return
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
-            .background(PulseColors.warning.copy(alpha = 0.12f)).padding(16.dp),
+            .dither(PulseColors.warning, 0.12f).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text("Some signals look unusual", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.warning)

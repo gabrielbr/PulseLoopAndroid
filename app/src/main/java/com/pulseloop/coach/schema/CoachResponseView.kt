@@ -1,5 +1,6 @@
 package com.pulseloop.coach.schema
 
+import com.pulseloop.ui.theme.dither
 import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -122,7 +123,7 @@ private fun NoteRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tone.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+            .dither(tone, 0.1f, RoundedCornerShape(12.dp))
             .padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.Top,

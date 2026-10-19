@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.theme.ditherFade
 
 // Today-page tiles, ported from Views/TodayTiles.swift. Every tile is half-width (2-column grid)
 // and shares one fixed height so the grid never jumps. Each wraps the shared [TodayTile] chrome
@@ -387,11 +389,12 @@ private fun ChipTone.foreground() = when (this) {
     ChipTone.WARN -> PulseColors.warning
 }
 
-private fun ChipTone.background() = when (this) {
-    ChipTone.NEUTRAL -> Color.White.copy(alpha = 0.10f)
-    ChipTone.UP -> PulseColors.success.copy(alpha = 0.15f)
-    ChipTone.DOWN -> PulseColors.danger.copy(alpha = 0.15f)
-    ChipTone.WARN -> PulseColors.warning.copy(alpha = 0.15f)
+/** The chip's wash: its tone colour dithered, never a translucent shade. */
+private fun ChipTone.ditherColor() = when (this) {
+    ChipTone.NEUTRAL -> PulseColors.textPrimary
+    ChipTone.UP -> PulseColors.success
+    ChipTone.DOWN -> PulseColors.danger
+    ChipTone.WARN -> PulseColors.warning
 }
 
 private fun ChipTone.border() = when (this) {
@@ -407,11 +410,8 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
         modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(PulseColors.accent.copy(alpha = 0.18f), PulseColors.spo2.copy(alpha = 0.10f)),
-                ),
-            )
+            .background(PulseColors.card)
+            .ditherFade(PulseColors.accent, 0.18f, 0.06f)
             .border(1.dp, PulseColors.borderSubtle, shape)
             .padding(20.dp),
     ) {
@@ -434,7 +434,7 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
                         maxLines = 1,
                         modifier = Modifier
                             .clip(CircleShape)
-                            .background(chip.tone.background())
+                            .dither(chip.tone.ditherColor(), if (chip.tone == ChipTone.NEUTRAL) 0.10f else 0.15f)
                             .border(1.dp, chip.tone.border(), CircleShape)
                             .padding(horizontal = 10.dp, vertical = 5.dp),
                     )

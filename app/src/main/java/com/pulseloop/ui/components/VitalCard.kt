@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -125,7 +126,7 @@ private fun EstimatedChip() {
         color = ZonePalette.ZoneAmber,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(ZonePalette.ZoneAmber.copy(alpha = 0.14f))
+            .dither(ZonePalette.ZoneAmber, 0.14f)
             .padding(horizontal = 8.dp, vertical = 3.dp),
     )
 }

@@ -509,11 +509,11 @@ fun PulseLoopApp() {
                                     selected = selected,
                                     onClick = { onTab(tab) },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = com.pulseloop.ui.theme.PulseColors.textPrimary,
+                                        selectedIconColor = com.pulseloop.ui.theme.PulseColors.onAccent,
                                         selectedTextColor = com.pulseloop.ui.theme.PulseColors.textPrimary,
                                         unselectedIconColor = com.pulseloop.ui.theme.PulseColors.textMuted,
                                         unselectedTextColor = com.pulseloop.ui.theme.PulseColors.textMuted,
-                                        indicatorColor = com.pulseloop.ui.theme.PulseColors.accentSoft,
+                                        indicatorColor = com.pulseloop.ui.theme.PulseColors.accent,
                                     ),
                                 )
                             }

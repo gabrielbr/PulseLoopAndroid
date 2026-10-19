@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -182,7 +183,7 @@ private fun ActivityTypeButton(type: String, isSelected: Boolean, onSelect: (Str
     Row(
         modifier
             .clip(shape)
-            .background(if (isSelected) PulseColors.accentSoft else PulseColors.cardSoft)
+            .then(if (isSelected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.cardSoft))
             .border(1.5.dp, if (isSelected) PulseColors.accent.copy(alpha = 0.9f) else Color.Transparent, shape)
             .clickable { onSelect(type) }
             .padding(12.dp),
@@ -193,19 +194,19 @@ private fun ActivityTypeButton(type: String, isSelected: Boolean, onSelect: (Str
             Modifier
                 .size(38.dp)
                 .clip(CircleShape)
-                .background(if (isSelected) Color.White.copy(alpha = 0.22f) else PulseColors.card),
+                .background(if (isSelected) PulseColors.accent else PulseColors.card),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 ActivityMeta.icon(type), null,
-                tint = if (isSelected) Color.White else PulseColors.textSecondary,
+                tint = if (isSelected) PulseColors.onAccent else PulseColors.textSecondary,
                 modifier = Modifier.size(20.dp),
             )
         }
         Text(
             ActivityMeta.label(type),
             fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
-            color = if (isSelected) Color.White else PulseColors.textPrimary,
+            color = PulseColors.textPrimary,
             modifier = Modifier.weight(1f),
         )
         if (isSelected) {
@@ -245,7 +246,7 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
                         .weight(1f)
                         .height(34.dp)
                         .clip(CircleShape)
-                        .background(if (selected) PulseColors.accentSoft else PulseColors.card)
+                        .then(if (selected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.card))
                         .border(1.dp, if (selected) PulseColors.accent.copy(alpha = 0.9f) else Color.Transparent, CircleShape)
                         .clickable { onChange(value) }
                         .wrapContentHeight(),

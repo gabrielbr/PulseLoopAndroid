@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -2762,7 +2763,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .background(PulseColors.accent.copy(alpha = tapProgress * 0.22f))
+                    .dither(PulseColors.accent, tapProgress * 0.22f)
                     .padding(16.dp),
             ) {
                 Text("Version", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)

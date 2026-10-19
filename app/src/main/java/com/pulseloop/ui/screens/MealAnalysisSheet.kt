@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -401,8 +402,9 @@ fun MealAnalysisDialog(
                             // ProvenanceBadge(source: .llmEstimate) — "AI estimate", sparkles,
                             // accent (NutritionComponents.swift:231-264).
                             Surface(
+                                modifier = Modifier.dither(PulseColors.accent, 0.14f, RoundedCornerShape(50)),
                                 shape = RoundedCornerShape(50),
-                                color = PulseColors.accent.copy(alpha = 0.14f),
+                                color = Color.Transparent,
                             ) {
                                 Row(
                                     Modifier.padding(horizontal = 8.dp, vertical = 4.dp),

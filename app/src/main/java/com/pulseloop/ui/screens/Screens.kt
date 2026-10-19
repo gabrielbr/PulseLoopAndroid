@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -895,7 +896,7 @@ fun VitalDetailScreen(
                             Modifier
                                 .fillMaxWidth()
                                 .clip(cardShape)
-                                .background(ZonePalette.ZoneAmber.copy(alpha = 0.10f))
+                                .dither(ZonePalette.ZoneAmber, 0.10f)
                                 .border(1.dp, ZonePalette.ZoneAmber.copy(alpha = 0.30f), cardShape)
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -1089,7 +1090,7 @@ private fun PeriodSegmentedControl(selected: Period, onSelect: (Period) -> Unit)
                 Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSelected) Color.White.copy(alpha = 0.16f) else Color.Transparent)
+                    .then(if (isSelected) Modifier.dither(PulseColors.textPrimary, 0.16f) else Modifier)
                     .clickable { onSelect(p) }
                     .padding(vertical = 7.dp),
                 contentAlignment = Alignment.Center,

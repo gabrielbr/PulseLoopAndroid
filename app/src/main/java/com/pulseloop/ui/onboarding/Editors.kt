@@ -1,5 +1,6 @@
 package com.pulseloop.ui.onboarding
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -359,7 +360,7 @@ private fun NumberPickerSheet(
                         Modifier
                             .fillMaxWidth()
                             .clickable { selection = value }
-                            .background(if (selected) PulseColors.accentSoft else Color.Transparent)
+                            .then(if (selected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center,
                     ) {
@@ -606,7 +607,7 @@ private fun GoalSliderCard(
                 Modifier
                     .size(30.dp)
                     .clip(RoundedCornerShape(9.dp))
-                    .background(tint.copy(alpha = 0.14f)),
+                    .dither(tint, 0.14f),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(icon, contentDescription = null, Modifier.size(16.dp), tint = tint)

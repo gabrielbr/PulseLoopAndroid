@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -123,7 +124,7 @@ fun DeviceHeroCard(
                     Row(
                         Modifier
                             .clip(CircleShape)
-                            .background(PulseColors.success.copy(alpha = 0.12f))
+                            .dither(PulseColors.success, 0.12f)
                             .padding(horizontal = 9.dp, vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -163,7 +164,7 @@ fun DeviceHeroCard(
                     modifier = Modifier
                         .heightIn(min = 44.dp)
                         .clip(CircleShape)
-                        .background(if (status.actionEnabled) PulseColors.accentSoft else PulseColors.elevated)
+                        .then(if (status.actionEnabled) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.elevated))
                         .clickable(enabled = status.actionEnabled) {
                             when (status.action) {
                                 DeviceHeroStatus.Action.CONNECT -> onConnect()

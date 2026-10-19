@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -125,7 +126,7 @@ fun WorkoutSummaryScreen(
         item {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
-                    Modifier.size(72.dp).clip(CircleShape).background(PulseColors.accentSoft),
+                    Modifier.size(72.dp).clip(CircleShape).dither(PulseColors.accent, 0.18f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(ActivityMeta.icon(s.type), null, tint = PulseColors.accent, modifier = Modifier.size(34.dp))

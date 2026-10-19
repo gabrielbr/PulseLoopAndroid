@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
@@ -143,7 +144,7 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null) {
             Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(PulseColors.info, PulseColors.accent))),
+                .background(PulseColors.accent),
             contentAlignment = Alignment.TopEnd,
         ) {
             Box(
@@ -203,10 +204,11 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
                 .background(
                     when {
                         isUser -> PulseColors.accent
-                        msg.isError -> errorColor.copy(alpha = 0.12f)
+                        msg.isError -> Color.Transparent
                         else -> PulseColors.card
                     }
                 )
+                .then(if (msg.isError) Modifier.dither(errorColor, 0.12f) else Modifier)
                 .then(if (msg.isError) Modifier.border(1.dp, errorColor.copy(alpha = 0.5f), RoundedCornerShape(24.dp)) else Modifier)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),

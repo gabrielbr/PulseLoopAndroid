@@ -1,6 +1,8 @@
 package com.pulseloop.ui.components
 
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.theme.ditherBrush
+import com.pulseloop.ui.theme.drawDitherFade
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -429,7 +431,7 @@ fun TrendChart(
                 val bottom = yForValue(r.start).coerceIn(plotTop, plotBottom)
                 if (bottom - top > 0.5f) {
                     drawRect(
-                        color = usualColor.copy(alpha = 0.14f),
+                        brush = ditherBrush(usualColor, 0.14f) ?: return@let,
                         topLeft = androidx.compose.ui.geometry.Offset(plotLeft, top),
                         size = androidx.compose.ui.geometry.Size(plotW, bottom - top),
                     )
@@ -624,12 +626,7 @@ private fun DrawScope.drawTrendSeries(
             fill.lineTo(runOffsets.last().x, plotBottom)
             fill.lineTo(runOffsets.first().x, plotBottom)
             fill.close()
-            drawPath(
-                fill,
-                brush = Brush.verticalGradient(
-                    colors = listOf(seriesColor.copy(alpha = 0.18f), seriesColor.copy(alpha = 0.02f)),
-                ),
-            )
+            drawDitherFade(fill, seriesColor, 0.18f, 0.02f, runOffsets.minOf { it.y }, plotBottom)
             val line = Path()
             runOffsets.forEachIndexed { i, o -> if (i == 0) line.moveTo(o.x, o.y) else line.lineTo(o.x, o.y) }
             drawPath(line, seriesColor, style = Stroke(width = lineWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
