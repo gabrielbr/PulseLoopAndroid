@@ -141,6 +141,7 @@ object NotificationContextBuilder {
             dataQualityWarnings = warnings,
             environment = environment,
             scores = com.pulseloop.service.ScoresContext.build(db),
+            nutrition = com.pulseloop.service.NutritionContext.build(db, now),
         )
     }
 

@@ -52,6 +52,8 @@ data class NotificationContextPacket(
     val environment: EnvironmentContext? = null,
     /** Readiness and activity scores (docs/oura-ux-analysis.md phase 5). */
     val scores: com.pulseloop.service.ScoresContext? = null,
+    /** Today's logged food, null when the user doesn't log meals. */
+    val nutrition: com.pulseloop.service.NutritionContext? = null,
 ) {
     data class GoalContext(
         val stepsDaily: Int,
@@ -131,6 +133,7 @@ data class NotificationContextPacket(
         dataQualityWarnings = dataQualityWarnings,
         environment = environment,
         scores = scores,
+        nutrition = nutrition,
     )
 
     fun toJsonString(): String {
@@ -157,6 +160,7 @@ data class NotificationContextPacket(
             val dataQualityWarnings: List<String> = emptyList(),
             val environment: EnvironmentContext? = null,
             val scores: com.pulseloop.service.ScoresContext? = null,
+            val nutrition: com.pulseloop.service.NutritionContext? = null,
         ) {
             @kotlinx.serialization.Serializable
             data class SerializableGoalContext(val stepsDaily: Int, val activeMinutesDaily: Int, val sleepHours: Int, val exerciseDaysWeekly: Int)

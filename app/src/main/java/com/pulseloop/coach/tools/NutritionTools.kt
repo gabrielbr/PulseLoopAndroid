@@ -61,9 +61,14 @@ object NutritionTools {
     internal const val sourceRawLlmEstimate = "llm_estimate"  // coach estimate, no grounding
     internal const val sourceRawManual = "manual"             // user typed the numbers
 
-    val all: List<CoachToolDef> = listOf(makeSearchFoodDatabase(), makeGetNutritionLog())
+    /**
+     * `log_meal` sits with the always-on tools: it only adds the user's own meal when they tell
+     * the coach what they ate, which is the point of telling it, and the meal can be deleted from
+     * the Nutrition screen. Editing and deleting existing meals stay behind the write-tools flag.
+     */
+    val all: List<CoachToolDef> = listOf(makeSearchFoodDatabase(), makeGetNutritionLog(), makeLogMeal())
     val writeTools: List<CoachToolDef> =
-        listOf(makeLogMeal(), makeUpdateMealEntry(), makeDeleteMealEntry())
+        listOf(makeUpdateMealEntry(), makeDeleteMealEntry())
 
     // ── search_food_database ───────────────────────────────────────────
 
@@ -299,7 +304,10 @@ object NutritionTools {
             notes = params["notes"]?.jsonPrimitive?.contentOrNull,
             loggedByCoach = true,
         )
-        kotlinx.coroutines.runBlocking { db.mealEntryDao().upsert(entry) }
+        kotlinx.coroutines.runBlocking {
+            db.mealEntryDao().upsert(entry)
+            com.pulseloop.service.MealJournal.afterLog(db, entry)
+        }
         // iOS appends entry.id to ctx.loggedMealIds so the chat renders a tappable meal card.
         // Android has no logged-meal card mechanism yet (nothing in the coach chat consumes
         // one), so the insert IS the core behavior here; the in-chat tappable card is a known

@@ -38,7 +38,11 @@ import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NutritionScreen(onBack: () -> Unit) {
+fun NutritionScreen(
+    onBack: () -> Unit,
+    /** Open straight into a way of logging: "photo", "barcode" or "add" (Today card, icon shortcut). */
+    start: String? = null,
+) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
@@ -78,6 +82,15 @@ fun NutritionScreen(onBack: () -> Unit) {
     val keyStore = remember(context) { ApiKeyStore(context) }
     var coachEnabled by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { coachEnabled = keyStore.coachEnabled }
+    var startScanner by remember { mutableStateOf(false) }
+    LaunchedEffect(start) {
+        when (start) {
+            // Photo analysis needs the coach's AI; without it the manual form is the way in.
+            "photo" -> if (keyStore.coachEnabled) analysisRequest = AnalysisRequest(startWithCamera = true) else showAddDialog = true
+            "barcode" -> { startScanner = true; showAddDialog = true }
+            "add" -> showAddDialog = true
+        }
+    }
 
     Scaffold(
         containerColor = PulseColors.background,
@@ -206,7 +219,8 @@ fun NutritionScreen(onBack: () -> Unit) {
 
     if (showAddDialog) {
         MealLogDialog(
-            onDismiss = { showAddDialog = false },
+            startWithScanner = startScanner,
+            onDismiss = { showAddDialog = false; startScanner = false },
             onSave = { save ->
                 scope.launch {
                     val entry = MealEntryEntity(
@@ -222,9 +236,11 @@ fun NutritionScreen(onBack: () -> Unit) {
                         userEdited = save.userEdited,
                     )
                     db.mealEntryDao().upsert(entry)
+                    com.pulseloop.service.MealJournal.afterLog(db, entry)
                     reload()
                 }
                 showAddDialog = false
+                startScanner = false
             },
         )
     }
@@ -286,6 +302,8 @@ private fun MacroBar(label: String, value: Double, goal: Double, color: Color) {
 fun MealLogDialog(
     onDismiss: () -> Unit,
     onSave: (MealLogSave) -> Unit,
+    /** Open with the barcode scanner already up (the Today card's Barcode button). */
+    startWithScanner: Boolean = false,
 ) {
     var name by remember { mutableStateOf("") }
     var type by remember { mutableStateOf("snack") }
@@ -300,7 +318,7 @@ fun MealLogDialog(
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val offClient = remember { OpenFoodFactsClient() }
-    var showScanner by remember { mutableStateOf(false) }
+    var showScanner by remember { mutableStateOf(startWithScanner) }
     var lookingUp by remember { mutableStateOf(false) }
     var scanNotice by remember { mutableStateOf<String?>(null) }
     var pendingProduct by remember { mutableStateOf<PendingBarcodeProduct?>(null) }

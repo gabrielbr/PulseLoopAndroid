@@ -94,6 +94,8 @@ class MainActivity : ComponentActivity() {
 
         // Handle Strava redirect on cold start (app launched from browser callback).
         handleStravaRedirect(intent)
+        handleLaunchAction(intent)
+        publishShortcuts()
     }
 
     override fun onResume() {
@@ -114,6 +116,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleStravaRedirect(intent)
+        handleLaunchAction(intent)
     }
 
     /**
@@ -124,6 +127,34 @@ class MainActivity : ComponentActivity() {
      * can say what went wrong — a silent return leaves the user staring at a "Connect" button that
      * appears to do nothing.
      */
+    /** The "Log meal" shortcut and meal-reminder notifications open straight onto the camera. */
+    private fun handleLaunchAction(intent: Intent?) {
+        if (intent?.action == ACTION_LOG_MEAL) {
+            com.pulseloop.ui.LaunchRequests.route.value = "nutrition/photo"
+            intent.action = null // a recreated Activity must not reopen it
+        }
+    }
+
+    /**
+     * Long-press the app icon → "Log meal". Dynamic rather than a static shortcuts.xml so the
+     * intent targets this build's own package (debug builds carry an applicationId suffix).
+     */
+    private fun publishShortcuts() {
+        runCatching {
+            val shortcut = androidx.core.content.pm.ShortcutInfoCompat.Builder(this, "log_meal")
+                .setShortLabel("Log meal")
+                .setLongLabel("Log a meal")
+                .setIcon(androidx.core.graphics.drawable.IconCompat.createWithResource(this, R.drawable.ic_shortcut_meal))
+                .setIntent(Intent(this, MainActivity::class.java).setAction(ACTION_LOG_MEAL))
+                .build()
+            androidx.core.content.pm.ShortcutManagerCompat.pushDynamicShortcut(this, shortcut)
+        }
+    }
+
+    companion object {
+        const val ACTION_LOG_MEAL = "com.pulseloop.action.LOG_MEAL"
+    }
+
     private fun handleStravaRedirect(intent: Intent) {
         val uri = intent.data ?: return
         if (uri.scheme != "pulseloop") return
