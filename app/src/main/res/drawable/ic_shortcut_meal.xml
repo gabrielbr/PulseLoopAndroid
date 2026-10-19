@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher shortcut "Log meal": fork and knife in mint on the GMind ink circle. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+    <path android:fillColor="#17161A" android:pathData="M24,24m-24,0a24,24 0,1 1,48 0a24,24 0,1 1,-48 0"/>
+    <path android:strokeColor="#43F3B7" android:strokeWidth="2.5" android:fillColor="#00000000" android:strokeLineCap="round" android:pathData="M17,13v8a3,3 0,0 0,6 0v-8M20,13v24"/>
+    <path android:fillColor="#43F3B7" android:pathData="M30,13c-2.5,1.5 -3.5,5 -3.5,9h3.5v15h2.5V13z"/>
+</vector>

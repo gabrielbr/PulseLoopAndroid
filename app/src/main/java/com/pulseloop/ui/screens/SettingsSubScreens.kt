@@ -1064,6 +1064,7 @@ private fun DailyGuidanceSettingsCard() {
     var vitals by remember { mutableStateOf(prefs.vitalsAlerts) }
     var weekly by remember { mutableStateOf(prefs.weeklyReport) }
     var bedtime by remember { mutableStateOf(prefs.bedtimeReminder) }
+    var meal by remember { mutableStateOf(prefs.mealReminder) }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1088,6 +1089,11 @@ private fun DailyGuidanceSettingsCard() {
                 "A nudge about 30 minutes before your suggested bedtime.",
                 bedtime,
             ) { bedtime = it; prefs.bedtimeReminder = it }
+            GuidanceSwitch(
+                "Meal reminder",
+                "Around lunch and dinner, only when nothing is logged yet. Needs nutrition tracking on.",
+                meal,
+            ) { meal = it; prefs.mealReminder = it }
         }
     }
 }

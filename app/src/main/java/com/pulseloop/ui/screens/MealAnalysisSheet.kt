@@ -242,7 +242,7 @@ fun MealAnalysisDialog(
             // photoRefJSON (MealAnalysisSheet.swift:296-307). MealEntryEntity has no photo-ref
             // column and this port deliberately ships no schema migration, so the photo is NOT
             // stored — it feeds the analysis call only.
-            db.mealEntryDao().upsert(MealEntryEntity(
+            val entry = MealEntryEntity(
                 date = dayMillis,
                 timestamp = timestamp,
                 name = trimmedName,
@@ -254,7 +254,9 @@ fun MealAnalysisDialog(
                 sourceRaw = NutritionTools.sourceRawLlmEstimate,
                 confidenceRaw = MealAnalysisLogic.confidenceRaw(confidence),
                 notes = assumptions.trim().takeIf { it.isNotEmpty() }, // iOS :308
-            ))
+            )
+            db.mealEntryDao().upsert(entry)
+            com.pulseloop.service.MealJournal.afterLog(db, entry)
             onSaved()
         }
     }

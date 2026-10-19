@@ -43,6 +43,9 @@ class GuidancePrefs(context: Context) {
     var bedtimeReminder: Boolean
         get() = p.getBoolean("bedtimeReminder", false)
         set(v) = p.edit().putBoolean("bedtimeReminder", v).apply()
+    var mealReminder: Boolean
+        get() = p.getBoolean("mealReminder", false)
+        set(v) = p.edit().putBoolean("mealReminder", v).apply()
 
     internal var lastVitalsAlertDay: String?
         get() = p.getString("lastVitalsAlertDay", null)
@@ -53,6 +56,10 @@ class GuidancePrefs(context: Context) {
     internal var lastBedtimeReminderDay: String?
         get() = p.getString("lastBedtimeReminderDay", null)
         set(v) = p.edit().putString("lastBedtimeReminderDay", v).apply()
+    /** "<date>:lunch" / "<date>:dinner" of the last meal reminder sent. */
+    internal var lastMealReminder: String?
+        get() = p.getString("lastMealReminder", null)
+        set(v) = p.edit().putString("lastMealReminder", v).apply()
 }
 
 /**
@@ -118,6 +125,19 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 }
             }
         }
+        // 4. Meal reminder — optional, and only while nothing has been logged for that meal.
+        if (prefs.mealReminder && db.userGoalDao().get()?.nutritionEnabled == true) {
+            val todayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
+            val meals = db.mealEntryDao().byDay(todayStart).map { it.timestamp }
+            MealReminder.due(local.toLocalTime(), meals.map { Instant.ofEpochMilli(it).atZone(zone).toLocalTime() })?.let { slot ->
+                val key = "$today:$slot"
+                if (prefs.lastMealReminder != key) {
+                    val (title, body) = MealReminder.text(slot)
+                    notify(ctx, ID_MEAL, title, body, openMealLog = true)
+                    prefs.lastMealReminder = key
+                }
+            }
+        }
         return Result.success()
     }
 
@@ -127,6 +147,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         private const val ID_VITALS = 3001
         private const val ID_WEEKLY = 3002
         private const val ID_BEDTIME = 3003
+        private const val ID_MEAL = 3004
 
         /** Minutes from [now] until [target] later today or, if already past, tomorrow. */
         internal fun minutesUntil(now: LocalTime, target: LocalTime): Int {
@@ -156,8 +177,11 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
         @android.annotation.SuppressLint("MissingPermission") // checked by canNotify before every call
-        private fun notify(context: Context, id: Int, title: String, body: String) {
-            val intent = Intent(context, MainActivity::class.java).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
+        private fun notify(context: Context, id: Int, title: String, body: String, openMealLog: Boolean = false) {
+            val intent = Intent(context, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                if (openMealLog) action = MainActivity.ACTION_LOG_MEAL
+            }
             val pending = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             val n = NotificationCompat.Builder(context, CHANNEL_ID)
                 .setContentTitle(title)
@@ -169,5 +193,32 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 .build()
             NotificationManagerCompat.from(context).notify(id, n)
         }
+    }
+}
+
+/**
+ * When a meal reminder is due: lunch from 13:30 if nothing has been logged since 11:00, dinner
+ * from 20:30 if nothing since 17:00. Each window closes 90 minutes later so a phone that was
+ * asleep doesn't nag about lunch at 17:00.
+ */
+object MealReminder {
+    enum class Slot { LUNCH, DINNER }
+
+    private data class Window(val slot: Slot, val from: LocalTime, val until: LocalTime, val coversSince: LocalTime)
+
+    private val WINDOWS = listOf(
+        Window(Slot.LUNCH, LocalTime.of(13, 30), LocalTime.of(15, 0), LocalTime.of(11, 0)),
+        Window(Slot.DINNER, LocalTime.of(20, 30), LocalTime.of(22, 0), LocalTime.of(17, 0)),
+    )
+
+    fun due(now: LocalTime, mealsToday: List<LocalTime>): Slot? {
+        val w = WINDOWS.firstOrNull { !now.isBefore(it.from) && now.isBefore(it.until) } ?: return null
+        val logged = mealsToday.any { !it.isBefore(w.coversSince) && !it.isAfter(now) }
+        return if (logged) null else w.slot
+    }
+
+    fun text(slot: Slot): Pair<String, String> = when (slot) {
+        Slot.LUNCH -> "Log your lunch?" to "Snap a photo or scan a barcode. It takes a few seconds and helps PulseLoop link food to your sleep."
+        Slot.DINNER -> "Log your dinner?" to "A quick photo is enough. Late meals show up in your sleep and resting heart rate."
     }
 }

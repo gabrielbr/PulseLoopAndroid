@@ -284,6 +284,16 @@ fun PulseLoopApp() {
         // First-launch gate (iOS #48): show the onboarding flow until it's completed.
         // Existing installs that already have a completed profile or a paired ring are
         // marked complete silently so an app update never re-onboards them.
+        // Screens asked for from outside (icon shortcut, meal-reminder notification).
+        LaunchedEffect(Unit) {
+            com.pulseloop.ui.LaunchRequests.route.collect { route ->
+                if (route != null && apiKeyStore.onboardingCompleted) {
+                    navController.navigate(route) { launchSingleTop = true }
+                    com.pulseloop.ui.LaunchRequests.route.value = null
+                }
+            }
+        }
+
         LaunchedEffect(Unit) {
             if (!apiKeyStore.onboardingCompleted) {
                 val profileDone = db.userProfileDao().get()?.onboardingCompleted == true
@@ -623,6 +633,12 @@ fun PulseLoopApp() {
                 }
                 paddedComposable("nutrition") {
                     NutritionScreen(onBack = { navController.popBackStack() })
+                }
+                // Straight into a way of logging (Today's food card, the "Log meal" shortcut).
+                listOf("photo", "barcode", "add").forEach { start ->
+                    paddedComposable("nutrition/$start") {
+                        NutritionScreen(onBack = { navController.popBackStack() }, start = start)
+                    }
                 }
                 paddedComposable("settings/about") {
                     AboutSettingsScreen(

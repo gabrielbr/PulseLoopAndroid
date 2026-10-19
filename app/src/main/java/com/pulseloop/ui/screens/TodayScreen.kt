@@ -167,6 +167,15 @@ fun TodayScreen(
                 }
                 g.bedtime?.let { b -> item { TonightCard(b, g.sleepGoalMinutes) } }
             }
+            // Food: the way into the meal log, which used to live only under Settings.
+            item {
+                FoodCard(
+                    db = db,
+                    burned = state.calories,
+                    onOpen = { navController?.navigate("nutrition") },
+                    onLog = { start -> navController?.navigate("nutrition/$start") },
+                )
+            }
             // Journal tags (docs/health-app-feature-research.md).
             item {
                 JournalTagsCard(
