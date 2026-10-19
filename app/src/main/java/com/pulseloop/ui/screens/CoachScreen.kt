@@ -288,7 +288,10 @@ private fun Composer(
     // keyboard while it's open, above the nav bar otherwise. max() (not sum) of the two insets
     // keeps the composer flush to the keyboard instead of leaving a nav-bar-height gap when typing.
     // Fixes the keyboard overlapping the input (issue #22).
-    val imeBottom = WindowInsets.ime.asPaddingValues().calculateBottomPadding()
+    // The app sits inside the navigation bar and the 4dp frame (MainActivity), and the keyboard's
+    // inset is measured from the window edge, so take both off.
+    val imeBottom = (WindowInsets.ime.exclude(WindowInsets.navigationBars).asPaddingValues().calculateBottomPadding() - 4.dp)
+        .coerceAtLeast(0.dp)
     val composerBottom = maxOf(bottomBarPadding, imeBottom)
 
     Column(

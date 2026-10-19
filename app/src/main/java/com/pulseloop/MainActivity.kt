@@ -10,11 +10,17 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.union
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.pulseloop.ui.theme.PulseColors
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -58,18 +64,27 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // Light bar icons always: the app is dark-only, so following a light system theme would
+        // put dark icons on the dark page.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
+        )
 
         CoachNotifications.createChannel(this)
         com.pulseloop.notifications.BatteryNotifications.createChannel(this)
         requestAllPermissions()
 
         setContent {
-            // GMind brand frame: a 4dp mint border round the whole screen, content inside it.
+            // GMind brand frame: a 4dp mint border round the app, drawn inside the system bars
+            // (under the status bar, above the navigation bar) rather than at the window edge, where
+            // the bars covered it. The bars' insets are consumed here, so nothing inside pads for
+            // them a second time.
             Box(
                 Modifier
                     .fillMaxSize()
                     .background(PulseColors.background)
+                    .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout))
                     .border(4.dp, PulseColors.frame)
                     .padding(4.dp),
             ) {
