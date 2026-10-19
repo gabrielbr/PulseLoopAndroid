@@ -1,5 +1,6 @@
 package com.pulseloop.coach.schema
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,7 +28,7 @@ fun CoachActionCardView(
     onCancel: () -> Unit,
 ) {
     val isDestructive = action.kind == PendingActionKind.DELETE_ACTIVITY_SESSION
-    val tone = if (isDestructive) Color(0xFFE53935) else Color(0xFFFFA726)
+    val tone = if (isDestructive) PulseColors.danger else PulseColors.warning
 
     Column(
         modifier = Modifier

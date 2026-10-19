@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -72,10 +73,10 @@ fun RecordScreen(
                 Spacer(Modifier.height(4.dp))
                 val hrText = heartRate?.let { "$it bpm" } ?: "-- bpm"
                 val zoneColor = when (hrZone) {
-                    HeartRateZones.Zone.REST, HeartRateZones.Zone.FAT_BURN -> Color(0xFF4CAF50)
-                    HeartRateZones.Zone.CARDIO -> Color(0xFFFFC107)
-                    HeartRateZones.Zone.PEAK -> Color(0xFFFF9800)
-                    HeartRateZones.Zone.MAX -> Color(0xFFF44336)
+                    HeartRateZones.Zone.REST, HeartRateZones.Zone.FAT_BURN -> PulseColors.zoneMint
+                    HeartRateZones.Zone.CARDIO -> PulseColors.zoneAmber
+                    HeartRateZones.Zone.PEAK -> PulseColors.zoneOrange
+                    HeartRateZones.Zone.MAX -> PulseColors.zoneRed
                 }
                 Text(hrText, style = MaterialTheme.typography.headlineLarge, color = zoneColor)
                 Text(hrZone.label, style = MaterialTheme.typography.labelMedium, color = zoneColor)

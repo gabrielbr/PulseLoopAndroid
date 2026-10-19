@@ -265,7 +265,7 @@ private fun SegmentedRow(
                     option,
                     fontSize = 13.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selected) Color.White else PulseColors.textSecondary,
+                    color = if (selected) PulseColors.onAccent else PulseColors.textSecondary,
                     maxLines = 1,
                 )
             }
@@ -622,7 +622,7 @@ private fun GoalSliderCard(
                 label,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = com.pulseloop.ui.theme.UbuntuMono,
                 color = tint,
             )
         }

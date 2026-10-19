@@ -65,7 +65,7 @@ fun JournalTagsCard(
                         tag.label,
                         fontSize = 13.sp,
                         fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (on) PulseColors.background else PulseColors.textSecondary,
+                        color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(12.dp))

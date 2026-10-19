@@ -143,7 +143,7 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null) {
             Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Brush.linearGradient(listOf(Color(0xFF4DA3FF), PulseColors.accent))),
+                .background(Brush.linearGradient(listOf(PulseColors.info, PulseColors.accent))),
             contentAlignment = Alignment.TopEnd,
         ) {
             Box(
@@ -195,7 +195,7 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
         Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
     ) {
-        val errorColor = Color(0xFFF87171)
+        val errorColor = PulseColors.danger
         Column(
             Modifier
                 .widthIn(max = if (isUser) 300.dp else 360.dp)
@@ -228,7 +228,7 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
             }
             if (msg.text.isNotBlank()) {
                 when {
-                    isUser -> Text(msg.text, fontSize = 14.sp, lineHeight = 20.sp, color = Color.White)
+                    isUser -> Text(msg.text, fontSize = 14.sp, lineHeight = 20.sp, color = PulseColors.onAccent)
                     msg.isError -> Text(msg.text, fontSize = 14.sp, lineHeight = 20.sp, color = errorColor)
                     else -> MarkdownLite(msg.text)
                 }
@@ -417,7 +417,7 @@ private fun Composer(
             ) {
                 Icon(
                     Icons.Filled.ArrowUpward, "Send",
-                    tint = if (canSend) Color.White else PulseColors.textMuted,
+                    tint = if (canSend) PulseColors.onAccent else PulseColors.textMuted,
                     modifier = Modifier.size(20.dp),
                 )
             }

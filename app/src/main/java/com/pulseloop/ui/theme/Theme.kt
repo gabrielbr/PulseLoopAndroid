@@ -1,50 +1,70 @@
 package com.pulseloop.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import com.pulseloop.R
 
-// PulseLoop brand colors — ported from AppTheme.swift. The dark scheme maps the iOS
-// tokens onto Material slots: background #080A0F, cards #151A23 (neutral near-black,
-// not purple-tinted), accent #7C5CFF. Full token set lives in PulseColors.kt.
-private val PurplePrimary = Color(0xFF7C5CFF)
-private val PurpleDark = Color(0xFF7C5CFF)
-private val LightBackground = Color(0xFFF8F7FC)
-private val LightSurface = Color(0xFFFFFFFF)
+// GMind branding: Ubuntu Mono throughout, mint #43F3B7 as the one accent with ink-green
+// #033423 on it, and GMind's neutral page/surface greys. Full token set lives in PulseColors.kt.
+
+/** Ubuntu Mono, the GMind type family. Medium/SemiBold resolve to the nearest face (regular/bold). */
+val UbuntuMono = FontFamily(
+    Font(R.font.ubuntu_mono, FontWeight.Normal),
+    Font(R.font.ubuntu_mono_bold, FontWeight.Bold),
+    Font(R.font.ubuntu_mono_bold_italic, FontWeight.Bold, FontStyle.Italic),
+)
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PurplePrimary,
-    secondary = PurpleDark,
+    primary = PulseColors.accent,
+    onPrimary = PulseColors.onAccent,
+    primaryContainer = PulseColors.accentSoft,
+    onPrimaryContainer = PulseColors.accent,
+    secondary = PulseColors.accent,
+    onSecondary = PulseColors.onAccent,
+    tertiary = PulseColors.sleep,
     background = PulseColors.background,
     surface = PulseColors.secondaryBackground,
     onBackground = PulseColors.textPrimary,
     onSurface = PulseColors.textPrimary,
     surfaceVariant = PulseColors.card,
     onSurfaceVariant = PulseColors.textSecondary,
+    surfaceContainer = PulseColors.card,
+    surfaceContainerHigh = PulseColors.cardSoft,
+    surfaceContainerHighest = PulseColors.elevated,
+    error = PulseColors.danger,
+    onError = Color(0xFF17161A),
     outline = PulseColors.borderStrong,
     outlineVariant = PulseColors.borderSubtle,
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = PurplePrimary,
-    secondary = PurpleDark,
-    background = LightBackground,
-    surface = LightSurface,
-    onBackground = Color(0xFF1A1A2E),
-    onSurface = Color(0xFF1A1A2E),
-    surfaceVariant = Color(0xFFF0EEFA),
-)
+private fun Typography.withFamily(family: FontFamily): Typography {
+    fun TextStyle.f() = copy(fontFamily = family)
+    return copy(
+        displayLarge = displayLarge.f(), displayMedium = displayMedium.f(), displaySmall = displaySmall.f(),
+        headlineLarge = headlineLarge.f(), headlineMedium = headlineMedium.f(), headlineSmall = headlineSmall.f(),
+        titleLarge = titleLarge.f(), titleMedium = titleMedium.f(), titleSmall = titleSmall.f(),
+        bodyLarge = bodyLarge.f(), bodyMedium = bodyMedium.f(), bodySmall = bodySmall.f(),
+        labelLarge = labelLarge.f(), labelMedium = labelMedium.f(), labelSmall = labelSmall.f(),
+    )
+}
 
+private val PulseTypography = Typography().withFamily(UbuntuMono)
+
+/**
+ * Always the dark scheme: every screen draws on [PulseColors]' dark tokens, so a light Material
+ * scheme only ever mixed ink text onto dark cards.
+ */
 @Composable
-fun PulseLoopTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    content: @Composable () -> Unit,
-) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+fun PulseLoopTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography(),
+        colorScheme = DarkColorScheme,
+        typography = PulseTypography,
         content = content,
     )
 }

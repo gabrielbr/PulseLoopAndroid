@@ -140,7 +140,7 @@ private fun ValueRow(state: VitalCardState) {
                 state.valueText,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Default,
+                fontFamily = com.pulseloop.ui.theme.UbuntuMono,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             if (state.unitText != null) {

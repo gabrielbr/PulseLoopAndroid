@@ -342,7 +342,7 @@ private fun BrandTabs(
                             brand,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (isSelected) Color.White else PulseColors.textSecondary,
+                            color = if (isSelected) PulseColors.onAccent else PulseColors.textSecondary,
                             modifier = Modifier
                                 .clip(CircleShape)
                                 .background(if (isSelected) PulseColors.accent else PulseColors.card)

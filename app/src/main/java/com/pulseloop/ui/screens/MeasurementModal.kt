@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.*
@@ -35,8 +36,8 @@ fun MeasurementModal(
     onDismiss: () -> Unit,
 ) {
     val color = when (kind) {
-        MeasurementKind.HEART_RATE -> Color(0xFFE53935)
-        MeasurementKind.SPO2 -> Color(0xFF1E88E5)
+        MeasurementKind.HEART_RATE -> PulseColors.heartRate
+        MeasurementKind.SPO2 -> PulseColors.spo2
         else -> MaterialTheme.colorScheme.primary
     }
     val name = when (kind) {
@@ -126,9 +127,9 @@ fun MeasurementModal(
 
         if (phase == MeasurePhase.ERROR) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Surface(Modifier.size(80.dp), shape = CircleShape, color = Color(0xFFE53935).copy(alpha = 0.1f)) {
+                Surface(Modifier.size(80.dp), shape = CircleShape, color = PulseColors.heartRate.copy(alpha = 0.1f)) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("!", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = Color(0xFFE53935))
+                        Text("!", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = PulseColors.heartRate)
                     }
                 }
                 Text(
@@ -187,11 +188,11 @@ fun MeasurementModal(
         if (phase == MeasurePhase.RESULT) {
             Surface(
                 Modifier.fillMaxWidth().padding(bottom = 28.dp).clip(RoundedCornerShape(16.dp)),
-                color = Color(0xFF4CAF50).copy(alpha = 0.1f),
+                color = PulseColors.success.copy(alpha = 0.1f),
             ) {
                 Text("Saved", Modifier.fillMaxWidth().padding(vertical = 14.dp),
                     style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,
-                    color = Color(0xFF4CAF50), textAlign = TextAlign.Center)
+                    color = PulseColors.success, textAlign = TextAlign.Center)
             }
         }
     }
