@@ -316,7 +316,7 @@ fun MealAnalysisDialog(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(220.dp)
-                                        .background(PulseColors.cardSoft, RoundedCornerShape(14.dp)),
+                                        .background(PulseColors.cardSoft, RoundedCornerShape(8.dp)),
                                 )
                                 IconButton(
                                     onClick = { image = null },
@@ -390,7 +390,7 @@ fun MealAnalysisDialog(
                                 Modifier
                                     .fillMaxWidth()
                                     .height(180.dp)
-                                    .background(PulseColors.cardSoft, RoundedCornerShape(14.dp)),
+                                    .background(PulseColors.cardSoft, RoundedCornerShape(8.dp)),
                             )
                         }
                         CircularProgressIndicator(color = PulseColors.accent, modifier = Modifier.size(28.dp))
@@ -438,7 +438,7 @@ fun MealAnalysisDialog(
                                 color = PulseColors.textSecondary,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(PulseColors.cardSoft, RoundedCornerShape(10.dp))
+                                    .background(PulseColors.cardSoft, RoundedCornerShape(4.dp))
                                     .padding(12.dp),
                             )
                         }

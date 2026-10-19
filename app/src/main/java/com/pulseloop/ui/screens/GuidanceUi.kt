@@ -46,7 +46,7 @@ fun rememberGuidance(db: PulseLoopDatabase, key: Any?): GuidanceState? {
 fun UnusualSignalsCard(signals: List<OffSignal>) {
     if (!VitalsCheck.shouldAlert(signals)) return
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp))
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
             .dither(PulseColors.warning, 0.12f).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -65,7 +65,7 @@ fun UnusualSignalsCard(signals: List<OffSignal>) {
 @Composable
 fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(PulseColors.card).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

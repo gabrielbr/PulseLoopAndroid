@@ -34,7 +34,7 @@ fun CoachActionCardView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .dither(tone, 0.08f, RoundedCornerShape(16.dp))
+            .dither(tone, 0.08f, RoundedCornerShape(8.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

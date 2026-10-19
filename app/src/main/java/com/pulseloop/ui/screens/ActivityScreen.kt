@@ -174,9 +174,9 @@ fun ActivityScreen(
                 Modifier
                     .fillMaxWidth()
                     .height(68.dp)
-                    .clip(RoundedCornerShape(20.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(PulseColors.card)
-                    .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(20.dp))
+                    .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
                     .clickable { navController?.navigate("log_past_activity") }
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -208,9 +208,9 @@ fun ActivityScreen(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(20.dp))
+                        .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
                         .padding(vertical = 20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -358,7 +358,7 @@ private fun dayHeaderLabel(dayMillis: Long): String {
 
 @Composable
 private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, units: UnitSystem) {
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(8.dp)
     // The shown day's totals, not always-today: day navigation must move this card (issue #76).
     // No fallback to today: a day with no stored row is a day with no data, not today's (issue #101).
     // WeeklyGoalCard keeps reading state.today — a week widget is about the live week.
@@ -421,7 +421,7 @@ private fun SummaryMetric(label: String, value: String, unit: String?, color: Co
 /** One workout in the TODAY list / history sheet (ActivityWorkoutRow in Swift). */
 @Composable
 fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap: () -> Unit) {
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(8.dp)
     val durationSec = session.endedAt?.let { ((it - session.startedAt) / 1000 - session.totalPauseSeconds).toInt() }
     Row(
         Modifier
@@ -437,7 +437,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
         Box(
             Modifier
                 .size(44.dp)
-                .clip(RoundedCornerShape(14.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .dither(PulseColors.accent, 0.18f),
             contentAlignment = Alignment.Center,
         ) {
@@ -482,7 +482,7 @@ data class WeeklyDay(val label: String, val completed: Boolean, val isToday: Boo
 
 @Composable
 private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<WeeklyDay>, onTap: () -> Unit) {
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(8.dp)
     val activeMinutes = state.today?.activeMinutes ?: 0
     val activeDayCount = days.count { it.completed }
     Column(
@@ -615,7 +615,7 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
                     Row(
                         Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .then(if (active) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
                             .clickable { selected = type }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
@@ -769,7 +769,7 @@ private fun ActivityRecordsCard(
     var buckets by remember(dayStart) { mutableStateOf<List<com.pulseloop.data.entity.ActivityBucketEntity>?>(null) }
     var pending by remember { mutableStateOf<com.pulseloop.data.entity.ActivityBucketEntity?>(null) }
     var visibleCount by remember(dayStart) { mutableStateOf(ACTIVITY_RECORDS_PAGE_SIZE) }
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(8.dp)
 
     // Loaded only when opened: the list is a query per day and most visits never expand it.
     LaunchedEffect(expanded, dayStart) {

@@ -70,9 +70,9 @@ fun DeviceHeroCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(20.dp))
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
             .padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

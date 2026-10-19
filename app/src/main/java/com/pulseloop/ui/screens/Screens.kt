@@ -684,7 +684,7 @@ fun VitalDetailScreen(
 
                 // 2. Chart card: unit label + interactive trend chart (24dp continuous corners).
                 item {
-                    val cardShape = RoundedCornerShape(24.dp)
+                    val cardShape = RoundedCornerShape(8.dp)
                     Column(
                         Modifier
                             .fillMaxWidth()
@@ -774,7 +774,7 @@ fun VitalDetailScreen(
 
                 // 3. Stats strip — LATEST · AVERAGE · MIN · MAX in one row with dividers.
                 item {
-                    val cardShape = RoundedCornerShape(24.dp)
+                    val cardShape = RoundedCornerShape(8.dp)
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -813,7 +813,7 @@ fun VitalDetailScreen(
                 // 5. Reference zones — colored dot + label + range per zone.
                 if (state.engineZones.isNotEmpty()) {
                     item {
-                        val cardShape = RoundedCornerShape(20.dp)
+                        val cardShape = RoundedCornerShape(8.dp)
                         Column(
                             Modifier
                                 .fillMaxWidth()
@@ -860,7 +860,7 @@ fun VitalDetailScreen(
 
                 // 6. What this means
                 item {
-                    val cardShape = RoundedCornerShape(20.dp)
+                    val cardShape = RoundedCornerShape(8.dp)
                     Column(
                         Modifier
                             .fillMaxWidth()
@@ -891,7 +891,7 @@ fun VitalDetailScreen(
                 // chart shows the same number, so it says the same thing here).
                 metricDisclaimer(metric, state.isDerived)?.let { disclaimer ->
                     item {
-                        val cardShape = RoundedCornerShape(20.dp)
+                        val cardShape = RoundedCornerShape(8.dp)
                         Row(
                             Modifier
                                 .fillMaxWidth()
@@ -943,7 +943,7 @@ private fun ReadingsCard(
     // than rendered whole. A Month of 5-minute all-day history is thousands of readings; a page of
     // PAGE_SIZE is what someone scanning for a bad measurement actually reads.
     var visibleCount by remember(readings.size) { mutableStateOf(READINGS_PAGE_SIZE) }
-    val cardShape = RoundedCornerShape(20.dp)
+    val cardShape = RoundedCornerShape(8.dp)
 
     fun readingText(r: VitalDetailViewModel.Reading): String {
         val primary = formatStat(r.value, metric, gUnit)
@@ -1080,7 +1080,7 @@ private fun PeriodSegmentedControl(selected: Period, onSelect: (Period) -> Unit)
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(PulseColors.cardSoft)
             .padding(2.dp),
     ) {
@@ -1089,7 +1089,7 @@ private fun PeriodSegmentedControl(selected: Period, onSelect: (Period) -> Unit)
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(4.dp))
                     .then(if (isSelected) Modifier.dither(PulseColors.textPrimary, 0.16f) else Modifier)
                     .clickable { onSelect(p) }
                     .padding(vertical = 7.dp),

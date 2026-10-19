@@ -277,7 +277,7 @@ private fun EditWorkoutSheet(
 
 @Composable
 internal fun EditFieldRow(title: String, content: @Composable () -> Unit) {
-    val shape = RoundedCornerShape(16.dp)
+    val shape = RoundedCornerShape(8.dp)
     Row(
         Modifier
             .fillMaxWidth()
@@ -445,7 +445,7 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
             M(s.calories?.let { "${it.toInt()}" } ?: "—", "CALORIES", PulseColors.calories),
         )
     }
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(8.dp)
     Row(
         Modifier
             .fillMaxWidth()
@@ -481,7 +481,7 @@ private fun StatsGrid(s: ActivitySessionEntity) {
         stats.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { (label, value) ->
-                    val shape = RoundedCornerShape(16.dp)
+                    val shape = RoundedCornerShape(8.dp)
                     Column(
                         Modifier
                             .weight(1f)
@@ -514,7 +514,7 @@ private fun SplitsCard(points: List<ActivityGpsPointEntity>, units: UnitSystem, 
 
     val fastest = splits.min()
     val slowest = splits.max()
-    val shape = RoundedCornerShape(20.dp)
+    val shape = RoundedCornerShape(8.dp)
     Column(
         Modifier
             .fillMaxWidth()

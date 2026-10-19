@@ -405,7 +405,7 @@ private fun ChipTone.border() = when (this) {
 /** Full-width gradient hero card at the top of Today (HeroInsightCardView in Swift). */
 @Composable
 fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(8.dp)
     Column(
         modifier
             .fillMaxWidth()
@@ -453,7 +453,7 @@ fun CoachMessageCard(
     modifier: Modifier = Modifier,
     onTap: (() -> Unit)? = null,
 ) {
-    val shape = RoundedCornerShape(24.dp)
+    val shape = RoundedCornerShape(8.dp)
     Column(
         modifier
             .fillMaxWidth()

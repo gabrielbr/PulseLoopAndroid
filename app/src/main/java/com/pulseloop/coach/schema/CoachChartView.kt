@@ -42,7 +42,7 @@ fun CoachChartView(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),

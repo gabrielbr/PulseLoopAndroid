@@ -376,7 +376,7 @@ private fun SleepHeroCard(
     scoreLabel: String?,
     noData: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(8.dp)
     Row(
         Modifier
             .fillMaxWidth()
@@ -425,7 +425,7 @@ private fun VisualizationCard(
     legend: Boolean,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(22.dp)
+    val shape = RoundedCornerShape(8.dp)
     Column(
         Modifier
             .fillMaxWidth()
@@ -550,9 +550,9 @@ private fun SleepHypnogram(
             Modifier
                 .fillMaxWidth()
                 .height(height - 22.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card)
-                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp)),
+                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp)),
         ) {
             var plotWidthPx by remember { mutableFloatStateOf(0f) }
             var plotHeightPx by remember { mutableFloatStateOf(0f) }
@@ -699,7 +699,7 @@ private fun SleepHypnogram(
                     ) {
                         androidx.compose.foundation.layout.Box(
                             Modifier
-                                .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(8.dp))
+                                .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
                                 .padding(horizontal = 10.dp, vertical = 6.dp),
                         ) {
                             Text(
@@ -735,7 +735,7 @@ private fun SleepStageSummaryCards(prefix: String = "", deep: String, light: Str
 
 @Composable
 private fun StageStat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(18.dp)
+    val shape = RoundedCornerShape(8.dp)
     Column(
         modifier
             .clip(shape)
@@ -849,7 +849,7 @@ private fun SleepDayNavHeader(state: SleepViewModel.SleepState, viewModel: Sleep
         Column(
             Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .clickable { showPicker = true }
                 .padding(vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

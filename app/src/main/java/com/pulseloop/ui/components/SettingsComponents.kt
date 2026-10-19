@@ -67,9 +67,9 @@ fun SettingsSection(title: String, rows: List<SettingsRowItem>) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card)
-                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(20.dp)),
+                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
         ) {
             rows.forEachIndexed { index, row ->
                 SettingsRow(row)
@@ -104,7 +104,7 @@ fun SettingsRow(item: SettingsRowItem) {
         Box(
             Modifier
                 .size(34.dp)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .dither(item.tint, 0.14f),
             contentAlignment = Alignment.Center,
         ) {

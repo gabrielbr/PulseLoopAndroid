@@ -50,7 +50,7 @@ private fun WidgetCard(content: @Composable () -> Unit) {
         .background(ColorProvider(PulseColors.card))
         .clickable(actionStartActivity<MainActivity>())
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        modifier = modifier.cornerRadius(20.dp)
+        modifier = modifier.cornerRadius(8.dp)
     }
     Box(modifier = modifier.padding(14.dp)) { content() }
 }

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.theme
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -8,6 +9,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import com.pulseloop.R
 
@@ -71,6 +73,14 @@ fun PulseLoopTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = DarkColorScheme,
         typography = PulseTypography,
+        // GMind radii: 4dp for small controls, 8dp for cards and dialogs, 16dp for sheets.
+        shapes = Shapes(
+            extraSmall = RoundedCornerShape(4.dp),
+            small = RoundedCornerShape(4.dp),
+            medium = RoundedCornerShape(8.dp),
+            large = RoundedCornerShape(8.dp),
+            extraLarge = RoundedCornerShape(16.dp),
+        ),
         content = content,
     )
 }

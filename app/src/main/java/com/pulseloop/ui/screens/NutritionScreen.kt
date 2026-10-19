@@ -115,7 +115,7 @@ fun NutritionScreen(onBack: () -> Unit) {
                 val totalCal = totals.sumOf { it.totalCal }
                 val goalCal = goal?.intakeCalories ?: 2000.0
                 val pct = if (goalCal > 0) (totalCal / goalCal).coerceAtMost(1.0) else 0.0
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
+                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
                     Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("${totalCal.roundToInt()} kcal", fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         Text("of ${goalCal.roundToInt()}", color = PulseColors.textMuted)
@@ -145,7 +145,7 @@ fun NutritionScreen(onBack: () -> Unit) {
                         Text(type.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PulseColors.textSecondary)
                     }
                     items(typeMeals, key = { it.id }) { meal ->
-                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
+                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
                             Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text(meal.name, fontWeight = FontWeight.Medium)

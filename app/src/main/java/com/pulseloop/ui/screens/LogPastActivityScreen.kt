@@ -179,7 +179,7 @@ private fun ActivityTypeGrid(selectedType: String, onSelect: (String) -> Unit) {
 
 @Composable
 private fun ActivityTypeButton(type: String, isSelected: Boolean, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(8.dp)
     Row(
         modifier
             .clip(shape)
@@ -221,9 +221,9 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.cardSoft)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(16.dp))
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
