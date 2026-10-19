@@ -87,7 +87,7 @@ private fun SummaryCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .padding(horizontal = 16.dp),
     ) {
@@ -108,7 +108,7 @@ private fun CostNote() {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(4.dp))
             .dither(PulseColors.textMuted, 0.10f)
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -127,7 +127,7 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .padding(16.dp),
     ) {

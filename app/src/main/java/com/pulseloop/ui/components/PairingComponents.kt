@@ -51,7 +51,7 @@ fun PrimaryButton(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier.fillMaxWidth().height(52.dp),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = PulseColors.accent,
             contentColor = PulseColors.onAccent,
@@ -80,8 +80,8 @@ fun SecondaryButton(
         modifier = modifier
             .fillMaxWidth()
             .height(52.dp)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
+        shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = PulseColors.card,
             contentColor = PulseColors.textPrimary,

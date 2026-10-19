@@ -54,7 +54,7 @@ fun JournalTagsCard(
     val scope = rememberCoroutineScope()
 
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(PulseColors.card).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
@@ -67,7 +67,7 @@ fun JournalTagsCard(
         ) {
             tags.forEach { tag ->
                 val on = tag.key in selected
-                val chip = RoundedCornerShape(16.dp)
+                val chip = RoundedCornerShape(16.dp) // GMind pill: filter chips keep the 16dp radius
                 Text(
                     tag.label,
                     fontSize = 13.sp,
@@ -139,7 +139,7 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                     fontSize = 13.sp, color = PulseColors.textSecondary,
                 )
                 else -> Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(PulseColors.card),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card),
                 ) {
                     list.forEachIndexed { i, e ->
                         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {

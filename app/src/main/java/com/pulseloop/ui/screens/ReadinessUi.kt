@@ -104,7 +104,7 @@ private fun HeaderRing(
     centerText: String = value?.toString() ?: "—",
 ) {
     Column(
-        modifier.clip(RoundedCornerShape(16.dp)).clickable(onClick = onTap).padding(vertical = 8.dp),
+        modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onTap).padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -128,7 +128,7 @@ fun ScoreHeader(
 ) {
     val score = readiness as? Readiness.Result.Score
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(PulseColors.card).padding(12.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -231,7 +231,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
             score?.let { ReadinessCopy.coverageNote(it) }?.let { note ->
                 Text(
                     note, fontSize = 13.sp, color = PulseColors.warning,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
                         .dither(PulseColors.warning, 0.12f).padding(12.dp),
                 )
             }
@@ -259,7 +259,7 @@ fun ContributorsCard(contributors: List<ScoreContributor>, title: String = "Cont
     var expanded by remember(contributors) { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(PulseColors.card)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)) {
             contributors.forEachIndexed { i, c ->
                 ContributorRow(c, expanded == c.title) { expanded = if (expanded == c.title) null else c.title }
                 if (i < contributors.lastIndex) {
@@ -333,7 +333,7 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
             Text(
                 "Open today's activity",
                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.steps,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onOpenActivity).padding(8.dp),
+                modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onOpenActivity).padding(8.dp),
             )
             Text(
                 "Activity is estimated by PulseLoop from your ring's steps and the workouts you log. It is not a medical measurement.",

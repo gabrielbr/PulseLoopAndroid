@@ -188,7 +188,7 @@ fun MeasurementModal(
 
         if (phase == MeasurePhase.RESULT) {
             Surface(
-                Modifier.fillMaxWidth().padding(bottom = 28.dp).clip(RoundedCornerShape(16.dp)).dither(PulseColors.success, 0.1f),
+                Modifier.fillMaxWidth().padding(bottom = 28.dp).clip(RoundedCornerShape(8.dp)).dither(PulseColors.success, 0.1f),
                 color = Color.Transparent,
             ) {
                 Text("Saved", Modifier.fillMaxWidth().padding(vertical = 14.dp),

@@ -438,9 +438,9 @@ private fun ScanningCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(20.dp))
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -483,9 +483,9 @@ private fun DiscoveredRingRow(ring: RingBLEClient.DiscoveredRing, onClick: () ->
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(14.dp))
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
             .clickable(onClick = onClick),
     ) {
         // Accent left-stripe marks devices recognized as rings. matchParentSize resolves after
@@ -610,7 +610,7 @@ private fun BluetoothOffCard() {
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .padding(horizontal = 20.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,

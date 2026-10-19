@@ -123,7 +123,7 @@ private fun NoteRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .dither(tone, 0.1f, RoundedCornerShape(12.dp))
+            .dither(tone, 0.1f, RoundedCornerShape(4.dp))
             .padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.Top,

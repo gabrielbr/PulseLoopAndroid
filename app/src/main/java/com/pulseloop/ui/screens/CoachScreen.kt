@@ -200,7 +200,7 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
         Column(
             Modifier
                 .widthIn(max = if (isUser) 300.dp else 360.dp)
-                .clip(RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(
                     when {
                         isUser -> PulseColors.accent
@@ -209,7 +209,7 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
                     }
                 )
                 .then(if (msg.isError) Modifier.dither(errorColor, 0.12f) else Modifier)
-                .then(if (msg.isError) Modifier.border(1.dp, errorColor.copy(alpha = 0.5f), RoundedCornerShape(24.dp)) else Modifier)
+                .then(if (msg.isError) Modifier.border(1.dp, errorColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp)) else Modifier)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -221,7 +221,7 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
                             Image(
                                 bitmap = it.asImageBitmap(),
                                 contentDescription = "Attached photo",
-                                modifier = Modifier.size(96.dp).clip(RoundedCornerShape(10.dp)),
+                                modifier = Modifier.size(96.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
                             )
                         }
@@ -336,7 +336,7 @@ private fun Composer(
                             Image(
                                 bitmap = it.asImageBitmap(),
                                 contentDescription = "Staged photo",
-                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)),
+                                modifier = Modifier.size(56.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
                             )
                         }
@@ -390,7 +390,7 @@ private fun Composer(
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(PulseColors.card)
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {

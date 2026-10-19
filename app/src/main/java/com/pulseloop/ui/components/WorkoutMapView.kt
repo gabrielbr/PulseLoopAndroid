@@ -39,7 +39,7 @@ fun WorkoutMapView(
             modifier = modifier
                 .fillMaxWidth()
                 .height(height.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card),
             contentAlignment = Alignment.Center,
         ) {
@@ -53,7 +53,7 @@ fun WorkoutMapView(
             modifier = modifier
                 .fillMaxWidth()
                 .height(height.dp)
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card),
         ) {
             Canvas(Modifier.fillMaxSize().padding(8.dp)) {

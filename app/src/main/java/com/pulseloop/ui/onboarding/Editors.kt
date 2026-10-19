@@ -228,9 +228,9 @@ private fun FormCard(content: @Composable () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(18.dp))
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 10.dp),
     ) {
         content()
@@ -246,7 +246,7 @@ private fun SegmentedRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(4.dp))
             .background(PulseColors.cardSoft)
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -256,7 +256,7 @@ private fun SegmentedRow(
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
+                    .clip(RoundedCornerShape(4.dp))
                     .background(if (selected) PulseColors.accent else Color.Transparent)
                     .clickable { onSelect(index) }
                     .padding(vertical = 8.dp),
@@ -448,9 +448,9 @@ private fun DecimalValueSheet(
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
+                        .clip(RoundedCornerShape(8.dp))
                         .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(14.dp))
+                        .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
                         .padding(14.dp),
                 ) {
                     if (text.isEmpty()) {
@@ -596,9 +596,9 @@ private fun GoalSliderCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(18.dp))
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -606,7 +606,7 @@ private fun GoalSliderCard(
             Box(
                 Modifier
                     .size(30.dp)
-                    .clip(RoundedCornerShape(9.dp))
+                    .clip(RoundedCornerShape(4.dp))
                     .dither(tint, 0.14f),
                 contentAlignment = Alignment.Center,
             ) {

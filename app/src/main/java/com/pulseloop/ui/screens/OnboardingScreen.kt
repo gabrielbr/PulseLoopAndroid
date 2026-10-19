@@ -251,7 +251,7 @@ private fun OnboardingTopBar(
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textSecondary,
                         modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .clickable(onClick = onSkip)
                             .padding(horizontal = 10.dp, vertical = 12.dp),
                     )
@@ -307,11 +307,11 @@ private fun WelcomeStep(getStarted: () -> Unit, exploreWithoutRing: () -> Unit) 
                 .size(92.dp)
                 .shadow(
                     18.dp,
-                    RoundedCornerShape(22.dp),
+                    RoundedCornerShape(8.dp),
                     ambientColor = PulseColors.accent,
                     spotColor = PulseColors.accent,
                 )
-                .clip(RoundedCornerShape(22.dp)),
+                .clip(RoundedCornerShape(8.dp)),
         )
         StepHeader(
             title = "Set up PulseLoop",
@@ -326,9 +326,9 @@ private fun WelcomeStep(getStarted: () -> Unit, exploreWithoutRing: () -> Unit) 
                         Modifier
                             .weight(1f)
                             .height(118.dp)
-                            .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(8.dp))
                             .background(PulseColors.card)
-                            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(16.dp))
+                            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
                             .padding(horizontal = 13.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
@@ -336,7 +336,7 @@ private fun WelcomeStep(getStarted: () -> Unit, exploreWithoutRing: () -> Unit) 
                         Box(
                             Modifier
                                 .size(38.dp)
-                                .clip(RoundedCornerShape(11.dp))
+                                .clip(RoundedCornerShape(4.dp))
                                 .dither(feature.tint, 0.14f),
                             contentAlignment = Alignment.Center,
                         ) {
@@ -505,10 +505,10 @@ private fun BaselineStep(finish: () -> Unit) {
         Column(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
+                .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card)
                 .ditherFade(PulseColors.accent, 0.14f, 0f)
-                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(22.dp))
+                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
@@ -532,7 +532,7 @@ private fun BaselineStep(finish: () -> Unit) {
                     Box(
                         Modifier
                             .size(34.dp)
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(4.dp))
                             .dither(milestone.tint, 0.14f),
                         contentAlignment = Alignment.Center,
                     ) {
