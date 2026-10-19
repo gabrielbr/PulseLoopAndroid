@@ -8,6 +8,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.em
 import com.pulseloop.R
 
 // GMind branding: Ubuntu Mono throughout, mint #43F3B7 as the one accent with ink-green
@@ -43,8 +44,13 @@ private val DarkColorScheme = darkColorScheme(
     outlineVariant = PulseColors.borderSubtle,
 )
 
+/**
+ * Ubuntu Mono for every style, and line height as a ratio of the font size (em) rather than
+ * Material's fixed sp. Most text here overrides `fontSize` inline, which kept the style's sp line
+ * height: a 13sp label inherited bodyLarge's 24sp and a wrapped line opened a gap under it.
+ */
 private fun Typography.withFamily(family: FontFamily): Typography {
-    fun TextStyle.f() = copy(fontFamily = family)
+    fun TextStyle.f() = copy(fontFamily = family, lineHeight = (lineHeight.value / fontSize.value).em)
     return copy(
         displayLarge = displayLarge.f(), displayMedium = displayMedium.f(), displaySmall = displaySmall.f(),
         headlineLarge = headlineLarge.f(), headlineMedium = headlineMedium.f(), headlineSmall = headlineSmall.f(),

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Canvas
@@ -127,7 +128,7 @@ fun MeasurementModal(
 
         if (phase == MeasurePhase.ERROR) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Surface(Modifier.size(80.dp), shape = CircleShape, color = PulseColors.heartRate.copy(alpha = 0.1f)) {
+                Surface(Modifier.size(80.dp).dither(PulseColors.heartRate, 0.1f, CircleShape), shape = CircleShape, color = Color.Transparent) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("!", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold, color = PulseColors.heartRate)
                     }
@@ -151,7 +152,7 @@ fun MeasurementModal(
                         )
                     }
                 }
-                Surface(Modifier.size(220.dp), shape = CircleShape, color = color.copy(alpha = 0.12f)) {
+                Surface(Modifier.size(220.dp).dither(color, 0.12f, CircleShape), shape = CircleShape, color = Color.Transparent) {
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             if (value != null && phase != MeasurePhase.PREPARING) {
@@ -187,8 +188,8 @@ fun MeasurementModal(
 
         if (phase == MeasurePhase.RESULT) {
             Surface(
-                Modifier.fillMaxWidth().padding(bottom = 28.dp).clip(RoundedCornerShape(16.dp)),
-                color = PulseColors.success.copy(alpha = 0.1f),
+                Modifier.fillMaxWidth().padding(bottom = 28.dp).clip(RoundedCornerShape(16.dp)).dither(PulseColors.success, 0.1f),
+                color = Color.Transparent,
             ) {
                 Text("Saved", Modifier.fillMaxWidth().padding(vertical = 14.dp),
                     style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Medium,

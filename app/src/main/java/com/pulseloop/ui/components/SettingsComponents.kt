@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -104,7 +105,7 @@ fun SettingsRow(item: SettingsRowItem) {
             Modifier
                 .size(34.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(item.tint.copy(alpha = 0.14f)),
+                .dither(item.tint, 0.14f),
             contentAlignment = Alignment.Center,
         ) {
             Icon(item.icon, contentDescription = null, Modifier.size(18.dp), tint = item.tint)

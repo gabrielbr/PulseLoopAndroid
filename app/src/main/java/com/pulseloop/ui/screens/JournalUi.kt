@@ -39,6 +39,7 @@ private fun dayKey(date: LocalDate, zone: ZoneId = ZoneId.systemDefault()): Long
     date.atStartOfDay(zone).toInstant().toEpochMilli()
 
 /** Chips for one day's tags; tapping toggles a tag on or off. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun JournalTagsCard(
     db: PulseLoopDatabase,
@@ -57,31 +58,36 @@ fun JournalTagsCard(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-        tags.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { tag ->
-                    val on = tag.key in selected
-                    Text(
-                        tag.label,
-                        fontSize = 13.sp,
-                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-                        color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (on) PulseColors.readiness else PulseColors.cardSoft)
-                            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(12.dp))
-                            .clickable {
-                                scope.launch {
-                                    val id = JournalEntryEntity.idFor(day, tag.key)
-                                    if (on) db.journalDao().delete(id)
-                                    else db.journalDao().upsert(JournalEntryEntity(id = id, day = day, tag = tag.key))
-                                }
+        // Chips size to their label and wrap as a row, one line each: a fixed two-column grid
+        // broke the longer labels over two lines in a monospace face.
+        FlowRow(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            tags.forEach { tag ->
+                val on = tag.key in selected
+                val chip = RoundedCornerShape(16.dp)
+                Text(
+                    tag.label,
+                    fontSize = 13.sp,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier
+                        .clip(chip)
+                        .background(if (on) PulseColors.accent else PulseColors.cardSoft)
+                        .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, chip)
+                        .clickable {
+                            scope.launch {
+                                val id = JournalEntryEntity.idFor(day, tag.key)
+                                if (on) db.journalDao().delete(id)
+                                else db.journalDao().upsert(JournalEntryEntity(id = id, day = day, tag = tag.key))
                             }
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                    )
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                )
             }
         }
         footer?.invoke()

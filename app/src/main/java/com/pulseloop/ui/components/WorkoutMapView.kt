@@ -40,7 +40,7 @@ fun WorkoutMapView(
                 .fillMaxWidth()
                 .height(height.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(PulseColors.cardSoft.copy(alpha = 0.4f)),
+                .background(PulseColors.card),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -79,9 +79,7 @@ fun WorkoutMapView(
                 }
                 drawPath(
                     path = path,
-                    brush = Brush.linearGradient(
-                        listOf(PulseColors.info, PulseColors.accent),
-                    ),
+                    color = PulseColors.accent,
                     style = Stroke(width = 4f, cap = StrokeCap.Round),
                 )
 
@@ -93,7 +91,7 @@ fun WorkoutMapView(
                 // End marker (pulsing dot)
                 val end = toScreen(points.last().latitude, points.last().longitude)
                 drawCircle(PulseColors.accent, 8f, end)
-                drawCircle(PulseColors.accent.copy(alpha = 0.25f), 12f, end)
+                drawCircle(PulseColors.accent, 12f, end, style = Stroke(width = 1.5f))
 
                 // Point count overlay
             }

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -74,6 +75,7 @@ import com.pulseloop.ui.onboarding.OnboardingStep
 import com.pulseloop.ui.onboarding.ProfileDraft
 import com.pulseloop.ui.onboarding.ProfileEditor
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.theme.ditherFade
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -335,7 +337,7 @@ private fun WelcomeStep(getStarted: () -> Unit, exploreWithoutRing: () -> Unit) 
                             Modifier
                                 .size(38.dp)
                                 .clip(RoundedCornerShape(11.dp))
-                                .background(feature.tint.copy(alpha = 0.14f)),
+                                .dither(feature.tint, 0.14f),
                             contentAlignment = Alignment.Center,
                         ) {
                             Icon(feature.icon, contentDescription = null, Modifier.size(18.dp), tint = feature.tint)
@@ -504,11 +506,8 @@ private fun BaselineStep(finish: () -> Unit) {
             Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(22.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(PulseColors.accent.copy(alpha = 0.14f), PulseColors.card),
-                    ),
-                )
+                .background(PulseColors.card)
+                .ditherFade(PulseColors.accent, 0.14f, 0f)
                 .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(22.dp))
                 .padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp),
@@ -534,7 +533,7 @@ private fun BaselineStep(finish: () -> Unit) {
                         Modifier
                             .size(34.dp)
                             .clip(RoundedCornerShape(10.dp))
-                            .background(milestone.tint.copy(alpha = 0.14f)),
+                            .dither(milestone.tint, 0.14f),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (milestone.icon != null) {
@@ -576,7 +575,7 @@ private fun SuccessMedallion(scale: Float) {
                 .border(2.dp, PulseColors.accent.copy(alpha = 0.25f), CircleShape),
         )
         Box(
-            Modifier.size(96.dp).clip(CircleShape).background(PulseColors.accent.copy(alpha = 0.14f)),
+            Modifier.size(96.dp).clip(CircleShape).dither(PulseColors.accent, 0.14f),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
@@ -597,7 +596,7 @@ private fun SetupCompleteEyebrow() {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
             .clip(CircleShape)
-            .background(PulseColors.accent.copy(alpha = 0.16f))
+            .dither(PulseColors.accent, 0.16f)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(14.dp), tint = PulseColors.accent)

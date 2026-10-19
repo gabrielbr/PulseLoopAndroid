@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.trackBrush
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -98,7 +99,7 @@ fun VitalRingGauge(
 
             // Track (the full 270° arc), rounded so both sweep ends read as rounded under the zones.
             drawArc(
-                color = trackColor,
+                brush = trackBrush(trackColor),
                 startAngle = GaugeGeometry.START_ANGLE,
                 sweepAngle = GaugeGeometry.SWEEP,
                 useCenter = false,

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -231,7 +232,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                 Text(
                     note, fontSize = 13.sp, color = PulseColors.warning,
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
-                        .background(PulseColors.warning.copy(alpha = 0.12f)).padding(12.dp),
+                        .dither(PulseColors.warning, 0.12f).padding(12.dp),
                 )
             }
 

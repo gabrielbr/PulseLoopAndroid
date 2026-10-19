@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -181,7 +182,7 @@ fun ActivityScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
-                    Modifier.size(40.dp).clip(CircleShape).background(PulseColors.accentSoft),
+                    Modifier.size(40.dp).clip(CircleShape).dither(PulseColors.accent, 0.18f),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.Filled.History, null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
@@ -437,7 +438,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
             Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(14.dp))
-                .background(PulseColors.accentSoft),
+                .dither(PulseColors.accent, 0.18f),
             contentAlignment = Alignment.Center,
         ) {
             Icon(ActivityMeta.icon(session.type), null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
@@ -569,7 +570,7 @@ private fun WeeklyPillCalendar(days: List<WeeklyDay>) {
                     Modifier
                         .size(width = 24.dp, height = 40.dp)
                         .clip(CircleShape)
-                        .background(if (day.completed) PulseColors.steps.copy(alpha = 0.22f) else PulseColors.cardSoft)
+                        .then(if (day.completed) Modifier.dither(PulseColors.steps, 0.22f) else Modifier.background(PulseColors.cardSoft))
                         .border(
                             1.dp,
                             when {
@@ -615,7 +616,7 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
                         Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (active) PulseColors.accentSoft else Color.Transparent)
+                            .then(if (active) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
                             .clickable { selected = type }
                             .padding(horizontal = 10.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,

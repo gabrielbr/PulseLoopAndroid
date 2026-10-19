@@ -1,5 +1,6 @@
 package com.pulseloop.coach.schema
 
+import com.pulseloop.ui.theme.dither
 import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -33,7 +34,7 @@ fun CoachActionCardView(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(tone.copy(alpha = 0.08f), RoundedCornerShape(16.dp))
+            .dither(tone, 0.08f, RoundedCornerShape(16.dp))
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {

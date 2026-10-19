@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -58,6 +59,10 @@ import com.pulseloop.service.SleepRangeKey
 import com.pulseloop.service.spanMinutes
 import com.pulseloop.ui.components.CoachMessageCard
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.theme.ditherBrush
+import com.pulseloop.ui.theme.ditherFade
+import com.pulseloop.ui.theme.drawDither
+import com.pulseloop.ui.theme.drawDitherFade
 import com.pulseloop.ui.viewmodels.SleepViewModel
 import kotlin.math.roundToInt
 
@@ -336,7 +341,7 @@ private fun SleepRangeSelector(selection: SleepRangeKey, onSelect: (SleepRangeKe
         Modifier
             .fillMaxWidth()
             .clip(CircleShape)
-            .background(PulseColors.cardSoft.copy(alpha = 0.4f))
+            .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, CircleShape)
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -352,7 +357,7 @@ private fun SleepRangeSelector(selection: SleepRangeKey, onSelect: (SleepRangeKe
                 modifier = Modifier
                     .weight(1f)
                     .clip(CircleShape)
-                    .background(if (active) PulseColors.accent.copy(alpha = 0.15f) else Color.Transparent)
+                    .then(if (active) Modifier.dither(PulseColors.accent, 0.15f) else Modifier)
                     .border(1.dp, if (active) PulseColors.accent.copy(alpha = 0.4f) else Color.Transparent, CircleShape)
                     .clickable { onSelect(key) }
                     .padding(vertical = 6.dp),
@@ -376,11 +381,8 @@ private fun SleepHeroCard(
         Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(
-                Brush.linearGradient(
-                    listOf(PulseColors.sleep.copy(alpha = 0.16f), PulseColors.card),
-                ),
-            )
+            .background(PulseColors.card)
+            .ditherFade(PulseColors.sleep, 0.16f, 0f)
             .border(1.dp, PulseColors.borderSubtle, shape)
             .padding(20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -628,7 +630,7 @@ private fun SleepHypnogram(
                             .coerceAtLeast(startX)
                         val color = stageColor(block.stageRaw)
                         drawLine(
-                            color = color.copy(alpha = 0.16f),
+                            brush = ditherBrush(color, 0.16f) ?: return@forEach,
                             start = Offset(startX, y), end = Offset(endX, y),
                             strokeWidth = 12.dp.toPx(), cap = StrokeCap.Round,
                         )
@@ -790,17 +792,21 @@ private fun SleepDurationHistogram(
                 val duration = if (bar.present) bar.durationMin else null
                 val h = if (duration != null) (duration / yMax) * size.height else size.height
                 val top = size.height - h
-                val brush = if (duration != null) {
-                    Brush.verticalGradient(listOf(PulseColors.stageLight, PulseColors.stageDeep), startY = top)
-                } else {
-                    Brush.verticalGradient(listOf(PulseColors.accent.copy(alpha = 0.05f), PulseColors.accent.copy(alpha = 0.05f)))
+                val barPath = androidx.compose.ui.graphics.Path().apply {
+                    addRoundRect(
+                        androidx.compose.ui.geometry.RoundRect(
+                            cx - barW / 2, top, cx + barW / 2, size.height,
+                            androidx.compose.ui.geometry.CornerRadius(r, r),
+                        ),
+                    )
                 }
-                drawRoundRect(
-                    brush = brush,
-                    topLeft = Offset(cx - barW / 2, top),
-                    size = androidx.compose.ui.geometry.Size(barW, h),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r),
-                )
+                if (duration != null) {
+                    // Deep stage underneath, the light stage dithered over it fading downwards.
+                    drawPath(barPath, PulseColors.stageDeep)
+                    drawDitherFade(barPath, PulseColors.stageLight, 1f, 0.12f, top, size.height)
+                } else {
+                    drawDither(barPath, PulseColors.accent, 0.06f)
+                }
             }
             if (goalMin != null && goalMin > 0) {
                 val gy = size.height - (goalMin / yMax) * size.height

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -108,7 +109,7 @@ private fun CostNote() {
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(PulseColors.textMuted.copy(alpha = 0.10f))
+            .dither(PulseColors.textMuted, 0.10f)
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
