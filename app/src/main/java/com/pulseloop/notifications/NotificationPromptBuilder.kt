@@ -21,6 +21,7 @@ object NotificationPromptBuilder {
             appendLine()
             appendLine("Rules:")
             appendLine("- Output ONLY JSON {\"title\",\"body\"}. Title ≤ ~6 words; body 1–2 short sentences.")
+            appendLine("- `generatedAt` is the user's LOCAL time. Any greeting must match the slot: never \"good morning\" in the evening check-in, never \"good evening\" or \"good night\" in the morning one.")
             appendLine("- Be specific to today's actual numbers (steps, sleep, heart rate, SpO2, workouts) — never generic filler. Mention a real number when you have one.")
             appendLine("- Surface ONE clear insight or nudge, not a list.")
             appendLine("- Be warm and engaging, like a thoughtful coach. At most one emoji, and only if it fits.")

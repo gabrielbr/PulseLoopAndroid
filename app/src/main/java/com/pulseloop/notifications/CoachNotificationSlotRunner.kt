@@ -170,11 +170,12 @@ class CoachNotificationSlotRunner(
             // few minutes later — the pre-extraction worker skipped this record, which was
             // exactly how a second send could slip through.
             if (s.apiKey.isBlank()) {
-                deliver(GENERIC_TITLE, GENERIC_BODY)
+                val body = genericBody(slot)
+                deliver(GENERIC_TITLE, body)
                 recordDao.insert(
                     CoachNotificationRecordEntity(
                         title = GENERIC_TITLE,
-                        body = GENERIC_BODY,
+                        body = body,
                         dateKey = dateKeyFor(now),
                         slotRaw = slotRaw(slot),
                     )
@@ -206,7 +207,7 @@ class CoachNotificationSlotRunner(
             }
 
             // (7) Generate (AI, deterministic fallback), record, deliver.
-            val notification = generate(slot, now)
+            val notification = greetingSafe(slot, generate(slot, now))
             recordDao.insert(
                 CoachNotificationRecordEntity(
                     title = notification.title,
@@ -223,7 +224,8 @@ class CoachNotificationSlotRunner(
             // Ultimate fallback — pre-extraction worker behavior: even when everything
             // else blows up, the user still gets the generic check-in.
             val slot = resolvedSlot ?: CoachNotificationSlot.forcedSlot(hourOf(now))
-            runCatching { deliver(GENERIC_TITLE, GENERIC_BODY) }
+            val body = genericBody(slot)
+            runCatching { deliver(GENERIC_TITLE, body) }
             // Record it like every other delivery. This IS a send, so the (dateKey, slotRaw)
             // key has to exist or the data trigger (which re-runs the due slot on the next
             // sync completion, minutes later) sees no record and delivers the slot a second
@@ -233,7 +235,7 @@ class CoachNotificationSlotRunner(
                 recordDao.insert(
                     CoachNotificationRecordEntity(
                         title = GENERIC_TITLE,
-                        body = GENERIC_BODY,
+                        body = body,
                         dateKey = dateKeyFor(now),
                         slotRaw = slotRaw(slot),
                     )
@@ -258,6 +260,35 @@ class CoachNotificationSlotRunner(
         /** The generic scripted check-in (pre-extraction worker fallback text). */
         const val GENERIC_TITLE = "PulseLoop Coach"
         const val GENERIC_BODY = "Good morning! Sync your ring and check your vitals to start the day."
+        const val GENERIC_EVENING_BODY = "Evening check-in: sync your ring and I'll recap your day."
+
+        /**
+         * The generic text for [slot]. It used to be the morning line for both slots, so every
+         * evening check-in that fell back (no API key, or generation failing) said "Good morning"
+         * at 20:00.
+         */
+        fun genericBody(slot: CoachNotificationSlot): String = when (slot) {
+            CoachNotificationSlot.MORNING -> GENERIC_BODY
+            CoachNotificationSlot.EVENING -> GENERIC_EVENING_BODY
+        }
+
+        private val MORNING_GREETING = Regex("""\bgood\s+morning\b""", RegexOption.IGNORE_CASE)
+        // "good night's sleep" is a fine thing to say in the morning; "good night" alone is not.
+        private val EVENING_GREETING = Regex("""\bgood\s+evening\b|\bgood\s*night\b(?!['’]s)""", RegexOption.IGNORE_CASE)
+
+        /**
+         * The model is told which slot it writes, but a greeting for the other half of the day
+         * still gets through now and then, and a "Good morning" at 20:00 is the one mistake a
+         * user notices immediately. Such a check-in is replaced by the slot's generic text.
+         */
+        fun greetingSafe(slot: CoachNotificationSlot, content: CoachNotificationContent): CoachNotificationContent {
+            val wrong = when (slot) {
+                CoachNotificationSlot.MORNING -> EVENING_GREETING
+                CoachNotificationSlot.EVENING -> MORNING_GREETING
+            }
+            val text = content.title + " " + content.body
+            return if (wrong.containsMatchIn(text)) CoachNotificationContent(GENERIC_TITLE, genericBody(slot)) else content
+        }
 
         /**
          * iOS `CoachNotificationService.runInFlight` — process-wide, because each entry
