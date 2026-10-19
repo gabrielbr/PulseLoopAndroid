@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -39,7 +40,7 @@ fun WorkoutMapView(
                 .fillMaxWidth()
                 .height(height.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF1A1F2E).copy(alpha = 0.4f)),
+                .background(PulseColors.cardSoft.copy(alpha = 0.4f)),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -53,7 +54,7 @@ fun WorkoutMapView(
                 .fillMaxWidth()
                 .height(height.dp)
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color(0xFF0F141F)),
+                .background(PulseColors.card),
         ) {
             Canvas(Modifier.fillMaxSize().padding(8.dp)) {
                 val w = size.width; val h = size.height
@@ -79,20 +80,20 @@ fun WorkoutMapView(
                 drawPath(
                     path = path,
                     brush = Brush.linearGradient(
-                        listOf(Color(0xFF4FC3F7), Color(0xFF1E88E5)),
+                        listOf(PulseColors.info, PulseColors.accent),
                     ),
                     style = Stroke(width = 4f, cap = StrokeCap.Round),
                 )
 
                 // Start marker
                 val start = toScreen(points.first().latitude, points.first().longitude)
-                drawCircle(Color(0xFF4CAF50), 6f, start)
+                drawCircle(PulseColors.steps, 6f, start)
                 drawCircle(Color.White, 5f, start)
 
                 // End marker (pulsing dot)
                 val end = toScreen(points.last().latitude, points.last().longitude)
-                drawCircle(Color(0xFF1E88E5), 8f, end)
-                drawCircle(Color(0xFF1E88E5).copy(alpha = 0.25f), 12f, end)
+                drawCircle(PulseColors.accent, 8f, end)
+                drawCircle(PulseColors.accent.copy(alpha = 0.25f), 12f, end)
 
                 // Point count overlay
             }

@@ -54,7 +54,7 @@ fun PrimaryButton(
         shape = RoundedCornerShape(16.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = PulseColors.accent,
-            contentColor = Color.White,
+            contentColor = PulseColors.onAccent,
         ),
     ) {
         if (icon != null) {

@@ -236,7 +236,7 @@ private fun OnboardingTopBar(
                 "Step ${step.index + 1} of $total",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = FontFamily.Monospace,
+                fontFamily = com.pulseloop.ui.theme.UbuntuMono,
                 color = PulseColors.textMuted,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),

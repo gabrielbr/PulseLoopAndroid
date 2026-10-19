@@ -549,7 +549,7 @@ private fun SleepHypnogram(
                 .fillMaxWidth()
                 .height(height - 22.dp)
                 .clip(RoundedCornerShape(16.dp))
-                .background(Color(0xFF0F141F))
+                .background(PulseColors.card)
                 .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(16.dp)),
         ) {
             var plotWidthPx by remember { mutableFloatStateOf(0f) }
@@ -791,7 +791,7 @@ private fun SleepDurationHistogram(
                 val h = if (duration != null) (duration / yMax) * size.height else size.height
                 val top = size.height - h
                 val brush = if (duration != null) {
-                    Brush.verticalGradient(listOf(Color(0xFF8B7CFF), Color(0xFF3F2DD8)), startY = top)
+                    Brush.verticalGradient(listOf(PulseColors.stageLight, PulseColors.stageDeep), startY = top)
                 } else {
                     Brush.verticalGradient(listOf(PulseColors.accent.copy(alpha = 0.05f), PulseColors.accent.copy(alpha = 0.05f)))
                 }

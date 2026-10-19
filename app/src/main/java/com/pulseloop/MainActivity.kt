@@ -7,6 +7,14 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.pulseloop.ui.theme.PulseColors
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -57,7 +65,16 @@ class MainActivity : ComponentActivity() {
         requestAllPermissions()
 
         setContent {
-            PulseLoopApp()
+            // GMind brand frame: a 4dp mint border round the whole screen, content inside it.
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(PulseColors.background)
+                    .border(4.dp, PulseColors.frame)
+                    .padding(4.dp),
+            ) {
+                PulseLoopApp()
+            }
         }
 
         // Handle Strava redirect on cold start (app launched from browser callback).

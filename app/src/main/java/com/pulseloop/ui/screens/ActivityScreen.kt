@@ -144,7 +144,7 @@ fun ActivityScreen(
                     "+ Record Activity",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = Color.White,
+                    color = PulseColors.onAccent,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     modifier = Modifier
                         .weight(1f)

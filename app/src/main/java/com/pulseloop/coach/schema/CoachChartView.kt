@@ -1,5 +1,6 @@
 package com.pulseloop.coach.schema
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -31,10 +32,10 @@ fun CoachChartView(
     height: Int = 170,
 ) {
     val color = when {
-        chart.title.contains("HR", ignoreCase = true) || chart.yLabel.contains("bpm", ignoreCase = true) -> Color(0xFFE53935)
-        chart.title.contains("SpO2", ignoreCase = true) || chart.yLabel.contains("%", ignoreCase = true) -> Color(0xFF1E88E5)
-        chart.title.contains("sleep", ignoreCase = true) -> Color(0xFF7E57C2)
-        chart.title.contains("step", ignoreCase = true) -> Color(0xFF4CAF50)
+        chart.title.contains("HR", ignoreCase = true) || chart.yLabel.contains("bpm", ignoreCase = true) -> PulseColors.heartRate
+        chart.title.contains("SpO2", ignoreCase = true) || chart.yLabel.contains("%", ignoreCase = true) -> PulseColors.spo2
+        chart.title.contains("sleep", ignoreCase = true) -> PulseColors.sleep
+        chart.title.contains("step", ignoreCase = true) -> PulseColors.steps
         else -> MaterialTheme.colorScheme.primary
     }
 
@@ -42,7 +43,7 @@ fun CoachChartView(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFF0F141F))
+            .background(PulseColors.card)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {

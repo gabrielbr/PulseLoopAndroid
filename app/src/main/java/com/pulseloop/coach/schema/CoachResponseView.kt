@@ -1,5 +1,6 @@
 package com.pulseloop.coach.schema
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -68,7 +69,7 @@ fun CoachResponseView(
 
         // Safety note
         response.safetyNote?.takeIf { it.isNotEmpty() }?.let { note ->
-            NoteRow(icon = { Icon(Icons.Filled.Warning, null, tint = Color(0xFFFFA726)) }, text = note, tone = Color(0xFFFFA726))
+            NoteRow(icon = { Icon(Icons.Filled.Warning, null, tint = PulseColors.warning) }, text = note, tone = PulseColors.warning)
         }
 
         // Data quality note

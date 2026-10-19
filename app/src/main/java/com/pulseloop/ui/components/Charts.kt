@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -246,7 +247,7 @@ fun TrendChart(
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
     secondary: List<Double> = emptyList(),
-    colorSecondary: Color = Color(0xFFB39DDB),
+    colorSecondary: Color = PulseColors.hrv,
     legendPrimary: String? = null,
     legendSecondary: String? = null,
     thresholds: MetricThresholds? = null,

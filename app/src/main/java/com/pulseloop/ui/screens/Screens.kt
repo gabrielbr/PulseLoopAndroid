@@ -370,7 +370,7 @@ fun VitalsScreen(
                             ) {
                                 Text(
                                     if (measuring && measuringLabel == "HR") "HR ${remaining}s" else "HR",
-                                    color = androidx.compose.ui.graphics.Color.White,
+                                    color = androidx.compose.ui.graphics.Color.Unspecified,
                                 )
                             }
                             Button(
@@ -385,7 +385,7 @@ fun VitalsScreen(
                             ) {
                                 Text(
                                     if (measuring && measuringLabel == "SpO₂") "SpO₂ ${remaining}s" else "SpO₂",
-                                    color = androidx.compose.ui.graphics.Color.White,
+                                    color = androidx.compose.ui.graphics.Color.Unspecified,
                                 )
                             }
                             if (remainingLegsLabel != null) {
@@ -406,7 +406,7 @@ fun VitalsScreen(
                                     Text(
                                         if (measuring && measuringLabel == remainingLegsLabel)
                                             "$remainingLegsLabel ${remaining}s" else remainingLegsLabel,
-                                        color = androidx.compose.ui.graphics.Color.White,
+                                        color = androidx.compose.ui.graphics.Color.Unspecified,
                                     )
                                 }
                             }
@@ -429,7 +429,7 @@ fun VitalsScreen(
                                     ) {
                                         Text(
                                             if (measuring && measuringLabel == label) "$label ${remaining}s" else label,
-                                            color = androidx.compose.ui.graphics.Color.White,
+                                            color = androidx.compose.ui.graphics.Color.Unspecified,
                                         )
                                     }
                                 }
@@ -457,7 +457,7 @@ fun VitalsScreen(
                     ) {
                         Text(
                             if (measuring) "Measuring… ${remaining}s" else "Measure",
-                            color = androidx.compose.ui.graphics.Color.White,
+                            color = androidx.compose.ui.graphics.Color.Unspecified,
                         )
                     }
                     }
