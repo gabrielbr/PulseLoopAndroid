@@ -9,6 +9,7 @@ import kotlinx.coroutines.test.runTest
 import java.time.LocalDateTime
 import java.time.ZoneId
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -95,6 +96,8 @@ class CoachNotificationSlotRunnerTest {
         val NOW_MORNING_TOMORROW = at(LocalDateTime.of(2026, 8, 23, 9, 0))
         /** 15:00 — inside no slot window. */
         val NOW_AFTERNOON = at(LocalDateTime.of(2026, 8, 22, 15, 0))
+        /** 20:30 — inside the default evening window (20:00–00:00). */
+        val NOW_EVENING = at(LocalDateTime.of(2026, 8, 22, 20, 30))
     }
 
     @Test
@@ -221,5 +224,35 @@ class CoachNotificationSlotRunnerTest {
         // ...and a later trigger run the same day (fresh data landing) can't double-send.
         assertEquals(CoachNotificationOutcome.SkippedDuplicate, h.runner.runDueSlot())
         assertEquals(1, h.recordDao.records.size)
+    }
+
+    @Test
+    fun `an evening check-in that falls back never says good morning`() = runTest {
+        val h = Harness(apiKey = "")
+        assertEquals(
+            CoachNotificationOutcome.Sent(CoachNotificationSlot.EVENING),
+            h.runner.runDueSlot(now = NOW_EVENING),
+        )
+        val (_, body) = h.delivered.single()
+        assertEquals(CoachNotificationSlotRunner.GENERIC_EVENING_BODY, body)
+        assertFalse(body.contains("morning", ignoreCase = true))
+    }
+
+    @Test
+    fun `a generated greeting for the wrong half of the day is replaced`() {
+        val evening = CoachNotificationSlotRunner.greetingSafe(
+            CoachNotificationSlot.EVENING,
+            CoachNotificationContent("Good morning, Gabriel", "You slept 7h."),
+        )
+        assertEquals(CoachNotificationSlotRunner.GENERIC_EVENING_BODY, evening.body)
+        val morning = CoachNotificationSlotRunner.greetingSafe(
+            CoachNotificationSlot.MORNING,
+            CoachNotificationContent("Good evening", "Ready for the day?"),
+        )
+        assertEquals(CoachNotificationSlotRunner.GENERIC_BODY, morning.body)
+        val sleptWell = CoachNotificationContent("Rise and shine", "A good night's sleep: 7h 40m.")
+        assertEquals(sleptWell, CoachNotificationSlotRunner.greetingSafe(CoachNotificationSlot.MORNING, sleptWell))
+        val fine = CoachNotificationContent("Evening check-in", "8,200 steps today.")
+        assertEquals(fine, CoachNotificationSlotRunner.greetingSafe(CoachNotificationSlot.EVENING, fine))
     }
 }

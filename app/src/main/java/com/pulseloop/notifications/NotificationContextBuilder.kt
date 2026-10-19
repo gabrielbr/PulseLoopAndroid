@@ -83,7 +83,9 @@ object NotificationContextBuilder {
 
         return NotificationContextPacket(
             slot = slot.name.lowercase(),
-            generatedAt = Instant.ofEpochMilli(now).toString(),
+            // Local time with its offset, not UTC: the model reads the hour off this, and 20:00
+            // in UTC-3 written as 23:00Z (or 08:00 UTC+9 as 23:00Z the day before) misleads it.
+            generatedAt = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toOffsetDateTime().toString(),
             timezone = ZoneId.systemDefault().id,
             profileName = profile?.name,
             goals = NotificationContextPacket.GoalContext(
