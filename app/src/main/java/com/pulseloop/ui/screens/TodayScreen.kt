@@ -1,6 +1,9 @@
 package com.pulseloop.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.draw.clip
+import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.pullrefresh.PullRefreshIndicator
@@ -94,11 +97,22 @@ fun TodayScreen(
     val guidance = rememberGuidance(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
     var mealSheet by remember { mutableStateOf(false) }
     var tagSheet by remember { mutableStateOf(false) }
-    val mealsToday by produceState<Int?>(null, state.lastUpdated, mealSheet) {
+    // Today's food log, for the Nutrition tile and the midday food moment.
+    val food by produceState<FoodTotals?>(null, state.lastUpdated, mealSheet) {
         value = runCatching {
-            db.mealEntryDao().byDay(java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()).size
+            val meals = db.mealEntryDao().byDay(java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
+            val goal = db.userGoalDao().get()
+            FoodTotals(
+                meals = meals.size,
+                kcal = meals.sumOf { it.calories },
+                proteinG = meals.sumOf { it.proteinG },
+                carbsG = meals.sumOf { it.carbsG },
+                fatG = meals.sumOf { it.fatG },
+                goalKcal = goal?.intakeCalories,
+            )
         }.getOrNull()
     }
+    val mealsToday = food?.meals
 
     // Per-metric visibility + user order (iOS #64), read reactively so a hide/show/reorder
     // recomposes immediately (this is also the iOS #70 reactivity).
@@ -108,7 +122,7 @@ fun TodayScreen(
 
     val supported: (DashboardCard) -> Boolean = { card ->
         when (card) {
-            DashboardCard.ACTIVITY, DashboardCard.SLEEP,
+            DashboardCard.ACTIVITY, DashboardCard.SLEEP, DashboardCard.NUTRITION,
             DashboardCard.HEART_RATE, DashboardCard.SPO2 -> true
             DashboardCard.HRV -> vitals.supportsHrv
             DashboardCard.TEMPERATURE -> vitals.supportsTemp
@@ -135,6 +149,7 @@ fun TodayScreen(
         when (card) {
             DashboardCard.ACTIVITY -> ActivityTileFor(state, units, m) { navController?.navigate("activity") }
             DashboardCard.SLEEP -> SleepTileFor(sleep, m) { navController?.navigate("sleep") }
+            DashboardCard.NUTRITION -> NutritionTile(food, m, onLog = { mealSheet = true }) { navController?.navigate("nutrition") }
             DashboardCard.HEART_RATE -> ChartTile(cards.getValue(MetricKind.HEART_RATE), vitals.hrSamples, m) { navController?.navigate("vitals/hr") }
             DashboardCard.SPO2 -> ChartTile(cards.getValue(MetricKind.SPO2), vitals.spo2Samples, m) { navController?.navigate("vitals/spo2") }
             DashboardCard.HRV -> ChartTile(cards.getValue(MetricKind.HRV), vitals.hrvSamples, m) { navController?.navigate("vitals/hrv") }
@@ -199,7 +214,8 @@ fun TodayScreen(
             val moments = TodayMoments.at(
                 hour = java.time.LocalTime.now().hour,
                 hasSleep = sleep.lastNight != null,
-                mealsToday = mealsToday ?: -1,
+                // The tile already invites a meal when it is on the grid; the card is for when it isn't.
+                mealsToday = if (DashboardCard.NUTRITION in visibleOrdered) -1 else mealsToday ?: -1,
                 hasBedtime = guidance?.bedtime != null,
             )
             moments.forEach { moment ->
@@ -531,5 +547,49 @@ private fun parseChips(json: String?): List<String> {
             .mapNotNull { (it as? kotlinx.serialization.json.JsonPrimitive)?.content }
     } catch (_: Exception) {
         emptyList()
+    }
+}
+
+/** Today's food totals for the Nutrition tile. */
+internal data class FoodTotals(
+    val meals: Int,
+    val kcal: Double,
+    val proteinG: Double,
+    val carbsG: Double,
+    val fatG: Double,
+    val goalKcal: Double?,
+)
+
+/** Half-width Nutrition tile: calories eaten against the goal, macros, and a one-tap log. */
+@Composable
+private fun NutritionTile(food: FoodTotals?, modifier: Modifier, onLog: () -> Unit, onTap: () -> Unit) {
+    TodayTile(label = "Nutrition", color = PulseColors.calories, modifier = modifier, onTap = onTap) {
+        val kcal = food?.kcal ?: 0.0
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(Formats.count(kcal.toInt()), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
+            Text("kcal", fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
+        }
+        val goal = food?.goalKcal?.takeIf { it > 0 }
+        if (goal != null) {
+            val shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
+            Box(Modifier.fillMaxWidth().height(6.dp).clip(shape).dither(PulseColors.calories, 0.25f)) {
+                Box(Modifier.fillMaxWidth((kcal / goal).toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(PulseColors.calories))
+            }
+            Text("of ${Formats.count(goal.toInt())}", fontSize = 11.sp, color = PulseColors.textMuted)
+        }
+        Spacer(Modifier.weight(1f))
+        if (food != null && food.meals > 0) {
+            Text(
+                "P ${food.proteinG.toInt()} · C ${food.carbsG.toInt()} · F ${food.fatG.toInt()} g",
+                fontSize = 11.sp, color = PulseColors.textSecondary, maxLines = 1,
+            )
+        } else {
+            Text("Nothing logged yet", fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
+        }
+        Text(
+            "+ Log meal",
+            fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+            modifier = Modifier.clickable(onClick = onLog).padding(vertical = 2.dp),
+        )
     }
 }
