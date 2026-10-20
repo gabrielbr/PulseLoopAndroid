@@ -111,6 +111,29 @@ object DrinkInsights {
         )
     }
 
+    /** The week at a glance: a headline about the limit, and a line about dry days. */
+    fun headline(week: Week, limit: Double, dryTarget: Int, today: LocalDate): Pair<String, String> {
+        val total = week.standardDrinks
+        val title = when {
+            limit <= 0 -> if (total <= 0) "No drinks this week" else "${fmt(total)} drinks this week"
+            total > limit -> "${fmt(total - limit)} over your limit"
+            total <= 0 -> "No drinks yet this week"
+            limit - total < 0.05 -> "Right at your limit"
+            else -> "${fmt(limit - total)} left this week"
+        }
+        // Days still to come this week, today included, while today is still dry.
+        val daysLeft = 7 - (today.dayOfWeek.value - 1)
+        val canStillBeDry = if (week.drankToday) daysLeft - 1 else daysLeft
+        val needed = (dryTarget - week.dryDays).coerceAtLeast(0)
+        val sub = when {
+            dryTarget <= 0 -> "${week.dryDays} dry day${if (week.dryDays == 1) "" else "s"} so far"
+            needed == 0 -> "Dry-day goal reached: ${week.dryDays} of $dryTarget"
+            needed <= canStillBeDry -> "$needed more dry day${if (needed == 1) "" else "s"} to reach $dryTarget"
+            else -> "${week.dryDays} of $dryTarget dry days; a fresh week starts Monday"
+        }
+        return title to sub
+    }
+
     /** Standard drinks per week, oldest first, for the [weeks] weeks ending with this one. */
     fun weeklyTotals(gramsByDay: Map<LocalDate, Double>, today: LocalDate, gramsPerStandard: Double, weeks: Int): List<Pair<LocalDate, Double>> {
         val thisWeek = weekStart(today)

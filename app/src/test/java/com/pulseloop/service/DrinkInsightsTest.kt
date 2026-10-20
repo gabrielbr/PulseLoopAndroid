@@ -74,6 +74,27 @@ class DrinkInsightsTest {
         assertEquals(listOf(0.0, 2.0, 1.0), totals.map { it.second })
     }
 
+    @Test
+    fun `the headline says what is left and how many dry days are still needed`() {
+        val wed = d(10, 21)
+        fun week(total: Double, dry: Int, drank: Boolean) = DrinkInsights.Week(d(10, 19), total, 0, dry, 0, drank)
+        assertEquals("3.6 left this week" to "3 more dry days to reach 4", DrinkInsights.headline(week(3.38, 1, true), 7.0, 4, wed))
+        assertEquals("2 over your limit", DrinkInsights.headline(week(9.0, 1, false), 7.0, 4, wed).first)
+        assertEquals("No drinks yet this week", DrinkInsights.headline(week(0.0, 2, false), 7.0, 4, wed).first)
+        assertEquals("Dry-day goal reached: 4 of 4", DrinkInsights.headline(week(2.0, 4, false), 7.0, 4, wed).second)
+        val sun = d(10, 25)
+        assertEquals("1 of 4 dry days; a fresh week starts Monday", DrinkInsights.headline(week(5.0, 1, false), 7.0, 4, sun).second)
+    }
+
+    @Test
+    fun `the one-tap row ranks the drinks the user logs most`() {
+        assertEquals(
+            listOf(DrinkType.WINE, DrinkType.DRAFT, DrinkType.BEER, DrinkType.CAIPIRINHA),
+            DrinksRepository.topTypes(listOf(DrinkType.WINE, DrinkType.WINE, DrinkType.DRAFT)),
+        )
+        assertEquals(listOf(DrinkType.BEER, DrinkType.WINE, DrinkType.CAIPIRINHA, DrinkType.SPIRIT), DrinksRepository.topTypes(emptyList()))
+    }
+
     // ── Streaks and savings ──────────────────────────────────────────────────────────────────
 
     @Test
