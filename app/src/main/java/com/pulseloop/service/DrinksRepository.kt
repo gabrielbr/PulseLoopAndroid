@@ -160,6 +160,10 @@ object DrinksRepository {
         val planToday: Int?,
         val todayStandard: Double,
         val auditDue: Boolean,
+        /** Monday to Sunday of this week, with the alcohol logged for each evening (grams). */
+        val weekDays: List<Pair<LocalDate, Double>>,
+        /** The user's four most-logged drinks lately, for the one-tap row. */
+        val topTypes: List<DrinkType>,
     )
 
     suspend fun load(db: PulseLoopDatabase, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Snapshot {
@@ -197,7 +201,17 @@ object DrinksRepository {
             planToday = DrinkPrefs.plan(today),
             todayStandard = DrinkInsights.standardDrinks(byDay[today] ?: 0.0, std),
             auditDue = DrinkPrefs.auditDate?.let { it.plusDays(AuditC.RETAKE_DAYS) <= today } ?: true,
+            weekDays = (0L until 7L).map { DrinkInsights.weekStart(today).plusDays(it) }.map { it to (byDay[it] ?: 0.0) },
+            topTypes = topTypes(all.filter { it.mealId == null }.map { DrinkType.of(it.type) }),
         )
+    }
+
+    private val DEFAULT_TOP = listOf(DrinkType.BEER, DrinkType.WINE, DrinkType.CAIPIRINHA, DrinkType.SPIRIT)
+
+    /** The four most-logged types, topped up with common ones so the row is always four wide. */
+    fun topTypes(logged: List<DrinkType>): List<DrinkType> {
+        val ranked = logged.groupingBy { it }.eachCount().entries.sortedByDescending { it.value }.map { it.key }
+        return (ranked + DEFAULT_TOP).distinct().take(4)
     }
 
     /** One line for a morning-after card or notification, null when there's nothing honest to say. */
