@@ -11,4 +11,7 @@
     <string name="widget_metric_description">A Today tile of your choice — activity, sleep, heart rate, and more.</string>
     <string name="widget_dual_label">Two Metric Tiles</string>
     <string name="widget_dual_description">Two Today tiles side by side, each configurable.</string>
+    <string name="widget_snap_meal_label">Snap a meal</string>
+    <string name="widget_snap_meal_short">Log meal</string>
+    <string name="widget_snap_meal_description">One tap opens the camera to log a meal with AI analysis.</string>
 </resources>

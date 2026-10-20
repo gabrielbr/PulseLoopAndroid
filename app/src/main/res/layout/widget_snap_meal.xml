@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One-tap "snap a meal" widget: opens the camera for AI meal analysis. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/snap_meal_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_snap_bg"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="6dp">
+
+    <ImageView
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:contentDescription="@string/widget_snap_meal_label"
+        android:src="@drawable/ic_widget_camera" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:fontFamily="monospace"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:text="@string/widget_snap_meal_short"
+        android:textColor="#F2F2F2"
+        android:textSize="12sp" />
+</LinearLayout>
