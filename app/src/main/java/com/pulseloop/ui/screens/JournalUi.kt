@@ -47,8 +47,12 @@ fun JournalTagsCard(
     title: String,
     tags: List<JournalInsights.Tag> = JournalInsights.Tag.entries,
     footer: (@Composable () -> Unit)? = null,
+    /** Offer a Today / Yesterday switch, so a forgotten day can still be tagged the morning after. */
+    allowYesterday: Boolean = false,
 ) {
-    val day = remember(date) { dayKey(date) }
+    var onYesterday by remember(date) { mutableStateOf(false) }
+    val shown = if (allowYesterday && onYesterday) date.minusDays(1) else date
+    val day = remember(shown) { dayKey(shown) }
     val entries by remember(day) { db.journalDao().forDayFlow(day) }.collectAsState(initial = emptyList())
     val selected = entries.map { it.tag }.toSet()
     val scope = rememberCoroutineScope()
@@ -57,7 +61,16 @@ fun JournalTagsCard(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                if (allowYesterday && onYesterday) "Tag yesterday" else title,
+                fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            if (allowYesterday) {
+                DaySwitch(onYesterday) { onYesterday = it }
+            }
+        }
         // Chips size to their label and wrap as a row, one line each: a fixed two-column grid
         // broke the longer labels over two lines in a monospace face.
         FlowRow(
@@ -91,6 +104,27 @@ fun JournalTagsCard(
             }
         }
         footer?.invoke()
+    }
+}
+
+/** Today / Yesterday, as two small segments. */
+@Composable
+private fun DaySwitch(yesterday: Boolean, onChange: (Boolean) -> Unit) {
+    val shape = RoundedCornerShape(16.dp)
+    Row(Modifier.clip(shape).border(1.dp, PulseColors.borderSubtle, shape)) {
+        listOf(false to "Today", true to "Yesterday").forEach { (isYesterday, label) ->
+            val on = yesterday == isYesterday
+            Text(
+                label,
+                fontSize = 12.sp,
+                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
+                modifier = Modifier
+                    .background(if (on) PulseColors.accent else PulseColors.cardSoft)
+                    .clickable { onChange(isYesterday) }
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 

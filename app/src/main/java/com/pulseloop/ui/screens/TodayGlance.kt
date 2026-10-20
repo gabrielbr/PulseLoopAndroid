@@ -190,7 +190,7 @@ fun MealSheet(onDismiss: () -> Unit, onPick: (start: String) -> Unit) {
 fun TagDaySheet(db: PulseLoopDatabase, onDismiss: () -> Unit, onSeeEffects: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = PulseColors.secondaryBackground) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
-            JournalTagsCard(db, java.time.LocalDate.now(), "Tag your day") {
+            JournalTagsCard(db, java.time.LocalDate.now(), "Tag your day", allowYesterday = true) {
                 Text(
                     "See what affects you",
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
