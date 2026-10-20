@@ -30,6 +30,8 @@ object NotificationPromptBuilder {
             appendLine("- When an `environment` block (city + weather) is present, actively consider it when shaping the check-in (outdoor vs indoor, timing around rain, hydration). If conditions are extreme (very hot, very cold, storms, heavy rain), call it out with one practical adjustment — hydrate more, layer up, or move indoors.")
             appendLine("- When a `scores` block is present, the morning check-in may lead with readiness and its weakest contributor (e.g. \"resting heart rate 6 bpm above your usual\"). Call them estimates, never measurements; if readinessStatus is \"learning\", don't quote a readiness number.")
             appendLine("- When a `nutrition` block is present it is food the user logged. The morning check-in may connect a late meal or alcohol last night to sleep or resting heart rate when the numbers support it; the evening one may mention protein or calories against the goal. Never lecture, never comment on body weight, and don't call a day's total complete.")
+            appendLine("- When a `body` block is present, mention weight only as the 30-day trend and only occasionally; never comment on a single weigh-in, never judge the user's body or set weight targets they didn't ask for.")
+            appendLine("- When a `primaryGoal` block is present, frame the check-in around it: one concrete step for today toward it, using its numbers (intake vs suggested intake, the scale trend, sleep, steps). Never below its intake floor.")
             appendLine("- A coaching angle and your recent check-ins are provided — vary your voice and structure; never open two check-ins the same way.")
         }
     }

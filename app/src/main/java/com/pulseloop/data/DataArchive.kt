@@ -43,6 +43,16 @@ data class PulseArchive(
     val measurementDeletions: List<MeasurementDeletionDTO> = emptyList(),
     /** Journal tags (docs/health-app-feature-research.md). */
     val journalEntries: List<JournalEntryDTO> = emptyList(),
+    /** The goals set with the coach (v30). */
+    val coachGoals: List<CoachGoalDTO> = emptyList(),
+)
+
+@Serializable data class CoachGoalDTO(
+    val id: String, val kind: String, val description: String,
+    val startWeightKg: Double? = null, val targetWeightKg: Double? = null,
+    val targetValue: Double? = null,
+    val startDate: Long, val targetDate: Long? = null, val active: Boolean = true,
+    val createdAt: Long, val updatedAt: Long,
 )
 
 @Serializable data class JournalEntryDTO(val id: String, val day: Long, val tag: String, val createdAt: Long)
@@ -192,6 +202,9 @@ data class PulseArchive(
     val hrCustomElevatedStart: Double? = null,
     val hrCustomHighStart: Double? = null,
     val createdAt: Long, val updatedAt: Long,
+    // v30. Defaulted so older archives still import.
+    val birthYear: Int? = null, val bodyFatPct: Double? = null,
+    val leanMassKg: Double? = null, val bodyUpdatedAt: Long? = null,
 )
 
 @Serializable data class UserGoalDTO(

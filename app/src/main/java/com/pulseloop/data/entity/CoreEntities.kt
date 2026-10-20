@@ -234,6 +234,16 @@ data class UserProfileEntity(
     val sex: String? = null,
     val heightCm: Double? = null,
     val weightKg: Double? = null,
+    /**
+     * v30: the year of birth, so [age] can be kept current instead of going stale every birthday.
+     * Derived from the age the user enters (Health Connect has no age or birth-date type).
+     */
+    val birthYear: Int? = null,
+    /** v30: latest body fat % and lean mass, from a scale via Health Connect. */
+    val bodyFatPct: Double? = null,
+    val leanMassKg: Double? = null,
+    /** v30: when [weightKg] was last set from Health Connect (null = entered by hand). */
+    val bodyUpdatedAt: Long? = null,
     val onboardingCompleted: Boolean = false,
     val baselineCompleted: Boolean = false,
     val createdAt: Long = System.currentTimeMillis(),
@@ -322,3 +332,56 @@ data class JournalEntryEntity(
         fun idFor(day: Long, tag: String) = "$day:$tag"
     }
 }
+
+/**
+ * v30: body measurements imported from Health Connect (a smart scale's weight, body fat, lean,
+ * bone and water mass, BMR; height). Keyed by the Health Connect record id, so a re-import
+ * updates rather than duplicates. Not part of the data archive: Health Connect still holds every
+ * row, and the next import restores them.
+ */
+@Entity(tableName = "body_measurements", indices = [Index(value = ["type", "measuredAt"])])
+data class BodyMeasurementEntity(
+    @PrimaryKey val id: String,
+    /** One of [BodyMeasurementEntity.Companion] TYPE_* constants. */
+    val type: String,
+    /** kg for the masses, % for body fat, m for height, kcal/day for BMR. */
+    val value: Double,
+    val measuredAt: Long,
+    /** The package that wrote it to Health Connect (e.g. the scale's app). */
+    val source: String,
+) {
+    companion object {
+        const val TYPE_WEIGHT = "weight"
+        const val TYPE_HEIGHT = "height"
+        const val TYPE_BODY_FAT = "body_fat"
+        const val TYPE_LEAN_MASS = "lean_mass"
+        const val TYPE_BONE_MASS = "bone_mass"
+        const val TYPE_BODY_WATER = "body_water"
+        const val TYPE_BMR = "bmr"
+    }
+}
+
+/**
+ * v30: the goal the user set with the coach ("lose 5 kg in 60 days"). One active at a time; an
+ * older one is kept inactive when a new one replaces it. The weight fields are filled for weight
+ * goals only; [description] is the user's own words for every kind.
+ */
+@Entity(tableName = "coach_goals")
+data class CoachGoalEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    /** One of GoalPlan.ALL_KINDS (lose_weight, build_muscle, sleep_better, move_more, …). */
+    val kind: String,
+    val description: String,
+    val startWeightKg: Double? = null,
+    val targetWeightKg: Double? = null,
+    /**
+     * The habit target for non-weight goals, in the kind's unit: hours a night (sleep_better),
+     * steps a day (move_more), workouts a week (get_fitter, build_muscle). Null = the app's default.
+     */
+    val targetValue: Double? = null,
+    val startDate: Long,
+    val targetDate: Long? = null,
+    val active: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+)

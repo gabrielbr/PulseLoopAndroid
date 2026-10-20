@@ -72,8 +72,14 @@ fun CoachScreen(
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    // +1: the goal banner is the list's first item.
     LaunchedEffect(state.messages.size) {
-        if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size - 1)
+        if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size)
+    }
+    val goalDb = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(ctx) }
+    val activeGoal by remember { goalDb.coachGoalDao().activeFlow() }.collectAsState(initial = null)
+    val goalPlan by produceState<com.pulseloop.service.GoalPlan.Plan?>(null, activeGoal, state.messages.size) {
+        value = runCatching { com.pulseloop.service.GoalPlan.load(goalDb) }.getOrNull()
     }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
@@ -88,6 +94,16 @@ fun CoachScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
+            // The goal the coach plans around, or the prompt to set one.
+            item {
+                GoalBanner(
+                    plan = goalPlan,
+                    hasGoal = activeGoal != null,
+                    enabled = !state.isThinking,
+                    onSetGoal = { viewModel?.sendMessage("I'd like to set a goal. Ask me what I want and help me make it realistic for my data.", emptyList()) },
+                    onCheckIn = { viewModel?.sendMessage("How am I doing on my goal? What should I focus on this week?", emptyList()) },
+                )
+            }
             items(state.messages.size) { idx ->
                 MessageBubble(state.messages[idx], viewModel)
             }
@@ -425,6 +441,41 @@ private fun Composer(
                     tint = if (canSend) PulseColors.onAccent else PulseColors.textMuted,
                     modifier = Modifier.size(20.dp),
                 )
+            }
+        }
+    }
+}
+
+/** The goal the coach plans around, with progress, or an invitation to set one. */
+@Composable
+private fun GoalBanner(
+    plan: com.pulseloop.service.GoalPlan.Plan?,
+    hasGoal: Boolean,
+    enabled: Boolean,
+    onSetGoal: () -> Unit,
+    onCheckIn: () -> Unit,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(PulseColors.card)
+            .border(1.dp, if (hasGoal) PulseColors.accent else PulseColors.borderSubtle, shape)
+            .clickable(enabled = enabled) { if (hasGoal) onCheckIn() else onSetGoal() }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text("◎", fontSize = 18.sp, color = PulseColors.accent)
+        Column(Modifier.weight(1f)) {
+            if (hasGoal && plan != null) {
+                Text("YOUR GOAL", fontSize = 10.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+                Text(com.pulseloop.service.GoalPlan.headline(plan), fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 2)
+                Text(com.pulseloop.service.GoalPlan.focusLine(plan) + " · tap for this week's plan", fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 2)
+            } else {
+                Text("What's your goal?", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text("Tell the coach, and it plans with your scale, ring and food data.", fontSize = 12.sp, color = PulseColors.textSecondary)
             }
         }
     }

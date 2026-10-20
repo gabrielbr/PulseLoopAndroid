@@ -222,6 +222,8 @@ object DataArchiveService {
                     hrCustomElevatedStart = c.dblOrNull("hrCustomElevatedStart"),
                     hrCustomHighStart = c.dblOrNull("hrCustomHighStart"),
                     createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
+                    birthYear = c.intOrNull("birthYear"), bodyFatPct = c.dblOrNull("bodyFatPct"),
+                    leanMassKg = c.dblOrNull("leanMassKg"), bodyUpdatedAt = c.longOrNull("bodyUpdatedAt"),
                 )
             },
             userGoals = collect("user_goals") { c ->
@@ -319,6 +321,15 @@ object DataArchiveService {
                     timestamp = c.long("timestamp"), deletedAt = c.long("deletedAt"),
                 )
             },
+            coachGoals = collect("coach_goals") { c ->
+                CoachGoalDTO(
+                    id = c.str("id"), kind = c.str("kind"), description = c.str("description"),
+                    startWeightKg = c.dblOrNull("startWeightKg"), targetWeightKg = c.dblOrNull("targetWeightKg"),
+                    targetValue = c.dblOrNull("targetValue"),
+                    startDate = c.long("startDate"), targetDate = c.longOrNull("targetDate"),
+                    active = c.bool("active"), createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
+                )
+            },
             journalEntries = collect("journal_entries") { c ->
                 JournalEntryDTO(id = c.str("id"), day = c.long("day"), tag = c.str("tag"), createdAt = c.long("createdAt"))
             },
@@ -392,6 +403,15 @@ object DataArchiveService {
                         )
                     }
                 )
+            }
+            for (g in archive.coachGoals) {
+                db.coachGoalDao().upsert(CoachGoalEntity(
+                    id = g.id, kind = g.kind, description = g.description,
+                    startWeightKg = g.startWeightKg, targetWeightKg = g.targetWeightKg,
+                    targetValue = g.targetValue,
+                    startDate = g.startDate, targetDate = g.targetDate, active = g.active,
+                    createdAt = g.createdAt, updatedAt = g.updatedAt,
+                ))
             }
             if (archive.journalEntries.isNotEmpty()) {
                 db.journalDao().upsertAll(archive.journalEntries.map {
@@ -555,6 +575,8 @@ object DataArchiveService {
                     hrCustomElevatedStart = up.hrCustomElevatedStart,
                     hrCustomHighStart = up.hrCustomHighStart,
                     createdAt = up.createdAt, updatedAt = up.updatedAt,
+                    birthYear = up.birthYear, bodyFatPct = up.bodyFatPct,
+                    leanMassKg = up.leanMassKg, bodyUpdatedAt = up.bodyUpdatedAt,
                 ))
             }
             for (ug in archive.userGoals) {

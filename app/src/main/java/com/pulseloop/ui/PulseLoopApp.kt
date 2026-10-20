@@ -213,6 +213,8 @@ fun PulseLoopApp() {
                 RingSyncWorker.schedule(context.applicationContext)
                 // Daily guidance: unusual-signal alerts, weekly report, wind-down reminder.
                 com.pulseloop.notifications.GuidanceWorker.schedule(context.applicationContext)
+                com.pulseloop.health.HealthConnectBodyImport.schedule(context.applicationContext)
+                runCatching { com.pulseloop.health.ProfileAging.refresh(db) }
 
                 // NOTE: demo data is never auto-seeded. A clean install starts empty so the UI
                 // reflects only real ring data. Demo data is seeded exclusively via the

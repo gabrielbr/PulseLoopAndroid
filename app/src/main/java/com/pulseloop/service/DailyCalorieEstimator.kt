@@ -38,7 +38,33 @@ object DailyCalorieEstimator {
      */
     const val RING_HISTORY_SOURCE = "ring_history"
 
-    data class Profile(val sex: String?, val age: Int?, val weightKg: Double?, val heightCm: Double?)
+    data class Profile(
+        val sex: String?,
+        val age: Int?,
+        val weightKg: Double?,
+        val heightCm: Double?,
+        /** From a body-composition scale; when known, BMR uses Katch-McArdle instead of Mifflin. */
+        val leanMassKg: Double? = null,
+    )
+
+    /** The estimator's view of a stored profile: lean mass stored, or derived from weight and body fat. */
+    fun profileOf(p: com.pulseloop.data.entity.UserProfileEntity): Profile = Profile(
+        sex = p.sex,
+        age = p.age,
+        weightKg = p.weightKg,
+        heightCm = p.heightCm,
+        leanMassKg = p.leanMassKg ?: run {
+            val w = p.weightKg; val fat = p.bodyFatPct
+            if (w != null && fat != null && fat in 3.0..70.0) w * (1 - fat / 100.0) else null
+        },
+    )
+
+    /**
+     * Katch-McArdle BMR (kcal/day) from lean body mass. It needs no sex or age term because lean
+     * mass already carries what those approximate, which is why it is the better estimate when a
+     * scale reports body composition.
+     */
+    fun katchMcArdle(leanMassKg: Double): Double = 370.0 + 21.6 * leanMassKg
 
     /** Mifflin-St Jeor BMR (kcal/day), clamped at 0 like iOS's `mifflinBMR`. */
     fun bmr(
@@ -62,12 +88,14 @@ object DailyCalorieEstimator {
         sex: String? = null,
     ): Double = bmr(weightKg, heightCm, age, sex) / 1440.0
 
-    private fun bmrPerMinute(p: Profile): Double = bmrPerMinute(
-        p.weightKg ?: DEFAULT_WEIGHT_KG,
-        p.heightCm ?: DEFAULT_HEIGHT_CM,
-        p.age ?: DEFAULT_AGE,
-        p.sex,
-    )
+    private fun bmrPerMinute(p: Profile): Double =
+        p.leanMassKg?.takeIf { it in 20.0..150.0 }?.let { katchMcArdle(it) / 1440.0 }
+            ?: bmrPerMinute(
+                p.weightKg ?: DEFAULT_WEIGHT_KG,
+                p.heightCm ?: DEFAULT_HEIGHT_CM,
+                p.age ?: DEFAULT_AGE,
+                p.sex,
+            )
 
     /** Flex-HR threshold: only samples at or above this contribute (Spurr's Flex-HR method). */
     fun flexHR(age: Int = DEFAULT_AGE): Double = FLEX_HR_FRACTION * (MAX_HR - age)

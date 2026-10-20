@@ -1127,7 +1127,8 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit)
     var profileDraft by remember { mutableStateOf<com.pulseloop.ui.onboarding.ProfileDraft?>(null) }
     var savedMsg by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    var profileReload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(profileReload) {
         val p = db.userProfileDao().get()
         profileDraft = com.pulseloop.ui.onboarding.ProfileDraft.from(
             p, existingUnits = keyStore.resolvedUnitSystem,
@@ -1141,6 +1142,8 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit)
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        // A smart scale's weight and body composition, read from Health Connect.
+        HealthConnectBodyCard(onUpdated = { profileReload++ })
 
         profileDraft?.let { draft ->
             // Shared editor (iOS #48) — same component as the onboarding Profile step, with

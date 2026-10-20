@@ -888,3 +888,34 @@ interface JournalDao {
     @Query("DELETE FROM journal_entries WHERE id = :id")
     suspend fun delete(id: String)
 }
+
+@Dao
+interface BodyMeasurementDao {
+    @Upsert
+    suspend fun upsertAll(rows: List<BodyMeasurementEntity>)
+
+    @Query("SELECT * FROM body_measurements WHERE type = :type ORDER BY measuredAt DESC LIMIT 1")
+    suspend fun latest(type: String): BodyMeasurementEntity?
+
+    @Query("SELECT * FROM body_measurements WHERE type = :type AND measuredAt >= :from ORDER BY measuredAt ASC")
+    suspend fun since(type: String, from: Long): List<BodyMeasurementEntity>
+}
+
+@Dao
+interface CoachGoalDao {
+    @Query("SELECT * FROM coach_goals WHERE active = 1 ORDER BY createdAt DESC LIMIT 1")
+    suspend fun active(): CoachGoalEntity?
+
+    @Query("SELECT * FROM coach_goals WHERE active = 1 ORDER BY createdAt DESC LIMIT 1")
+    fun activeFlow(): Flow<CoachGoalEntity?>
+
+    @Query("SELECT * FROM coach_goals ORDER BY createdAt ASC")
+    suspend fun all(): List<CoachGoalEntity>
+
+    @Query("UPDATE coach_goals SET active = 0, updatedAt = :now WHERE active = 1")
+    suspend fun deactivateAll(now: Long = System.currentTimeMillis())
+
+    @Upsert
+    suspend fun upsert(goal: CoachGoalEntity)
+
+}

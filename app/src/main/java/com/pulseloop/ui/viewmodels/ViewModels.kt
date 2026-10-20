@@ -89,9 +89,7 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                 // the on-device estimate (BMR accrued so far + net active). Reading `calories`
                 // straight off the row would show 0 all day for rings that report none — which is
                 // the whole reason the estimator exists.
-                val profile = db.userProfileDao().get()?.let {
-                    DailyCalorieEstimator.Profile(it.sex, it.age, it.weightKg, it.heightCm)
-                }
+                val profile = db.userProfileDao().get()?.let { DailyCalorieEstimator.profileOf(it) }
                 val calories = activity?.let { row ->
                     profile?.let { DailyCalorieEstimator.effectiveCalories(row, it) }
                         ?: DailyCalorieEstimator.deviceReportedCalories(row)
@@ -494,9 +492,7 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         }
         viewModelScope.launch {
             shownDayStart.flatMapLatest { day -> db.activityDailyDao().byDayFlow(day) }.collect { day ->
-                val profile = db.userProfileDao().get()?.let {
-                    DailyCalorieEstimator.Profile(it.sex, it.age, it.weightKg, it.heightCm)
-                }
+                val profile = db.userProfileDao().get()?.let { DailyCalorieEstimator.profileOf(it) }
                 val calories = day?.let { row ->
                     profile?.let { DailyCalorieEstimator.effectiveCalories(row, it) }
                         ?: DailyCalorieEstimator.deviceReportedCalories(row)
