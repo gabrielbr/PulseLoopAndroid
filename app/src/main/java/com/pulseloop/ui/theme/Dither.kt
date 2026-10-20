@@ -1,7 +1,14 @@
 package com.pulseloop.ui.theme
 
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -73,19 +80,54 @@ fun DrawScope.ditherBrush(color: Color, coverage: Float): Brush? {
     return with(Dither) { brush(color, lit, cellPx()) }
 }
 
-/** Fills the element with [color] dithered to [coverage] (0..1, where an alpha tint used to be). */
-fun Modifier.dither(color: Color, coverage: Float, shape: Shape = RectangleShape): Modifier = drawBehind {
-    val brush = ditherBrush(color, coverage) ?: return@drawBehind
-    drawOutline(shape.createOutline(size, layoutDirection, this), brush)
+/**
+ * Fills the element with [color] dithered to [coverage] (0..1, where an alpha tint used to be), and
+ * outlines everything drawn on top of it — text and icons alike — so it stays readable over the dots.
+ */
+fun Modifier.dither(color: Color, coverage: Float, shape: Shape = RectangleShape): Modifier = drawWithContent {
+    ditherBrush(color, coverage)?.let { drawOutline(shape.createOutline(size, layoutDirection, this), it) }
+    drawContentOutlined()
 }
 
 /**
  * A dithered fade from [fromCoverage] at the top to [toCoverage] at the bottom, in stepped bands —
- * the bitmap take on a vertical gradient. Callers clip to their own shape first.
+ * the bitmap take on a vertical gradient. Callers clip to their own shape first. Content on top is
+ * outlined, as with [dither].
  */
-fun Modifier.ditherFade(color: Color, fromCoverage: Float, toCoverage: Float): Modifier = drawBehind {
+fun Modifier.ditherFade(color: Color, fromCoverage: Float, toCoverage: Float): Modifier = drawWithContent {
     val path = Path().apply { addRect(androidx.compose.ui.geometry.Rect(Offset.Zero, size)) }
     drawDitherFade(path, color, fromCoverage, toCoverage, 0f, size.height)
+    drawContentOutlined()
+}
+
+/** The outline round text and icons on a dithered ground: the page colour, this wide. */
+private val OUTLINE_COLOR = PulseColors.background
+private val OUTLINE_WIDTH = 1.5.dp
+
+/** Eight compass offsets of one outline width; drawn under the content they form its outline. */
+private val OUTLINE_DIRECTIONS = listOf(
+    -1f to -1f, 0f to -1f, 1f to -1f,
+    -1f to 0f, 1f to 0f,
+    -1f to 1f, 0f to 1f, 1f to 1f,
+)
+
+/**
+ * Draws the element's content twice over: first eight offset copies flattened to [OUTLINE_COLOR]
+ * (one layer, tinted with SrcIn so every glyph and icon keeps its shape but loses its colour),
+ * then the content itself. The dots stop at the outline, so a 12dp label or a 20dp icon reads on
+ * any dither density.
+ */
+private fun ContentDrawScope.drawContentOutlined() {
+    val w = OUTLINE_WIDTH.toPx()
+    val tint = Paint().apply { colorFilter = ColorFilter.tint(OUTLINE_COLOR, BlendMode.SrcIn) }
+    drawIntoCanvas { canvas ->
+        canvas.saveLayer(Rect(-w, -w, size.width + w, size.height + w), tint)
+        OUTLINE_DIRECTIONS.forEach { (dx, dy) ->
+            translate(dx * w, dy * w) { this@drawContentOutlined.drawContent() }
+        }
+        canvas.restore()
+    }
+    drawContent()
 }
 
 /** Fills [path] with [color] fading in dither steps from [fromCoverage] at [top] to [toCoverage] at [bottom]. */
