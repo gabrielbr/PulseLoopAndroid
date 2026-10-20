@@ -304,7 +304,8 @@ fun TodayScreen(
             }
 
             // Three across from 600dp (tablets, unfolded foldables) instead of two stretched tiles.
-            val rows = visibleOrdered.chunked(if (screenWidthDp >= 600) 3 else 2)
+            val columns = if (screenWidthDp >= 600) 3 else 2
+            val rows = visibleOrdered.chunked(columns)
             // Keyed by the cards in the row so a reorder in edit mode moves rows rather than
             // recomposing every row in place.
             items(rows.size, key = { rows[it].joinToString("|") { card -> card.name } }) { rowIndex ->
@@ -322,7 +323,7 @@ fun TodayScreen(
                             todayCardFor(card, Modifier.fillMaxWidth().fillMaxHeight())
                         }
                     }
-                    repeat(rows.first().size - row.size) { Spacer(Modifier.weight(1f)) }
+                    repeat(columns - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
 

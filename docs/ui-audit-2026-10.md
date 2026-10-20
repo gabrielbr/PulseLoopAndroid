@@ -40,6 +40,14 @@ spoken summaries for charts, gauges, rings and the hypnogram, the DEEP stage lab
 9sp labels raised, bottom-nav labels no longer read twice, tile grid keys and a 3-column grid at
 600dp+, and `runBlocking` removed from the record screen.
 
+Removed as dead code: the landscape "status-bar glass strip" in `PulseLoopApp`. `MainActivity`
+pads and consumes the system-bar insets around the whole app, so `WindowInsets.statusBars` inside
+resolved to zero and the strip had no height; content already stops below the status bar.
+
+Workout pause/resume/finish run on `LiveWorkoutManager`'s own scope (`*FromUi`), not the record
+screen's: finishing pops that screen, and a screen-scoped launch would cancel the Strava upload.
+A second tap while one is in flight is dropped, so Finish can't credit a workout twice.
+
 ## Open (not done here)
 
 - **Location is still requested at launch.** Material guidance is to ask just before the first

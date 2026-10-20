@@ -723,9 +723,6 @@ fun PulseLoopApp() {
                 }
                 paddedComposable("record") {
                     val workoutState = liveWorkout.state.collectAsState().value
-                    // Off the main thread: these used to runBlocking on it, freezing the UI while the
-                    // workout's database writes ran.
-                    val recordScope = rememberCoroutineScope()
                     // A finish from the notification action arrives through the command bus with
                     // no button handler to navigate from — route to the summary off the state
                     // signal instead (mirrors the onFinish path below).
@@ -747,21 +744,17 @@ fun PulseLoopApp() {
                         hrZone = workoutState.hrZone,
                         units = apiKeyStore.resolvedUnitSystem,
                         onPause = {
-                            workoutState.activeSession?.let { recordScope.launch { liveWorkout.pause(it) } }
+                            workoutState.activeSession?.let { liveWorkout.pauseFromUi(it) }
                         },
                         onResume = {
-                            workoutState.activeSession?.let { recordScope.launch { liveWorkout.resume(it) } }
+                            workoutState.activeSession?.let { liveWorkout.resumeFromUi(it) }
                         },
                         onFinish = {
-                            workoutState.activeSession?.let {
-                                recordScope.launch {
-                                    liveWorkout.finish(it)
-                                    // Land on the summary (iOS RecordSummaryView), replacing the live screen.
-                                    navController.navigate("activity_detail/${it.id}") {
-                                        popUpTo("record") { inclusive = true }
-                                    }
-                                }
-                            }
+                            // No runBlocking on the main thread. The finishedSessionId effect above lands
+                            // on the summary (iOS RecordSummaryView) once the finish is written; with no
+                            // session there is nothing to finish, so just leave.
+                            workoutState.activeSession?.let { liveWorkout.finishFromUi(it) }
+                                ?: navController.popBackStack()
                         },
                     )
                 }

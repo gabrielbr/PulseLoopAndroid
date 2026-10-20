@@ -334,7 +334,10 @@ private fun WelcomeStep(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
                     )
-                    PrimaryButton("Open settings", onClick = openAppSettings)
+                    // "Try again" re-checks the grant first, so it also carries on after the user
+                    // allowed Bluetooth in Settings; without it a denial had no way back to pairing.
+                    PrimaryButton("Try again", icon = Icons.Filled.ArrowForward, onClick = getStarted)
+                    SecondaryButton("Open settings", onClick = openAppSettings)
                     SecondaryButton("Continue without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
                 } else {
                     PrimaryButton("Get started", icon = Icons.Filled.ArrowForward, onClick = getStarted)

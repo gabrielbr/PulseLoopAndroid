@@ -141,6 +141,24 @@ class LiveWorkoutManager(
         refreshNotification()
     }
 
+    // UI entry points for the record screen's buttons. They run on this manager's own scope, which
+    // outlives the screen: finishing pops the record route, and a screen-scoped launch was cancelled
+    // mid Strava upload. A tap landing while the previous one is still writing is dropped, so a
+    // double tap on Finish can't credit the workout twice. Main-confined, so the flag needs no lock.
+    private var uiActionInFlight = false
+
+    fun pauseFromUi(session: ActivitySessionEntity) = launchUiAction { pause(session) }
+    fun resumeFromUi(session: ActivitySessionEntity) = launchUiAction { resume(session) }
+    fun finishFromUi(session: ActivitySessionEntity) = launchUiAction { finish(session) }
+
+    private fun launchUiAction(action: suspend () -> Unit) {
+        if (uiActionInFlight) return
+        uiActionInFlight = true
+        scope.launch {
+            try { action() } finally { uiActionInFlight = false }
+        }
+    }
+
     suspend fun finish(session: ActivitySessionEntity) {
         gps.stop()
         polling.stop()
