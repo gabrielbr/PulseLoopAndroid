@@ -38,6 +38,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -261,6 +263,8 @@ fun TrendChart(
     /** The user's own usual range, shaded behind the line (service/UsualRange). */
     usualRange: ClosedFloatingPointRange<Double>? = null,
     usualColor: Color = color,
+    /** Spoken name for the chart's TalkBack summary (e.g. "Heart Rate"). */
+    title: String? = null,
 ) {
     if (points.isEmpty()) return
 
@@ -302,6 +306,12 @@ fun TrendChart(
     var scrubX by remember(points) { mutableStateOf<Float?>(null) }
     var plotLeftPx by remember { mutableStateOf(0f) }
     var plotRightPx by remember { mutableStateOf(0f) }
+    // TalkBack can't scrub; give it the shape of the data in one sentence instead.
+    val summary = remember(points, secondary, title) {
+        fun v(i: Int) = valueFormatter(points[i]) + (secondary.getOrNull(i)?.let { "/" + valueFormatter(it) } ?: "")
+        "${title ?: "Chart"}: latest ${v(points.lastIndex)}, " +
+            "range ${valueFormatter(points.min())}–${valueFormatter(points.max())}, ${points.size} readings"
+    }
 
     Column(modifier = modifier) {
         // Legend row (for dual-series)
@@ -315,7 +325,7 @@ fun TrendChart(
             }
         }
 
-        val canvasModifier = Modifier.fillMaxWidth().height(220.dp).let { base ->
+        val canvasModifier = Modifier.fillMaxWidth().height(220.dp).semantics { contentDescription = summary }.let { base ->
             if (!interactive) base else base.pointerInput(points) {
                 awaitEachGesture {
                     val first = awaitFirstDown(requireUnconsumed = false)
@@ -420,7 +430,7 @@ fun TrendChart(
                 return best
             }
 
-            val labelStyle = TextStyle(fontSize = 10.sp, color = axisColor)
+            val labelStyle = TextStyle(fontSize = 11.sp, color = axisColor)
 
             // No zone-band background: the iOS detail chart plots on a clean card, with the
             // zone-split line + the REFERENCE ZONES card carrying the range context.

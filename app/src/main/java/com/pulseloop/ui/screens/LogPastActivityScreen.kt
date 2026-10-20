@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,12 +20,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +69,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, tint = PulseColors.textSecondary, onTap = onBack)
+                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PulseColors.textSecondary, onTap = onBack)
                 Spacer(Modifier.width(12.dp))
                 Text("Log Past Activity", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             }
@@ -165,7 +169,7 @@ private fun SectionLabel(text: String) {
 
 @Composable
 private fun ActivityTypeGrid(selectedType: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         ActivityMeta.ORDER.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { type ->
@@ -185,7 +189,7 @@ private fun ActivityTypeButton(type: String, isSelected: Boolean, onSelect: (Str
             .clip(shape)
             .then(if (isSelected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.cardSoft))
             .border(1.5.dp, if (isSelected) PulseColors.accent.copy(alpha = 0.9f) else Color.Transparent, shape)
-            .clickable { onSelect(type) }
+            .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(type) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -228,14 +232,14 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            DurationStepButton(Icons.Filled.Remove, enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
+            DurationStepButton(Icons.Filled.Remove, "Decrease duration by 5 minutes", enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(durationText(minutes), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("DURATION", fontSize = 10.sp, letterSpacing = 1.1.sp, color = PulseColors.textMuted)
+                Text("DURATION", fontSize = 11.sp, letterSpacing = 1.1.sp, color = PulseColors.textMuted)
             }
-            DurationStepButton(Icons.Filled.Add, enabled = true) { onChange(minutes + 5) }
+            DurationStepButton(Icons.Filled.Add, "Increase duration by 5 minutes", enabled = true) { onChange(minutes + 5) }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(15, 30, 45, 60, 90).forEach { value ->
                 val selected = minutes == value
                 Text(
@@ -244,11 +248,13 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
                     color = if (selected) PulseColors.accent else PulseColors.textSecondary,
                     modifier = Modifier
                         .weight(1f)
+                        // 34dp pill, 48dp touch target.
+                        .minimumInteractiveComponentSize()
                         .height(34.dp)
                         .clip(CircleShape)
                         .then(if (selected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.card))
                         .border(1.dp, if (selected) PulseColors.accent.copy(alpha = 0.9f) else Color.Transparent, CircleShape)
-                        .clickable { onChange(value) }
+                        .selectable(selected = selected, role = Role.RadioButton) { onChange(value) }
                         .wrapContentHeight(),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
@@ -258,16 +264,21 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun DurationStepButton(icon: androidx.compose.ui.graphics.vector.ImageVector, enabled: Boolean, onTap: () -> Unit) {
+private fun DurationStepButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onTap: () -> Unit,
+) {
     Box(
         Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(PulseColors.card)
-            .then(if (enabled) Modifier.clickable(onClick = onTap) else Modifier),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onTap),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, null, tint = if (enabled) PulseColors.textPrimary else PulseColors.textMuted)
+        Icon(icon, contentDescription, tint = if (enabled) PulseColors.textPrimary else PulseColors.textMuted)
     }
 }
 

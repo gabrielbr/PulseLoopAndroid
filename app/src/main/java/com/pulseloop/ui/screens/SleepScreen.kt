@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
@@ -27,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
@@ -44,6 +47,10 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -176,7 +183,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sessionPageItems(
     val runs = com.pulseloop.service.sleepRecordRuns(blocks)
     if (runs.size > 1) item { SleepRecordsCard(session, runs, viewModel) }
     item {
-        val byStage = blocks.groupBy { it.stageRaw }.mapValues { (_, b) -> b.sumOf { it.durationMinutes } }
+        val byStage = remember(blocks) { blocks.groupBy { it.stageRaw }.mapValues { (_, b) -> b.sumOf { it.durationMinutes } } }
         SleepStageSummaryCards(
             deep = SleepFormat.duration(byStage["DEEP"] ?: 0),
             light = SleepFormat.duration(byStage["LIGHT"] ?: 0),
@@ -243,7 +250,7 @@ private fun SleepCarousel(
                 // night) is its own page, and this card is the only place to delete it (#78).
                 val runs = com.pulseloop.service.sleepRecordRuns(blocks)
                 if (runs.isNotEmpty()) SleepRecordsCard(s, runs, viewModel)
-                val byStage = blocks.groupBy { it.stageRaw }.mapValues { (_, b) -> b.sumOf { it.durationMinutes } }
+                val byStage = remember(blocks) { blocks.groupBy { it.stageRaw }.mapValues { (_, b) -> b.sumOf { it.durationMinutes } } }
                 SleepStageSummaryCards(
                     deep = SleepFormat.duration(byStage["DEEP"] ?: 0),
                     light = SleepFormat.duration(byStage["LIGHT"] ?: 0),
@@ -343,7 +350,8 @@ private fun SleepRangeSelector(selection: SleepRangeKey, onSelect: (SleepRangeKe
             .clip(CircleShape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, CircleShape)
-            .padding(4.dp),
+            .padding(4.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         options.forEach { (key, label) ->
@@ -356,11 +364,13 @@ private fun SleepRangeSelector(selection: SleepRangeKey, onSelect: (SleepRangeKe
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier
                     .weight(1f)
+                    .heightIn(min = 48.dp)
                     .clip(CircleShape)
                     .then(if (active) Modifier.dither(PulseColors.accent, 0.15f) else Modifier)
                     .border(1.dp, if (active) PulseColors.accent.copy(alpha = 0.4f) else Color.Transparent, CircleShape)
-                    .clickable { onSelect(key) }
-                    .padding(vertical = 6.dp),
+                    .selectable(selected = active, role = Role.Tab) { onSelect(key) }
+                    .padding(vertical = 6.dp)
+                    .wrapContentHeight(),
             )
         }
     }
@@ -461,7 +471,7 @@ private fun VisualizationCard(
 private fun LegendItem(label: String, color: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         Box(Modifier.size(6.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 9.sp, color = PulseColors.textSecondary)
+        Text(label, fontSize = 11.sp, color = PulseColors.textSecondary)
     }
 }
 
@@ -538,6 +548,16 @@ private fun SleepHypnogram(
         return best.coerceIn(0, sorted.lastIndex)
     }
 
+    // Spoken stand-in for the plot: the window, then minutes per stage in lane order.
+    val summary = remember(sorted, startTs, safeTotal) {
+        val perStage = sorted.groupBy { it.stageRaw }.mapValues { (_, b) -> b.sumOf { it.durationMinutes } }
+        val parts = lanes.reversed().mapNotNull { stage ->
+            perStage[stage]?.let { "${if (stage == "REM") "REM" else stage.lowercase()} ${SleepFormat.duration(it)}" }
+        }
+        "Sleep stages from ${clockTime(startTs)} to ${clockTime(startTs + safeTotal * 60_000L)}" +
+            if (parts.isEmpty()) ": no stage data" else ": " + parts.joinToString(", ")
+    }
+
     fun readoutText(block: SleepStageBlockEntity): String {
         val stage = block.stageRaw.replaceFirstChar { it.uppercase() }
         val startTime = clockTime(startTs + block.startMinute * 60_000L)
@@ -552,7 +572,8 @@ private fun SleepHypnogram(
                 .height(height - 22.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card)
-                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp)),
+                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp))
+                .clearAndSetSemantics { contentDescription = summary },
         ) {
             var plotWidthPx by remember { mutableFloatStateOf(0f) }
             var plotHeightPx by remember { mutableFloatStateOf(0f) }
@@ -666,7 +687,9 @@ private fun SleepHypnogram(
                             Text(
                                 stage,
                                 fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.4.sp, color = stageColor(stage),
+                                // Not the stage colour: DEEP's is 2.4:1 on the card. The bars and
+                                // legend swatches carry the colour.
+                                letterSpacing = 1.4.sp, color = PulseColors.textSecondary,
                                 modifier = Modifier.offset {
                                     IntOffset(
                                         x = -LABEL_GUTTER_DP.dp.roundToPx(),
@@ -718,7 +741,7 @@ private fun SleepHypnogram(
             Modifier.fillMaxWidth().padding(start = plotInsets.x, end = plotTrailing),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            ticks.forEach { Text(it, fontSize = 10.sp, color = PulseColors.textMuted) }
+            ticks.forEach { Text(it, fontSize = 11.sp, color = PulseColors.textMuted) }
         }
     }
 }
@@ -747,7 +770,7 @@ private fun StageStat(label: String, value: String, color: Color, modifier: Modi
             Box(Modifier.size(8.dp).clip(CircleShape).background(color))
             Text(
                 label.uppercase(),
-                fontSize = 10.sp, fontWeight = FontWeight.Medium,
+                fontSize = 11.sp, fontWeight = FontWeight.Medium,
                 letterSpacing = 0.6.sp, color = PulseColors.textMuted,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
@@ -781,9 +804,17 @@ private fun SleepDurationHistogram(
     val yMax = maxOf(bars.mapNotNull { it.durationMin }.maxOrNull() ?: 0, goalMin ?: 0)
         .let { if (it > 0) it * 1.15f else 600f }
     val labelInterval = if (bars.size > 14) maxOf(1, bars.size / 6) else 1
+    val summary = remember(bars, goalMin) {
+        val tracked = bars.filter { it.present }.mapNotNull { it.durationMin }
+        if (tracked.isEmpty()) "Nightly sleep: no nights tracked in this range"
+        else "Nightly sleep: latest ${SleepFormat.duration(tracked.last())}, " +
+            "range ${SleepFormat.duration(tracked.min())}–${SleepFormat.duration(tracked.max())}, " +
+            "${tracked.size} of ${bars.size} nights tracked" +
+            (goalMin?.takeIf { it > 0 }?.let { ", goal ${SleepFormat.duration(it)}" } ?: "")
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Canvas(Modifier.fillMaxWidth().height(height - 24.dp)) {
+        Canvas(Modifier.fillMaxWidth().height(height - 24.dp).semantics { contentDescription = summary }) {
             val slotW = size.width / bars.size
             val barW = if (slim) 7.dp.toPx() else (slotW * 0.7f).coerceAtMost(30.dp.toPx())
             val r = if (slim) 3.dp.toPx() else 6.dp.toPx()
@@ -822,7 +853,7 @@ private fun SleepDurationHistogram(
             bars.forEachIndexed { i, bar ->
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     if (i % labelInterval == 0) {
-                        Text(bar.label, fontSize = 9.sp, color = PulseColors.textMuted, maxLines = 1)
+                        Text(bar.label, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
                     }
                 }
             }
@@ -887,9 +918,9 @@ private fun NavChevron(
 ) {
     Box(
         Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -1206,6 +1237,8 @@ private fun SleepRecordEditDialog(
     )
 
     pickingTime?.let { which ->
+        val landscape = androidx.compose.ui.platform.LocalConfiguration.current.orientation ==
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE
         val targetTs = if (which == "start") currentStart else currentEnd
         val zdt = java.time.Instant.ofEpochMilli(targetTs).atZone(zone)
         val timeState = rememberTimePickerState(
@@ -1217,7 +1250,8 @@ private fun SleepRecordEditDialog(
         AlertDialog(
             onDismissRequest = { pickingTime = null },
             title = { Text(if (which == "start") "Adjust start time" else "Adjust end time") },
-            text = { TimePicker(state = timeState) },
+            // The dial doesn't fit a landscape dialog; the keyboard entry form does.
+            text = { if (landscape) TimeInput(state = timeState) else TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = {
                     val picked = resolveAdjustedTime(targetTs, run.startAt, run.endAt, timeState.hour, timeState.minute, zone)

@@ -1,6 +1,14 @@
 package com.pulseloop.ui.screens
 
+import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -10,6 +18,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,10 +47,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
 import com.pulseloop.ring.RingBLEClient
 import com.pulseloop.ring.RingConnectionState
 import com.pulseloop.ring.ringModelLabel
@@ -79,10 +94,50 @@ fun PairingScreen(
 
     // The adapter flag isn't part of BLEState until a scan attempt, so poll it directly.
     var btReady by remember { mutableStateOf(bleClient.isBluetoothEnabled) }
+    // Polled with the adapter so a grant made in system Settings is picked up on return.
+    var hasBlePermissions by remember { mutableStateOf(bleClient.hasPermissions()) }
     LaunchedEffect(Unit) {
         while (true) {
             btReady = bleClient.isBluetoothEnabled
+            hasBlePermissions = bleClient.hasPermissions()
             delay(1000)
+        }
+    }
+
+    // Scanning needs the runtime BLE permissions; ask for them here rather than letting the
+    // scan fail with a raw "permissions not granted" error. Same per-SDK list as onboarding.
+    val blePermissions = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
+        } else {
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+    var permissionDenied by remember { mutableStateOf(false) }
+    var permissionPermanentlyDenied by remember { mutableStateOf(false) }
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions(),
+    ) { results ->
+        if (blePermissions.all { results[it] == true }) {
+            hasBlePermissions = true
+            permissionDenied = false
+            isLooking = true
+            bleClient.startScanning()
+        } else {
+            permissionDenied = true
+            // No rationale after a denial means the system won't show the dialog again.
+            val activity = context.findActivity()
+            permissionPermanentlyDenied = activity != null && blePermissions.none {
+                ActivityCompat.shouldShowRequestPermissionRationale(activity, it)
+            }
+        }
+    }
+    fun startLooking() {
+        if (bleClient.hasPermissions()) {
+            isLooking = true
+            bleClient.startScanning()
+        } else {
+            permissionLauncher.launch(blePermissions)
         }
     }
 
@@ -164,6 +219,11 @@ fun PairingScreen(
 
             if (!btReady) {
                 BluetoothOffCard()
+            } else if (!hasBlePermissions && permissionDenied && !connected) {
+                BluetoothPermissionCard(
+                    permanentlyDenied = permissionPermanentlyDenied,
+                    onRequest = { permissionLauncher.launch(blePermissions) },
+                )
             } else if (connected) {
                 ConnectedCard(
                     model = WearableModel.model(state.activeWearableModelID) ?: selectedModel,
@@ -196,7 +256,8 @@ fun PairingScreen(
                 }
             }
 
-            if (state.lastError != null && !connected) {
+            // The permission card explains a missing grant; don't also show the raw scan error.
+            if (state.lastError != null && !connected && hasBlePermissions) {
                 Text(
                     state.lastError ?: "",
                     fontSize = 12.sp,
@@ -211,7 +272,11 @@ fun PairingScreen(
                     if (showDiagnostics) "Hide connection details" else "Show connection details",
                     fontSize = 12.sp,
                     color = PulseColors.textSecondary,
-                    modifier = Modifier.clickable { showDiagnostics = !showDiagnostics },
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .clickable(role = Role.Button) { showDiagnostics = !showDiagnostics }
+                        .wrapContentHeight()
+                        .padding(horizontal = 8.dp),
                 )
             }
         }
@@ -252,10 +317,7 @@ fun PairingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (!isLooking && btReady) {
-                        PrimaryButton("Connect ring", icon = Icons.Filled.Sensors) {
-                            isLooking = true
-                            bleClient.startScanning()
-                        }
+                        PrimaryButton("Connect ring", icon = Icons.Filled.Sensors) { startLooking() }
                         if (bleClient.hasLastKnownRing &&
                             state.connectionState != RingConnectionState.RECONNECTING
                         ) {
@@ -327,6 +389,7 @@ private fun BrandTabs(
         // fits the supported labels on narrow phones and naturally grows as models are added.
         brands.chunked(3).forEach { rowBrands ->
             Row(
+                Modifier.selectableGroup(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -334,8 +397,8 @@ private fun BrandTabs(
                     val isSelected = brand == selectedBrand
                     Box(
                         Modifier
-                            .heightIn(min = 44.dp)
-                            .clickable { onSelect(brand) },
+                            .heightIn(min = 48.dp)
+                            .selectable(selected = isSelected, role = Role.Tab) { onSelect(brand) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -396,16 +459,20 @@ private fun ModelCarousel(
 
         // Fixed-height tappable dot row keeps layout stable across brand tabs.
         Row(
-            Modifier.height(44.dp),
+            Modifier.height(48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (models.size > 1) {
-                models.forEachIndexed { index, _ ->
+                models.forEachIndexed { index, model ->
                     val isSelected = pagerState.currentPage == index
                     Box(
                         Modifier
-                            .size(width = 32.dp, height = 44.dp)
-                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } },
+                            .size(width = 32.dp, height = 48.dp)
+                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
+                            .semantics {
+                                contentDescription = "${model.displayName}, ${index + 1} of ${models.size}"
+                                selected = isSelected
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         Box(
@@ -631,7 +698,7 @@ private fun BluetoothOffCard() {
         Text(
             "Turn on Bluetooth to find and connect your ring.",
             fontSize = 14.sp,
-            color = PulseColors.textMuted,
+            color = PulseColors.textSecondary,
             textAlign = TextAlign.Center,
         )
         SecondaryButton("Open Settings", icon = Icons.Filled.Settings) {
@@ -642,4 +709,69 @@ private fun BluetoothOffCard() {
             }
         }
     }
+}
+
+/** Shown after the BLE permission request is denied; styled like [BluetoothOffCard]. */
+@Composable
+private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () -> Unit) {
+    val context = LocalContext.current
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(PulseColors.card)
+            .padding(horizontal = 20.dp, vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Icon(
+            Icons.Filled.BluetoothDisabled,
+            contentDescription = null,
+            modifier = Modifier.size(34.dp),
+            tint = PulseColors.textMuted,
+        )
+        Text(
+            "Bluetooth access needed",
+            fontSize = 17.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = PulseColors.textPrimary,
+        )
+        Text(
+            if (permanentlyDenied) {
+                "PulseLoop uses Bluetooth to find and connect your ring. " +
+                    "Allow " +
+                    (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "\"Nearby devices\"" else "Location") +
+                    " for PulseLoop in Settings."
+            } else {
+                "PulseLoop uses Bluetooth to find and connect your ring. " +
+                    "Nothing is shared off your phone."
+            },
+            fontSize = 14.sp,
+            color = PulseColors.textSecondary,
+            textAlign = TextAlign.Center,
+        )
+        if (permanentlyDenied) {
+            SecondaryButton("Open Settings", icon = Icons.Filled.Settings) {
+                try {
+                    context.startActivity(
+                        Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                            .setData(Uri.fromParts("package", context.packageName, null)),
+                    )
+                } catch (_: Exception) {
+                    // No app-details settings activity on this device — nothing to open.
+                }
+            }
+        } else {
+            SecondaryButton("Allow Bluetooth access", icon = Icons.Filled.Bluetooth, onClick = onRequest)
+        }
+    }
+}
+
+private fun Context.findActivity(): Activity? {
+    var current: Context? = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
 }

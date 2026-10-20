@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.components.switchRow
+
 import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.Context
@@ -35,6 +37,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -125,7 +130,8 @@ private fun SettingsSubScreen(
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(
-                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                // imePadding: the app is edge-to-edge, so without it the keyboard covers fields.
+                Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content()
@@ -161,6 +167,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
     var liveMeasurements by remember { mutableStateOf(keyStore.liveMeasurementsEnabled) }
     var environmentContext by remember { mutableStateOf(keyStore.enableEnvironmentContext) }
     var showMemory by remember { mutableStateOf(false) }
+    var memoryToDelete by remember { mutableStateOf<String?>(null) }
 
     // Location & weather (iOS #65d) — opt-in, requests ACCESS_COARSE_LOCATION only when
     // the user turns it on, mirroring CoachEnvironmentContextService.requestPermissionIfNeeded().
@@ -232,9 +239,8 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
 
                 // Master toggle
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("Enable AI Coach")
-                    Switch(checked = coachEnabled, onCheckedChange = { enabled ->
+                Row(Modifier.fillMaxWidth()
+                    .switchRow(checked = coachEnabled, onCheckedChange = { enabled ->
                         coachEnabled = enabled; keyStore.coachEnabled = enabled
                         if (!enabled) {
                             CoachNotifications.cancel(context)
@@ -245,7 +251,9 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             // on "Enable") — iOS #49.
                             askEnableCheckIns = true
                         }
-                    })
+                    }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Enable AI Coach")
+                    Switch(checked = coachEnabled, onCheckedChange = null)
                 }
 
                 if (checkInPermissionDenied) {
@@ -354,7 +362,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                 IconButton(onClick = onVisibility) {
                                     Icon(
                                         if (visible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
-                                        contentDescription = "Toggle visibility"
+                                        contentDescription = if (visible) "Hide key" else "Show key"
                                     )
                                 }
                             },
@@ -443,12 +451,13 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                 onRemove = { orKey = ""; providerStore.openRouterApiKey = ""; keySaves++ },
                             )
                             Spacer(Modifier.height(8.dp))
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth()
+                                .switchRow(checked = orPrivacy, onCheckedChange = { orPrivacy = it; providerStore.orPrivacyRouting = it }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text("Privacy routing")
                                     Text("Only providers that don't retain data", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
-                                Switch(checked = orPrivacy, onCheckedChange = { orPrivacy = it; providerStore.orPrivacyRouting = it })
+                                Switch(checked = orPrivacy, onCheckedChange = null)
                             }
                             ModelDropdown(
                                 "Route by", orSort ?: "auto",
@@ -625,7 +634,10 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             )
 
                             Spacer(Modifier.height(8.dp))
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Row(Modifier.fillMaxWidth()
+                                .switchRow(checked = localToolCalling, onCheckedChange = {
+                                    localToolCalling = it; providerStore.localToolCalling = it
+                                }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
                                     Text("Tool calling")
                                     Text(
@@ -635,9 +647,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
-                                Switch(checked = localToolCalling, onCheckedChange = {
-                                    localToolCalling = it; providerStore.localToolCalling = it
-                                })
+                                Switch(checked = localToolCalling, onCheckedChange = null)
                             }
 
                             Spacer(Modifier.height(8.dp))
@@ -745,12 +755,13 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     }
 
                     // Image attachments (iOS #31): gates the attach button in the coach chat.
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth()
+                        .switchRow(checked = imageInput, onCheckedChange = { imageInput = it; providerStore.imageInputEnabled = it }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Image attachments")
                             Text("Attach photos to coach messages", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = imageInput, onCheckedChange = { imageInput = it; providerStore.imageInputEnabled = it })
+                        Switch(checked = imageInput, onCheckedChange = null)
                     }
 
                     HorizontalDivider()
@@ -760,40 +771,44 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     // tool anyway — this is the UI half).
                     if (providerMode != CoachProviderMode.USER_MINIMAX_KEY &&
                         providerMode != CoachProviderMode.LOCAL_OPENAI_COMPAT) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth()
+                            .switchRow(checked = webSearch, onCheckedChange = {
+                                webSearch = it; keyStore.webSearchEnabled = it
+                            }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text("Web Search")
                                 Text("Uses additional tokens", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            Switch(checked = webSearch, onCheckedChange = {
-                                webSearch = it; keyStore.webSearchEnabled = it
-                            })
+                            Switch(checked = webSearch, onCheckedChange = null)
                         }
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth()
+                        .switchRow(checked = writeTools, onCheckedChange = {
+                            writeTools = it; keyStore.writeToolsEnabled = it
+                        }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Write Actions")
                             Text("Set goals, log, edit data", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = writeTools, onCheckedChange = {
-                            writeTools = it; keyStore.writeToolsEnabled = it
-                        })
+                        Switch(checked = writeTools, onCheckedChange = null)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth()
+                        .switchRow(checked = liveMeasurements, onCheckedChange = {
+                            liveMeasurements = it; keyStore.liveMeasurementsEnabled = it
+                        }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Live Measurements")
                             Text("Trigger real-time ring readings", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = liveMeasurements, onCheckedChange = {
-                            liveMeasurements = it; keyStore.liveMeasurementsEnabled = it
-                        })
+                        Switch(checked = liveMeasurements, onCheckedChange = null)
                     }
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth()
+                        .switchRow(checked = environmentContext, onCheckedChange = { setEnvironmentContext(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Use location & weather")
                             Text("Grounds suggestions in your city's current weather", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Switch(checked = environmentContext, onCheckedChange = { setEnvironmentContext(it) })
+                        Switch(checked = environmentContext, onCheckedChange = null)
                     }
                 }
             }
@@ -821,10 +836,8 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                         Text(memory.key, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
                                         Text(memory.value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                                     }
-                                    IconButton(onClick = {
-                                        scope.launch { db.coachMemoryDao().deleteByKey(memory.key) }
-                                    }) {
-                                        Icon(Icons.Filled.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+                                    IconButton(onClick = { memoryToDelete = memory.key }) {
+                                        Icon(Icons.Filled.Delete, "Delete ${memory.key}", tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             }
@@ -833,6 +846,23 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                 }
             }
         }
+    }
+
+    memoryToDelete?.let { key ->
+        AlertDialog(
+            onDismissRequest = { memoryToDelete = null },
+            title = { Text("Delete memory?") },
+            text = { Text("The coach will forget \"$key\". This can't be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    memoryToDelete = null
+                    scope.launch { db.coachMemoryDao().deleteByKey(key) }
+                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { memoryToDelete = null }) { Text("Cancel") }
+            },
+        )
     }
 
     if (askEnableCheckIns) {
@@ -941,13 +971,10 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                 Text("Daily check-ins", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(12.dp))
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth()
+                    .switchRow(checked = notificationEnabled, enabled = coachEnabled, onCheckedChange = { setNotifications(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Daily Check-in Notifications")
-                    Switch(
-                        enabled = coachEnabled,
-                        checked = notificationEnabled,
-                        onCheckedChange = { setNotifications(it) },
-                    )
+                    Switch(checked = notificationEnabled, enabled = coachEnabled, onCheckedChange = null)
                 }
 
                 if (notifPermissionDenied) {
@@ -1032,12 +1059,10 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth()
+                    .switchRow(checked = batteryAlertsEnabled, onCheckedChange = { setBatteryAlerts(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Text("Low Battery Notifications")
-                    Switch(
-                        checked = batteryAlertsEnabled,
-                        onCheckedChange = { setBatteryAlerts(it) },
-                    )
+                    Switch(checked = batteryAlertsEnabled, onCheckedChange = null)
                 }
                 if (batteryPermDenied) {
                     Text(
@@ -1118,13 +1143,13 @@ private fun DailyGuidanceSettingsCard() {
 
 @Composable
 private fun GuidanceSwitch(title: String, subtitle: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.switchRow(checked = checked, onCheckedChange = onChange), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
             Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(12.dp))
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -1261,9 +1286,9 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
             title = "Fitness",
             footer = "Treats a low resting heart rate as a sign of fitness rather than a concern, and relaxes the low-HR threshold.",
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.switchRow(checked = athleteMode, onCheckedChange = { athleteMode = it; savedMsg = null }), verticalAlignment = Alignment.CenterVertically) {
                 Text("Athlete mode", style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                Switch(checked = athleteMode, onCheckedChange = { athleteMode = it; savedMsg = null })
+                Switch(checked = athleteMode, onCheckedChange = null)
             }
         }
 
@@ -1617,9 +1642,10 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
 
     @Composable
     fun VitalToggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth()
+            .switchRow(checked = checked, enabled = cfgLoaded, onCheckedChange = { onChange(it); cfgSavedMsg = null }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(label)
-            Switch(enabled = cfgLoaded, checked = checked, onCheckedChange = { onChange(it); cfgSavedMsg = null })
+            Switch(checked = checked, enabled = cfgLoaded, onCheckedChange = null)
         }
     }
 
@@ -1772,12 +1798,13 @@ private fun QuietHoursCard() {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(
-                Modifier.fillMaxWidth(),
+                Modifier.fillMaxWidth()
+                .switchRow(checked = enabled, onCheckedChange = { enabled = it; prefs.enabled = it }),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Sleep quiet hours", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Switch(checked = enabled, onCheckedChange = { enabled = it; prefs.enabled = it })
+                Switch(checked = enabled, onCheckedChange = null)
             }
             Text(
                 "When on, sleep the ring records outside the window is trimmed off on import — a " +
@@ -1791,7 +1818,22 @@ private fun QuietHoursCard() {
             if (enabled) {
                 Spacer(Modifier.height(12.dp))
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier.fillMaxWidth()
+                    .switchRow(checked = gateByZenMode, onCheckedChange = { desired ->
+                            if (desired) {
+                                ZenModeListener.setEnabled(context, true)
+                                if (ZenModeListener.isAccessGranted(context)) {
+                                    gateByZenMode = true
+                                    prefs.gateByZenMode = true
+                                } else {
+                                    showPermissionDialog = true
+                                }
+                            } else {
+                                gateByZenMode = false
+                                prefs.gateByZenMode = false
+                                ZenModeListener.setEnabled(context, false)
+                            }
+                        }),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -1807,24 +1849,7 @@ private fun QuietHoursCard() {
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(
-                        checked = gateByZenMode,
-                        onCheckedChange = { desired ->
-                            if (desired) {
-                                ZenModeListener.setEnabled(context, true)
-                                if (ZenModeListener.isAccessGranted(context)) {
-                                    gateByZenMode = true
-                                    prefs.gateByZenMode = true
-                                } else {
-                                    showPermissionDialog = true
-                                }
-                            } else {
-                                gateByZenMode = false
-                                prefs.gateByZenMode = false
-                                ZenModeListener.setEnabled(context, false)
-                            }
-                        },
-                    )
+                    Switch(checked = gateByZenMode, onCheckedChange = null)
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -1942,6 +1967,7 @@ fun WearableSettingsScreen(
     val supportsFindDevice = bleState.activeCapabilities
         .contains(com.pulseloop.ring.WearableCapability.FIND_DEVICE)
     var showFactoryReset by remember { mutableStateOf(false) }
+    var showForgetRing by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf(false) }
     var resetStatus by remember { mutableStateOf("") }
 
@@ -2064,25 +2090,7 @@ fun WearableSettingsScreen(
                     )
                     Spacer(Modifier.height(12.dp))
                     OutlinedButton(
-                        onClick = {
-                            scope.launch {
-                                // Cancel background sync before unpair
-                                RingSyncWorker.cancel(context)
-                                // Send ring-side unbind, then disconnect & clear DB
-                                if (coordinator != null && isConnected) {
-                                    // Runs on the coordinator's long-lived scope, so the row is
-                                    // cleared even if the user leaves this screen meanwhile.
-                                    // Clearing it emits null through currentFlow(), which
-                                    // updates the UI reactively.
-                                    coordinator.forgetRing {
-                                        db.deviceDao().clear()
-                                    }
-                                } else {
-                                    bleClient?.forget()
-                                    db.deviceDao().clear()
-                                }
-                            }
-                        },
+                        onClick = { showForgetRing = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     ) {
@@ -2116,6 +2124,44 @@ fun WearableSettingsScreen(
                 }
             }
         }
+    }
+
+    if (showForgetRing) {
+        AlertDialog(
+            onDismissRequest = { showForgetRing = false },
+            title = { Text("Forget ring?") },
+            text = {
+                Text(
+                    "This unbinds the ring and removes it from the app. Your synced data is " +
+                        "kept, but you'll need to pair the ring again to keep syncing."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showForgetRing = false
+                    scope.launch {
+                        // Cancel background sync before unpair
+                        RingSyncWorker.cancel(context)
+                        // Send ring-side unbind, then disconnect & clear DB
+                        if (coordinator != null && isConnected) {
+                            // Runs on the coordinator's long-lived scope, so the row is
+                            // cleared even if the user leaves this screen meanwhile.
+                            // Clearing it emits null through currentFlow(), which
+                            // updates the UI reactively.
+                            coordinator.forgetRing {
+                                db.deviceDao().clear()
+                            }
+                        } else {
+                            bleClient?.forget()
+                            db.deviceDao().clear()
+                        }
+                    }
+                }) { Text("Forget", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showForgetRing = false }) { Text("Cancel") }
+            },
+        )
     }
 
     if (showFactoryReset) {
@@ -2539,7 +2585,7 @@ fun PrivacyDataSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.switchRow(checked = maskSensitive, onCheckedChange = { maskSensitive = it }), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Anonymize export", style = MaterialTheme.typography.bodyMedium)
                         Text(
@@ -2552,7 +2598,7 @@ fun PrivacyDataSettingsScreen(
                                     else MaterialTheme.colorScheme.error,
                         )
                     }
-                    Switch(checked = maskSensitive, onCheckedChange = { maskSensitive = it })
+                    Switch(checked = maskSensitive, onCheckedChange = null)
                 }
                 Spacer(Modifier.height(12.dp))
                 Button(
@@ -2776,7 +2822,8 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
                         .clip(CircleShape)
                         .background(PulseColors.elevated)
                         .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
         },
@@ -2878,21 +2925,18 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
         CoachManagedCard(com.pulseloop.service.GoalSync.NUTRITION_FIELDS) { goalReload++ }
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth()
+                    .switchRow(checked = goal?.nutritionEnabled == true, enabled = goalLoaded, onCheckedChange = { enabled ->
+                            val g = goal ?: return@switchRow
+                            scope.launch {
+                                goal = g.copy(nutritionEnabled = enabled).also { db.userGoalDao().upsert(it) }
+                            }
+                        }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text("Enable Nutrition Tracking", fontWeight = FontWeight.Medium)
                         Text("Log meals and track calories & macros", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Switch(
-                        checked = goal?.nutritionEnabled == true,
-                        enabled = goalLoaded,
-                        onCheckedChange = { enabled ->
-                            val g = goal ?: return@Switch
-                            scope.launch {
-                                goal = g.copy(nutritionEnabled = enabled).also { db.userGoalDao().upsert(it) }
-                            }
-                        },
-                    )
+                    Switch(checked = goal?.nutritionEnabled == true, enabled = goalLoaded, onCheckedChange = null)
                 }
             }
         }
@@ -2966,6 +3010,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
     var athleteName by remember { mutableStateOf(tokenStore.get()?.athleteName) }
     var isUploading by remember { mutableStateOf(false) }
     var statusMessage by remember { mutableStateOf<String?>(null) }
+    var confirmDisconnect by remember { mutableStateOf(false) }
 
     // The OAuth callback lands in MainActivity, which writes tokens (or a failure message) into
     // the store. Poll for either for 60 s after entering the screen, then stop.
@@ -3043,20 +3088,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                             Text(if (isUploading) "Syncing…" else "Sync Now")
                         }
                         OutlinedButton(
-                            onClick = {
-                                scope.launch {
-                                    // Revoke on Strava's side first, so PulseLoop also disappears
-                                    // from the athlete's "My Apps" list — clearing local tokens
-                                    // alone leaves the authorization live forever.
-                                    tokenStore.get()?.let {
-                                        runCatching { com.pulseloop.strava.StravaAuth.deauthorize(it) }
-                                    }
-                                    tokenStore.clear()
-                                    isConnected = false
-                                    athleteName = null
-                                    statusMessage = "Disconnected from Strava"
-                                }
-                            },
+                            onClick = { confirmDisconnect = true },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         ) {
@@ -3114,6 +3146,34 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                 Text(msg, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
+    }
+
+    if (confirmDisconnect) {
+        AlertDialog(
+            onDismissRequest = { confirmDisconnect = false },
+            title = { Text("Disconnect Strava?") },
+            text = { Text("PulseLoop will stop uploading workouts. Workouts already on Strava stay there.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDisconnect = false
+                    scope.launch {
+                        // Revoke on Strava's side first, so PulseLoop also disappears
+                        // from the athlete's "My Apps" list — clearing local tokens
+                        // alone leaves the authorization live forever.
+                        tokenStore.get()?.let {
+                            runCatching { com.pulseloop.strava.StravaAuth.deauthorize(it) }
+                        }
+                        tokenStore.clear()
+                        isConnected = false
+                        athleteName = null
+                        statusMessage = "Disconnected from Strava"
+                    }
+                }) { Text("Disconnect", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDisconnect = false }) { Text("Cancel") }
+            },
+        )
     }
 }
 
@@ -3277,7 +3337,14 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                     }
 
                     HealthConnectAvailability.AVAILABLE -> {
-                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Row(Modifier.fillMaxWidth()
+                            .switchRow(checked = prefs.enabled, onCheckedChange = { on ->
+                                    if (on) {
+                                        permissionLauncher.launch(HealthConnectPermissions.all)
+                                    } else {
+                                        store.update { it.copy(enabled = false) }
+                                    }
+                                }), verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text("Export PulseLoop data", style = MaterialTheme.typography.bodyLarge)
                                 Text(
@@ -3286,16 +3353,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
-                            Switch(
-                                checked = prefs.enabled,
-                                onCheckedChange = { on ->
-                                    if (on) {
-                                        permissionLauncher.launch(HealthConnectPermissions.all)
-                                    } else {
-                                        store.update { it.copy(enabled = false) }
-                                    }
-                                },
-                            )
+                            Switch(checked = prefs.enabled, onCheckedChange = null)
                         }
                         // Always reachable (review pass 5). Two states have no other way out:
                         // once every permission is revoked the app can no longer delete what it
@@ -3350,23 +3408,8 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         val rowPerms = HealthConnectPermissions.permissionsForRow(row)
                         val rowGranted = rowPerms.isEmpty() || rowPerms.any { it in granted }
                         Row(
-                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(label, style = MaterialTheme.typography.bodyMedium)
-                                if (!rowGranted) {
-                                    Text(
-                                        "Awaiting permission",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                            Switch(
-                                checked = prefs.toggleFor(row),
-                                enabled = rowGranted,
-                                onCheckedChange = { on ->
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                            .switchRow(checked = prefs.toggleFor(row), enabled = rowGranted, onCheckedChange = { on ->
                                     store.update { p -> p.withToggleFor(row, on) }
                                     // Re-enabling a VITALS kind must backfill the readings recorded while it
                                     // was off: the VITALS group watermark is driven by the *enabled* kinds
@@ -3379,8 +3422,20 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                                         store.resetWatermarks(setOf(HealthConnectWatermarks.Key.VITALS))
                                         HealthConnectExportWorker.enqueue(context)
                                     }
-                                },
-                            )
+                                }),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                                if (!rowGranted) {
+                                    Text(
+                                        "Awaiting permission",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                            Switch(checked = prefs.toggleFor(row), enabled = rowGranted, onCheckedChange = null)
                         }
                         if (row == HealthConnectPermissions.DataTypeRow.HEART_RATE_VARIABILITY) {
                             // Plan §7 open item: the rings' HRV metric is vendor-undocumented, and
@@ -3650,7 +3705,14 @@ private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, 
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.switchRow(checked = following.size == fields.size, onCheckedChange = { on ->
+                        com.pulseloop.service.GoalSync.setFollowing(context, fields, on)
+                        scope.launch {
+                            if (on) com.pulseloop.service.GoalSync.sync(context, db, force = true)
+                            refresh++
+                            onChanged()
+                        }
+                    }), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("Coach goal: ${g.description}", fontWeight = FontWeight.Medium)
                     Text(
@@ -3659,17 +3721,7 @@ private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, 
                         fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Switch(
-                    checked = following.size == fields.size,
-                    onCheckedChange = { on ->
-                        com.pulseloop.service.GoalSync.setFollowing(context, fields, on)
-                        scope.launch {
-                            if (on) com.pulseloop.service.GoalSync.sync(context, db, force = true)
-                            refresh++
-                            onChanged()
-                        }
-                    },
-                )
+                Switch(checked = following.size == fields.size, onCheckedChange = null)
             }
             Text("Let my goal manage these", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

@@ -95,6 +95,7 @@ fun CoachModelPicker(
                     OutlinedTextField(
                         value = filter,
                         onValueChange = { filter = it },
+                        label = { Text("Filter models") },
                         placeholder = { Text("Filter, e.g. claude") },
                         singleLine = true,
                         modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(),

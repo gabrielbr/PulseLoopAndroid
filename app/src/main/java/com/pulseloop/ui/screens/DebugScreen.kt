@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.components.switchRow
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -166,7 +168,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                 DebugCard("Diagnostics") {
                     Text("Export app, device, and wearable logs as JSON.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.switchRow(checked = maskSensitive, onCheckedChange = { maskSensitive = it }), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text("Mask sensitive data", style = MaterialTheme.typography.bodyMedium)
                             Text(
@@ -179,7 +181,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                                         else MaterialTheme.colorScheme.error,
                             )
                         }
-                        Switch(checked = maskSensitive, onCheckedChange = { maskSensitive = it })
+                        Switch(checked = maskSensitive, onCheckedChange = null)
                     }
                     Button(
                         onClick = {

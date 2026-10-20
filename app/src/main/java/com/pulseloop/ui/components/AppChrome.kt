@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -73,7 +74,11 @@ fun AppHeader(
             state = state,
             batteryPercent = batteryPercent,
             idle = idle,
-            modifier = Modifier.clickable(onClick = onOpenSettings),
+            modifier = Modifier.clickable(
+                onClickLabel = "Open ring settings",
+                role = Role.Button,
+                onClick = onOpenSettings,
+            ),
         )
         IconButton(onClick = onOpenSettings) {
             Icon(Icons.Outlined.Settings, "Settings", tint = PulseColors.textSecondary)
@@ -95,7 +100,9 @@ fun ConnectionStatusPill(
     idle: Boolean = false,
 ) {
     val idleNow = idle && state == RingConnectionState.DISCONNECTED
-    val isPulsing = state == RingConnectionState.CONNECTING || state == RingConnectionState.RECONNECTING
+    // Holds still under "Remove animations"; the label already says "Connecting…".
+    val isPulsing = (state == RingConnectionState.CONNECTING || state == RingConnectionState.RECONNECTING) &&
+        !rememberReduceMotion()
     val dotColor = when (state) {
         RingConnectionState.CONNECTED -> PulseColors.success
         RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> PulseColors.accent
@@ -110,12 +117,15 @@ fun ConnectionStatusPill(
             if (batteryPercent != null && batteryPercent > 0) "Idle · $batteryPercent%" else "Idle"
         } else "Disconnected"
     }
-    val pulse by rememberInfiniteTransition(label = "pill").animateFloat(
-        initialValue = 1f,
-        targetValue = if (isPulsing) 0.35f else 1f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "pillDot",
-    )
+    // Only run the transition while pulsing: an infinite 1f→1f animation still ticks every frame.
+    val pulse = if (isPulsing) {
+        rememberInfiniteTransition(label = "pill").animateFloat(
+            initialValue = 1f,
+            targetValue = 0.35f,
+            animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+            label = "pillDot",
+        ).value
+    } else 1f
 
     Row(
         modifier = modifier

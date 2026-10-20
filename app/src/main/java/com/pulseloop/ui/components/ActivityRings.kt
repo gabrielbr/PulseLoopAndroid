@@ -11,6 +11,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -48,8 +50,15 @@ fun ActivityRings(
     /** Gap between concentric rings. */
     ringSpacing: Dp = 5.dp,
     trackColor: Color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f),
+    /** Spoken name per ring, in [rings] order (e.g. "steps"); unnamed rings read as "ring N". */
+    labels: List<String> = emptyList(),
 ) {
-    Canvas(modifier.size(size)) {
+    // Drawn arcs say nothing to TalkBack; speak each ring's share of its goal instead.
+    val description = "Goal progress: " + rings.mapIndexed { i, ring ->
+        val name = labels.getOrNull(i) ?: "ring ${i + 1}"
+        if (ring.value == null) "$name unavailable" else "$name ${(ring.progress * 100).toInt()}%"
+    }.joinToString(", ")
+    Canvas(modifier.size(size).clearAndSetSemantics { contentDescription = description }) {
         val strokePx = strokeWidth.toPx()
         val spacingPx = ringSpacing.toPx()
         val stroke = Stroke(width = strokePx, cap = StrokeCap.Round)

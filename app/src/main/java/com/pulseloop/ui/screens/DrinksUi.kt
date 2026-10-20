@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -60,7 +66,7 @@ private fun DrinkCard(title: String? = null, content: @Composable ColumnScope.()
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        title?.let { Text(it.uppercase(), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted) }
+        title?.let { Text(it.uppercase(), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted) }
         content()
     }
 }
@@ -70,16 +76,25 @@ private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: (
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(label, fontSize = 14.sp, color = PulseColors.textPrimary)
-            note?.let { Text(it, fontSize = 11.sp, color = PulseColors.textMuted) }
+            note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         }
-        TextButton(onClick = onMinus) { Text("−", fontSize = 18.sp) }
+        TextButton(onClick = onMinus, modifier = Modifier.semantics { contentDescription = "Decrease $label" }) {
+            Text("−", fontSize = 18.sp, modifier = Modifier.clearAndSetSemantics {})
+        }
         Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, modifier = Modifier.widthIn(min = 36.dp))
-        TextButton(onClick = onPlus) { Text("+", fontSize = 18.sp) }
+        TextButton(onClick = onPlus, modifier = Modifier.semantics { contentDescription = "Increase $label" }) {
+            Text("+", fontSize = 18.sp, modifier = Modifier.clearAndSetSemantics {})
+        }
     }
 }
 
+/**
+ * A rounded chip. A [choice] pill is one option of a single-choice group (put the group under
+ * `Modifier.selectableGroup()`) and reads as a selected/unselected radio button; otherwise it is
+ * a plain action button.
+ */
 @Composable
-private fun Pill(label: String, on: Boolean, color: Color = PulseColors.accent, onClick: () -> Unit) {
+private fun Pill(label: String, on: Boolean, color: Color = PulseColors.accent, choice: Boolean = true, onClick: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
     Text(
         label,
@@ -90,7 +105,10 @@ private fun Pill(label: String, on: Boolean, color: Color = PulseColors.accent, 
         modifier = Modifier.clip(shape)
             .background(if (on) color else PulseColors.cardSoft)
             .border(1.dp, if (on) color else PulseColors.borderSubtle, shape)
-            .clickable(onClick = onClick)
+            .then(
+                if (choice) Modifier.selectable(selected = on, role = Role.RadioButton, onClick = onClick)
+                else Modifier.clickable(role = Role.Button, onClick = onClick),
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
@@ -176,7 +194,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
             note = "Start a little under your typical week. Small steps last.")
         Stepper("Dry days a week", "$dry", { dry = (dry - 1).coerceAtLeast(0) }, { dry = (dry + 1).coerceAtMost(7) })
         Text("Standard drink size", fontSize = 14.sp, color = PulseColors.textPrimary)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(10.0 to "10 g (WHO)", 8.0 to "8 g (UK unit)", 14.0 to "14 g (US)").forEach { (g, l) ->
                 Pill(l, grams == g, PulseColors.drinks) { grams = g }
             }
@@ -241,10 +259,11 @@ private fun LogSection(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onCh
     val scope = rememberCoroutineScope()
     var more by remember { mutableStateOf(false) }
     var lastLogged by remember { mutableStateOf<String?>(null) }
+    var toDelete by remember { mutableStateOf<DrinkEntryEntity?>(null) }
     DrinkCard("Log a drink") {
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DrinkType.entries.forEach { t ->
-                Pill("+ ${t.label}", false) {
+                Pill("+ ${t.label}", false, choice = false) {
                     scope.launch {
                         DrinksRepository.log(db, t)
                         lastLogged = "Logged 1 ${t.label.lowercase()}"
@@ -252,14 +271,28 @@ private fun LogSection(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onCh
                     }
                 }
             }
-            Pill("More…", false) { more = true }
+            Pill("More…", false, choice = false) { more = true }
         }
         lastLogged?.let { Text(it, fontSize = 12.sp, color = PulseColors.accent) }
         if (s.recent.isNotEmpty()) {
             val zone = ZoneId.systemDefault()
             val fmt = DateTimeFormatter.ofPattern("EEE HH:mm")
-            s.recent.forEach { e -> RecentDrinkRow(e, s.gramsPerStandard, fmt, zone) { scope.launch { db.drinkDao().delete(e.id); onChange() } } }
+            s.recent.forEach { e -> RecentDrinkRow(e, s.gramsPerStandard, fmt, zone) { toDelete = e } }
         }
+    }
+    toDelete?.let { e ->
+        AlertDialog(
+            onDismissRequest = { toDelete = null },
+            title = { Text("Delete drink?") },
+            text = { Text("This ${DrinkType.of(e.type).label.lowercase()} will be removed from your log.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    toDelete = null
+                    scope.launch { db.drinkDao().delete(e.id); onChange() }
+                }) { Text("Delete", color = PulseColors.danger) }
+            },
+            dismissButton = { TextButton(onClick = { toDelete = null }) { Text("Cancel") } },
+        )
     }
     if (more) MoreDrinkDialog(onDismiss = { more = false }) { type, count, hoursAgo, price ->
         scope.launch {
@@ -279,10 +312,10 @@ private fun RecentDrinkRow(e: DrinkEntryEntity, gramsPerStd: Double, fmt: DateTi
             Text(
                 "${Instant.ofEpochMilli(e.timestamp).atZone(zone).format(fmt)} · ${std(DrinkInsights.standardDrinks(e.grams, gramsPerStd))} std · ${e.kcal.roundToInt()} kcal" +
                     if (e.mealId != null) " · from your food log" else "",
-                fontSize = 11.sp, color = PulseColors.textMuted,
+                fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Delete", tint = PulseColors.textMuted, modifier = Modifier.size(18.dp)) }
+        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, "Delete ${DrinkType.of(e.type).label}", tint = PulseColors.textMuted, modifier = Modifier.size(18.dp)) }
     }
 }
 
@@ -298,13 +331,13 @@ private fun MoreDrinkDialog(onDismiss: () -> Unit, onLog: (DrinkType, Int, Long,
         title = { Text("Log drinks") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     DrinkType.entries.forEach { t -> Pill(t.label, type == t, PulseColors.drinks) { type = t } }
                 }
-                Text("${type.volumeMl.roundToInt()} ml at ${type.abvPct}% · ${type.kcal.roundToInt()} kcal", fontSize = 11.sp, color = PulseColors.textMuted)
+                Text("${type.volumeMl.roundToInt()} ml at ${type.abvPct}% · ${type.kcal.roundToInt()} kcal", fontSize = 12.sp, color = PulseColors.textMuted)
                 Stepper("How many", "$count", { count = (count - 1).coerceAtLeast(1) }, { count = (count + 1).coerceAtMost(12) })
                 Text("When", fontSize = 14.sp, color = PulseColors.textPrimary)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(0L to "Now", 1L to "1 h ago", 3L to "3 h ago", 12L to "Last night").forEach { (h, l) ->
                         Pill(l, hoursAgo == h, PulseColors.drinks) { hoursAgo = h }
                     }
@@ -467,13 +500,19 @@ private fun AuditSection(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     AuditC.QUESTIONS.forEachIndexed { qi, (q, options) ->
                         Text(q, fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                        options.forEachIndexed { oi, o ->
-                            Row(
-                                Modifier.fillMaxWidth().clickable { answers[qi] = oi }.padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                androidx.compose.material3.RadioButton(selected = answers[qi] == oi, onClick = { answers[qi] = oi })
-                                Text(o, fontSize = 13.sp)
+                        Column(Modifier.selectableGroup()) {
+                            options.forEachIndexed { oi, o ->
+                                Row(
+                                    Modifier.fillMaxWidth()
+                                        .selectable(selected = answers[qi] == oi, role = Role.RadioButton) { answers[qi] = oi }
+                                        .heightIn(min = 48.dp)
+                                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                ) {
+                                    androidx.compose.material3.RadioButton(selected = answers[qi] == oi, onClick = null)
+                                    Text(o, fontSize = 13.sp)
+                                }
                             }
                         }
                     }
@@ -509,7 +548,7 @@ private fun DrinkSettingsSection(onEnabledChange: (Boolean) -> Unit) {
             { typical = (typical + 1).coerceAtMost(80); DrinkPrefs.baselinePerWeek = typical.toDouble(); onEnabledChange(true) },
             note = "Used for drinks, money and calories saved.")
         Text("Standard drink size", fontSize = 14.sp, color = PulseColors.textPrimary)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(10.0 to "10 g (WHO)", 8.0 to "8 g (UK unit)", 14.0 to "14 g (US)").forEach { (g, l) ->
                 Pill(l, grams == g, PulseColors.drinks) { grams = g; DrinkPrefs.gramsPerStandard = g; onEnabledChange(true) }
             }
@@ -549,6 +588,7 @@ fun ColumnScope.DrinksTileContent(week: DrinkInsights.Week?, limit: Double, dryT
     Text(
         "+ ${DrinkPrefs.lastType.label}",
         fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, maxLines = 1,
-        modifier = Modifier.clickable(onClick = onAdd).padding(vertical = 2.dp),
+        // 48dp touch target; the label stays centred at its own size.
+        modifier = Modifier.clickable(role = Role.Button, onClick = onAdd).heightIn(min = 48.dp).wrapContentHeight(),
     )
 }

@@ -158,8 +158,8 @@ private fun MessageBreakdownRow(message: CoachMessageEntity) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(preview.ifEmpty { "(no text)" }, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(tokens, fontSize = 11.sp, color = PulseColors.textMuted)
-            Text(cost, fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(tokens, fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(cost, fontSize = 12.sp, color = PulseColors.textMuted)
         }
     }
 }

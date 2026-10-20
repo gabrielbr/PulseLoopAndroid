@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -18,6 +19,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,6 +64,8 @@ fun ZoneLineChart(
      * which is why this is opt-in rather than a default.
      */
     verticalGridlines: List<Long> = emptyList(),
+    /** Spoken name for the chart's TalkBack summary, e.g. the card's metric title. */
+    label: String? = null,
 ) {
     if (samples.size < 2) return
     val minTs = samples.first().timestampMs
@@ -76,8 +81,16 @@ fun ZoneLineChart(
     val thresholds = zones.flatMap { listOfNotNull(it.lower, it.upper) }
         .filter { it > yDomain.start && it < yDomain.endInclusive }
         .distinct().sorted()
+    // Computed once per data set rather than on every draw pass.
+    val runs = remember(samples, maxGapMs) { ZoneLineSplitter.segmentsByGap(samples.map { it.timestampMs }, maxGapMs) }
+    val summary = remember(samples, label) {
+        val values = samples.map { it.value }
+        val fmt = if (values.all { it % 1.0 == 0.0 }) "%.0f" else "%.1f"
+        "${label ?: "Trend"}: latest ${fmt.format(values.last())}, " +
+            "range ${fmt.format(values.min())}–${fmt.format(values.max())}, ${values.size} readings"
+    }
 
-    Column(modifier.fillMaxWidth()) {
+    Column(modifier.fillMaxWidth().semantics { contentDescription = summary }) {
         Row(Modifier.fillMaxWidth().height(if (showAxes) height - 16.dp else height)) {
             Canvas(Modifier.weight(1f).fillMaxHeight()) {
                 fun x(ts: Long) = (ts - minTs).toFloat() / span * size.width
@@ -114,7 +127,6 @@ fun ZoneLineChart(
                     )
                 }
                 // Zone-colored line, broken across data gaps.
-                val runs = ZoneLineSplitter.segmentsByGap(samples.map { it.timestampMs }, maxGapMs)
                 runs.forEach { run ->
                     // A gap-isolated single sample would otherwise draw nothing — sparse series
                     // (daily HRV/temp, fatigue) must still show their readings.
@@ -163,7 +175,7 @@ fun ZoneLineChart(
                     horizontalAlignment = Alignment.End,
                 ) {
                     listOf(yDomain.endInclusive, (yDomain.start + yDomain.endInclusive) / 2, yDomain.start).forEach {
-                        Text("${it.toInt()}", fontSize = 9.sp, color = PulseColors.textMuted)
+                        Text("${it.toInt()}", fontSize = 11.sp, color = PulseColors.textMuted)
                     }
                 }
             }
@@ -174,7 +186,7 @@ fun ZoneLineChart(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 listOf(minTs, (minTs + maxTs) / 2, maxTs).forEach {
-                    Text(timeLabel(it, span), fontSize = 9.sp, color = PulseColors.textMuted)
+                    Text(timeLabel(it, span), fontSize = 11.sp, color = PulseColors.textMuted)
                 }
             }
         }

@@ -13,7 +13,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.Role
+import androidx.activity.compose.BackHandler
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -66,6 +69,7 @@ fun TodayScreen(
     val scope = rememberCoroutineScope()
     var isRefreshing by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp
     // remember{}: the ApiKeyStore constructor does Keystore + encrypted-prefs I/O — far
     // too expensive to repeat on every recomposition of this state-collecting screen.
     val keyStore = remember { ApiKeyStore(context) }
@@ -125,6 +129,8 @@ fun TodayScreen(
     val prefsStore = remember { MetricPrefsStore.get(context) }
     val prefs by prefsStore.prefs.collectAsState()
     val editState = rememberDashboardEditState(MetricScope.TODAY, prefsStore)
+    // System Back finishes editing, the same as Done, instead of leaving the tab mid-edit.
+    BackHandler(enabled = editState.editing) { editState.exit() }
 
     val supported: (DashboardCard) -> Boolean = { card ->
         when (card) {
@@ -243,7 +249,10 @@ fun TodayScreen(
                 when (moment) {
                     TodayMoments.Moment.LAST_NIGHT -> sleep.lastNight?.let { night ->
                         item {
-                            val fmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                            // Follow the phone's 12/24-hour setting rather than forcing 24-hour.
+                            val fmt = java.time.format.DateTimeFormatter.ofPattern(
+                                if (android.text.format.DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm a",
+                            )
                             val zone = java.time.ZoneId.systemDefault()
                             fun t(ms: Long) = java.time.Instant.ofEpochMilli(ms).atZone(zone).format(fmt)
                             LastNightCard(
@@ -276,7 +285,10 @@ fun TodayScreen(
                             Text(
                                 "See what affects you",
                                 fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
-                                modifier = Modifier.clickable { navController?.navigate("journal") }.padding(top = 4.dp),
+                                modifier = Modifier
+                                    .heightIn(min = 48.dp)
+                                    .clickable(role = Role.Button) { navController?.navigate("journal") }
+                                    .wrapContentHeight(Alignment.CenterVertically),
                             )
                         }
                     }
@@ -291,8 +303,11 @@ fun TodayScreen(
                 }
             }
 
-            val rows = visibleOrdered.chunked(2)
-            items(rows.size) { rowIndex ->
+            // Three across from 600dp (tablets, unfolded foldables) instead of two stretched tiles.
+            val rows = visibleOrdered.chunked(if (screenWidthDp >= 600) 3 else 2)
+            // Keyed by the cards in the row so a reorder in edit mode moves rows rather than
+            // recomposing every row in place.
+            items(rows.size, key = { rows[it].joinToString("|") { card -> card.name } }) { rowIndex ->
                 val row = rows[rowIndex]
                 // IntrinsicSize.Min + fillMaxHeight is what keeps the grid uniform now that tiles
                 // size to their content: the row takes the height its tallest tile actually needs,
@@ -307,7 +322,7 @@ fun TodayScreen(
                             todayCardFor(card, Modifier.fillMaxWidth().fillMaxHeight())
                         }
                     }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                    repeat(rows.first().size - row.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
 
@@ -423,6 +438,7 @@ private fun ChartTile(card: VitalCardState, values: List<Double>, modifier: Modi
                 zones = card.zones,
                 yDomain = card.yDomain,
                 accent = ZonePalette.accent(card.metric),
+                label = card.title,
                 referenceBands = card.referenceBands,
                 dashedRules = card.dashedRules,
                 showPoints = card.metric == MetricKind.SPO2,
@@ -629,7 +645,9 @@ private fun NutritionTile(food: FoodTotals?, modifier: Modifier, onLog: () -> Un
         Text(
             "+ Log meal",
             fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-            modifier = Modifier.clickable(onClick = onLog).padding(vertical = 2.dp),
+            // No min height here: it would stretch the tile and its row. Compose already widens a
+            // small clickable's hit area towards 48dp.
+            modifier = Modifier.clickable(role = Role.Button, onClick = onLog).padding(vertical = 2.dp),
         )
     }
 }
