@@ -321,6 +321,14 @@ object DataArchiveService {
                     timestamp = c.long("timestamp"), deletedAt = c.long("deletedAt"),
                 )
             },
+            foodPreferences = collect("food_preferences") { c ->
+                FoodPreferenceDTO(
+                    id = c.str("id"), slot = c.str("slot"), item = c.str("item"), action = c.str("action"),
+                    insteadOf = c.strOrNull("insteadOf"), portion = c.strOrNull("portion"),
+                    kcal = c.dblOrNull("kcal"), proteinG = c.dblOrNull("proteinG"), reason = c.strOrNull("reason"),
+                    timesAgreed = c.intOrNull("timesAgreed") ?: 1, createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
+                )
+            },
             coachGoals = collect("coach_goals") { c ->
                 CoachGoalDTO(
                     id = c.str("id"), kind = c.str("kind"), description = c.str("description"),
@@ -403,6 +411,13 @@ object DataArchiveService {
                         )
                     }
                 )
+            }
+            for (f in archive.foodPreferences) {
+                db.foodPreferenceDao().upsert(FoodPreferenceEntity(
+                    id = f.id, slot = f.slot, item = f.item, action = f.action, insteadOf = f.insteadOf,
+                    portion = f.portion, kcal = f.kcal, proteinG = f.proteinG, reason = f.reason,
+                    timesAgreed = f.timesAgreed, createdAt = f.createdAt, updatedAt = f.updatedAt,
+                ))
             }
             for (g in archive.coachGoals) {
                 db.coachGoalDao().upsert(CoachGoalEntity(

@@ -634,13 +634,18 @@ fun PulseLoopApp() {
                         onNavigateToNutrition = { navController.navigate("nutrition") },
                     )
                 }
+                // "Other ideas" on the next-meal card hands the suggestion to the coach chat.
+                val discussMeal: ((String) -> Unit)? = if (apiKeyStore.coachEnabled) { msg ->
+                    com.pulseloop.ui.LaunchRequests.coachMessage.value = msg
+                    navController.navigate("coach") { launchSingleTop = true }
+                } else null
                 paddedComposable("nutrition") {
-                    NutritionScreen(onBack = { navController.popBackStack() })
+                    NutritionScreen(onBack = { navController.popBackStack() }, onDiscuss = discussMeal)
                 }
                 // Straight into a way of logging (Today's food card, the "Log meal" shortcut).
                 listOf("photo", "barcode", "add").forEach { start ->
                     paddedComposable("nutrition/$start") {
-                        NutritionScreen(onBack = { navController.popBackStack() }, start = start)
+                        NutritionScreen(onBack = { navController.popBackStack() }, start = start, onDiscuss = discussMeal)
                     }
                 }
                 paddedComposable("settings/about") {

@@ -46,8 +46,9 @@ import com.pulseloop.data.entity.*
         JournalEntryEntity::class,
         BodyMeasurementEntity::class,
         CoachGoalEntity::class,
+        FoodPreferenceEntity::class,
     ],
-    version = 30,
+    version = 31,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -73,6 +74,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun userGoalDao(): UserGoalDao
     abstract fun bodyMeasurementDao(): BodyMeasurementDao
     abstract fun coachGoalDao(): CoachGoalDao
+    abstract fun foodPreferenceDao(): FoodPreferenceDao
     abstract fun coachSummaryDao(): CoachSummaryDao
     abstract fun wearableLogDao(): WearableLogDao
     abstract fun rawPacketDao(): RawPacketDao
@@ -122,6 +124,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "journal_entries",
             "body_measurements",
             "coach_goals",
+            "food_preferences",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -565,6 +568,18 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** v30 → v31: food preferences agreed with the coach (next-meal suggestions). */
+        private val MIGRATION_30_31 = object : Migration(30, 31) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `food_preferences` (`id` TEXT NOT NULL, `slot` TEXT NOT NULL, " +
+                        "`item` TEXT NOT NULL, `action` TEXT NOT NULL, `insteadOf` TEXT, `portion` TEXT, " +
+                        "`kcal` REAL, `proteinG` REAL, `reason` TEXT, `timesAgreed` INTEGER NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -661,6 +676,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_27_28,
                         MIGRATION_28_29,
                         MIGRATION_29_30,
+                        MIGRATION_30_31,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

@@ -96,6 +96,7 @@ fun TodayScreen(
     val activityScore = rememberActivityScore(db, listOf(state.lastUpdated, state.steps))
     val guidance = rememberGuidance(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
     var mealSheet by remember { mutableStateOf(false) }
+    var briefSheet by remember { mutableStateOf(false) }
     var tagSheet by remember { mutableStateOf(false) }
     // Today's food log, for the Nutrition tile and the midday food moment.
     val food by produceState<FoodTotals?>(null, state.lastUpdated, mealSheet) {
@@ -195,7 +196,8 @@ fun TodayScreen(
                     alert = alert,
                     insight = insight,
                     onAlert = { navController?.navigate("readiness") },
-                    onInsight = if (coachEnabled) ({ navController?.navigate("coach") }) else null,
+                    // The line is cut at three lines; tapping opens the whole brief.
+                    onInsight = { briefSheet = true },
                 )
             }
 
@@ -299,6 +301,22 @@ fun TodayScreen(
                 mealSheet = false
                 navController?.navigate("nutrition/$start")
             }
+        }
+        if (briefSheet) {
+            val summary = state.coachSummary
+            val fromCoach = coachEnabled && summary != null
+            CoachBriefSheet(
+                title = if (fromCoach) summary!!.title else (readiness?.let { "Today" } ?: hero.title),
+                body = if (fromCoach) summary!!.body
+                    else listOfNotNull(readiness?.let { com.pulseloop.service.ReadinessCopy.headline(it) }, hero.summary).joinToString("\n\n"),
+                chips = if (fromCoach) parseChips(summary!!.chipsJSON) else hero.chips.map { it.label },
+                askCoach = coachEnabled,
+                onDismiss = { briefSheet = false },
+                onAsk = {
+                    briefSheet = false
+                    navController?.navigate("coach")
+                },
+            )
         }
         if (tagSheet) {
             TagDaySheet(db, onDismiss = { tagSheet = false }) {

@@ -45,6 +45,15 @@ data class PulseArchive(
     val journalEntries: List<JournalEntryDTO> = emptyList(),
     /** The goals set with the coach (v30). */
     val coachGoals: List<CoachGoalDTO> = emptyList(),
+    /** Food preferences agreed with the coach (v31). */
+    val foodPreferences: List<FoodPreferenceDTO> = emptyList(),
+)
+
+@Serializable data class FoodPreferenceDTO(
+    val id: String, val slot: String, val item: String, val action: String,
+    val insteadOf: String? = null, val portion: String? = null,
+    val kcal: Double? = null, val proteinG: Double? = null, val reason: String? = null,
+    val timesAgreed: Int = 1, val createdAt: Long, val updatedAt: Long,
 )
 
 @Serializable data class CoachGoalDTO(
