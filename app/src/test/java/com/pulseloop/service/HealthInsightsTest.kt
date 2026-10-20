@@ -97,9 +97,10 @@ class HealthInsightsTest {
     }
 
     @Test
-    fun `three signals on one night are minor until the night before also shows signs`() {
+    fun `several signals on one night are minor until the night before also shows signs`() {
         val one = SymptomRadar.compute(baseline() + strained(today), today)!!
-        assertEquals(3, one.flagged.size)
+        // Temperature, its three-night trend, resting HR and HRV.
+        assertEquals(4, one.flagged.size)
         assertEquals(SymptomRadar.Level.MINOR, one.level)
 
         val history = baseline().filter { it.day != today.minusDays(1) } + strained(today.minusDays(1))

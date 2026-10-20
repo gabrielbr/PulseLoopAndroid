@@ -168,15 +168,17 @@ object Readiness {
      * and the rest are renormalised.
      */
     enum class ContributorKind(val title: String, val weight: Double, val optionalSensor: Boolean = false) {
-        RESTING_HR("Resting heart rate", 0.15),
-        HRV_BALANCE("HRV balance", 0.15),
+        // The original seven keep their proportions (×0.8), so a ring without the optional
+        // sensors scores exactly as it did before they existed.
+        RESTING_HR("Resting heart rate", 0.16),
+        HRV_BALANCE("HRV balance", 0.16),
         BODY_TEMPERATURE("Body temperature", 0.10, optionalSensor = true),
         RECOVERY_INDEX("Recovery index", 0.10, optionalSensor = true),
-        SLEEP("Sleep", 0.15),
-        SLEEP_BALANCE("Sleep balance", 0.10),
-        SLEEP_REGULARITY("Sleep regularity", 0.05),
-        PREVIOUS_DAY_ACTIVITY("Previous day activity", 0.10),
-        ACTIVITY_BALANCE("Activity balance", 0.10),
+        SLEEP("Sleep", 0.16),
+        SLEEP_BALANCE("Sleep balance", 0.12),
+        SLEEP_REGULARITY("Sleep regularity", 0.04),
+        PREVIOUS_DAY_ACTIVITY("Previous day activity", 0.08),
+        ACTIVITY_BALANCE("Activity balance", 0.08),
     }
 
     data class Contributor(
