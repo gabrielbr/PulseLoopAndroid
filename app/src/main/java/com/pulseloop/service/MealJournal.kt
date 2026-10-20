@@ -10,9 +10,9 @@ import java.time.ZoneId
 
 /**
  * What a logged meal means for the rest of the app. The food log pays off in a ring app when it
- * meets the night after it, so a logged meal tags the journal itself ("Late meal", "Alcohol")
- * instead of waiting for the user to tick the same thing by hand, and the coach sees the day's
- * intake.
+ * meets the night after it, so a logged meal tags the journal itself ("Late meal", "Alcohol",
+ * "Caffeine after 2 pm") instead of waiting for the user to tick the same thing by hand, and the
+ * coach sees the day's intake.
  *
  * Tags are only ever added. A user who unticks one keeps it unticked until another meal of the
  * same kind is logged.
@@ -36,6 +36,25 @@ object MealJournal {
         RegexOption.IGNORE_CASE,
     )
 
+    /** From this hour, caffeine counts as "Caffeine after 2 pm". */
+    const val CAFFEINE_CUTOFF_HOUR = 14
+
+    // Coffee, caffeinated teas, mate, colas, guaraná and energy drinks, in English and Portuguese.
+    // Plain "tea"/"chá" is left out: chamomile and most herbal teas have no caffeine.
+    private val CAFFEINE = Regex(
+        "\\b(coffee|caf[eé]|cafezinho|pingado|espresso|expresso|cappuccino|latte|macchiato|mocha|" +
+            "americano|cold brew|frappuccino|ristretto|cortado|flat white|black tea|green tea|matcha|" +
+            "chai|earl grey|ch[aá] (preto|verde|mate)|mate|chimarr[aã]o|terer[eé]|yerba|" +
+            "cola|coke|pepsi|guaran[aá]|energy drink|energ[eé]tico|red bull|monster)\\b",
+        RegexOption.IGNORE_CASE,
+    )
+    private val CAFFEINE_FREE = Regex(
+        "\\b(decaf|decaffeinated|descafeinado|caffeine[- ]free|sem cafe[ií]na|zero cafe[ií]na)\\b",
+        RegexOption.IGNORE_CASE,
+    )
+    /** "Café da manhã" is breakfast, not coffee; drop it before looking for caffeine. */
+    private val BREAKFAST_PT = Regex("caf[eé] da manh[aã]", RegexOption.IGNORE_CASE)
+
     /** The evening a meal belongs to: its own date, or the day before when eaten before [EVENING_ENDS_HOUR]. */
     fun eveningOf(timestamp: Long, zone: ZoneId = ZoneId.systemDefault()): LocalDate {
         val local = Instant.ofEpochMilli(timestamp).atZone(zone)
@@ -52,16 +71,29 @@ object MealJournal {
         return ALCOHOL.containsMatchIn(text) && !ALCOHOL_FREE.containsMatchIn(text)
     }
 
+    fun isCaffeinated(name: String, notes: String? = null): Boolean {
+        val text = BREAKFAST_PT.replace(listOfNotNull(name, notes).joinToString(" "), " ")
+        return CAFFEINE.containsMatchIn(text) && !CAFFEINE_FREE.containsMatchIn(text)
+    }
+
+    /** 14:00 onwards, through the small hours that still belong to the evening. */
+    fun isAfterCaffeineCutoff(timestamp: Long, zone: ZoneId = ZoneId.systemDefault()): Boolean {
+        val hour = Instant.ofEpochMilli(timestamp).atZone(zone).hour
+        return hour >= CAFFEINE_CUTOFF_HOUR || hour < EVENING_ENDS_HOUR
+    }
+
     /** The journal tags one meal implies, keyed by the day they belong to. */
     fun tagsFor(meal: MealEntryEntity, zone: ZoneId = ZoneId.systemDefault()): Map<LocalDate, Set<String>> {
         val tags = buildSet {
             if (isLate(meal.timestamp, zone)) add(JournalInsights.Tag.LATE_MEAL.key)
             if (isAlcohol(meal.name, meal.notes)) add(JournalInsights.Tag.ALCOHOL.key)
+            if (isAfterCaffeineCutoff(meal.timestamp, zone) && isCaffeinated(meal.name, meal.notes)) {
+                add(JournalInsights.Tag.LATE_CAFFEINE.key)
+            }
         }
         if (tags.isEmpty()) return emptyMap()
-        // A daytime drink belongs to its own day; anything in the late window to its evening.
-        val day = if (isLate(meal.timestamp, zone)) eveningOf(meal.timestamp, zone)
-        else Instant.ofEpochMilli(meal.timestamp).atZone(zone).toLocalDate()
+        // A meal belongs to its own day; one in the small hours to the evening before.
+        val day = eveningOf(meal.timestamp, zone)
         return mapOf(day to tags)
     }
 

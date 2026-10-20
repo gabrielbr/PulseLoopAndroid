@@ -250,6 +250,7 @@ fun TodayScreen(
                         JournalTagsCard(
                             db, java.time.LocalDate.now(), "Tag your day",
                             tags = com.pulseloop.service.JournalInsights.Tag.entries.take(6),
+                            allowYesterday = true,
                         ) {
                             Text(
                                 "See what affects you",
