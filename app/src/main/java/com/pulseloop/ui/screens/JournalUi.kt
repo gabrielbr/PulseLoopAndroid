@@ -46,9 +46,9 @@ fun JournalTagsCard(
     date: LocalDate,
     title: String,
     tags: List<JournalInsights.Tag> = JournalInsights.Tag.entries,
-    footer: (@Composable () -> Unit)? = null,
     /** Offer a Today / Yesterday switch, so a forgotten day can still be tagged the morning after. */
     allowYesterday: Boolean = false,
+    footer: (@Composable () -> Unit)? = null,
 ) {
     var onYesterday by remember(date) { mutableStateOf(false) }
     val shown = if (allowYesterday && onYesterday) date.minusDays(1) else date
