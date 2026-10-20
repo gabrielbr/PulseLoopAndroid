@@ -453,8 +453,12 @@ object ReadinessCopy {
             "Your lowest sustained heart rate last night, compared with your usual over recent nights. A resting heart rate a few beats above normal can mean your body is working on recovery, stress, or an oncoming illness."
         Readiness.ContributorKind.HRV_BALANCE ->
             "Your heart rate variability over the last few nights, weighted toward last night, compared with your usual. Higher than usual generally means you're well recovered; a drop suggests strain."
+        Readiness.ContributorKind.BODY_TEMPERATURE ->
+            "Your skin temperature last night compared with your usual. A rise of half a degree or more can come with illness, a hard training load, alcohol or the menstrual cycle."
+        Readiness.ContributorKind.RECOVERY_INDEX ->
+            "How early in the night your heart rate reached its lowest. An early low means your body had time to recover; a low just before waking means it was still working, often after a late meal, alcohol or an evening workout."
         Readiness.ContributorKind.SLEEP ->
-            "How much you slept last night compared with your sleep goal."
+            "How much you slept last night compared with your sleep need, learned from the nights you woke up recovered (your sleep goal until then)."
         Readiness.ContributorKind.SLEEP_BALANCE ->
             "Your average sleep over the last two weeks compared with your goal. It shows whether sleep debt is building up."
         Readiness.ContributorKind.SLEEP_REGULARITY ->
