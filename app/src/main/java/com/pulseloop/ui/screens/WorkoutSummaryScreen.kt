@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import android.content.res.Configuration
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -37,7 +39,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -83,6 +87,8 @@ fun WorkoutSummaryScreen(
     var points by remember { mutableStateOf<List<ActivityGpsPointEntity>>(emptyList()) }
     var confirmDelete by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
+    // Set when applyEdit refuses the save, so the sheet says so instead of silently staying open.
+    var editError by remember { mutableStateOf<String?>(null) }
 
     // Windowed to [startedAt, endedAt] so a post-finish edit excludes out-of-window route points
     // from the map/splits too (inert for unedited sessions — every point lies inside the recorded
@@ -116,11 +122,11 @@ fun WorkoutSummaryScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth()) {
-                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, tint = PulseColors.textSecondary, onTap = onBack)
+                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PulseColors.textSecondary, onTap = onBack)
                 Spacer(Modifier.weight(1f))
-                CircleIconButton(Icons.Filled.Edit, tint = PulseColors.accent, onTap = { editing = true })
+                CircleIconButton(Icons.Filled.Edit, "Edit workout", tint = PulseColors.accent, onTap = { editing = true })
                 Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Filled.Delete, tint = PulseColors.danger, onTap = { confirmDelete = true })
+                CircleIconButton(Icons.Filled.Delete, "Delete workout", tint = PulseColors.danger, onTap = { confirmDelete = true })
             }
         }
         item {
@@ -172,12 +178,16 @@ fun WorkoutSummaryScreen(
     if (editing) {
         EditWorkoutSheet(
             session = s,
-            onDismiss = { editing = false },
+            saveError = editError,
+            onDismiss = { editing = false; editError = null },
             onSave = { newType, newStart, newEnd ->
+                editError = null
                 scope.launch {
                     if (ActivityAggregates.applyEdit(db, s, newType, newStart, newEnd)) {
                         reload()
                         editing = false
+                    } else {
+                        editError = "Couldn't save these changes. Check the times and try again."
                     }
                 }
             },
@@ -195,6 +205,7 @@ fun WorkoutSummaryScreen(
 @Composable
 private fun EditWorkoutSheet(
     session: ActivitySessionEntity,
+    saveError: String?,
     onDismiss: () -> Unit,
     onSave: (type: String, startedAt: Long, endedAt: Long) -> Unit,
 ) {
@@ -247,11 +258,12 @@ private fun EditWorkoutSheet(
                 DateTimeButton(endedAt) { endedAt = it }
             }
 
+            val message = validationMessage ?: saveError
             Text(
-                validationMessage
+                message
                     ?: "Distance, calories, and heart-rate stats are recalculated for the new window.",
                 fontSize = 12.sp,
-                color = if (validationMessage != null) PulseColors.warning else PulseColors.textMuted,
+                color = if (message != null) PulseColors.warning else PulseColors.textMuted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -336,6 +348,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
     }
 
     if (showTime) {
+        val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
         val cal = Calendar.getInstance().apply { timeInMillis = pendingDayMillis }
         val timeState = rememberTimePickerState(
             initialHour = cal.get(Calendar.HOUR_OF_DAY),
@@ -346,7 +359,8 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
         AlertDialog(
             onDismissRequest = { showTime = false },
             title = { Text("Time") },
-            text = { TimePicker(state = timeState) },
+            // The dial doesn't fit a landscape dialog; the keyboard entry form does.
+            text = { if (landscape) TimeInput(state = timeState) else TimePicker(state = timeState) },
             confirmButton = {
                 TextButton(onClick = {
                     val result = Calendar.getInstance().apply {
@@ -380,17 +394,22 @@ internal fun utcMidnightToLocalDayStart(utcMillis: Long): Long {
 }
 
 @Composable
-internal fun CircleIconButton(icon: androidx.compose.ui.graphics.vector.ImageVector, tint: Color, onTap: () -> Unit) {
+internal fun CircleIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    tint: Color,
+    onTap: () -> Unit,
+) {
     Box(
         Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, CircleShape)
-            .clickable(onClick = onTap),
+            .clickable(role = Role.Button, onClick = onTap),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(20.dp))
+        Icon(icon, contentDescription, tint = tint, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -458,7 +477,7 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
         metrics.forEachIndexed { i, m ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(m.value, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, color = m.tint, maxLines = 1)
-                Text(m.label, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
+                Text(m.label, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
             }
             if (i != metrics.lastIndex) {
                 Box(Modifier.width(1.dp).height(40.dp).background(PulseColors.borderSubtle))
@@ -493,7 +512,7 @@ private fun StatsGrid(s: ActivitySessionEntity) {
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(value, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                        Text(label.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
+                        Text(label.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
                     }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }

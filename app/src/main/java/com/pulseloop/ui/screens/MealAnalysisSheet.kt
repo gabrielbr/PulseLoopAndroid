@@ -357,13 +357,14 @@ fun MealAnalysisDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 if (image == null) "OR DESCRIBE IT" else "ADD DETAIL (OPTIONAL)",
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 letterSpacing = 1.4.sp,
                                 color = PulseColors.textMuted,
                             )
                             OutlinedTextField(
                                 value = describeText,
                                 onValueChange = { describeText = it },
+                                label = { Text(if (image == null) "Describe your meal" else "Meal details") },
                                 placeholder = { Text("e.g. two eggs, toast with butter, black coffee") },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2,

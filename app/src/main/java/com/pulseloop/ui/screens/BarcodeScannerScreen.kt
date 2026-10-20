@@ -2,7 +2,10 @@ package com.pulseloop.ui.screens
 
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -25,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -105,7 +109,7 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        availability = if (granted) ScanAvailability.Granted else ScanAvailability.Unavailable
+        availability = if (granted) ScanAvailability.Granted else ScanAvailability.Denied
     }
     LaunchedEffect(Unit) {
         when {
@@ -113,6 +117,16 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
                 PackageManager.PERMISSION_GRANTED -> availability = ScanAvailability.Granted
             else -> permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    // A grant made in system Settings while this sheet is open picks the camera up on return.
+    LaunchedEffect(availability) {
+        while (availability == ScanAvailability.Denied) {
+            kotlinx.coroutines.delay(1_000)
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                PackageManager.PERMISSION_GRANTED
+            ) availability = ScanAvailability.Granted
         }
     }
 
@@ -243,11 +257,48 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Barcode scanning needs a device camera and camera access. Search by name instead.",
+                        "Barcode scanning needs a working device camera. Enter the food manually instead.",
                         fontSize = 12.sp,
                         color = PulseColors.textMuted,
                         textAlign = TextAlign.Center,
                     )
+                }
+            }
+
+            ScanAvailability.Denied -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Column(
+                    Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Icon(
+                        Icons.Filled.QrCodeScanner,
+                        contentDescription = null,
+                        tint = PulseColors.textMuted,
+                        modifier = Modifier.size(34.dp),
+                    )
+                    Spacer(Modifier.height(10.dp))
+                    Text(
+                        "Camera access needed",
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = PulseColors.textPrimary,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "Allow camera access in Settings to scan barcodes, or enter the food manually instead.",
+                        fontSize = 12.sp,
+                        color = PulseColors.textMuted,
+                        textAlign = TextAlign.Center,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(onClick = {
+                        runCatching {
+                            context.startActivity(
+                                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                    .setData(Uri.fromParts("package", context.packageName, null)),
+                            )
+                        }
+                    }) { Text("Open settings") }
                 }
             }
 
@@ -270,7 +321,7 @@ fun BarcodeScannerDialog(onScan: (String) -> Unit, onDismiss: () -> Unit) {
     }
 }
 
-private enum class ScanAvailability { Checking, Granted, Unavailable }
+private enum class ScanAvailability { Checking, Granted, Denied, Unavailable }
 
 /** Bridges a Guava [ListenableFuture] (CameraX's provider future) to a suspend call without
  *  the kotlinx-coroutines-jdk8 artifact — the listener resumes on the main executor. */

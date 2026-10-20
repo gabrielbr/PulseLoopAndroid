@@ -5,6 +5,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -17,6 +20,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,57 +77,65 @@ fun JournalTagsCard(
         }
         // Chips size to their label and wrap as a row, one line each: a fixed two-column grid
         // broke the longer labels over two lines in a monospace face.
+        // Each chip sits in a 48dp-tall touch target, so the rows need no extra vertical gap.
         FlowRow(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             tags.forEach { tag ->
                 val on = tag.key in selected
                 val chip = RoundedCornerShape(16.dp) // GMind pill: filter chips keep the 16dp radius
-                Text(
-                    tag.label,
-                    fontSize = 13.sp,
-                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                    color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier
-                        .clip(chip)
-                        .background(if (on) PulseColors.accent else PulseColors.cardSoft)
-                        .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, chip)
-                        .clickable {
+                Box(
+                    Modifier
+                        .heightIn(min = 48.dp)
+                        .toggleable(value = on, role = Role.Checkbox) {
                             scope.launch {
                                 val id = JournalEntryEntity.idFor(day, tag.key)
                                 if (on) db.journalDao().delete(id)
                                 else db.journalDao().upsert(JournalEntryEntity(id = id, day = day, tag = tag.key))
                             }
-                        }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        tag.label,
+                        fontSize = 13.sp,
+                        fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                        color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
+                        maxLines = 1,
+                        softWrap = false,
+                        modifier = Modifier
+                            .clip(chip)
+                            .background(if (on) PulseColors.accent else PulseColors.cardSoft)
+                            .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, chip)
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
         footer?.invoke()
     }
 }
 
-/** Today / Yesterday, as two small segments. */
+/** Today / Yesterday, as two small segments, each with a 48dp-tall touch target. */
 @Composable
 private fun DaySwitch(yesterday: Boolean, onChange: (Boolean) -> Unit) {
     val shape = RoundedCornerShape(16.dp)
-    Row(Modifier.clip(shape).border(1.dp, PulseColors.borderSubtle, shape)) {
-        listOf(false to "Today", true to "Yesterday").forEach { (isYesterday, label) ->
-            val on = yesterday == isYesterday
-            Text(
-                label,
-                fontSize = 12.sp,
-                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-                modifier = Modifier
-                    .background(if (on) PulseColors.accent else PulseColors.cardSoft)
-                    .clickable { onChange(isYesterday) }
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
-            )
+    Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+        Row(Modifier.clip(shape).border(1.dp, PulseColors.borderSubtle, shape).selectableGroup()) {
+            listOf(false to "Today", true to "Yesterday").forEach { (isYesterday, label) ->
+                val on = yesterday == isYesterday
+                Text(
+                    label,
+                    fontSize = 12.sp,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
+                    modifier = Modifier
+                        .background(if (on) PulseColors.accent else PulseColors.cardSoft)
+                        .selectable(selected = on, role = Role.RadioButton) { onChange(isYesterday) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                )
+            }
         }
     }
 }

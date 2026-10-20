@@ -29,6 +29,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 /**
@@ -133,39 +141,52 @@ fun EditableCard(
     content: @Composable () -> Unit,
 ) {
     Box(modifier) {
-        content()
+        // While editing, TalkBack hears the card's name only, not its navigate action.
+        Box(if (editState.editing) Modifier.clearAndSetSemantics { contentDescription = card.displayName } else Modifier) {
+            content()
+        }
         if (editState.editing) {
             // Consume taps on the card body so navigation doesn't fire while editing (no ripple).
-            Box(
-                Modifier.matchParentSize().clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ) {},
-            )
-            Surface(
-                shape = RoundedCornerShape(50),
-                color = MaterialTheme.colorScheme.errorContainer,
-                modifier = Modifier.align(Alignment.TopStart).padding(6.dp).size(28.dp),
-            ) {
-                IconButton(onClick = { editState.setHidden(card, true) }) {
-                    Icon(Icons.Filled.Remove, contentDescription = "Hide ${card.displayName}", tint = MaterialTheme.colorScheme.onErrorContainer)
-                }
-            }
-            Row(Modifier.align(Alignment.TopEnd).padding(6.dp)) {
+            // pointerInput rather than clickable: a clickable scrim was a TalkBack stop that did nothing.
+            Box(Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { } })
+            EditBadge(
+                Icons.Filled.Remove, "Hide ${card.displayName}",
+                container = MaterialTheme.colorScheme.errorContainer,
+                content = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.align(Alignment.TopStart),
+            ) { editState.setHidden(card, true) }
+            Row(Modifier.align(Alignment.TopEnd)) {
                 if (editState.canMoveUp(card)) {
-                    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.size(28.dp)) {
-                        IconButton(onClick = { editState.moveUp(card) }) {
-                            Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move ${card.displayName} up")
-                        }
-                    }
+                    EditBadge(Icons.Filled.KeyboardArrowUp, "Move ${card.displayName} up") { editState.moveUp(card) }
                 }
                 if (editState.canMoveDown(card)) {
-                    Surface(shape = RoundedCornerShape(50), color = MaterialTheme.colorScheme.secondaryContainer, modifier = Modifier.padding(start = 4.dp).size(28.dp)) {
-                        IconButton(onClick = { editState.moveDown(card) }) {
-                            Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move ${card.displayName} down")
-                        }
-                    }
+                    EditBadge(Icons.Filled.KeyboardArrowDown, "Move ${card.displayName} down") { editState.moveDown(card) }
                 }
+            }
+        }
+    }
+}
+
+/** A 28dp badge drawn inside a 48dp touch target, so the up/down pair isn't a 4dp-apart miss. */
+@Composable
+private fun EditBadge(
+    icon: ImageVector,
+    description: String,
+    modifier: Modifier = Modifier,
+    container: Color = MaterialTheme.colorScheme.secondaryContainer,
+    content: Color = MaterialTheme.colorScheme.onSecondaryContainer,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier
+            .size(48.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = description },
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(shape = RoundedCornerShape(50), color = container, modifier = Modifier.size(28.dp)) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(20.dp))
             }
         }
     }

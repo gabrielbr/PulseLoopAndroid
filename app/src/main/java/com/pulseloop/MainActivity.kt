@@ -73,7 +73,9 @@ class MainActivity : ComponentActivity() {
 
         CoachNotifications.createChannel(this)
         com.pulseloop.notifications.BatteryNotifications.createChannel(this)
-        requestAllPermissions()
+        // Ask once per launch, not on every resume: a dismissed dialog resumes the activity, and
+        // re-asking from onResume reopened the same prompt straight away.
+        if (savedInstanceState == null) requestAllPermissions()
 
         setContent {
             // GMind brand frame: a 4dp mint border round the app, drawn inside the system bars
@@ -100,8 +102,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Re-request on resume in case user granted in Settings
-        requestAllPermissions()
+        // Only re-check here, in case the user granted from system Settings while away.
         if (hasAllBlePermissions() && hasNotificationPermission()) {
             CoachNotifications.schedule(this)
         }
@@ -221,7 +222,11 @@ class MainActivity : ComponentActivity() {
         val missing = mutableListOf<String>()
 
         // BLE / Location — GPS tracking needs location on all API levels
-        if (!hasFineLocation()) missing.add(Manifest.permission.ACCESS_FINE_LOCATION)
+        // Android 12+ ignores a fine-only request; coarse has to be asked for alongside it.
+        if (!hasFineLocation()) {
+            missing.add(Manifest.permission.ACCESS_FINE_LOCATION)
+            missing.add(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!hasBleScan()) missing.add(Manifest.permission.BLUETOOTH_SCAN)

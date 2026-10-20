@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -95,7 +96,7 @@ fun SettingsRow(item: SettingsRowItem) {
         Modifier
             .fillMaxWidth()
             .background(if (pressed) PulseColors.elevated else Color.Transparent)
-            .clickable(interactionSource = interactionSource, indication = null, onClick = item.action)
+            .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = item.action)
             .heightIn(min = 52.dp)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,

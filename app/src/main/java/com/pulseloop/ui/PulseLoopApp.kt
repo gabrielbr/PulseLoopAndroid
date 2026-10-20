@@ -12,6 +12,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -375,19 +379,6 @@ fun PulseLoopApp() {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val route = navBackStackEntry?.destination?.route
                 val onTabRoute = route in tabRoutes
-                if (onTabRoute && isLandscape) {
-                    // Edge-to-edge draws content under the transparent status bar. In landscape the
-                    // tabs render no full header, so without a backdrop scrolled content (chat
-                    // bubbles, charts) bleeds through the status bar. Keep a status-bar-height glass
-                    // strip so the status bar stays legible on every tab — matching the landscape
-                    // bottom bar's glass — while content still scrolls under it.
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .hazeEffect(state = hazeState, style = glassStyle)
-                            .windowInsetsPadding(WindowInsets.statusBars),
-                    )
-                }
                 if (onTabRoute && !isLandscape) {
                     Column(
                         Modifier
@@ -430,7 +421,9 @@ fun PulseLoopApp() {
                             }
                         } else {
                             val ble by bleClient.state.collectAsState()
-                            val storedDevice by db.deviceDao().currentFlow()
+                            // remember the Flow: this lambda recomposes on every BLE state change, and a
+                            // fresh Flow resubscribes from `null`, blinking the pill.
+                            val storedDevice by remember(db) { db.deviceDao().currentFlow() }
                                 .collectAsState(initial = null)
                             // Prefer live BLE state; fall back to the stored device so demo data
                             // shows its ring instead of a permanently blank pill (RootViews.swift).
@@ -491,7 +484,13 @@ fun PulseLoopApp() {
                         ) {
                             tabs.forEach { tab ->
                                 val selected = isSelected(tab)
-                                IconButton(onClick = { onTab(tab) }) {
+                                IconButton(
+                                    onClick = { onTab(tab) },
+                                    modifier = Modifier.semantics {
+                                        this.selected = selected
+                                        role = Role.Tab
+                                    },
+                                ) {
                                     Icon(
                                         if (selected) tab.selectedIcon else tab.unselectedIcon,
                                         contentDescription = tab.label,
@@ -515,7 +514,8 @@ fun PulseLoopApp() {
                                     icon = {
                                         Icon(
                                             if (selected) tab.selectedIcon else tab.unselectedIcon,
-                                            contentDescription = tab.label,
+                                            // The item's label already names the tab.
+                                            contentDescription = null,
                                         )
                                     },
                                     label = { Text(tab.label) },
@@ -744,19 +744,17 @@ fun PulseLoopApp() {
                         hrZone = workoutState.hrZone,
                         units = apiKeyStore.resolvedUnitSystem,
                         onPause = {
-                            workoutState.activeSession?.let { kotlinx.coroutines.runBlocking { liveWorkout.pause(it) } }
+                            workoutState.activeSession?.let { liveWorkout.pauseFromUi(it) }
                         },
                         onResume = {
-                            workoutState.activeSession?.let { kotlinx.coroutines.runBlocking { liveWorkout.resume(it) } }
+                            workoutState.activeSession?.let { liveWorkout.resumeFromUi(it) }
                         },
                         onFinish = {
-                            workoutState.activeSession?.let {
-                                kotlinx.coroutines.runBlocking { liveWorkout.finish(it) }
-                                // Land on the summary (iOS RecordSummaryView), replacing the live screen.
-                                navController.navigate("activity_detail/${it.id}") {
-                                    popUpTo("record") { inclusive = true }
-                                }
-                            }
+                            // No runBlocking on the main thread. The finishedSessionId effect above lands
+                            // on the summary (iOS RecordSummaryView) once the finish is written; with no
+                            // session there is nothing to finish, so just leave.
+                            workoutState.activeSession?.let { liveWorkout.finishFromUi(it) }
+                                ?: navController.popBackStack()
                         },
                     )
                 }

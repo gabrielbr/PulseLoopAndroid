@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.components.switchRow
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -16,6 +18,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -25,6 +29,9 @@ import com.pulseloop.data.entity.BodyMeasurementEntity
 import com.pulseloop.health.HealthConnectAvailability
 import com.pulseloop.health.HealthConnectBodyImport
 import com.pulseloop.health.HealthConnectSdk
+import com.pulseloop.settings.ApiKeyStore
+import com.pulseloop.settings.UnitConverter
+import com.pulseloop.settings.UnitSystem
 import com.pulseloop.ui.theme.PulseColors
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -55,6 +62,9 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
     var refresh by remember { mutableIntStateOf(0) }
+    // Stored in kg; shown in the user's unit setting (BMI still computes from kg).
+    val units = remember { ApiKeyStore(context) }.resolvedUnitSystem
+    val unit = UnitConverter.weightUnit(units)
 
     val snapshot by produceState<BodySnapshot?>(null, refresh) {
         value = runCatching {
@@ -92,7 +102,10 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+        Row(Modifier.switchRow(checked = enabled, enabled = available && !busy, onCheckedChange = { on ->
+                    if (on) launcher.launch(HealthConnectBodyImport.permissions)
+                    else { enabled = false; HealthConnectBodyImport.setEnabled(context, false) }
+                }), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Sync from your scale", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
@@ -100,14 +113,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
                     fontSize = 12.sp, color = PulseColors.textSecondary,
                 )
             }
-            Switch(
-                checked = enabled,
-                enabled = available && !busy,
-                onCheckedChange = { on ->
-                    if (on) launcher.launch(HealthConnectBodyImport.permissions)
-                    else { enabled = false; HealthConnectBodyImport.setEnabled(context, false) }
-                },
-            )
+            Switch(checked = enabled, enabled = available && !busy, onCheckedChange = null)
         }
         if (!available) {
             Text("Health Connect isn't available on this phone.", fontSize = 12.sp, color = PulseColors.textMuted)
@@ -119,16 +125,16 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
             val whenText = Instant.ofEpochMilli(w.measuredAt).atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("d MMM, HH:mm"))
             Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("%.1f".format(w.value), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("kg · $whenText", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 5.dp))
+                Text("%.1f".format(UnitConverter.weight(w.value, units)), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text("$unit · $whenText", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 5.dp))
             }
             val facts = buildList {
                 s.bodyFatPct?.let { add("Body fat ${"%.1f".format(it)}%") }
-                s.leanMassKg?.let { add("Lean ${"%.1f".format(it)} kg") }
+                s.leanMassKg?.let { add("Lean ${"%.1f".format(UnitConverter.weight(it, units))} $unit") }
                 s.heightCm?.takeIf { it > 0 }?.let { h -> add("BMI ${"%.1f".format(w.value / ((h / 100) * (h / 100)))}") }
             }
             if (facts.isNotEmpty()) Text(facts.joinToString(" · "), fontSize = 13.sp, color = PulseColors.textSecondary)
-            if (s.trend.size >= 2) WeightLine(s.trend)
+            if (s.trend.size >= 2) WeightLine(s.trend, units)
             Text("From ${w.source}", fontSize = 11.sp, color = PulseColors.textMuted)
         }
         note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
@@ -140,12 +146,16 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
 
 /** A plain 90-day weight line. */
 @Composable
-private fun WeightLine(points: List<BodyMeasurementEntity>) {
+private fun WeightLine(points: List<BodyMeasurementEntity>, units: UnitSystem) {
     val min = points.minOf { it.value }
     val max = points.maxOf { it.value }
     val t0 = points.first().measuredAt
     val t1 = points.last().measuredAt
-    Canvas(Modifier.fillMaxWidth().height(56.dp)) {
+    val unit = UnitConverter.weightUnit(units)
+    fun shown(kg: Double) = "%.1f".format(UnitConverter.weight(kg, units))
+    val summary = "Weight, last 90 days: latest ${shown(points.last().value)} $unit, " +
+        "range ${shown(min)}–${shown(max)} $unit, ${points.size} weigh-ins"
+    Canvas(Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = summary }) {
         val range = (max - min).takeIf { it > 0.2 } ?: 0.2
         fun x(t: Long) = if (t1 == t0) size.width else (t - t0).toFloat() / (t1 - t0) * size.width
         fun y(v: Double) = size.height - ((v - min) / range * size.height * 0.85 + size.height * 0.075).toFloat()
@@ -157,10 +167,10 @@ private fun WeightLine(points: List<BodyMeasurementEntity>) {
         drawPath(path, PulseColors.accent, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
     }
     Row(Modifier.fillMaxWidth()) {
-        Text("%.1f".format(points.first().value), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
-        val delta = points.last().value - points.first().value
+        Text(shown(points.first().value), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
+        val delta = UnitConverter.weight(points.last().value - points.first().value, units)
         Text(
-            "${if (delta >= 0) "+" else ""}${(delta * 10).roundToInt() / 10.0} kg in 90 days",
+            "${if (delta >= 0) "+" else ""}${(delta * 10).roundToInt() / 10.0} $unit in 90 days",
             fontSize = 11.sp, color = PulseColors.textMuted,
         )
     }

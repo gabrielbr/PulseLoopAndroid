@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -50,7 +51,7 @@ fun PrimaryButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().height(52.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = 52.dp),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = PulseColors.accent,
@@ -79,7 +80,7 @@ fun SecondaryButton(
         enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .heightIn(min = 52.dp)
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(

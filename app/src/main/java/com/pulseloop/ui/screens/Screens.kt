@@ -10,7 +10,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,6 +21,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -148,6 +156,7 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.HEART_RATE),
+                        label = "Heart rate",
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                     )
                 } else {
@@ -163,6 +172,7 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.SPO2),
+                        label = "Blood oxygen",
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                         showPoints = true,
                     )
@@ -210,6 +220,7 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.HRV),
+                        label = "HRV",
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                     )
                 } else {
@@ -252,6 +263,7 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.TEMPERATURE),
+                        label = "Temperature",
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                     )
                 } else {
@@ -480,7 +492,7 @@ fun VitalsScreen(
                     measureCaption,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
             if (measureFailed && !measuring) {
@@ -498,7 +510,7 @@ fun VitalsScreen(
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 4.dp),
+                    modifier = Modifier.padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -657,7 +669,7 @@ fun VitalDetailScreen(
         // edge, title centered.
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
             }
             Text(
                 title,
@@ -712,7 +724,7 @@ fun VitalDetailScreen(
                                 color = PulseColors.textMuted,
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { vm.prev() }, modifier = Modifier.size(28.dp)) {
+                                IconButton(onClick = { vm.prev() }) {
                                     Icon(Icons.Filled.ChevronLeft, "Previous", tint = PulseColors.textMuted)
                                 }
                                 Text(
@@ -724,7 +736,6 @@ fun VitalDetailScreen(
                                 IconButton(
                                     onClick = { vm.next() },
                                     enabled = vm.canGoForward(),
-                                    modifier = Modifier.size(28.dp),
                                 ) {
                                     Icon(
                                         Icons.Filled.ChevronRight, "Next",
@@ -763,6 +774,7 @@ fun VitalDetailScreen(
                                 // The whole calendar period, gaps included (issue #102).
                                 timeDomain = state.windowStart to state.windowEnd,
                                 usualRange = state.usualRange,
+                                title = title,
                             )
                             if (state.usualRange != null) {
                                 Text(
@@ -964,7 +976,11 @@ private fun ReadingsCard(
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable { expanded = !expanded }
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = if (expanded) "Hide readings" else "Show readings",
+                ) { expanded = !expanded }
+                .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -984,7 +1000,7 @@ private fun ReadingsCard(
             )
             Icon(
                 if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (expanded) "Hide readings" else "Show readings",
+                contentDescription = null,
                 tint = PulseColors.textMuted,
                 modifier = Modifier.size(20.dp),
             )
@@ -1017,10 +1033,7 @@ private fun ReadingsCard(
                             color = PulseColors.textMuted,
                         )
                     }
-                    IconButton(
-                        onClick = { pendingDelete = reading },
-                        modifier = Modifier.size(36.dp),
-                    ) {
+                    IconButton(onClick = { pendingDelete = reading }) {
                         Icon(
                             Icons.Filled.DeleteOutline,
                             contentDescription = "Delete this reading",
@@ -1086,16 +1099,18 @@ private fun PeriodSegmentedControl(selected: Period, onSelect: (Period) -> Unit)
             .fillMaxWidth()
             .clip(RoundedCornerShape(4.dp))
             .background(PulseColors.cardSoft)
-            .padding(2.dp),
+            .padding(2.dp)
+            .selectableGroup(),
     ) {
         Period.entries.forEach { p ->
             val isSelected = selected == p
             Box(
                 Modifier
                     .weight(1f)
+                    .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .then(if (isSelected) Modifier.dither(PulseColors.textPrimary, 0.16f) else Modifier)
-                    .clickable { onSelect(p) }
+                    .selectable(selected = isSelected, role = Role.Tab) { onSelect(p) }
                     .padding(vertical = 7.dp),
                 contentAlignment = Alignment.Center,
             ) {
