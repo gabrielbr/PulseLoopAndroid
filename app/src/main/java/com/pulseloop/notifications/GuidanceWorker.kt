@@ -56,6 +56,25 @@ class GuidancePrefs(context: Context) {
     internal var lastBedtimeReminderDay: String?
         get() = p.getString("lastBedtimeReminderDay", null)
         set(v) = p.edit().putString("lastBedtimeReminderDay", v).apply()
+    var bedtimeBattery: Boolean
+        get() = p.getBoolean("bedtimeBattery", true)
+        set(v) = p.edit().putBoolean("bedtimeBattery", v).apply()
+    var inactivityAlerts: Boolean
+        get() = p.getBoolean("inactivityAlerts", false)
+        set(v) = p.edit().putBoolean("inactivityAlerts", v).apply()
+    var activityProgress: Boolean
+        get() = p.getBoolean("activityProgress", false)
+        set(v) = p.edit().putBoolean("activityProgress", v).apply()
+
+    internal var lastBatteryReminderDay: String?
+        get() = p.getString("lastBatteryReminderDay", null)
+        set(v) = p.edit().putString("lastBatteryReminderDay", v).apply()
+    internal var lastInactivityAt: Long
+        get() = p.getLong("lastInactivityAt", 0L)
+        set(v) = p.edit().putLong("lastInactivityAt", v).apply()
+    internal var lastProgressDay: String?
+        get() = p.getString("lastProgressDay", null)
+        set(v) = p.edit().putString("lastProgressDay", v).apply()
     /** "<date>:lunch" / "<date>:dinner" of the last meal reminder sent. */
     internal var lastMealReminder: String?
         get() = p.getString("lastMealReminder", null)
@@ -128,9 +147,41 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 }
             }
         }
+        // 5. Charge before bed — the ring can't track a night it runs out on.
+        val bedtime = BedtimeGuidance.compute(inputs.history + listOfNotNull(night), inputs.sleepGoalMinutes, zone)?.bedtime
+        if (prefs.bedtimeBattery && prefs.lastBatteryReminderDay != today.toString()) {
+            val battery = db.deviceDao().currentReal()?.batteryPercent
+            val minsToBed = bedtime?.let { minutesUntil(local.toLocalTime(), it) }
+            if (Nudges.chargeBeforeBed(battery, minsToBed)) {
+                notify(ctx, ID_BATTERY, "Charge your ring before bed", "It's at $battery%. A short charge now keeps tonight's sleep tracked.")
+                prefs.lastBatteryReminderDay = today.toString()
+            }
+        }
+
+        // 6 and 7 are nudges to move, so Rest Mode silences them.
+        val resting = com.pulseloop.service.RestMode.isOn(ctx)
+        val todayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
+        if (prefs.inactivityAlerts && !resting && now - prefs.lastInactivityAt >= 2 * 3_600_000L) {
+            val device = db.deviceDao().currentReal()
+            val buckets = db.activityBucketDao().byDay(todayStart)
+            val fresh = device?.lastSyncAt?.let { now - it <= 40 * 60_000L } == true && buckets.isNotEmpty()
+            val lastHour = buckets.filter { it.startEpoch >= now - 3_600_000L }.sumOf { it.steps }
+            if (Nudges.inactive(local.hour, lastHour, fresh)) {
+                notify(ctx, ID_INACTIVE, "Time to move", "Under 100 steps in the last hour. A few minutes on your feet helps your energy and your sleep.")
+                prefs.lastInactivityAt = now
+            }
+        }
+        if (prefs.activityProgress && !resting && prefs.lastProgressDay != today.toString()) {
+            val goal = db.userGoalDao().get()?.steps ?: 0
+            val steps = db.activityDailyDao().byDay(todayStart)?.steps ?: 0
+            Nudges.progress(local.hour, steps, goal)?.let { (title, body) ->
+                notify(ctx, ID_PROGRESS, title, body)
+                prefs.lastProgressDay = today.toString()
+            }
+        }
+
         // 4. Meal reminder — optional, and only while nothing has been logged for that meal.
         if (prefs.mealReminder && db.userGoalDao().get()?.nutritionEnabled == true) {
-            val todayStart = today.atStartOfDay(zone).toInstant().toEpochMilli()
             val meals = db.mealEntryDao().byDay(todayStart).map { it.timestamp }
             MealReminder.due(local.toLocalTime(), meals.map { Instant.ofEpochMilli(it).atZone(zone).toLocalTime() })?.let { slot ->
                 val key = "$today:$slot"
@@ -151,6 +202,9 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         private const val ID_WEEKLY = 3002
         private const val ID_BEDTIME = 3003
         private const val ID_MEAL = 3004
+        private const val ID_BATTERY = 3005
+        private const val ID_INACTIVE = 3006
+        private const val ID_PROGRESS = 3007
 
         /** Minutes from [now] until [target] later today or, if already past, tomorrow. */
         internal fun minutesUntil(now: LocalTime, target: LocalTime): Int {
@@ -196,6 +250,26 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 .build()
             NotificationManagerCompat.from(context).notify(id, n)
         }
+    }
+}
+
+/** The decisions behind the battery, inactivity and step-progress nudges. */
+object Nudges {
+    /** Battery at or under 30 % between one and two and a half hours before the usual bedtime. */
+    fun chargeBeforeBed(battery: Int?, minsToBed: Int?): Boolean =
+        battery != null && battery in 0..30 && minsToBed != null && minsToBed in 60..150
+
+    /** Between 09:00 and 19:59, under 100 steps in the last hour, on data synced recently enough to trust. */
+    fun inactive(hour: Int, stepsLastHour: Int, dataFresh: Boolean): Boolean =
+        dataFresh && hour in 9..19 && stepsLastHour < 100
+
+    /** At 18:00–19:59, when the day is under 70 % of the step goal: how far there is still to go. */
+    fun progress(hour: Int, steps: Int, goal: Int): Pair<String, String>? {
+        if (hour !in 18..19 || goal <= 0 || steps >= goal * 0.7) return null
+        val left = goal - steps
+        val minutes = (left / 100.0).let { kotlin.math.ceil(it).toInt() }
+        return "${"%,d".format(left)} steps to your goal" to
+            "You're at ${"%,d".format(steps)} of ${"%,d".format(goal)}. About $minutes minutes of walking closes it."
     }
 }
 

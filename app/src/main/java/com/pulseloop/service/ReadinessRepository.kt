@@ -49,6 +49,7 @@ object ReadinessRepository {
         val hr = samples(MeasurementKind.HEART_RATE)
         val hrv = samples(MeasurementKind.HRV)
         val spo2 = samples(MeasurementKind.SPO2)
+        val temperature = samples(MeasurementKind.TEMPERATURE)
 
         val nights = sessions.map { s ->
             val day = Instant.ofEpochMilli(s.date).atZone(zone).toLocalDate()
@@ -60,6 +61,7 @@ object ReadinessRepository {
                 heartRate = hr.filter { it.timestampMs in s.startAt..s.endAt },
                 hrv = hrv.filter { it.timestampMs in s.startAt..s.endAt },
                 spo2 = spo2.filter { it.timestampMs in s.startAt..s.endAt },
+                temperature = temperature.filter { it.timestampMs in s.startAt..s.endAt },
             )
         }
         val lastNight = nights.firstOrNull { it.day == today }
@@ -72,7 +74,9 @@ object ReadinessRepository {
         return Readiness.Inputs(
             lastNight = lastNight,
             history = nights.filter { it.day != today && it.day.isBefore(today) },
-            sleepGoalMinutes = db.userGoalDao().get()?.sleepMinutes ?: 480,
+            // Sleep is scored against what this user needs once that is learned (SleepNeed), the
+            // goal until then.
+            sleepGoalMinutes = SleepNeed.estimate(nights, db.userGoalDao().get()?.sleepMinutes ?: 480, today).minutes,
             dailySteps = dailySteps,
             zone = zone,
         )

@@ -674,6 +674,15 @@ fun PulseLoopApp() {
                         onOpenActivity = { navController.navigate("activity") { launchSingleTop = true } },
                     )
                 }
+                paddedComposable("my_health") {
+                    com.pulseloop.ui.screens.MyHealthScreen(
+                        onBack = { navController.popBackStack() },
+                        onBreathe = { navController.navigate("breathe") },
+                    )
+                }
+                paddedComposable("breathe") {
+                    com.pulseloop.ui.screens.BreatheScreen(onBack = { navController.popBackStack() })
+                }
                 paddedComposable("readiness") {
                     com.pulseloop.ui.screens.ReadinessScreen(db = db, onBack = { navController.popBackStack() })
                 }

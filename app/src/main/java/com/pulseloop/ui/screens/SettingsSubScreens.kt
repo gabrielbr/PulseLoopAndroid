@@ -1065,6 +1065,9 @@ private fun DailyGuidanceSettingsCard() {
     var weekly by remember { mutableStateOf(prefs.weeklyReport) }
     var bedtime by remember { mutableStateOf(prefs.bedtimeReminder) }
     var meal by remember { mutableStateOf(prefs.mealReminder) }
+    var battery by remember { mutableStateOf(prefs.bedtimeBattery) }
+    var inactive by remember { mutableStateOf(prefs.inactivityAlerts) }
+    var progress by remember { mutableStateOf(prefs.activityProgress) }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1094,6 +1097,21 @@ private fun DailyGuidanceSettingsCard() {
                 "Around lunch and dinner, only when nothing is logged yet. Needs nutrition tracking on.",
                 meal,
             ) { meal = it; prefs.mealReminder = it }
+            GuidanceSwitch(
+                "Charge before bed",
+                "When the ring is at 30% or less a couple of hours before your usual bedtime.",
+                battery,
+            ) { battery = it; prefs.bedtimeBattery = it }
+            GuidanceSwitch(
+                "Move reminder",
+                "Under 100 steps in an hour, 9:00 to 20:00, at most every two hours. Off in Rest Mode.",
+                inactive,
+            ) { inactive = it; prefs.inactivityAlerts = it }
+            GuidanceSwitch(
+                "Step progress",
+                "Early evening, when you're under 70% of your step goal. Off in Rest Mode.",
+                progress,
+            ) { progress = it; prefs.activityProgress = it }
         }
     }
 }
