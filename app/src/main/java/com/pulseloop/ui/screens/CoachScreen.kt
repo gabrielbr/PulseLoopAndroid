@@ -72,6 +72,15 @@ fun CoachScreen(
     val isLandscape =
         LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
+    // A message handed over from another screen (the Nutrition screen's "Discuss with coach").
+    LaunchedEffect(viewModel) {
+        com.pulseloop.ui.LaunchRequests.coachMessage.collect { msg ->
+            if (msg != null && viewModel != null) {
+                com.pulseloop.ui.LaunchRequests.coachMessage.value = null
+                viewModel.sendMessage(msg)
+            }
+        }
+    }
     // +1: the goal banner is the list's first item.
     LaunchedEffect(state.messages.size) {
         if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size)

@@ -42,6 +42,8 @@ fun NutritionScreen(
     onBack: () -> Unit,
     /** Open straight into a way of logging: "photo", "barcode" or "add" (Today card, icon shortcut). */
     start: String? = null,
+    /** Opens the coach with a message, to discuss the next-meal idea. Null hides that button. */
+    onDiscuss: ((String) -> Unit)? = null,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -63,10 +65,13 @@ fun NutritionScreen(
     var totals by remember { mutableStateOf<List<MealTotals>>(emptyList()) }
     var goal by remember { mutableStateOf<UserGoalEntity?>(null) }
 
+    var suggestion by remember { mutableStateOf<com.pulseloop.service.MealSuggester.Suggestion?>(null) }
+
     fun reload() {
         scope.launch {
             meals = db.mealEntryDao().byDay(todayStart)
             totals = db.mealEntryDao().dayTotals(todayStart)
+            suggestion = runCatching { com.pulseloop.service.MealSuggester.load(db) }.getOrNull()
         }
     }
     LaunchedEffect(Unit) { goal = db.userGoalDao().get() }
@@ -146,6 +151,45 @@ fun NutritionScreen(
                             MacroBar("Fat", totals.sumOf { it.totalF }, goal?.intakeFatG ?: 65.0, PulseColors.warning)
                         }
                     }
+                }
+            }
+
+            // Next-meal idea, once a third of the day's target is eaten (today only).
+            val eatenToday = totals.sumOf { it.totalCal }
+            val targetToday = goal?.intakeCalories ?: 2000.0
+            val idea = suggestion
+            if (dayOffset == 0 && idea != null && com.pulseloop.service.MealSuggester.shouldShow(targetToday, eatenToday)) {
+                item {
+                    NextMealCard(
+                        idea = idea,
+                        onLog = {
+                            scope.launch {
+                                val entry = MealEntryEntity(
+                                    date = todayStart, timestamp = System.currentTimeMillis(),
+                                    name = idea.items.joinToString(" + ") { it.name },
+                                    mealTypeRaw = idea.slot,
+                                    calories = idea.totalKcal.toDouble(),
+                                    proteinG = idea.items.sumOf { it.proteinG }.toDouble(),
+                                    carbsG = idea.items.sumOf { it.carbsG }.toDouble(),
+                                    fatG = idea.items.sumOf { it.fatG }.toDouble(),
+                                    sourceRaw = NutritionTools.sourceRawManual,
+                                    notes = "From the next-meal suggestion",
+                                )
+                                db.mealEntryDao().upsert(entry)
+                                com.pulseloop.service.MealJournal.afterLog(db, entry)
+                                reload()
+                            }
+                        },
+                        onDiscuss = onDiscuss?.let { discuss ->
+                            {
+                                discuss(
+                                    "For my next meal (${idea.slot}) you suggested: " +
+                                        idea.items.joinToString(", ") { "${it.name} (${it.portion})" } +
+                                        ", about ${idea.totalKcal} kcal. Can we look at alternatives?"
+                                )
+                            }
+                        },
+                    )
                 }
             }
 
@@ -481,3 +525,49 @@ private data class PendingBarcodeProduct(
     val fat: Double,
     val servingDescription: String?,
 )
+
+/** The next-meal idea: a plate that fits what's left of today, to log as is or discuss with the coach. */
+@Composable
+private fun NextMealCard(
+    idea: com.pulseloop.service.MealSuggester.Suggestion,
+    onLog: () -> Unit,
+    onDiscuss: (() -> Unit)?,
+) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(containerColor = PulseColors.card),
+        border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors.accent),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text("NEXT MEAL IDEA · ${idea.slot.uppercase()}", fontSize = 11.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+            if (idea.items.isEmpty()) {
+                Text(idea.note ?: "", fontSize = 14.sp, color = PulseColors.textPrimary)
+            } else {
+                idea.items.forEach { item ->
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(item.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                            Text("${item.english} · ${item.portion}", fontSize = 12.sp, color = PulseColors.textMuted)
+                        }
+                        Text("${item.kcal} kcal", fontSize = 13.sp, color = PulseColors.textSecondary)
+                    }
+                }
+                Text(
+                    "≈ ${idea.totalKcal} kcal · ${idea.totalProteinG} g protein · leaves ${idea.leavesKcal} kcal",
+                    fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
+                )
+                if (idea.fromPreferences.isNotEmpty()) {
+                    Text("Your preference: " + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.accent)
+                }
+                idea.note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textSecondary) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onLog, modifier = Modifier.weight(1f)) { Text("Log this") }
+                    if (onDiscuss != null) {
+                        OutlinedButton(onClick = onDiscuss, modifier = Modifier.weight(1f)) { Text("Other ideas") }
+                    }
+                }
+            }
+        }
+    }
+}

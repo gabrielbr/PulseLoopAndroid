@@ -11,6 +11,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 object LaunchRequests {
     val route = MutableStateFlow<String?>(null)
 
+    /** A message to send to the coach when its screen opens (e.g. discussing a meal suggestion). */
+    val coachMessage = MutableStateFlow<String?>(null)
+
     /** Today's Workout chip: open the Activity tab with the workout-type picker up. */
     val openWorkoutPicker = MutableStateFlow(false)
 }

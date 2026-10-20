@@ -385,3 +385,34 @@ data class CoachGoalEntity(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
 )
+
+/**
+ * v31: a food preference the user and the coach agreed on ("banana instead of vegetables at
+ * night"). Meal suggestions use it whenever it still fits the day's budget. [timesAgreed] grows
+ * each time the same preference is agreed again, so a repeated choice weighs more.
+ */
+@Entity(tableName = "food_preferences")
+data class FoodPreferenceEntity(
+    @PrimaryKey val id: String,
+    /** breakfast, lunch, snack, dinner, or any. */
+    val slot: String,
+    /** The food, in the user's words or a catalog name. */
+    val item: String,
+    /** prefer or avoid. */
+    val action: String,
+    /** What it replaces in a suggestion (a food or a role like "vegetables"), if anything. */
+    val insteadOf: String? = null,
+    /** Portion and its nutrition when the food isn't in the catalog. */
+    val portion: String? = null,
+    val kcal: Double? = null,
+    val proteinG: Double? = null,
+    val reason: String? = null,
+    val timesAgreed: Int = 1,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+) {
+    companion object {
+        /** One row per slot + item + action, so agreeing again counts up instead of duplicating. */
+        fun idFor(slot: String, item: String, action: String) = "$slot:${item.trim().lowercase()}:$action"
+    }
+}

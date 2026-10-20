@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -218,6 +219,57 @@ private fun SheetOption(title: String, subtitle: String, icon: ImageVector, onCl
         Column {
             Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(subtitle, fontSize = 12.sp, color = PulseColors.textSecondary)
+        }
+    }
+}
+
+/** The whole coach brief (the Today line shows only its first lines), with a way into the chat. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CoachBriefSheet(
+    title: String,
+    body: String,
+    chips: List<String>,
+    askCoach: Boolean,
+    onDismiss: () -> Unit,
+    onAsk: () -> Unit,
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = PulseColors.secondaryBackground,
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text("TODAY'S BRIEF", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.accent)
+            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(body, fontSize = 15.sp, lineHeight = 22.sp, color = PulseColors.textSecondary)
+            if (chips.isNotEmpty()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    chips.take(3).forEach {
+                        Text(
+                            it, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(PulseColors.card)
+                                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                        )
+                    }
+                }
+            }
+            if (askCoach) {
+                androidx.compose.material3.Button(
+                    onClick = onAsk,
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Ask the coach about it") }
+            }
         }
     }
 }

@@ -919,3 +919,18 @@ interface CoachGoalDao {
     suspend fun upsert(goal: CoachGoalEntity)
 
 }
+
+@Dao
+interface FoodPreferenceDao {
+    @Query("SELECT * FROM food_preferences ORDER BY timesAgreed DESC, updatedAt DESC")
+    suspend fun all(): List<FoodPreferenceEntity>
+
+    @Query("SELECT * FROM food_preferences WHERE id = :id LIMIT 1")
+    suspend fun byId(id: String): FoodPreferenceEntity?
+
+    @Upsert
+    suspend fun upsert(pref: FoodPreferenceEntity)
+
+    @Query("DELETE FROM food_preferences WHERE id = :id")
+    suspend fun delete(id: String)
+}
