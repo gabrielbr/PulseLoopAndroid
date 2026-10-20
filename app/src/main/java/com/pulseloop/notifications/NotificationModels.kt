@@ -58,6 +58,8 @@ data class NotificationContextPacket(
     val body: com.pulseloop.service.BodyContext? = null,
     /** The goal set with the coach, with progress. */
     val primaryGoal: com.pulseloop.service.GoalPlan.Plan? = null,
+    /** Drinks, when the user tracks them. */
+    val drinks: com.pulseloop.service.DrinksContext? = null,
 ) {
     data class GoalContext(
         val stepsDaily: Int,
@@ -140,6 +142,7 @@ data class NotificationContextPacket(
         nutrition = nutrition,
         body = body,
         primaryGoal = primaryGoal,
+        drinks = drinks,
     )
 
     fun toJsonString(): String {
@@ -169,6 +172,7 @@ data class NotificationContextPacket(
             val nutrition: com.pulseloop.service.NutritionContext? = null,
             val body: com.pulseloop.service.BodyContext? = null,
             val primaryGoal: com.pulseloop.service.GoalPlan.Plan? = null,
+            val drinks: com.pulseloop.service.DrinksContext? = null,
         ) {
             @kotlinx.serialization.Serializable
             data class SerializableGoalContext(val stepsDaily: Int, val activeMinutesDaily: Int, val sleepHours: Int, val exerciseDaysWeekly: Int)

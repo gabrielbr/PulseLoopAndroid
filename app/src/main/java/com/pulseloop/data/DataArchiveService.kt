@@ -329,6 +329,15 @@ object DataArchiveService {
                     timesAgreed = c.intOrNull("timesAgreed") ?: 1, createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
                 )
             },
+            drinks = collect("drink_entries") { c ->
+                DrinkEntryDTO(
+                    id = c.str("id"), timestamp = c.long("timestamp"), day = c.long("day"), type = c.str("type"),
+                    volumeMl = c.dblOrNull("volumeMl") ?: 0.0, abvPct = c.dblOrNull("abvPct") ?: 0.0,
+                    grams = c.dblOrNull("grams") ?: 0.0, kcal = c.dblOrNull("kcal") ?: 0.0,
+                    price = c.dblOrNull("price"), mealId = c.strOrNull("mealId"), note = c.strOrNull("note"),
+                    createdAt = c.long("createdAt"),
+                )
+            },
             coachGoals = collect("coach_goals") { c ->
                 CoachGoalDTO(
                     id = c.str("id"), kind = c.str("kind"), description = c.str("description"),
@@ -417,6 +426,13 @@ object DataArchiveService {
                     id = f.id, slot = f.slot, item = f.item, action = f.action, insteadOf = f.insteadOf,
                     portion = f.portion, kcal = f.kcal, proteinG = f.proteinG, reason = f.reason,
                     timesAgreed = f.timesAgreed, createdAt = f.createdAt, updatedAt = f.updatedAt,
+                ))
+            }
+            for (d in archive.drinks) {
+                db.drinkDao().upsert(DrinkEntryEntity(
+                    id = d.id, timestamp = d.timestamp, day = d.day, type = d.type, volumeMl = d.volumeMl,
+                    abvPct = d.abvPct, grams = d.grams, kcal = d.kcal, price = d.price, mealId = d.mealId,
+                    note = d.note, createdAt = d.createdAt,
                 ))
             }
             for (g in archive.coachGoals) {

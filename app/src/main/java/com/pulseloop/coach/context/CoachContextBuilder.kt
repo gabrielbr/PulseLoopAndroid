@@ -106,6 +106,7 @@ object CoachContextBuilder {
             dataQualityWarnings = warnings,
             environment = environment,
             primaryGoal = runCatching { com.pulseloop.service.GoalPlan.load(db, now) }.getOrNull(),
+            drinks = com.pulseloop.service.DrinksContext.build(db, now),
         )
     }
 

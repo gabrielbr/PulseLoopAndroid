@@ -130,7 +130,7 @@ private fun DaySwitch(yesterday: Boolean, onChange: (Boolean) -> Unit) {
 
 /** Journal screen: tag today and yesterday, then see which tags line up with your nights. */
 @Composable
-fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
+fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -> Unit)? = null) {
     val today = remember { LocalDate.now() }
     // Recompute effects whenever any tag changes.
     val todayEntries by remember { db.journalDao().forDayFlow(dayKey(today)) }.collectAsState(initial = emptyList())
@@ -163,6 +163,15 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
         ) {
             JournalTagsCard(db, today, "Today")
             JournalTagsCard(db, today.minusDays(1), "Yesterday")
+            // The Alcohol tag is a yes/no; Drinks counts them, sets a limit and shows the dose.
+            if (onOpenDrinks != null) {
+                Text(
+                    if (com.pulseloop.service.DrinkPrefs.enabled) "Open Drinks: this week, your plan and what drinking does to your nights"
+                    else "Want to drink less? Track drinks, set a weekly limit and see what each drink does to your nights",
+                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.drinks,
+                    modifier = Modifier.clickable(onClick = onOpenDrinks).padding(vertical = 4.dp),
+                )
+            }
 
             Text("What affects you", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
             val list = effects

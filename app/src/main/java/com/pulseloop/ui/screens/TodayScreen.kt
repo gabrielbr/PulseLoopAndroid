@@ -114,6 +114,11 @@ fun TodayScreen(
         }.getOrNull()
     }
     val mealsToday = food?.meals
+    // Drinks, when the user tracks them: the tile and the morning-after line on Last night.
+    var drinkTick by remember { mutableIntStateOf(0) }
+    val drinks by produceState<com.pulseloop.service.DrinksRepository.Snapshot?>(null, state.lastUpdated, sleep.lastNight?.id, drinkTick) {
+        value = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching { com.pulseloop.service.DrinksRepository.load(db) }.getOrNull() else null
+    }
 
     // Per-metric visibility + user order (iOS #64), read reactively so a hide/show/reorder
     // recomposes immediately (this is also the iOS #70 reactivity).
@@ -123,6 +128,7 @@ fun TodayScreen(
 
     val supported: (DashboardCard) -> Boolean = { card ->
         when (card) {
+            DashboardCard.DRINKS -> com.pulseloop.service.DrinkPrefs.enabled
             DashboardCard.ACTIVITY, DashboardCard.SLEEP, DashboardCard.NUTRITION,
             DashboardCard.HEART_RATE, DashboardCard.SPO2 -> true
             DashboardCard.HRV -> vitals.supportsHrv
@@ -151,6 +157,19 @@ fun TodayScreen(
             DashboardCard.ACTIVITY -> ActivityTileFor(state, units, m) { navController?.navigate("activity") }
             DashboardCard.SLEEP -> SleepTileFor(sleep, m) { navController?.navigate("sleep") }
             DashboardCard.NUTRITION -> NutritionTile(food, m, onLog = { mealSheet = true }) { navController?.navigate("nutrition") }
+            DashboardCard.DRINKS -> TodayTile(label = "Drinks", color = PulseColors.drinks, modifier = m, onTap = { navController?.navigate("drinks") }) {
+                DrinksTileContent(
+                    week = drinks?.week,
+                    limit = drinks?.weeklyLimit ?: com.pulseloop.service.DrinkPrefs.weeklyLimit,
+                    dryTarget = drinks?.dryDaysTarget ?: com.pulseloop.service.DrinkPrefs.dryDaysTarget,
+                    onAdd = {
+                        scope.launch {
+                            com.pulseloop.service.DrinksRepository.log(db, com.pulseloop.service.DrinkPrefs.lastType)
+                            drinkTick++
+                        }
+                    },
+                )
+            }
             DashboardCard.HEART_RATE -> ChartTile(cards.getValue(MetricKind.HEART_RATE), vitals.hrSamples, m) { navController?.navigate("vitals/hr") }
             DashboardCard.SPO2 -> ChartTile(cards.getValue(MetricKind.SPO2), vitals.spo2Samples, m) { navController?.navigate("vitals/spo2") }
             DashboardCard.HRV -> ChartTile(cards.getValue(MetricKind.HRV), vitals.hrvSamples, m) { navController?.navigate("vitals/hrv") }
@@ -232,6 +251,8 @@ fun TodayScreen(
                                 score = sleep.score?.score ?: night.score,
                                 window = "${t(night.startAt)} – ${t(night.endAt)}",
                                 onOpen = { navController?.navigate("sleep") },
+                                drinksLine = drinks?.morningAfter?.let { com.pulseloop.service.DrinksRepository.morningAfterLine(it) },
+                                onDrinks = { navController?.navigate("drinks") },
                             )
                         }
                     }

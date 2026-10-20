@@ -28,7 +28,7 @@ object MealJournal {
     private val ALCOHOL = Regex(
         "\\b(beer|wine|vodka|whisk(e)?y|gin|rum|tequila|cocktail|sake|cider|prosecco|champagne|" +
             "margarita|mojito|sangria|spritz|aperol|negroni|martini|ipa|lager|stout|bourbon|" +
-            "cerveja|chopp|vinho|caipirinha|cacha[cç]a|espumante)\\b",
+            "cerveja|chopp|vinho|caipirinha|cacha[cç]a|espumante)s?\\b",
         RegexOption.IGNORE_CASE,
     )
     private val ALCOHOL_FREE = Regex(
@@ -110,6 +110,8 @@ object MealJournal {
                 }
             }
         }
+        // A drink in the meal is also a drink in Drinks, when the user tracks them.
+        runCatching { DrinksRepository.fromMeal(db, meal, zone) }
         runCatching {
             val goal = db.userGoalDao().get()
             if (goal != null && !goal.nutritionEnabled) db.userGoalDao().upsert(goal.copy(nutritionEnabled = true))

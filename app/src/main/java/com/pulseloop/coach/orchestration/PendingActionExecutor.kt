@@ -69,6 +69,7 @@ object PendingActionExecutor {
             PendingActionKind.DELETE_MEAL_ENTRY -> {
                 val name = entry.name
                 db.mealEntryDao().deleteById(entry.id)
+                com.pulseloop.service.DrinksRepository.onMealDeleted(db, entry.id)
                 "Deleted \"$name\"."
             }
             PendingActionKind.UPDATE_MEAL_ENTRY -> {

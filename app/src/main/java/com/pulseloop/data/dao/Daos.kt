@@ -934,3 +934,34 @@ interface FoodPreferenceDao {
     @Query("DELETE FROM food_preferences WHERE id = :id")
     suspend fun delete(id: String)
 }
+
+@Dao
+interface DrinkDao {
+    @Query("SELECT * FROM drink_entries ORDER BY timestamp DESC")
+    suspend fun all(): List<DrinkEntryEntity>
+
+    @Query("SELECT * FROM drink_entries ORDER BY timestamp DESC")
+    fun allFlow(): Flow<List<DrinkEntryEntity>>
+
+    /** Drinks whose evening starts in [from, to). */
+    @Query("SELECT * FROM drink_entries WHERE day >= :from AND day < :to ORDER BY timestamp ASC")
+    suspend fun between(from: Long, to: Long): List<DrinkEntryEntity>
+
+    @Query("SELECT * FROM drink_entries WHERE mealId = :mealId")
+    suspend fun byMeal(mealId: String): List<DrinkEntryEntity>
+
+    @Query("SELECT * FROM drink_entries ORDER BY timestamp DESC LIMIT 1")
+    suspend fun latest(): DrinkEntryEntity?
+
+    @Upsert
+    suspend fun upsert(entry: DrinkEntryEntity)
+
+    @Query("DELETE FROM drink_entries WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("DELETE FROM drink_entries WHERE mealId = :mealId")
+    suspend fun deleteByMeal(mealId: String)
+
+    @Query("DELETE FROM drink_entries")
+    suspend fun clear()
+}

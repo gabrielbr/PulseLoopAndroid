@@ -43,6 +43,7 @@ object PulseColors {
     val bloodPressure = Color(0xFFFF7FA8)
     val bloodSugar = Color(0xFFFFC46B)
     val fatigue = Color(0xFFC98CFF)
+    val drinks = Color(0xFFE38FB5)     // wine rose
     val readiness = Color(0xFF43F3B7)   // the headline score wears the brand mint
 
     // Vitals reference-zone colors (AppTheme.swift zone*) — aliased by

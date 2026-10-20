@@ -128,7 +128,14 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
             }
             val thisWeek = WeeklyReport.summarize(thisWeekNights, stepsBetween(6, 0))
             val lastWeek = WeeklyReport.summarize(lastWeekNights, stepsBetween(13, 7)).takeIf { it.nights >= 3 }
-            WeeklyReport.text(thisWeek, lastWeek, inputs.sleepGoalMinutes)?.let { (title, body) ->
+            WeeklyReport.text(thisWeek, lastWeek, inputs.sleepGoalMinutes)?.let { (title, report) ->
+                // Drinks, for users who track them: the week that is ending, in one line.
+                val drinks = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching {
+                    val d = com.pulseloop.service.DrinksRepository.load(db, now, zone)
+                    " Drinks: ${com.pulseloop.service.DrinkInsights.fmt(d.week.standardDrinks)} of ${com.pulseloop.service.DrinkInsights.fmt(d.weeklyLimit)}, " +
+                        "${d.week.dryDays} dry day${if (d.week.dryDays == 1) "" else "s"}."
+                }.getOrNull().orEmpty() else ""
+                val body = report + drinks
                 notify(ctx, ID_WEEKLY, title, body)
                 prefs.lastWeeklyReportWeek = weekKey
             }

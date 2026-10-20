@@ -18,6 +18,7 @@ enum class DashboardCard(val key: String) {
     ACTIVITY("steps"),               // Today-only
     SLEEP("sleep"),                  // Today-only
     NUTRITION("nutrition"),          // Today-only: today's food log
+    DRINKS("drinks"),                // Today-only, opt-in: this week's drinks (docs/drinks-plan.md)
     HEART_RATE("heartRate"),
     SPO2("spo2"),
     HRV("hrv"),
@@ -33,6 +34,7 @@ enum class DashboardCard(val key: String) {
             ACTIVITY -> "Activity"
             SLEEP -> "Sleep"
             NUTRITION -> "Nutrition"
+            DRINKS -> "Drinks"
             HEART_RATE -> "Heart Rate"
             SPO2 -> "SpO₂"
             HRV -> "HRV"
@@ -46,7 +48,7 @@ enum class DashboardCard(val key: String) {
     companion object {
         /** Default Today order (matches the hardcoded tile order it replaces). */
         val todayDefault = listOf(
-            ACTIVITY, SLEEP, NUTRITION, HEART_RATE, SPO2, HRV, TEMPERATURE, STRESS, FATIGUE, GLUCOSE, BLOOD_PRESSURE,
+            ACTIVITY, SLEEP, NUTRITION, DRINKS, HEART_RATE, SPO2, HRV, TEMPERATURE, STRESS, FATIGUE, GLUCOSE, BLOOD_PRESSURE,
         )
 
         /** Default Vitals order (matches iOS `defaultOrder` / the hardcoded card order it replaces). */
