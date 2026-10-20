@@ -69,7 +69,7 @@ object TodayTileMetrics {
      *
      * **Don't put this back on a fixed `.height()`.** That is the bug, twice over.
      */
-    val minHeight = 168.dp
+    val minHeight = 136.dp
 
     /**
      * The user's font scale, sampled at 16.sp and clamped to 1.0–1.6.
@@ -111,8 +111,8 @@ fun TodayTile(
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
             .then(if (onTap != null) Modifier.clickable(onClick = onTap) else Modifier)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
@@ -160,8 +160,8 @@ fun ActivityTile(
         ) {
             ActivityRings(
                 rings = rings,
-                size = 88.dp,
-                strokeWidth = 9.dp,
+                size = 76.dp,
+                strokeWidth = 8.dp,
                 ringSpacing = 4.dp,
             )
             // Three metrics (steps/distance/calories) share one tile. At 22.sp the third value
@@ -325,10 +325,10 @@ fun SleepTile(
 ) {
     TodayTile(label = "Sleep", color = PulseColors.sleep, modifier = modifier, onTap = onTap) {
         if (durationText != null) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     durationText,
-                    fontSize = 30.sp,
+                    fontSize = 24.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.textPrimary,
                     maxLines = 1,
@@ -338,7 +338,7 @@ fun SleepTile(
                     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(
                             "$score",
-                            fontSize = 32.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PulseColors.textPrimary,
                         )
@@ -348,7 +348,7 @@ fun SleepTile(
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.sp,
                             color = PulseColors.textMuted,
-                            modifier = Modifier.padding(bottom = 6.dp),
+                            modifier = Modifier.padding(bottom = 3.dp),
                         )
                     }
                 }

@@ -82,6 +82,14 @@ fun ActivityScreen(
     val units = remember { ApiKeyStore(context) }.resolvedUnitSystem
     val scope = rememberCoroutineScope()
     var pickerOpen by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        com.pulseloop.ui.LaunchRequests.openWorkoutPicker.collect { open ->
+            if (open) {
+                pickerOpen = true
+                com.pulseloop.ui.LaunchRequests.openWorkoutPicker.value = false
+            }
+        }
+    }
     var historyOpen by remember { mutableStateOf(false) }
     var goalsOpen by remember { mutableStateOf(false) }
 

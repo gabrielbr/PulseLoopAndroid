@@ -92,6 +92,13 @@ fun TodayScreen(
     val readiness = rememberReadiness(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
     val activityScore = rememberActivityScore(db, listOf(state.lastUpdated, state.steps))
     val guidance = rememberGuidance(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
+    var mealSheet by remember { mutableStateOf(false) }
+    var tagSheet by remember { mutableStateOf(false) }
+    val mealsToday by produceState<Int?>(null, state.lastUpdated, mealSheet) {
+        value = runCatching {
+            db.mealEntryDao().byDay(java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()).size
+        }.getOrNull()
+    }
 
     // Per-metric visibility + user order (iOS #64), read reactively so a hide/show/reorder
     // recomposes immediately (this is also the iOS #70 reactivity).
@@ -160,58 +167,83 @@ fun TodayScreen(
                 )
             }
 
-            // Daily guidance (docs/health-app-feature-research.md).
-            guidance?.let { g ->
-                if (com.pulseloop.service.VitalsCheck.shouldAlert(g.offSignals)) {
-                    item { UnusualSignalsCard(g.offSignals) }
-                }
-                g.bedtime?.let { b -> item { TonightCard(b, g.sleepGoalMinutes) } }
-            }
-            // Food: the way into the meal log, which used to live only under Settings.
+            // Glance: one line of what today means, and an alert line only when something is off.
             item {
-                FoodCard(
-                    db = db,
-                    burned = state.calories,
-                    onOpen = { navController?.navigate("nutrition") },
-                    onLog = { start -> navController?.navigate("nutrition/$start") },
+                val alert = guidance?.offSignals?.takeIf { com.pulseloop.service.VitalsCheck.shouldAlert(it) }
+                val summary = state.coachSummary
+                val insight = when {
+                    coachEnabled && summary != null -> listOf(summary.title, summary.body).filter { it.isNotBlank() }.joinToString(". ")
+                    readiness != null -> com.pulseloop.service.ReadinessCopy.headline(readiness)
+                    else -> hero.summary
+                }
+                TodayGlance(
+                    alert = alert,
+                    insight = insight,
+                    onAlert = { navController?.navigate("readiness") },
+                    onInsight = if (coachEnabled) ({ navController?.navigate("coach") }) else null,
                 )
             }
-            // Journal tags (docs/health-app-feature-research.md).
+
+            // Act: one tap to log, then at most two cards chosen by the time of day.
             item {
-                JournalTagsCard(
-                    db, java.time.LocalDate.now(), "Tag your day",
-                    tags = com.pulseloop.service.JournalInsights.Tag.entries.take(6),
-                ) {
-                    Text(
-                        "See what affects you",
-                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
-                        modifier = Modifier.clickable { navController?.navigate("journal") }.padding(top = 4.dp),
-                    )
+                QuickLogRow(
+                    onMeal = { mealSheet = true },
+                    onTag = { tagSheet = true },
+                    onMeasure = { navController?.navigate("vitals") },
+                    onWorkout = {
+                        com.pulseloop.ui.LaunchRequests.openWorkoutPicker.value = true
+                        navController?.navigate("activity")
+                    },
+                )
+            }
+            val moments = TodayMoments.at(
+                hour = java.time.LocalTime.now().hour,
+                hasSleep = sleep.lastNight != null,
+                mealsToday = mealsToday ?: -1,
+                hasBedtime = guidance?.bedtime != null,
+            )
+            moments.forEach { moment ->
+                when (moment) {
+                    TodayMoments.Moment.LAST_NIGHT -> sleep.lastNight?.let { night ->
+                        item {
+                            val fmt = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                            val zone = java.time.ZoneId.systemDefault()
+                            fun t(ms: Long) = java.time.Instant.ofEpochMilli(ms).atZone(zone).format(fmt)
+                            LastNightCard(
+                                durationText = Formats.hoursMinutes(night.totalMinutes),
+                                score = sleep.score?.score ?: night.score,
+                                window = "${t(night.startAt)} – ${t(night.endAt)}",
+                                onOpen = { navController?.navigate("sleep") },
+                            )
+                        }
+                    }
+                    TodayMoments.Moment.FOOD -> item {
+                        FoodCard(
+                            db = db,
+                            burned = state.calories,
+                            onOpen = { navController?.navigate("nutrition") },
+                            onLog = { start -> navController?.navigate("nutrition/$start") },
+                        )
+                    }
+                    TodayMoments.Moment.TONIGHT -> guidance?.let { g ->
+                        g.bedtime?.let { b -> item { TonightCard(b, g.sleepGoalMinutes) } }
+                    }
+                    TodayMoments.Moment.TAG_DAY -> item {
+                        JournalTagsCard(
+                            db, java.time.LocalDate.now(), "Tag your day",
+                            tags = com.pulseloop.service.JournalInsights.Tag.entries.take(6),
+                        ) {
+                            Text(
+                                "See what affects you",
+                                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
+                                modifier = Modifier.clickable { navController?.navigate("journal") }.padding(top = 4.dp),
+                            )
+                        }
+                    }
                 }
             }
 
-            // Top insight card. When the coach is on it owns this slot (tap → chat);
-            // otherwise the deterministic hero fills it. Only ever one card here, so the coach
-            // summary and the hero can't render the same content twice on one screen (iOS #42).
-            item {
-                val summary = state.coachSummary
-                when {
-                    coachEnabled && summary != null -> CoachMessageCard(
-                        headline = summary.title,
-                        body = summary.body,
-                        chips = parseChips(summary.chipsJSON),
-                        onTap = { navController?.navigate("coach") },
-                    )
-                    coachEnabled -> CoachMessageCard(
-                        headline = "Want a recap?",
-                        body = "Want a summary from the latest ring context? Tap to open the coach.",
-                        chips = emptyList(),
-                        onTap = { navController?.navigate("coach") },
-                    )
-                    else -> HeroInsightCard(hero.title, hero.summary, hero.chips)
-                }
-            }
-
+            // Browse: the metric tiles.
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     if (editState.editing) ReorderDoneBar { editState.exit() }
@@ -244,6 +276,19 @@ fun TodayScreen(
             }
 
             item { Spacer(Modifier.height(64.dp)) }
+        }
+
+        if (mealSheet) {
+            MealSheet(onDismiss = { mealSheet = false }) { start ->
+                mealSheet = false
+                navController?.navigate("nutrition/$start")
+            }
+        }
+        if (tagSheet) {
+            TagDaySheet(db, onDismiss = { tagSheet = false }) {
+                tagSheet = false
+                navController?.navigate("journal")
+            }
         }
 
         PullRefreshIndicator(
@@ -300,7 +345,7 @@ private fun ChartTile(card: VitalCardState, values: List<Double>, modifier: Modi
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 card.valueText,
-                fontSize = 26.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary,
                 maxLines = 1,
@@ -326,7 +371,7 @@ private fun ChartTile(card: VitalCardState, values: List<Double>, modifier: Modi
                 dashedRules = card.dashedRules,
                 showPoints = card.metric == MetricKind.SPO2,
                 showAxes = false,
-                height = 56.dp,
+                height = 40.dp,
             )
         }
     }
@@ -355,8 +400,8 @@ private fun GaugeTile(card: VitalCardState, modifier: Modifier, onTap: () -> Uni
                     valueColor = card.statusToken.toColor(),
                     centerValue = card.valueText,
                     centerStatus = card.statusText,
-                    size = 108.dp * gaugeScale,
-                    lineWidth = 11.dp * gaugeScale,
+                    size = 88.dp * gaugeScale,
+                    lineWidth = 9.dp * gaugeScale,
                 )
             }
         }
@@ -409,8 +454,8 @@ private fun BpRingColumn(
             valueColor = valueColor,
             centerValue = "${value.toInt()}",
             // Scaled for the same reason as the GaugeTile ring above.
-            size = 66.dp * TodayTileMetrics.fontScale,
-            lineWidth = 7.dp * TodayTileMetrics.fontScale,
+            size = 56.dp * TodayTileMetrics.fontScale,
+            lineWidth = 6.dp * TodayTileMetrics.fontScale,
         )
         Text(
             title, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,

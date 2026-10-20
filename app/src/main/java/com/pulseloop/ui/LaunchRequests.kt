@@ -10,4 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
  */
 object LaunchRequests {
     val route = MutableStateFlow<String?>(null)
+
+    /** Today's Workout chip: open the Activity tab with the workout-type picker up. */
+    val openWorkoutPicker = MutableStateFlow(false)
 }
