@@ -16,8 +16,8 @@ sensor in the usual way. **Blood pressure and blood sugar do not**:
   what kind of number it is.
 
 So this plan treats both as **estimates**: written as estimates wherever they appear, adjustable
-with a user offset, checked against real readings when the user has them, and never passed on
-to other apps or the coach as if they were measurements.
+with a user offset, checked against real readings when the user has them, and left as they
+are today in the coach and the Health Connect export (decided 2026-10-20).
 
 ## What exists today
 
@@ -28,7 +28,7 @@ to other apps or the coach as if they were measurements.
 | Glucose offset | `ApiKeyStore.glucoseOffsetMgdl`, applied at display in `ViewModels.kt` | Done. Stored rows stay raw |
 | Estimate disclaimers | `Screens.kt` detail copy and amber card | Done on the detail screen only |
 | Card quality badge | `VitalCardState`: glucose ESTIMATED / NEEDS_CALIBRATION, BP likewise | Done, but no expiry |
-| Health Connect export | `VitalsExporter` exports `BLOOD_SUGAR` and BP pairs | **Problem**: ring estimates go out as real `BloodGlucoseRecord` / `BloodPressureRecord`, raw, without the offset |
+| Health Connect export | `VitalsExporter` exports `BLOOD_SUGAR` and BP pairs | Exports ring estimates as `BloodGlucoseRecord` / `BloodPressureRecord`, raw. Kept as is by decision |
 | Health Connect import | `HealthConnectBodyImport` (weight, body composition) | No BP or glucose |
 
 ## Phase 1 — Say "estimate" everywhere
@@ -51,22 +51,12 @@ to other apps or the coach as if they were measurements.
    - spot-measurement result sheet
    - CSV/archive export column names (`bp_systolic_estimated`)
    - diagnostics labels
-3. **Coach.** Where ring BP or glucose enters a context packet, the field name says it
-   (`estimatedBloodPressure`, `estimatedGlucose`) and the packet `note` adds: "Ring blood pressure
-   and glucose are firmware estimates, not measurements; never draw medical conclusions from
-   them." Check `CoachContextBuilder`, `NotificationContextBuilder`, the Vitals tools.
-4. **Health Connect export** (decision needed, recommendation first):
-   - **Recommended:** stop exporting ring BP and glucose by default. Add a switch in
-     Settings → Health Connect, "Share ring estimates of blood pressure and glucose", off, with
-     the reason underneath. Other apps can't tell an estimate from a cuff reading, and a
-     diabetes or hypertension app would trust it.
-   - If exported: write the **offset-applied** value (what the user sees). Today's export sends the
-     raw value, so it disagrees with the app.
-   - Existing users who already exported: leave the records; the switch only governs new ones.
-     Note it in the release notes.
+3. **Coach: unchanged** (decided 2026-10-20). The coach keeps seeing ring BP and glucose exactly as
+   it does today. No field renames, no extra note.
+4. **Health Connect export: unchanged** (decided 2026-10-20). Ring BP and glucose keep exporting
+   as they do today, with no new switch and no change to which value is written.
 
-Tests: label helpers, exporter excludes BP/glucose when the switch is off, coach packet field
-names.
+Tests: label helpers.
 
 ## Phase 2 — Offsets the user can see and change
 
@@ -108,8 +98,9 @@ a reset is lossless. Archive export carries the fields.
 - the detail charts
 - the Today tiles
 - the widgets
-- the coach packet
-- the Health Connect export (if on)
+
+The coach packet and the Health Connect export stay as they are (see Phase 1), so they keep
+reading raw values and don't call this function.
 
 Today the glucose offset is added in three separate places in `ViewModels.kt`; fold them into this
 function.
@@ -126,7 +117,7 @@ Keep the current flow (meter reading − latest ring reading = offset), with:
   measurement every two weeks would suggest it is one).
 
 Tests: offset maths, the post-calibration offset is cuff − ring, guard-rail thresholds, raw rows
-untouched, export uses the applied value.
+untouched.
 
 ## Phase 3 — Blood pressure recalibration every 2 weeks
 
@@ -219,14 +210,12 @@ Independent of BP and glucose; listed so the "everything about this ring" pass i
      ring advertises.
    - **Caveat:** the bit order within a byte is still unconfirmed, so nothing may depend on these
      bits until a capture confirms it.
-5. **Health Connect, the other direction:** if the user turns ring-estimate sharing on (Phase 1),
-   export the offset-applied values. Already covered above; listed for completeness.
 
 ## Order and size
 
 | Phase | Depends on | Size | Ships alone? |
 |---|---|---|---|
-| 1 Labels + export policy | — | S | Yes, and first: it fixes the export problem |
+| 1 Labels | — | S | Yes, first |
 | 2 Offsets | 1 | M | Yes |
 | 3 Two-week reminder | 2 (`bpCalibratedAt`) | S | With 2 |
 | 4 Health Connect import | 1 | M | Yes |
@@ -241,9 +230,6 @@ diagnostics export taken after a combined measurement, and one after a full hist
 
 1. Does the ring apply `0x33` to its own output immediately? Phase 2 step 3 measures it either
    way, but a capture before and after calibration would show it directly.
-2. Export ring estimates to Health Connect at all? This plan says off by default; the user decides.
-3. Should the coach ever mention ring BP/glucose? This plan lets it see them as estimates, with
-   an instruction never to draw medical conclusions. The alternative is to leave them out of the
-   coach entirely.
-4. Glucose recalibration reminder: deliberately left out (see Phase 2). Revisit only if the user
+2. Decided 2026-10-20: Health Connect export and the coach stay as they are today.
+3. Glucose recalibration reminder: deliberately left out (see Phase 2). Revisit only if the user
    imports real glucose and the agreement check shows the estimate tracking it.
