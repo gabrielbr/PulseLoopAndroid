@@ -138,6 +138,9 @@ fun SettingsScreen(
                 SettingsRowItem(Icons.Filled.RestaurantMenu, PulseColors.calories, "Nutrition") {
                     navigate("settings/nutrition")
                 },
+                SettingsRowItem(Icons.Filled.LocalBar, PulseColors.drinks, "Drinks") {
+                    navigate("drinks")
+                },
             ),
         )
 

@@ -648,6 +648,13 @@ fun PulseLoopApp() {
                         NutritionScreen(onBack = { navController.popBackStack() }, start = start, onDiscuss = discussMeal)
                     }
                 }
+                paddedComposable("drinks") {
+                    com.pulseloop.ui.screens.DrinksScreen(
+                        onBack = { navController.popBackStack() },
+                        onBreathe = { navController.navigate("breathe") },
+                        onCoach = discussMeal,
+                    )
+                }
                 paddedComposable("settings/about") {
                     AboutSettingsScreen(
                         onOpenDebug = { navController.navigate("debug") },
@@ -665,7 +672,11 @@ fun PulseLoopApp() {
                     DebugScreen(debugVM, onBack = { navController.popBackStack() })
                 }
                 paddedComposable("journal") {
-                    com.pulseloop.ui.screens.JournalScreen(db = db, onBack = { navController.popBackStack() })
+                    com.pulseloop.ui.screens.JournalScreen(
+                        db = db,
+                        onBack = { navController.popBackStack() },
+                        onOpenDrinks = { navController.navigate("drinks") },
+                    )
                 }
                 paddedComposable("activity_score") {
                     com.pulseloop.ui.screens.ActivityScoreScreen(

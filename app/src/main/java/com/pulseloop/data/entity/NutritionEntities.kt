@@ -60,3 +60,26 @@ data class CachedFoodProductEntity(
     val lastUsedAt: Long = System.currentTimeMillis(),
     val useCount: Int = 0,
 )
+
+/**
+ * One drink (docs/drinks-plan.md). [day] is the local start of the *evening* it belongs to
+ * ([com.pulseloop.service.MealJournal.eveningOf]), so a 01:00 beer counts toward the night before.
+ * Alcohol is kept in grams; standard drinks are computed at read time from the user's chosen size.
+ * [mealId] links a drink created from a logged meal, so deleting the meal removes it.
+ */
+@Entity(tableName = "drink_entries", indices = [Index("day")])
+data class DrinkEntryEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val timestamp: Long,
+    val day: Long,
+    /** A [com.pulseloop.service.DrinkType] key. */
+    val type: String,
+    val volumeMl: Double,
+    val abvPct: Double,
+    val grams: Double,
+    val kcal: Double,
+    val price: Double? = null,
+    val mealId: String? = null,
+    val note: String? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+)

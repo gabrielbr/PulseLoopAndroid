@@ -149,7 +149,15 @@ private fun QuickChip(label: String, icon: ImageVector, tint: Color, modifier: M
 
 /** Morning moment: last night in one card. */
 @Composable
-fun LastNightCard(durationText: String, score: Int?, window: String?, onOpen: () -> Unit) {
+fun LastNightCard(
+    durationText: String,
+    score: Int?,
+    window: String?,
+    onOpen: () -> Unit,
+    /** The morning after drinks (docs/drinks-plan.md): what last night's drinks did to the night. */
+    drinksLine: String? = null,
+    onDrinks: (() -> Unit)? = null,
+) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -167,6 +175,19 @@ fun LastNightCard(durationText: String, score: Int?, window: String?, onOpen: ()
             }
         }
         window?.let { Text(it, fontSize = 13.sp, color = PulseColors.textMuted) }
+        drinksLine?.let { line ->
+            Text(
+                line,
+                fontSize = 13.sp, color = PulseColors.textPrimary,
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(4.dp))
+                    .dither(PulseColors.drinks, 0.10f)
+                    .then(if (onDrinks != null) Modifier.clickable(onClick = onDrinks) else Modifier)
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+            )
+        }
     }
 }
 

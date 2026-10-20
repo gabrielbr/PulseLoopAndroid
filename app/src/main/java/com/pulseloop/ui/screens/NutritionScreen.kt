@@ -211,6 +211,7 @@ fun NutritionScreen(
                                 IconButton(onClick = {
                                     scope.launch {
                                         db.mealEntryDao().deleteById(meal.id)
+                                        com.pulseloop.service.DrinksRepository.onMealDeleted(db, meal.id)
                                         reload()
                                     }
                                 }) {

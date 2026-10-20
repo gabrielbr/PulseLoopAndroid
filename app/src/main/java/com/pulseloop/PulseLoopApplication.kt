@@ -26,6 +26,7 @@ class PulseLoopApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashLogger.install(this)
+        com.pulseloop.service.DrinkPrefs.init(this)
         // Application-scoped so capture runs whether or not the Debug screen is open.
         DiagnosticsSubscriber(PulseLoopDatabase.getInstance(this)).start(appScope)
         // One-time cleanup of activity totals corrupted by the old bucket handling; runs off the
