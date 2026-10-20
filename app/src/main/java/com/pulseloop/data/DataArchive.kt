@@ -50,6 +50,7 @@ data class PulseArchive(
 @Serializable data class CoachGoalDTO(
     val id: String, val kind: String, val description: String,
     val startWeightKg: Double? = null, val targetWeightKg: Double? = null,
+    val targetValue: Double? = null,
     val startDate: Long, val targetDate: Long? = null, val active: Boolean = true,
     val createdAt: Long, val updatedAt: Long,
 )

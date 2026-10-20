@@ -472,9 +472,7 @@ private fun GoalBanner(
             if (hasGoal && plan != null) {
                 Text("YOUR GOAL", fontSize = 10.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
                 Text(com.pulseloop.service.GoalPlan.headline(plan), fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 2)
-                plan.onTrack?.let {
-                    Text(if (it) "On track · tap for this week's focus" else "Behind pace · tap for what to change", fontSize = 12.sp, color = PulseColors.textSecondary)
-                } ?: Text("Tap for this week's focus", fontSize = 12.sp, color = PulseColors.textSecondary)
+                Text(com.pulseloop.service.GoalPlan.focusLine(plan) + " · tap for this week's plan", fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 2)
             } else {
                 Text("What's your goal?", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text("Tell the coach, and it plans with your scale, ring and food data.", fontSize = 12.sp, color = PulseColors.textSecondary)

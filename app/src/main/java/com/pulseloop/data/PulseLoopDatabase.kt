@@ -558,7 +558,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `bodyUpdatedAt` INTEGER")
                 db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `coach_goals` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
-                        "`description` TEXT NOT NULL, `startWeightKg` REAL, `targetWeightKg` REAL, " +
+                        "`description` TEXT NOT NULL, `startWeightKg` REAL, `targetWeightKg` REAL, `targetValue` REAL, " +
                         "`startDate` INTEGER NOT NULL, `targetDate` INTEGER, `active` INTEGER NOT NULL, " +
                         "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
                 )

@@ -70,4 +70,56 @@ class GoalPlanTest {
         val p = GoalPlan.compute(GoalPlan.Inputs(goal(80.0, 60), now = start, currentWeightKg = 85.0, leanMassKg = 66.0), zone)
         assertEquals(132, p.proteinTargetG)
     }
+
+    private fun habit(kind: String, target: Double? = null) = CoachGoalEntity(
+        kind = kind, description = kind, startDate = start, targetValue = target,
+    )
+
+    @Test
+    fun `get stronger is tracked by workouts, protein and a small surplus`() {
+        val p = GoalPlan.compute(
+            GoalPlan.Inputs(habit("build_muscle", 4.0), now = start, currentWeightKg = 75.0, leanMassKg = 60.0,
+                avgBurnKcal = 2500.0, avgIntakeKcal = 2300.0, loggedDays = 6, avgProteinG = 90.0, workoutsPerWeek = 2.0),
+            zone,
+        )
+        assertEquals(2750, p.suggestedIntakeKcal)
+        val levers = p.levers.associateBy { it.name }
+        assertEquals("short", levers.getValue("workouts").status)
+        assertEquals(4.0, levers.getValue("workouts").target!!, 0.01)
+        assertEquals("short", levers.getValue("protein").status) // 90 of 120 g
+        assertEquals("short", levers.getValue("calories_eaten").status)
+        assertEquals("Focus: workouts (2 of 4 per week)", GoalPlan.focusLine(p))
+    }
+
+    @Test
+    fun `sleep better uses its own hours target and bedtime spread`() {
+        val p = GoalPlan.compute(
+            GoalPlan.Inputs(habit("sleep_better", 7.5), now = start, currentWeightKg = null, avgSleepMin = 400.0, bedtimeSpreadMin = 55.0),
+            zone,
+        )
+        assertNull(p.suggestedIntakeKcal)
+        val levers = p.levers.associateBy { it.name }
+        assertEquals(7.5, levers.getValue("sleep").target!!, 0.01)
+        assertEquals("short", levers.getValue("sleep").status)
+        assertEquals("short", levers.getValue("bedtime_regularity").status)
+    }
+
+    @Test
+    fun `reduce stress watches HRV rising and resting HR falling`() {
+        val p = GoalPlan.compute(
+            GoalPlan.Inputs(habit("reduce_stress"), now = start, currentWeightKg = null, hrv7 = 45.0, hrvBase = 40.0, restingHr7 = 58.0, restingHrBase = 56.0),
+            zone,
+        )
+        val levers = p.levers.associateBy { it.name }
+        assertEquals("on_target", levers.getValue("hrv").status)
+        assertEquals("short", levers.getValue("resting_hr").status)
+    }
+
+    @Test
+    fun `every intent has levers`() {
+        for (kind in GoalPlan.ALL_KINDS) {
+            val p = GoalPlan.compute(GoalPlan.Inputs(habit(kind), now = start, currentWeightKg = 80.0), zone)
+            assertTrue(kind, p.levers.isNotEmpty())
+        }
+    }
 }

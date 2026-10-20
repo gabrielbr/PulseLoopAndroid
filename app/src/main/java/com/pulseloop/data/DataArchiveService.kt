@@ -325,6 +325,7 @@ object DataArchiveService {
                 CoachGoalDTO(
                     id = c.str("id"), kind = c.str("kind"), description = c.str("description"),
                     startWeightKg = c.dblOrNull("startWeightKg"), targetWeightKg = c.dblOrNull("targetWeightKg"),
+                    targetValue = c.dblOrNull("targetValue"),
                     startDate = c.long("startDate"), targetDate = c.longOrNull("targetDate"),
                     active = c.bool("active"), createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
                 )
@@ -407,6 +408,7 @@ object DataArchiveService {
                 db.coachGoalDao().upsert(CoachGoalEntity(
                     id = g.id, kind = g.kind, description = g.description,
                     startWeightKg = g.startWeightKg, targetWeightKg = g.targetWeightKg,
+                    targetValue = g.targetValue,
                     startDate = g.startDate, targetDate = g.targetDate, active = g.active,
                     createdAt = g.createdAt, updatedAt = g.updatedAt,
                 ))

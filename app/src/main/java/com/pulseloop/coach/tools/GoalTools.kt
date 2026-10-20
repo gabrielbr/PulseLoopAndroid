@@ -28,7 +28,9 @@ object GoalTools {
     private fun makeGetGoal() = CoachToolDef(
         name = "get_goal",
         publicLabel = "Checking your goal",
-        description = "Get the user's active goal with progress and a plan computed from their data: " +
+        description = "Get the user's active goal with progress and a plan computed from their data. `levers` lists " +
+            "what moves this kind of goal (e.g. workouts, protein, sleep, steps, resting HR, HRV, intake), each with " +
+            "value, target and status (on_target / short / unknown) — coach on the 'short' ones first. Weight goals add: " +
             "current vs target weight, the weekly pace the date needs and whether it is safe, the scale's actual " +
             "trend, average calories burned and logged eaten, a suggested daily intake (never below the safe floor), " +
             "a protein target, and average sleep and steps. Returns has_goal=false when none is set.",
@@ -51,9 +53,13 @@ object GoalTools {
         publicLabel = "Saving your goal",
         description = "Save the goal the user stated, replacing any earlier one. Only call it after the user has " +
             "said what they want (and agreed to any adjusted date you proposed). kind: lose_weight, gain_weight, " +
-            "maintain_weight, body_recomp, sleep, fitness or other. description: the goal in the user's words, short. " +
-            "For weight goals give target_weight_kg (convert from lb if needed); give target_date as YYYY-MM-DD " +
-            "when the user named a timeframe (\"in 60 days\" → today + 60).",
+            "maintain_weight; build_muscle (get stronger, gain muscle); body_recomp (lose fat, keep muscle); " +
+            "sleep_better; get_fitter (endurance, cardio, more exercise); move_more (daily steps); reduce_stress " +
+            "(recover better, calmer); eat_better (healthier eating habits); other. description: the goal in the " +
+            "user's words, short. For weight goals give target_weight_kg (convert from lb if needed). target_value " +
+            "is the habit target in the kind's unit when the user gave one: hours a night for sleep_better, steps a " +
+            "day for move_more, workouts a week for get_fitter or build_muscle. Give target_date as YYYY-MM-DD when " +
+            "the user named a timeframe (\"in 60 days\" → today + 60).",
         parameters = JsonObject(mapOf(
             "type" to JsonPrimitive("object"),
             "properties" to JsonObject(mapOf(
@@ -63,6 +69,7 @@ object GoalTools {
                 )),
                 "description" to JsonObject(mapOf("type" to JsonPrimitive("string"))),
                 "target_weight_kg" to JsonObject(mapOf("type" to JsonPrimitive("number"))),
+                "target_value" to JsonObject(mapOf("type" to JsonPrimitive("number"))),
                 "target_date" to JsonObject(mapOf("type" to JsonPrimitive("string"))),
             )),
             "required" to JsonArray(listOf(JsonPrimitive("kind"), JsonPrimitive("description"))),
@@ -81,6 +88,16 @@ object GoalTools {
         if (target != null && target !in 30.0..300.0) {
             return@CoachToolDef ToolResult("""{"error":"target_weight_kg looks wrong (expected kilograms)"}""", isError = true)
         }
+        val targetValue = p["target_value"]?.jsonPrimitive?.doubleOrNull?.takeIf { it > 0 }?.let { v ->
+            val ok = when (kind) {
+                "sleep_better" -> v in 4.0..12.0
+                "move_more" -> v in 1000.0..50000.0
+                "get_fitter", "build_muscle" -> v in 1.0..14.0
+                else -> false
+            }
+            if (!ok) return@CoachToolDef ToolResult("""{"error":"target_value $v doesn't fit $kind (hours a night, steps a day or workouts a week)"}""", isError = true)
+            v
+        }
         val zone = ZoneId.systemDefault()
         val targetDate = p["target_date"]?.jsonPrimitive?.contentOrNull?.let {
             runCatching { LocalDate.parse(it) }.getOrNull()
@@ -96,6 +113,7 @@ object GoalTools {
                 description = description,
                 startWeightKg = profile?.weightKg?.takeIf { kind in GoalPlan.WEIGHT_KINDS },
                 targetWeightKg = target?.takeIf { kind in GoalPlan.WEIGHT_KINDS },
+                targetValue = targetValue,
                 startDate = System.currentTimeMillis(),
                 targetDate = targetDate?.atStartOfDay(zone)?.toInstant()?.toEpochMilli(),
             ))

@@ -369,11 +369,16 @@ data class BodyMeasurementEntity(
 @Entity(tableName = "coach_goals")
 data class CoachGoalEntity(
     @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
-    /** lose_weight, gain_weight, maintain_weight, body_recomp, sleep, fitness, other. */
+    /** One of GoalPlan.ALL_KINDS (lose_weight, build_muscle, sleep_better, move_more, …). */
     val kind: String,
     val description: String,
     val startWeightKg: Double? = null,
     val targetWeightKg: Double? = null,
+    /**
+     * The habit target for non-weight goals, in the kind's unit: hours a night (sleep_better),
+     * steps a day (move_more), workouts a week (get_fitter, build_muscle). Null = the app's default.
+     */
+    val targetValue: Double? = null,
     val startDate: Long,
     val targetDate: Long? = null,
     val active: Boolean = true,
