@@ -54,17 +54,12 @@ import kotlinx.coroutines.launch
 fun VitalsScreen(
     navController: androidx.navigation.NavController? = null,
     viewModel: VitalsViewModel? = null,
-    /** Activity rings and last night's sleep, so every stat is on this page (not only Today). */
-    todayViewModel: com.pulseloop.ui.viewmodels.TodayViewModel? = null,
-    sleepViewModel: com.pulseloop.ui.viewmodels.SleepViewModel? = null,
     coordinator: com.pulseloop.service.RingSyncCoordinator? = null,
     // Heights of the glass top/bottom bars this screen scrolls under (0 when standalone).
     topBarPadding: androidx.compose.ui.unit.Dp = 0.dp,
     bottomBarPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val state by (viewModel?.state?.collectAsState() ?: remember { mutableStateOf(VitalsViewModel.VitalsState()) })
-    val today by (todayViewModel?.state?.collectAsState() ?: remember { mutableStateOf(com.pulseloop.ui.viewmodels.TodayViewModel.TodayState()) })
-    val sleepState by (sleepViewModel?.state?.collectAsState() ?: remember { mutableStateOf(com.pulseloop.ui.viewmodels.SleepViewModel.SleepState()) })
     val scope = rememberCoroutineScope()
     var measuring by remember { mutableStateOf(false) }
     var remaining by remember { mutableStateOf(0) }
@@ -120,14 +115,13 @@ fun VitalsScreen(
     val supported: (DashboardCard) -> Boolean = { card ->
         when (card) {
             DashboardCard.HEART_RATE, DashboardCard.SPO2 -> true
-            DashboardCard.ACTIVITY -> todayViewModel != null
-            DashboardCard.SLEEP -> sleepViewModel != null
             DashboardCard.BLOOD_PRESSURE -> state.supportsBP
             DashboardCard.HRV -> state.supportsHrv
             DashboardCard.STRESS -> state.supportsStress
             DashboardCard.FATIGUE -> state.supportsFatigue
             DashboardCard.GLUCOSE -> state.supportsGlucose
             DashboardCard.TEMPERATURE -> state.supportsTemp
+            else -> false   // Activity/Sleep are Today-only
         }
     }
     val allSupported = DashboardCard.vitalsDefault.filter(supported)
@@ -145,8 +139,6 @@ fun VitalsScreen(
     // Dispatch a card id to its full-width Vitals card (order/visibility decided above).
     val vitalsCardFor: @Composable (DashboardCard) -> Unit = { card ->
         when (card) {
-            DashboardCard.ACTIVITY -> ActivityTileFor(today, vitalsUnits, Modifier.fillMaxWidth()) { navController?.navigate("activity") }
-            DashboardCard.SLEEP -> SleepTileFor(sleepState, Modifier.fillMaxWidth()) { navController?.navigate("sleep") }
             DashboardCard.HEART_RATE -> VitalCard(
                 state = cards.getValue(MetricKind.HEART_RATE),
                 onTap = { navController?.navigate("vitals/hr") },

@@ -302,7 +302,7 @@ fun TodayScreen(
 // ─────────────────────────── Tiles ───────────────────────────
 
 @Composable
-internal fun ActivityTileFor(
+private fun ActivityTileFor(
     state: TodayViewModel.TodayState,
     units: com.pulseloop.settings.UnitSystem,
     modifier: Modifier,
@@ -326,7 +326,7 @@ internal fun ActivityTileFor(
 }
 
 @Composable
-internal fun SleepTileFor(sleep: SleepViewModel.SleepState, modifier: Modifier, onTap: () -> Unit) {
+private fun SleepTileFor(sleep: SleepViewModel.SleepState, modifier: Modifier, onTap: () -> Unit) {
     val session = sleep.lastNight
     val segments = remember(sleep) { buildSleepStageSegments(sleep.lastNightBlocks) }
     SleepTile(

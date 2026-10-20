@@ -15,8 +15,8 @@ enum class MetricScope { TODAY, VITALS }
  * Today-only; the eight vitals cards appear on both tabs.
  */
 enum class DashboardCard(val key: String) {
-    ACTIVITY("steps"),
-    SLEEP("sleep"),
+    ACTIVITY("steps"),               // Today-only
+    SLEEP("sleep"),                  // Today-only
     HEART_RATE("heartRate"),
     SPO2("spo2"),
     HRV("hrv"),
@@ -49,7 +49,7 @@ enum class DashboardCard(val key: String) {
 
         /** Default Vitals order (matches iOS `defaultOrder` / the hardcoded card order it replaces). */
         val vitalsDefault = listOf(
-            ACTIVITY, SLEEP, HEART_RATE, SPO2, BLOOD_PRESSURE, HRV, STRESS, FATIGUE, GLUCOSE, TEMPERATURE,
+            HEART_RATE, SPO2, BLOOD_PRESSURE, HRV, STRESS, FATIGUE, GLUCOSE, TEMPERATURE,
         )
 
         fun defaultOrder(scope: MetricScope): List<DashboardCard> =
