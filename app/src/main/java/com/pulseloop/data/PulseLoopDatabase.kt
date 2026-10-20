@@ -44,8 +44,9 @@ import com.pulseloop.data.entity.*
         CachedFoodProductEntity::class,
         MeasurementDeletionEntity::class,
         JournalEntryEntity::class,
+        BodyMeasurementEntity::class,
     ],
-    version = 29,
+    version = 30,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -69,6 +70,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun coachToolCallDao(): CoachToolCallDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun userGoalDao(): UserGoalDao
+    abstract fun bodyMeasurementDao(): BodyMeasurementDao
     abstract fun coachSummaryDao(): CoachSummaryDao
     abstract fun wearableLogDao(): WearableLogDao
     abstract fun rawPacketDao(): RawPacketDao
@@ -116,6 +118,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "wearable_logs", "coach_notification_records",
             "meal_entries", "food_products", "measurement_deletions",
             "journal_entries",
+            "body_measurements",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -538,6 +541,21 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** v29 → v30: body measurements from Health Connect, and the profile fields they fill. */
+        private val MIGRATION_29_30 = object : Migration(29, 30) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `body_measurements` (`id` TEXT NOT NULL, `type` TEXT NOT NULL, " +
+                        "`value` REAL NOT NULL, `measuredAt` INTEGER NOT NULL, `source` TEXT NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_body_measurements_type_measuredAt` ON `body_measurements` (`type`, `measuredAt`)")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `birthYear` INTEGER")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `bodyFatPct` REAL")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `leanMassKg` REAL")
+                db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `bodyUpdatedAt` INTEGER")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -633,6 +651,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_26_27,
                         MIGRATION_27_28,
                         MIGRATION_28_29,
+                        MIGRATION_29_30,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

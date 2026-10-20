@@ -838,10 +838,7 @@ class EventPersistenceSubscriber(
 
     private suspend fun recomputeCalorieEstimates() {
         val profile = db.userProfileDao().get() ?: return
-        val estimator = DailyCalorieEstimator.Profile(
-            sex = profile.sex, age = profile.age,
-            weightKg = profile.weightKg, heightCm = profile.heightCm,
-        )
+        val estimator = DailyCalorieEstimator.profileOf(profile)
         val now = System.currentTimeMillis()
         val dayMs = 86_400_000L
         for (d in 0 until 7) {

@@ -192,6 +192,9 @@ data class PulseArchive(
     val hrCustomElevatedStart: Double? = null,
     val hrCustomHighStart: Double? = null,
     val createdAt: Long, val updatedAt: Long,
+    // v30. Defaulted so older archives still import.
+    val birthYear: Int? = null, val bodyFatPct: Double? = null,
+    val leanMassKg: Double? = null, val bodyUpdatedAt: Long? = null,
 )
 
 @Serializable data class UserGoalDTO(

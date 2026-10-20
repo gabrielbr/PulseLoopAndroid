@@ -131,6 +131,11 @@ data class ProfileDraft(
         return profile.copy(
             name = trimmed.ifEmpty { null },
             age = age,
+            // Remember the year of birth the entered age implies, so the age can keep itself
+            // current (ProfileAging). Kept when the age is unchanged, so it doesn't drift.
+            birthYear = if (age == null) null
+                else if (age == profile.age && profile.birthYear != null) profile.birthYear
+                else java.time.Year.now().value - age,
             sex = sex,
             heightCm = heightCm,
             weightKg = weightKg,

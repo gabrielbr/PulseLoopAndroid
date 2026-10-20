@@ -222,6 +222,8 @@ object DataArchiveService {
                     hrCustomElevatedStart = c.dblOrNull("hrCustomElevatedStart"),
                     hrCustomHighStart = c.dblOrNull("hrCustomHighStart"),
                     createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
+                    birthYear = c.intOrNull("birthYear"), bodyFatPct = c.dblOrNull("bodyFatPct"),
+                    leanMassKg = c.dblOrNull("leanMassKg"), bodyUpdatedAt = c.longOrNull("bodyUpdatedAt"),
                 )
             },
             userGoals = collect("user_goals") { c ->
@@ -555,6 +557,8 @@ object DataArchiveService {
                     hrCustomElevatedStart = up.hrCustomElevatedStart,
                     hrCustomHighStart = up.hrCustomHighStart,
                     createdAt = up.createdAt, updatedAt = up.updatedAt,
+                    birthYear = up.birthYear, bodyFatPct = up.bodyFatPct,
+                    leanMassKg = up.leanMassKg, bodyUpdatedAt = up.bodyUpdatedAt,
                 ))
             }
             for (ug in archive.userGoals) {

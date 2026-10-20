@@ -888,3 +888,15 @@ interface JournalDao {
     @Query("DELETE FROM journal_entries WHERE id = :id")
     suspend fun delete(id: String)
 }
+
+@Dao
+interface BodyMeasurementDao {
+    @Upsert
+    suspend fun upsertAll(rows: List<BodyMeasurementEntity>)
+
+    @Query("SELECT * FROM body_measurements WHERE type = :type ORDER BY measuredAt DESC LIMIT 1")
+    suspend fun latest(type: String): BodyMeasurementEntity?
+
+    @Query("SELECT * FROM body_measurements WHERE type = :type AND measuredAt >= :from ORDER BY measuredAt ASC")
+    suspend fun since(type: String, from: Long): List<BodyMeasurementEntity>
+}

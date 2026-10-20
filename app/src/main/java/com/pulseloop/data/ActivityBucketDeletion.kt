@@ -98,10 +98,7 @@ object ActivityBucketDeletion {
         val profile = db.userProfileDao().get() ?: return
         com.pulseloop.service.DailyCalorieEstimator.recompute(
             day, db,
-            com.pulseloop.service.DailyCalorieEstimator.Profile(
-                sex = profile.sex, age = profile.age,
-                weightKg = profile.weightKg, heightCm = profile.heightCm,
-            ),
+            com.pulseloop.service.DailyCalorieEstimator.profileOf(profile),
         )
     }
 

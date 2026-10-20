@@ -25,8 +25,9 @@ import androidx.health.connect.client.records.Vo2MaxRecord
  * Only the Phases 1–4 data types live here (and in the manifest). Phase 5 types — blood
  * pressure, glucose, respiratory rate, VO2max, resting heart rate, nutrition — join this
  * object, the manifest, and the permission sheet only when Phase 5 lands, on purpose: a
- * narrower first permission sheet is better UX. No READ_* permissions anywhere — the export
- * is write-only.
+ * narrower first permission sheet is better UX. No READ_* permissions here — the export is
+ * write-only. The one read path, a scale's body measurements, asks for its own permissions
+ * separately (HealthConnectBodyImport.permissions) and never through this set.
  *
  * The exercise route is an embedded field of [ExerciseSessionRecord], not a standalone
  * record: the library exposes its permission as the `PERMISSION_WRITE_EXERCISE_ROUTE`
