@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -62,6 +63,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -290,6 +293,8 @@ fun MealAnalysisDialog(
             Column(
                 Modifier
                     .fillMaxSize()
+                    // Lift the form above the keyboard so the field being typed in stays visible.
+                    .imePadding()
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -444,13 +449,28 @@ fun MealAnalysisDialog(
                                     .padding(12.dp),
                             )
                         }
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Text("Review & adjust", fontWeight = FontWeight.SemiBold, color = PulseColors.calories)
-                            EditRow("Name", name) { name = it }
-                            EditRow("Calories (kcal)", calories) { calories = it }
-                            EditRow("Protein (g)", protein) { protein = it }
-                            EditRow("Carbs (g)", carbs) { carbs = it }
-                            EditRow("Fat (g)", fat) { fat = it }
+                            // The name is text, full width, and may wrap: a dish name is often long.
+                            OutlinedTextField(
+                                value = name,
+                                onValueChange = { name = it },
+                                label = { Text("Meal name") },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 1,
+                                maxLines = 3,
+                                keyboardOptions = KeyboardOptions(
+                                    keyboardType = KeyboardType.Text,
+                                    capitalization = KeyboardCapitalization.Sentences,
+                                    imeAction = ImeAction.Next,
+                                ),
+                            )
+                            NumberField("Calories", "kcal", calories, Modifier.fillMaxWidth()) { calories = it }
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                NumberField("Protein", "g", protein, Modifier.weight(1f)) { protein = it }
+                                NumberField("Carbs", "g", carbs, Modifier.weight(1f)) { carbs = it }
+                                NumberField("Fat", "g", fat, Modifier.weight(1f)) { fat = it }
+                            }
                         }
                         val canSave = MealAnalysisLogic.canSave(name, calories)
                         Button(
@@ -503,18 +523,24 @@ fun MealAnalysisDialog(
     }
 }
 
+/**
+ * A labelled number with its unit inside the field. Only digits and one decimal point get in, so
+ * the save never meets a value it can't read.
+ */
 @Composable
-private fun EditRow(label: String, value: String, onChange: (String) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
-        OutlinedTextField(
-            value = value,
-            onValueChange = onChange,
-            modifier = Modifier.width(140.dp),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        )
-    }
+private fun NumberField(label: String, unit: String, value: String, modifier: Modifier, onChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { raw ->
+            val cleaned = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
+            if (cleaned.count { it == '.' } <= 1) onChange(cleaned)
+        },
+        label = { Text(label, maxLines = 1) },
+        suffix = { Text(unit, color = PulseColors.textMuted) },
+        modifier = modifier,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+    )
 }
 
 /** iOS \(Int(value.rounded())) for the review fields (MealAnalysisSheet.swift:273-276). */

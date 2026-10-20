@@ -402,19 +402,19 @@ fun MealLogDialog(
                     // iOS inlineNotice copy (MealLogSheet.swift:128-130 / :259).
                     Text(it, fontSize = 12.sp, color = PulseColors.warning)
                 }
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("breakfast", "lunch", "dinner", "snack").forEach { t ->
                         FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t.replaceFirstChar { it.uppercase() }) })
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = cal, onValueChange = { cal = it }, label = { Text("kcal") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("P(g)") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(value = cal, onValueChange = { cal = it }, label = { Text("kcal") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("P(g)") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("C(g)") }, modifier = Modifier.weight(1f), singleLine = true)
-                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("F(g)") }, modifier = Modifier.weight(1f), singleLine = true)
+                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("C(g)") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("F(g)") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
             }
         },
