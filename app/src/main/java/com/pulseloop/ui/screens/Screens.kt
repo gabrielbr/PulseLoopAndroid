@@ -504,6 +504,10 @@ fun VitalsScreen(
             Spacer(Modifier.height(8.dp))
         }
 
+        if (navController != null) {
+            item { MyHealthEntryCard { navController.navigate("my_health") } }
+        }
+
         // Card order mirrors VitalsView.swift (HR, SpO₂, BP, HRV, Stress, Fatigue, Glucose, Temp)
         // by default, but honors the user's per-metric visibility + order (iOS #64). Long-press a
         // card to reorder/hide; the Hidden tray restores.

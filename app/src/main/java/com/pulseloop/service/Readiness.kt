@@ -79,6 +79,10 @@ data class NightSummary(
     val coverage: Double,
     /** Median SpO₂ inside the sleep window (70–100 only), or null when too few readings. */
     val spo2: Double? = null,
+    /** Median skin temperature inside the sleep window (°C), null on rings without the sensor. */
+    val temperature: Double? = null,
+    /** When the night's sustained lowest heart rate happened (recovery index). */
+    val minHrAt: Long? = null,
 ) {
     /** Clock midpoint of the night, in minutes past local midnight of the waking day (may be negative). */
     fun midpointMinutes(zone: ZoneId): Int {
@@ -102,6 +106,7 @@ object NightlyVitals {
         heartRate: List<VitalSample>,
         hrv: List<VitalSample>,
         spo2: List<VitalSample> = emptyList(),
+        temperature: List<VitalSample> = emptyList(),
     ): NightSummary {
         fun inNight(s: VitalSample) = s.timestampMs in startAt..endAt && s.value > 0
         val hr = ReadingQuality.dropSpikes(heartRate.filter(::inNight))
@@ -109,9 +114,9 @@ object NightlyVitals {
 
         // Lowest 3-sample rolling mean, not the single lowest sample: Oura's "lowest heart rate"
         // is a sustained low, and one dropped beat must not set the night's number.
-        val restingHr = if (hr.size >= MIN_HR_SAMPLES) {
-            hr.map { it.value }.windowed(3).minOf { it.average() }
-        } else null
+        val windows = hr.windowed(3)
+        val lowest = if (hr.size >= MIN_HR_SAMPLES) windows.minByOrNull { w -> w.sumOf { it.value } } else null
+        val restingHr = lowest?.map { it.value }?.average()
 
         val hrvValue = if (hrvNight.size >= MIN_HRV_SAMPLES) median(hrvNight.map { it.value }) else null
 
@@ -128,6 +133,10 @@ object NightlyVitals {
             spo2 = spo2.filter { it.timestampMs in startAt..endAt && it.value in 70.0..100.0 }
                 .takeIf { it.size >= MIN_HRV_SAMPLES }
                 ?.let { s -> median(s.map { it.value }) }?.let { (it * 10).roundToInt() / 10.0 },
+            temperature = temperature.filter { it.timestampMs in startAt..endAt && it.value in 30.0..42.0 }
+                .takeIf { it.size >= MIN_HRV_SAMPLES }
+                ?.let { s -> median(s.map { it.value }) }?.let { (it * 100).roundToInt() / 100.0 },
+            minHrAt = lowest?.get(1)?.timestampMs,
         )
     }
 }
@@ -153,14 +162,23 @@ object Readiness {
         }
     }
 
-    enum class ContributorKind(val title: String, val weight: Double) {
-        RESTING_HR("Resting heart rate", 0.20),
-        HRV_BALANCE("HRV balance", 0.20),
-        SLEEP("Sleep", 0.20),
-        SLEEP_BALANCE("Sleep balance", 0.15),
-        SLEEP_REGULARITY("Sleep regularity", 0.05),
-        PREVIOUS_DAY_ACTIVITY("Previous day activity", 0.10),
-        ACTIVITY_BALANCE("Activity balance", 0.10),
+    /**
+     * Oura's nine contributors. Body temperature and recovery index need a temperature sensor and
+     * dense night heart rate; when a ring never provides them they are left out (not "missing")
+     * and the rest are renormalised.
+     */
+    enum class ContributorKind(val title: String, val weight: Double, val optionalSensor: Boolean = false) {
+        // The original seven keep their proportions (×0.8), so a ring without the optional
+        // sensors scores exactly as it did before they existed.
+        RESTING_HR("Resting heart rate", 0.16),
+        HRV_BALANCE("HRV balance", 0.16),
+        BODY_TEMPERATURE("Body temperature", 0.10, optionalSensor = true),
+        RECOVERY_INDEX("Recovery index", 0.10, optionalSensor = true),
+        SLEEP("Sleep", 0.16),
+        SLEEP_BALANCE("Sleep balance", 0.12),
+        SLEEP_REGULARITY("Sleep regularity", 0.04),
+        PREVIOUS_DAY_ACTIVITY("Previous day activity", 0.08),
+        ACTIVITY_BALANCE("Activity balance", 0.08),
     }
 
     data class Contributor(
@@ -214,6 +232,8 @@ object Readiness {
         val contributors = listOfNotNull(
             restingHr(night, inputs.history),
             hrvBalance(night, inputs.history),
+            bodyTemperature(night, inputs.history),
+            recoveryIndex(night),
             sleep(night, inputs.sleepGoalMinutes),
             sleepBalance(night, inputs.history, inputs.sleepGoalMinutes),
             sleepRegularity(night, inputs.history, inputs.zone),
@@ -231,10 +251,22 @@ object Readiness {
         return Result.Score(
             value = value,
             contributors = contributors,
-            missing = ContributorKind.entries.filter { it !in present },
+            missing = ContributorKind.entries.filter { k ->
+                k !in present && !(k.optionalSensor && !sensorSeen(k, night, inputs.history))
+            },
             nightCoverage = night.coverage,
         )
     }
+
+    /** Whether the ring has ever supplied what an optional-sensor contributor needs. */
+    private fun sensorSeen(k: ContributorKind, night: NightSummary, history: List<NightSummary>): Boolean =
+        (listOf(night) + history).any {
+            when (k) {
+                ContributorKind.BODY_TEMPERATURE -> it.temperature != null
+                ContributorKind.RECOVERY_INDEX -> it.minHrAt != null
+                else -> true
+            }
+        }
 
     // ── Contributors ─────────────────────────────────────────────────────────────────────────
     // Each maps a deviation from the user's own baseline onto 0–100 with a piecewise-linear curve:
@@ -274,6 +306,34 @@ object Readiness {
             else -> "${-pct}% below your usual ${base.roundToInt()} ms"
         }
         return Contributor(ContributorKind.HRV_BALANCE, score, detail)
+    }
+
+    /** Skin temperature against the user's usual: within ±0.3 °C is full marks, either way off costs. */
+    internal fun bodyTemperature(night: NightSummary, history: List<NightSummary>): Contributor? {
+        val t = night.temperature ?: return null
+        val base = median(history.mapNotNull { it.temperature }.takeIf { it.size >= MIN_BASELINE_NIGHTS }) ?: return null
+        val delta = t - base
+        val score = curve(abs(delta), listOf(0.3 to 100.0, 0.5 to 80.0, 1.0 to 45.0, 1.5 to 15.0))
+        val detail = when {
+            abs(delta) < 0.1 -> "At your usual"
+            delta > 0 -> "+%.1f °C from your usual".format(delta)
+            else -> "−%.1f °C from your usual".format(-delta)
+        }
+        return Contributor(ContributorKind.BODY_TEMPERATURE, score, detail)
+    }
+
+    /**
+     * How early in the night the heart rate bottomed out. Oura: the lowest heart rate in the first
+     * half of the night means the body had time to recover; reaching it just before waking means it
+     * was still working (a late meal, alcohol, a hard evening session).
+     */
+    internal fun recoveryIndex(night: NightSummary): Contributor? {
+        val at = night.minHrAt ?: return null
+        val span = (night.endAt - night.startAt).takeIf { it > 0 } ?: return null
+        val fraction = ((at - night.startAt).toDouble() / span).coerceIn(0.0, 1.0)
+        val score = curve(fraction, listOf(0.5 to 100.0, 0.7 to 75.0, 0.85 to 55.0, 1.0 to 35.0))
+        val beforeWake = ((night.endAt - at) / 60_000L).toInt()
+        return Contributor(ContributorKind.RECOVERY_INDEX, score, "Lowest heart rate ${SleepFormat.duration(beforeWake)} before waking")
     }
 
     internal fun sleep(night: NightSummary, goalMinutes: Int): Contributor? {
@@ -395,8 +455,12 @@ object ReadinessCopy {
             "Your lowest sustained heart rate last night, compared with your usual over recent nights. A resting heart rate a few beats above normal can mean your body is working on recovery, stress, or an oncoming illness."
         Readiness.ContributorKind.HRV_BALANCE ->
             "Your heart rate variability over the last few nights, weighted toward last night, compared with your usual. Higher than usual generally means you're well recovered; a drop suggests strain."
+        Readiness.ContributorKind.BODY_TEMPERATURE ->
+            "Your skin temperature last night compared with your usual. A rise of half a degree or more can come with illness, a hard training load, alcohol or the menstrual cycle."
+        Readiness.ContributorKind.RECOVERY_INDEX ->
+            "How early in the night your heart rate reached its lowest. An early low means your body had time to recover; a low just before waking means it was still working, often after a late meal, alcohol or an evening workout."
         Readiness.ContributorKind.SLEEP ->
-            "How much you slept last night compared with your sleep goal."
+            "How much you slept last night compared with your sleep need, learned from the nights you woke up recovered (your sleep goal until then)."
         Readiness.ContributorKind.SLEEP_BALANCE ->
             "Your average sleep over the last two weeks compared with your goal. It shows whether sleep debt is building up."
         Readiness.ContributorKind.SLEEP_REGULARITY ->
