@@ -45,6 +45,7 @@ import com.pulseloop.data.entity.*
         MeasurementDeletionEntity::class,
         JournalEntryEntity::class,
         BodyMeasurementEntity::class,
+        CoachGoalEntity::class,
     ],
     version = 30,
     exportSchema = false,
@@ -71,6 +72,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun userGoalDao(): UserGoalDao
     abstract fun bodyMeasurementDao(): BodyMeasurementDao
+    abstract fun coachGoalDao(): CoachGoalDao
     abstract fun coachSummaryDao(): CoachSummaryDao
     abstract fun wearableLogDao(): WearableLogDao
     abstract fun rawPacketDao(): RawPacketDao
@@ -119,6 +121,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "meal_entries", "food_products", "measurement_deletions",
             "journal_entries",
             "body_measurements",
+            "coach_goals",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -541,7 +544,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
-        /** v29 → v30: body measurements from Health Connect, and the profile fields they fill. */
+        /** v29 → v30: body measurements from Health Connect, the profile fields they fill, coach goals. */
         private val MIGRATION_29_30 = object : Migration(29, 30) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL(
@@ -553,6 +556,12 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `bodyFatPct` REAL")
                 db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `leanMassKg` REAL")
                 db.execSQL("ALTER TABLE `user_profiles` ADD COLUMN `bodyUpdatedAt` INTEGER")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `coach_goals` (`id` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                        "`description` TEXT NOT NULL, `startWeightKg` REAL, `targetWeightKg` REAL, " +
+                        "`startDate` INTEGER NOT NULL, `targetDate` INTEGER, `active` INTEGER NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
             }
         }
 

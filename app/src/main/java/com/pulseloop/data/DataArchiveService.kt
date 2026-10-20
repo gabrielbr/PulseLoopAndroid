@@ -321,6 +321,14 @@ object DataArchiveService {
                     timestamp = c.long("timestamp"), deletedAt = c.long("deletedAt"),
                 )
             },
+            coachGoals = collect("coach_goals") { c ->
+                CoachGoalDTO(
+                    id = c.str("id"), kind = c.str("kind"), description = c.str("description"),
+                    startWeightKg = c.dblOrNull("startWeightKg"), targetWeightKg = c.dblOrNull("targetWeightKg"),
+                    startDate = c.long("startDate"), targetDate = c.longOrNull("targetDate"),
+                    active = c.bool("active"), createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
+                )
+            },
             journalEntries = collect("journal_entries") { c ->
                 JournalEntryDTO(id = c.str("id"), day = c.long("day"), tag = c.str("tag"), createdAt = c.long("createdAt"))
             },
@@ -394,6 +402,14 @@ object DataArchiveService {
                         )
                     }
                 )
+            }
+            for (g in archive.coachGoals) {
+                db.coachGoalDao().upsert(CoachGoalEntity(
+                    id = g.id, kind = g.kind, description = g.description,
+                    startWeightKg = g.startWeightKg, targetWeightKg = g.targetWeightKg,
+                    startDate = g.startDate, targetDate = g.targetDate, active = g.active,
+                    createdAt = g.createdAt, updatedAt = g.updatedAt,
+                ))
             }
             if (archive.journalEntries.isNotEmpty()) {
                 db.journalDao().upsertAll(archive.journalEntries.map {

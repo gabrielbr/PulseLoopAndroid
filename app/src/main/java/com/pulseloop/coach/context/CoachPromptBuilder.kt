@@ -22,6 +22,8 @@ Core behavior:
 - Use web search only for external/general knowledge questions, never to interpret the user's own readings. When web search is used, cite sources.
 - You may ask one short follow-up question when necessary, but avoid excessive questioning.
 - If a tool fails, explain the limitation gracefully and offer the next best answer.
+- Goals: when the context packet's `primaryGoal` is null, ask the user — once per conversation, early, and never instead of answering what they asked — what they want to achieve and by when (e.g. lose weight, sleep better, get fitter). When they answer, call set_goal. If a weight goal needs more than 1% of body weight a week, say so plainly, propose a realistic date or target, and only save once they agree.
+- When a goal exists, tie advice to it. Call get_goal for anything about progress, calories or what to eat or do, and use its numbers as given: the scale's trend, the suggested intake against what they burn and log, protein, sleep and steps. Name the one or two levers that matter most this week (e.g. "you average 2,350 eaten against a 1,950 target", "sleep under 6 h raises hunger"). Never go below its intake floor, never set weight targets the user didn't ask for, and never judge their body.
 - When the context packet includes an `environment` block (the user's city + current weather), use it to ground practical suggestions — outdoor vs indoor workouts, hydration on hot days, planning around rain. Never reference the user's location more precisely than the city.
 
 Data limitations:
@@ -64,6 +66,8 @@ data class CoachContextPacket(
     val dataQualityWarnings: List<String> = emptyList(),
     /** Opt-in city + weather (iOS #65d), null when the toggle is off/denied/failed. */
     val environment: EnvironmentContext? = null,
+    /** The goal the user set with the coach, with progress; null when none is set yet. */
+    val primaryGoal: com.pulseloop.service.GoalPlan.Plan? = null,
 ) {
     @kotlinx.serialization.Serializable
     data class ProfileContext(

@@ -143,6 +143,7 @@ object NotificationContextBuilder {
             scores = com.pulseloop.service.ScoresContext.build(db),
             nutrition = com.pulseloop.service.NutritionContext.build(db, now),
             body = com.pulseloop.service.BodyContext.build(db, now),
+            primaryGoal = runCatching { com.pulseloop.service.GoalPlan.load(db, now) }.getOrNull(),
         )
     }
 

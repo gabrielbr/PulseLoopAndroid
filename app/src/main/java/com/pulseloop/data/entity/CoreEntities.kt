@@ -360,3 +360,23 @@ data class BodyMeasurementEntity(
         const val TYPE_BMR = "bmr"
     }
 }
+
+/**
+ * v30: the goal the user set with the coach ("lose 5 kg in 60 days"). One active at a time; an
+ * older one is kept inactive when a new one replaces it. The weight fields are filled for weight
+ * goals only; [description] is the user's own words for every kind.
+ */
+@Entity(tableName = "coach_goals")
+data class CoachGoalEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    /** lose_weight, gain_weight, maintain_weight, body_recomp, sleep, fitness, other. */
+    val kind: String,
+    val description: String,
+    val startWeightKg: Double? = null,
+    val targetWeightKg: Double? = null,
+    val startDate: Long,
+    val targetDate: Long? = null,
+    val active: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis(),
+)
