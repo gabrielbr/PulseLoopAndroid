@@ -42,6 +42,8 @@ data class ToolExecutionContext(
      * compile unchanged (iOS's ToolExecutionContext has the same optional foodClient).
      */
     val foodClient: com.pulseloop.nutrition.FoodDatabaseClient? = null,
+    /** For tools that touch app preferences (set_goal syncing the Settings goals). */
+    val appContext: android.content.Context? = null,
 )
 
 data class CoachFeatureFlags(

@@ -72,6 +72,9 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
 
     override suspend fun doWork(): Result {
         val ctx = applicationContext
+        // Settings goals follow the coach goal's plan, re-checked weekly as the scale moves. Before
+        // the notification gate: it changes no notification and must run without that permission.
+        runCatching { com.pulseloop.service.GoalSync.sync(ctx, PulseLoopDatabase.getInstance(ctx)) }
         if (!canNotify(ctx)) return Result.success()
         val prefs = GuidancePrefs(ctx)
         val db = PulseLoopDatabase.getInstance(ctx)

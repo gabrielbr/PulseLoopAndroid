@@ -1497,7 +1497,8 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
     val goalUnits = keyStore.resolvedUnitSystem
     var goalDraft by remember { mutableStateOf<com.pulseloop.ui.onboarding.GoalDraft?>(null) }
     var goalSavedMsg by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) {
+    var goalReload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(goalReload) {
         goalDraft = com.pulseloop.ui.onboarding.GoalDraft.from(db.userGoalDao().get(), goalUnits)
     }
 
@@ -1507,6 +1508,7 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        CoachManagedCard(com.pulseloop.service.GoalSync.GOALS_FIELDS) { goalReload++ }
 
         goalDraft?.let { draft ->
             com.pulseloop.ui.onboarding.GoalEditor(
@@ -1519,13 +1521,13 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
                 onClick = {
                     scope.launch {
                         val existing = db.userGoalDao().get()
-                        db.userGoalDao().upsert(
-                            draft.applyTo(
-                                existing ?: com.pulseloop.data.entity.UserGoalEntity(),
-                                goalUnits,
-                                includeWeeklyWorkouts = true,
-                            ),
+                        val saved = draft.applyTo(
+                            existing ?: com.pulseloop.data.entity.UserGoalEntity(),
+                            goalUnits,
+                            includeWeeklyWorkouts = true,
                         )
+                        db.userGoalDao().upsert(saved)
+                        com.pulseloop.service.GoalSync.noteEdits(context, saved)
                         coordinator?.setGoal(draft.steps.toInt())
                         // Ring goals drive the widget's activity rings — republish.
                         com.pulseloop.widgets.WidgetSnapshotPublisher.publish(context)
@@ -2851,9 +2853,11 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var goal by remember { mutableStateOf<UserGoalEntity?>(null) }
     var goalLoaded by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { goal = db.userGoalDao().get(); goalLoaded = true }
+    var goalReload by remember { mutableIntStateOf(0) }
+    LaunchedEffect(goalReload) { goal = db.userGoalDao().get(); goalLoaded = true }
 
     SettingsSubScreen(title = "Nutrition", onBack = onBack) {
+        CoachManagedCard(com.pulseloop.service.GoalSync.NUTRITION_FIELDS) { goalReload++ }
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -2880,16 +2884,16 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Daily Goals", fontWeight = FontWeight.SemiBold)
                     NutrientStepper("Calories (kcal)", goal?.intakeCalories ?: 2000.0, 50.0, 100.0, 10000.0) { v ->
-                        scope.launch { goal = goal?.copy(intakeCalories = v)?.also { db.userGoalDao().upsert(it) } }
+                        scope.launch { goal = goal?.copy(intakeCalories = v)?.also { db.userGoalDao().upsert(it); com.pulseloop.service.GoalSync.noteEdits(context, it) } }
                     }
                     NutrientStepper("Protein (g)", goal?.intakeProteinG ?: 150.0, 5.0, 0.0, 500.0) { v ->
-                        scope.launch { goal = goal?.copy(intakeProteinG = v)?.also { db.userGoalDao().upsert(it) } }
+                        scope.launch { goal = goal?.copy(intakeProteinG = v)?.also { db.userGoalDao().upsert(it); com.pulseloop.service.GoalSync.noteEdits(context, it) } }
                     }
                     NutrientStepper("Carbs (g)", goal?.intakeCarbsG ?: 250.0, 5.0, 0.0, 800.0) { v ->
-                        scope.launch { goal = goal?.copy(intakeCarbsG = v)?.also { db.userGoalDao().upsert(it) } }
+                        scope.launch { goal = goal?.copy(intakeCarbsG = v)?.also { db.userGoalDao().upsert(it); com.pulseloop.service.GoalSync.noteEdits(context, it) } }
                     }
                     NutrientStepper("Fat (g)", goal?.intakeFatG ?: 65.0, 5.0, 0.0, 300.0) { v ->
-                        scope.launch { goal = goal?.copy(intakeFatG = v)?.also { db.userGoalDao().upsert(it) } }
+                        scope.launch { goal = goal?.copy(intakeFatG = v)?.also { db.userGoalDao().upsert(it); com.pulseloop.service.GoalSync.noteEdits(context, it) } }
                     }
                     OutlinedButton(onClick = {
                         val g = goal ?: return@OutlinedButton
@@ -3607,5 +3611,49 @@ private fun BatteryRuntimeEstimate(samples: List<VitalSample>) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+/**
+ * Shows which of this screen's goals the coach goal sets, and lets the user hand them back to it or
+ * take them over. Nothing renders without an active coach goal. [onChanged] reloads the screen's
+ * values after a sync rewrote them.
+ */
+@Composable
+private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, onChanged: () -> Unit) {
+    val context = LocalContext.current
+    val db = remember { PulseLoopDatabase.getInstance(context) }
+    val scope = rememberCoroutineScope()
+    val goal by remember { db.coachGoalDao().activeFlow() }.collectAsState(initial = null)
+    var refresh by remember { mutableIntStateOf(0) }
+    val managed = remember(refresh, goal) { com.pulseloop.service.GoalSync.managed(context).intersect(fields) }
+    val following = remember(refresh, goal) { com.pulseloop.service.GoalSync.following(context).intersect(fields) }
+    val g = goal ?: return
+
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Coach goal: ${g.description}", fontWeight = FontWeight.Medium)
+                    Text(
+                        if (managed.isEmpty()) "Your goal doesn't set any of these."
+                        else "Set by your goal: " + managed.joinToString(", ") { it.label } + ". Change one here and it stops following.",
+                        fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = following.size == fields.size,
+                    onCheckedChange = { on ->
+                        com.pulseloop.service.GoalSync.setFollowing(context, fields, on)
+                        scope.launch {
+                            if (on) com.pulseloop.service.GoalSync.sync(context, db, force = true)
+                            refresh++
+                            onChanged()
+                        }
+                    },
+                )
+            }
+            Text("Let my goal manage these", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
