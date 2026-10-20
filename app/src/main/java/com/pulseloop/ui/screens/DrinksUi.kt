@@ -537,7 +537,7 @@ private fun DrinkSettingsSection(onEnabledChange: (Boolean) -> Unit) {
 
 /** The Today tile: this week against the limit, dry days, and a one-tap "+1". */
 @Composable
-fun DrinksTileContent(week: DrinkInsights.Week?, limit: Double, dryTarget: Int, onAdd: () -> Unit) {
+fun ColumnScope.DrinksTileContent(week: DrinkInsights.Week?, limit: Double, dryTarget: Int, onAdd: () -> Unit) {
     val total = week?.standardDrinks ?: 0.0
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(std(total), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
