@@ -394,7 +394,7 @@ object GoalPlan {
         val workouts = db.activitySessionDao().recent(100)
             .count { it.statusRaw == "finished" && it.startedAt >= now - 14 * DAY_MS } / 2.0
         val activeMins = db.activityDailyDao().recentReal(8).filter { it.date < start(today) }.map { it.activeMinutes }.filter { it > 0 }
-        fun change30(type: String): Double? {
+        suspend fun change30(type: String): Double? {
             val rows = db.bodyMeasurementDao().since(type, now - 30 * DAY_MS)
             return if (rows.size >= 2) rows.last().value - rows.first().value else null
         }
