@@ -106,6 +106,7 @@ object GoalTools {
         if (targetDate != null && !targetDate.isAfter(LocalDate.now(zone))) {
             return@CoachToolDef ToolResult("""{"error":"target_date must be in the future"}""", isError = true)
         }
+        var settingsChanged: Map<com.pulseloop.service.GoalSync.Field, Double> = emptyMap()
         val result = kotlinx.coroutines.runBlocking {
             val profile = db.userProfileDao().get()
             GoalPlan.setActive(db, CoachGoalEntity(
@@ -117,9 +118,17 @@ object GoalTools {
                 startDate = System.currentTimeMillis(),
                 targetDate = targetDate?.atStartOfDay(zone)?.toInstant()?.toEpochMilli(),
             ))
+            // Settings follow the new plan (Nutrition intake and macros; steps, sleep, workouts).
+            ctx.appContext?.let { settingsChanged = com.pulseloop.service.GoalSync.sync(it, db, force = true) }
             GoalPlan.load(db)
         }
         val body = result?.let { json.encodeToJsonElement(GoalPlan.Plan.serializer(), it).jsonObject } ?: JsonObject(emptyMap())
-        ToolResult(JsonObject(mapOf("ok" to JsonPrimitive(true)) + body).toString())
+        val settings = if (settingsChanged.isEmpty()) "unchanged"
+            else "updated: " + com.pulseloop.service.GoalSync.describe(settingsChanged)
+        ToolResult(JsonObject(mapOf(
+            "ok" to JsonPrimitive(true),
+            // Tell the user in one line what changed in their Settings; they can edit any of it.
+            "settings_goals" to JsonPrimitive(settings),
+        ) + body).toString())
     }
 }

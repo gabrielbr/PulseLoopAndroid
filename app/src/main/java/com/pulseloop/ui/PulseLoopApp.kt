@@ -120,6 +120,7 @@ fun PulseLoopApp() {
                         flags = flags,
                         coordinator = coordinator,
                         foodClient = foodClient,
+                        appContext = context.applicationContext,
                     )
                 },
             )
