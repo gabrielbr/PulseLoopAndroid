@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Snap-meal widget: a single button, 1×1 cell. -->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="40dp"
+    android:minHeight="40dp"
+    android:targetCellWidth="1"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/widget_snap_meal"
+    android:previewLayout="@layout/widget_snap_meal"
+    android:description="@string/widget_snap_meal_description"
+    android:widgetCategory="home_screen" />
