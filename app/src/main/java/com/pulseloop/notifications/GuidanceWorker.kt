@@ -102,6 +102,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val local = Instant.ofEpochMilli(now).atZone(zone)
         val today = local.toLocalDate()
         val inputs = runCatching { ReadinessRepository.loadInputs(db, now, zone) }.getOrNull() ?: return Result.success()
+        runCatching { com.pulseloop.service.StepCalibration.sample(ctx, now, zone) }
         // Keep the "what changed" log current even when the screen isn't opened.
         runCatching { com.pulseloop.service.FindingsRepository.refresh(db, now, zone) }
 

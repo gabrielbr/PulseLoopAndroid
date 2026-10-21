@@ -118,6 +118,14 @@ fun TodayScreen(
         }.getOrNull()
     }
     val mealsToday = food?.meals
+    // Ring steps calibrated against the phone, only when the user applied it in My Health.
+    val stepFactor by produceState<Double?>(null, state.lastUpdated) {
+        value = if (!com.pulseloop.service.StepCalibration.isApplied(context)) null else runCatching {
+            val zone = java.time.ZoneId.systemDefault()
+            val ring = db.activityDailyDao().recentReal(60).associate { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate() to it.steps }
+            com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())?.factor
+        }.getOrNull()
+    }
     // Drinks, when the user tracks them: the tile and the morning-after line on Last night.
     var drinkTick by remember { mutableIntStateOf(0) }
     val drinks by produceState<com.pulseloop.service.DrinksRepository.Snapshot?>(null, state.lastUpdated, sleep.lastNight?.id, drinkTick) {
@@ -160,7 +168,7 @@ fun TodayScreen(
     // Dispatch a card id to its tile composable (order/visibility decided above).
     val todayCardFor: @Composable (DashboardCard, Modifier) -> Unit = { card, m ->
         when (card) {
-            DashboardCard.ACTIVITY -> ActivityTileFor(state, units, m) { navController?.navigate("activity") }
+            DashboardCard.ACTIVITY -> ActivityTileFor(state, units, m, onTap = { navController?.navigate("activity") }, stepFactor = stepFactor)
             DashboardCard.SLEEP -> SleepTileFor(sleep, m) { navController?.navigate("sleep") }
             DashboardCard.NUTRITION -> NutritionTile(food, m, onLog = { mealSheet = true }) { navController?.navigate("nutrition") }
             DashboardCard.DRINKS -> TodayTile(label = "Drinks", color = PulseColors.drinks, modifier = m, onTap = { navController?.navigate("drinks") }) {
@@ -379,16 +387,19 @@ private fun ActivityTileFor(
     units: com.pulseloop.settings.UnitSystem,
     modifier: Modifier,
     onTap: () -> Unit,
+    /** Phone-calibrated step factor, when the user applied one (service/StepCalibration.kt). */
+    stepFactor: Double? = null,
 ) {
+    val steps = state.steps?.let { s -> stepFactor?.let { (s * it).toInt() } ?: s }
     val distText = state.distanceMeters?.let { Formats.distance(UnitConverter.distance(it, units)) }
     ActivityTile(
         rings = listOf(
-            ActivityRing(state.steps?.toDouble(), state.stepGoal.toDouble(), PulseColors.steps),
+            ActivityRing(steps?.toDouble(), state.stepGoal.toDouble(), PulseColors.steps),
             ActivityRing(state.distanceMeters, state.distanceGoalMeters, PulseColors.distance),
             ActivityRing(state.calories, state.caloriesGoal.toDouble(), PulseColors.calories),
         ),
         values = buildList {
-            state.steps?.let { add(ActivityTileValue("STEPS", Formats.count(it), PulseColors.steps)) }
+            steps?.let { add(ActivityTileValue(if (stepFactor != null) "≈ STEPS" else "STEPS", Formats.count(it), PulseColors.steps)) }
             distText?.let { add(ActivityTileValue(UnitConverter.distanceUnit(units), it, PulseColors.distance)) }
             state.calories?.let { add(ActivityTileValue("CAL", Formats.count(it.toInt()), PulseColors.calories)) }
         },

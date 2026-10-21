@@ -27,6 +27,12 @@ data class ScoresContext(
     /** Symptom Radar: "No signs", "Minor signs" or "Major signs" of strain, with the flagged signals. */
     val symptomRadar: String? = null,
     val symptomRadarSignals: List<String> = emptyList(),
+    /** From the periods the user logged, when they track their cycle; no fertility estimate. */
+    val cycleDay: Int? = null,
+    val cyclePhase: String? = null,
+    /** Today's cardio load against the user's quiet waking heart rate, and its band. */
+    val cardioLoad: Int? = null,
+    val cardioLoadBand: String? = null,
     val note: String = "Scores are PulseLoop estimates from ring data compared with the user's own baseline, not medical measurements.",
 ) {
     /** Short stable string for coach-summary regeneration signatures. */
@@ -43,7 +49,16 @@ data class ScoresContext(
                     sleepDebtLevel = h.debt?.level?.label,
                     symptomRadar = h.radar?.level?.label,
                     symptomRadarSignals = h.radar?.signals.orEmpty().filter { it.flagged }.map { it.detail },
-                )
+                    cardioLoad = h.cardioLoad?.load,
+                    cardioLoadBand = h.cardioLoad?.band?.label,
+                ).let { withLoad ->
+                    val cycle = runCatching {
+                        Cycle.status(db.periodDao().all().map {
+                            Cycle.Period(java.time.LocalDate.ofEpochDay(it.startDay), it.endDay?.let { e -> java.time.LocalDate.ofEpochDay(e) })
+                        }, java.time.LocalDate.now())
+                    }.getOrNull()
+                    withLoad.copy(cycleDay = cycle?.cycleDay, cyclePhase = cycle?.phase?.label)
+                }
             }
 
         private suspend fun buildScores(db: PulseLoopDatabase): ScoresContext? = runCatching {

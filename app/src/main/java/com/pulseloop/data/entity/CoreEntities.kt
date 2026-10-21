@@ -432,3 +432,12 @@ data class FindingEntity(
     val algorithmVersion: Int,
     val createdAt: Long = System.currentTimeMillis(),
 )
+
+/** A logged period (service/Cycle.kt); days are epoch days in the user's calendar. */
+@Entity(tableName = "periods")
+data class PeriodEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val startDay: Long,
+    val endDay: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+)

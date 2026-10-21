@@ -53,6 +53,7 @@ class PulseLoopApplication : Application() {
             },
         )
         WidgetRefreshWorker.schedule(this)
+        appScope.launch { runCatching { com.pulseloop.service.StepCalibration.sample(this@PulseLoopApplication) } }
         // Scheduled backups: the daily worker, plus a catch-up on start when one is overdue.
         com.pulseloop.data.AutoBackup.schedule(this)
         appScope.launch {

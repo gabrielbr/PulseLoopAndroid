@@ -329,6 +329,9 @@ object DataArchiveService {
                     timesAgreed = c.intOrNull("timesAgreed") ?: 1, createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
                 )
             },
+            periods = collect("periods") { c ->
+                PeriodDTO(id = c.str("id"), startDay = c.long("startDay"), endDay = c.longOrNull("endDay"), createdAt = c.long("createdAt"))
+            },
             drinks = collect("drink_entries") { c ->
                 DrinkEntryDTO(
                     id = c.str("id"), timestamp = c.long("timestamp"), day = c.long("day"), type = c.str("type"),
@@ -432,6 +435,9 @@ object DataArchiveService {
                     portion = f.portion, kcal = f.kcal, proteinG = f.proteinG, reason = f.reason,
                     timesAgreed = f.timesAgreed, createdAt = f.createdAt, updatedAt = f.updatedAt,
                 ))
+            }
+            for (p in archive.periods) {
+                db.periodDao().upsert(PeriodEntity(id = p.id, startDay = p.startDay, endDay = p.endDay, createdAt = p.createdAt))
             }
             for (d in archive.drinks) {
                 db.drinkDao().upsert(DrinkEntryEntity(

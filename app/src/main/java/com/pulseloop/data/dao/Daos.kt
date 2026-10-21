@@ -980,3 +980,18 @@ interface FindingDao {
     @Upsert
     suspend fun upsertAll(rows: List<FindingEntity>)
 }
+
+@Dao
+interface PeriodDao {
+    @Query("SELECT * FROM periods ORDER BY startDay DESC")
+    suspend fun all(): List<PeriodEntity>
+
+    @Query("SELECT * FROM periods ORDER BY startDay DESC")
+    fun allFlow(): Flow<List<PeriodEntity>>
+
+    @Upsert
+    suspend fun upsert(p: PeriodEntity)
+
+    @Query("DELETE FROM periods WHERE id = :id")
+    suspend fun delete(id: String)
+}
