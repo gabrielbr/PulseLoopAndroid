@@ -137,6 +137,24 @@ object DailyCalorieEstimator {
     fun effectiveActiveCalories(day: ActivityDailyEntity): Double? =
         deviceReportedCalories(day) ?: day.estimatedActiveCalories
 
+    /**
+     * What the app shows: [effectiveActiveCalories], but with the accuracy-corrected estimate when
+     * there is one. Never for export — Health Connect reads the raw column.
+     */
+    fun displayActiveCalories(day: ActivityDailyEntity): Double? =
+        deviceReportedCalories(day) ?: day.estimatedActiveCaloriesAdjusted ?: day.estimatedActiveCalories
+
+    /** [effectiveCalories] for display, on [displayActiveCalories]. */
+    fun displayCalories(
+        day: ActivityDailyEntity,
+        profile: Profile,
+        now: Long = System.currentTimeMillis(),
+    ): Double? {
+        deviceReportedCalories(day)?.let { return it }
+        val active = day.estimatedActiveCaloriesAdjusted ?: day.estimatedActiveCalories ?: return null
+        return bmrPerMinute(profile) * elapsedMinutes(day.date, now) + active
+    }
+
     /** Minutes of [dayStart] that have elapsed: partial for today, full for the past, 0 ahead. */
     private fun elapsedMinutes(dayStart: Long, now: Long): Double = when {
         now < dayStart -> 0.0
@@ -153,7 +171,7 @@ object DailyCalorieEstimator {
      * to estimate against, and inserting a row here would fabricate a zero-step `ring_history` day
      * in the history and charts (iOS: `guard let row = MetricsRepository.activity(...) else return`).
      */
-    suspend fun recompute(dayStart: Long, db: PulseLoopDatabase, profile: Profile) {
+    suspend fun recompute(dayStart: Long, db: PulseLoopDatabase, profile: Profile, touchUpdatedAt: Boolean = true) {
         val row = db.activityDailyDao().byDay(dayStart) ?: return
         val dayEnd = dayStart + DAY_MS
 
@@ -176,9 +194,25 @@ object DailyCalorieEstimator {
             hrSamples = hrSamples,
             profile = profile,
         )
+        // The same estimate from the ring's inputs with its accuracy corrections applied
+        // (docs/accuracy-check-plan.md, Corrections rule 6). Kept in its own column: the app shows
+        // it, Health Connect gets `estimatedActiveCalories`, which stays raw.
+        val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+        val adjusted = if (corrections.items.keys.none { it in com.pulseloop.health.accuracy.AccuracyCorrections.CALORIE_INPUTS }) null
+            else estimateNetActive(
+                dayStart = dayStart,
+                dayTotalSteps = corrections.steps(row.steps),
+                buckets = buckets.map { it.copy(steps = corrections.steps(it.steps)) },
+                workouts = workouts,
+                hrSamples = hrSamples.map { it.copy(value = corrections.heartRate(it.value)) },
+                profile = profile,
+            )
         db.activityDailyDao().upsert(row.copy(
             estimatedActiveCalories = active,
-            updatedAt = System.currentTimeMillis(),
+            estimatedActiveCaloriesAdjusted = adjusted,
+            // A correction change only moves the adjusted copy, which nothing exports; leaving
+            // updatedAt alone keeps the Health Connect export from re-reading 90 days for it.
+            updatedAt = if (touchUpdatedAt || active != row.estimatedActiveCalories) System.currentTimeMillis() else row.updatedAt,
         ))
     }
 

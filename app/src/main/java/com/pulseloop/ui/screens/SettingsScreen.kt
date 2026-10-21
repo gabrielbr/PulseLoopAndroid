@@ -66,6 +66,13 @@ fun SettingsScreen(
         else -> keyStore.model
     }
     val notificationsTrailing = if (keyStore.notificationsEnabled) "On" else "Off"
+    val openCheck by db.accuracyDao().openFlow().collectAsState(initial = null)
+    val accuracyTrailing = openCheck?.let { c ->
+        if (c.state == com.pulseloop.data.entity.AccuracyCheckEntity.STATE_RUNNING) {
+            val (day, total) = AccuracyUiText.dayOf(c)
+            "Day $day of $total"
+        } else "Report ready"
+    }
 
     fun navigate(route: String) {
         navController?.navigate(route)
@@ -169,6 +176,9 @@ fun SettingsScreen(
                 })
                 add(SettingsRowItem(Icons.Filled.Sync, PulseColors.success, "Health Connect") {
                     navigate("settings/health-connect")
+                })
+                add(SettingsRowItem(Icons.Filled.Verified, PulseColors.info, "Accuracy check", accuracyTrailing) {
+                    navigate("settings/accuracy-check")
                 })
                 add(SettingsRowItem(Icons.Filled.Info, PulseColors.textMuted, "About PulseLoop") {
                     navigate("settings/about")

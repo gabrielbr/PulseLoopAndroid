@@ -88,6 +88,12 @@ data class ActivityDailyEntity(
      *  ring does not report device-side calories. Read through [effectiveActiveCalories]. */
     val estimatedActiveCalories: Double? = null,
     /**
+     * [estimatedActiveCalories] recomputed with the ring's accuracy corrections applied to its
+     * inputs (docs/accuracy-check-plan.md, Corrections rule 6), or null when no correction applies.
+     * The app shows this one; Health Connect gets the raw one, never this.
+     */
+    val estimatedActiveCaloriesAdjusted: Double? = null,
+    /**
      * What this day's deleted activity buckets contributed, kept so the ring's own cumulative
      * counter can be corrected for them (issue #70).
      *

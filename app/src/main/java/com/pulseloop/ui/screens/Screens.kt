@@ -287,6 +287,7 @@ fun VitalsScreen(
                 Column(Modifier.weight(1f)) {
                     Text("Vitals", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
                     Text("Live measurements and trends", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    state.adjustedNote?.let { AdjustedCaption(it) }
                 }
                 // Measure button: combined (0x23) for 56ff/Jring, or sequential live
                 // HR + SpO₂ (0x69) for Colmi. Hidden for rings that support neither.
@@ -697,6 +698,7 @@ fun VitalDetailScreen(
                 item {
                     PeriodSegmentedControl(selected = state.period, onSelect = { vm.setPeriod(it) })
                 }
+                state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
 
                 // 2. Chart card: unit label + interactive trend chart (24dp continuous corners).
                 item {

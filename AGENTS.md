@@ -970,3 +970,45 @@ coordinator on the event bus, so every frame was persisted and handled twice.
   auto-reconnect) runs for the process's first composition only (`claimStartup()`). Re-running the
   stale-state reset would write DISCONNECTED over a live link.
 - A recreated Activity's first `ON_START` is not the startup's, so it does run `reconnectIfNeeded()`.
+
+## Accuracy check: what it may and may not change
+
+**Read this before touching `health/accuracy/`, the export's held-back records, or anything that
+reads `AccuracyCorrections`.** Full design and the "As built" notes: `docs/accuracy-check-plan.md`.
+
+The feature compares the ring with another device's Health Connect records for a few days, holds
+back the duplicate exports meanwhile, and can correct a consistent bias. Each rule below is there
+because breaking it fails silently:
+
+- **Every reference read filters on `DataOrigin`.** Without it PulseLoop's own earlier exports, or
+  a third app re-syncing them, get compared with the ring and the report reads "perfect
+  agreement". A bridge app (Health Sync) can still echo PulseLoop's export back under its own
+  package, which no origin filter catches. That is what the HR echo check is for (an exact
+  second-and-beat match on most samples); keep it running on every scoring pass.
+- **The reference's readings are never stored.** `accuracy_check_days` holds aggregates only. It
+  would be the first foreign health data in the archive, and the diagnostics export rule
+  (no readings in text people paste) applies to the "Copy summary" and "Share" texts too.
+- **Held-back exports are filtered by data time, and the watermark still advances past them.**
+  Don't "fix" this into holding the watermark. That is what makes Skip-these-days the default
+  with nothing to undo, and what keeps a window record that is updated later (a re-synced night)
+  out of Health Connect. Export-them-too rewinds watermarks under
+  `HealthConnectExportWorker.passMutex`; a rewind outside the mutex can be overtaken by a pass in
+  flight. The pause set follows the **reference device**, never the ring's capability list, so
+  a ring swap can't open a duplication gap.
+- **Corrections are read-time only, and never reach Health Connect.** Stored rows stay as the
+  ring sent them; it re-sends its history, so a rewritten row wouldn't stay rewritten anyway.
+  A derived figure that is also *exported* keeps a raw copy for the export:
+  `estimatedActiveCalories` (raw, exported) vs `estimatedActiveCaloriesAdjusted` (shown), and
+  `hrRestingBaseline` (raw, exported) vs `Corrections.baseline()` at read time. The display
+  helpers (`DailyCalorieEstimator.displayActiveCalories` / `displayCalories`) must not be used
+  by an exporter. A screen showing corrected figures carries the `AdjustedCaption` (a widget tile,
+  its `adjusted` flag). The coach reads through the corrections too and is told so; a workout's
+  stored samples and summary stay raw because Health Connect and Strava get them.
+- **Corrections belong to one ring (BLE address) and only exist after a consistent-bias
+  verdict.** Don't widen them to "Inconsistent": a slider that moves the average of an erratic
+  ring is exactly the false fix the verdict exists to refuse. Sleep stages, onset/wake, HRV and
+  calories are report-only on purpose: vendors compute them differently, so a difference there
+  doesn't show which device is wrong.
+- **A running check ends the moment a different ring is paired** (`AccuracyRingWatcher`, started
+  from `PulseLoopApplication`). Ring rows carry no device id, so a later sweep could not split
+  the two rings' data.

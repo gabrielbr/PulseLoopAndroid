@@ -508,14 +508,21 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
 /** Secondary stat tiles, 3-per-row (WorkoutMetricsSections.statsGrid). */
 @Composable
 private fun StatsGrid(s: ActivitySessionEntity) {
+    // Accuracy corrections at display only: the stored summary is what Health Connect and Strava get.
+    val corrections = rememberAccuracyCorrections()
+    fun hr(v: Double?) = v?.let { "${corrections.heartRate(it).toInt()}" } ?: "—"
     val stats = buildList {
         if (s.useGps) add("Calories" to (s.calories?.let { "${it.toInt()}" } ?: "—"))
-        add("Avg HR" to (s.avgHeartRate?.let { "${it.toInt()}" } ?: "—"))
-        add("Max HR" to (s.maxHeartRate?.let { "${it.toInt()}" } ?: "—"))
-        add("Min HR" to (s.minHeartRate?.let { "${it.toInt()}" } ?: "—"))
-        add("SpO₂" to (s.latestSpO2?.let { "${it.toInt()}%" } ?: "—"))
+        add("Avg HR" to hr(s.avgHeartRate))
+        add("Max HR" to hr(s.maxHeartRate))
+        add("Min HR" to hr(s.minHeartRate))
+        add("SpO₂" to (s.latestSpO2?.let { "${corrections.spo2(it).toInt()}%" } ?: "—"))
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        corrections.describe(setOf(
+            com.pulseloop.health.accuracy.ComparisonMetric.HR_REST, com.pulseloop.health.accuracy.ComparisonMetric.HR_ACTIVE,
+            com.pulseloop.health.accuracy.ComparisonMetric.SPO2,
+        ))?.let { AdjustedCaption(it) }
         stats.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { (label, value) ->

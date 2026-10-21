@@ -31,7 +31,8 @@ class HealthConnectRationaleActivity : ComponentActivity() {
 
                 Most of these come from your ring; blood pressure, blood glucose and meals are values you log yourself in PulseLoop.
 
-                · The export is write-only: PulseLoop never reads data back from Health Connect.
+                · The export is write-only: it never reads data back from Health Connect.
+                · PulseLoop reads from Health Connect in two places, each only if you turn it on: body measurements from a smart scale (weight, height, body composition, BMR), and the accuracy check, which reads steps, distance, active calories, heart rate, resting heart rate, sleep, blood oxygen and HRV written by another device so it can compare your ring against it. The accuracy check keeps counts and comparison results, not the other device's readings.
                 · Records carry a stable PulseLoop identifier, so re-exporting the same reading replaces it instead of duplicating it.
                 · You control the export: the master toggle and per-data-type switches in Settings → Health Connect, and you can revoke any permission at any time in the Health Connect app.
             """.trimIndent()

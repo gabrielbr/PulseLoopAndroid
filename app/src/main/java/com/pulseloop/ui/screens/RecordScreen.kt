@@ -30,6 +30,8 @@ fun RecordScreen(
     elapsedSeconds: Int = 0,
     distanceMeters: Double = 0.0,
     heartRate: Int? = null,
+    /** The heart rate carries an accuracy-check correction (labelled wherever shown). */
+    heartRateAdjusted: Boolean = false,
     spO2: Int? = null,
     isPaused: Boolean = false,
     useGps: Boolean = true,
@@ -98,6 +100,9 @@ fun RecordScreen(
                     HeartRateZones.Zone.MAX -> PulseColors.zoneRed
                 }
                 Text(hrText, style = MaterialTheme.typography.headlineLarge, color = zoneColor)
+                if (heartRateAdjusted) {
+                    Text("adjusted by your accuracy check", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
                 Text(hrZone.label, style = MaterialTheme.typography.labelMedium, color = zoneColor)
             }
         }

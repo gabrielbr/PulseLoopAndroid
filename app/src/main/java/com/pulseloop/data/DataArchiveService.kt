@@ -80,6 +80,7 @@ object DataArchiveService {
                     syncedAt = c.longOrNull("syncedAt"), createdAt = c.long("createdAt"),
                     updatedAt = c.long("updatedAt"),
                     estimatedActiveCalories = c.dblOrNull("estimatedActiveCalories"),
+                    estimatedActiveCaloriesAdjusted = c.dblOrNull("estimatedActiveCaloriesAdjusted"),
                     deletedSteps = c.int_("deletedSteps"),
                     deletedDistanceMeters = c.dbl("deletedDistanceMeters"),
                 )
@@ -333,6 +334,36 @@ object DataArchiveService {
                 MedDTO(id = c.str("id"), name = c.str("name"), dose = c.strOrNull("dose"), kind = c.str("kind"),
                     timesCsv = c.str("timesCsv"), active = (c.intOrNull("active") ?: 1) == 1, createdAt = c.long("createdAt"))
             },
+            accuracyChecks = collect("accuracy_checks") { c ->
+                AccuracyCheckDTO(
+                    id = c.str("id"), deviceKey = c.str("deviceKey"), deviceLabel = c.str("deviceLabel"),
+                    referencePackage = c.str("referencePackage"), referenceLabel = c.str("referenceLabel"),
+                    startedAt = c.long("startedAt"), plannedEndAt = c.long("plannedEndAt"), endedAt = c.longOrNull("endedAt"),
+                    state = c.str("state"), endReason = c.strOrNull("endReason"), resumeChoice = c.strOrNull("resumeChoice"),
+                    bandsRaw = c.strOrNull("bandsRaw"), pauseRefreshedAt = c.longOrNull("pauseRefreshedAt"),
+                    scoredAt = c.longOrNull("scoredAt"), firmware = c.strOrNull("firmware"),
+                )
+            },
+            accuracyPausedUnits = collect("accuracy_paused_units") { c ->
+                AccuracyPausedUnitDTO(checkId = c.str("checkId"), unit = c.str("unit"), pausedFrom = c.long("pausedFrom"))
+            },
+            accuracyCheckDays = collect("accuracy_check_days") { c ->
+                AccuracyCheckDayDTO(
+                    checkId = c.str("checkId"), metric = c.str("metric"), day = c.long("day"),
+                    ringValue = c.dblOrNull("ringValue"), refValue = c.dblOrNull("refValue"), pairs = c.int_("pairs"),
+                    sumDiff = c.dbl("sumDiff"), sumSqDiff = c.dbl("sumSqDiff"), sumAbsDiff = c.dbl("sumAbsDiff"),
+                    inBand = c.int_("inBand"), valid = c.bool("valid"), note = c.strOrNull("note"),
+                    computedAt = c.long("computedAt"),
+                )
+            },
+            accuracyCorrections = collect("accuracy_corrections") { c ->
+                AccuracyCorrectionDTO(
+                    deviceKey = c.str("deviceKey"), metric = c.str("metric"), kind = c.str("kind"),
+                    value = c.dbl("value"), fittedValue = c.dbl("fittedValue"), fromCheckId = c.str("fromCheckId"),
+                    enabled = c.bool("enabled"), firmware = c.strOrNull("firmware"),
+                    createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
+                )
+            },
             medDoses = collect("med_doses") { c ->
                 MedDoseDTO(id = c.str("id"), medId = c.str("medId"), day = c.long("day"), time = c.str("time"), status = c.str("status"), at = c.long("at"))
             },
@@ -446,6 +477,37 @@ object DataArchiveService {
             for (m in archive.meds) {
                 db.medDao().upsert(MedEntity(id = m.id, name = m.name, dose = m.dose, kind = m.kind, timesCsv = m.timesCsv, active = m.active, createdAt = m.createdAt))
             }
+            // Accuracy checks before anything can export against them (see PulseArchive.accuracyChecks).
+            for (a in archive.accuracyChecks) {
+                db.accuracyDao().upsert(AccuracyCheckEntity(
+                    id = a.id, deviceKey = a.deviceKey, deviceLabel = a.deviceLabel, referencePackage = a.referencePackage,
+                    referenceLabel = a.referenceLabel, startedAt = a.startedAt, plannedEndAt = a.plannedEndAt,
+                    endedAt = a.endedAt, state = a.state, endReason = a.endReason, resumeChoice = a.resumeChoice,
+                    bandsRaw = a.bandsRaw, pauseRefreshedAt = a.pauseRefreshedAt, scoredAt = a.scoredAt, firmware = a.firmware,
+                ))
+            }
+            if (archive.accuracyPausedUnits.isNotEmpty()) {
+                db.accuracyDao().insertPausedUnits(archive.accuracyPausedUnits.map {
+                    AccuracyPausedUnitEntity(checkId = it.checkId, unit = it.unit, pausedFrom = it.pausedFrom)
+                })
+            }
+            if (archive.accuracyCheckDays.isNotEmpty()) {
+                db.accuracyDao().upsertDays(archive.accuracyCheckDays.map {
+                    AccuracyCheckDayEntity(
+                        checkId = it.checkId, metric = it.metric, day = it.day, ringValue = it.ringValue,
+                        refValue = it.refValue, pairs = it.pairs, sumDiff = it.sumDiff, sumSqDiff = it.sumSqDiff,
+                        sumAbsDiff = it.sumAbsDiff, inBand = it.inBand, valid = it.valid, note = it.note,
+                        computedAt = it.computedAt,
+                    )
+                })
+            }
+            for (c in archive.accuracyCorrections) {
+                db.accuracyDao().upsertCorrection(AccuracyCorrectionEntity(
+                    deviceKey = c.deviceKey, metric = c.metric, kind = c.kind, value = c.value,
+                    fittedValue = c.fittedValue, fromCheckId = c.fromCheckId, enabled = c.enabled,
+                    firmware = c.firmware, createdAt = c.createdAt, updatedAt = c.updatedAt,
+                ))
+            }
             for (d in archive.medDoses) {
                 db.medDao().upsertDose(MedDoseEntity(id = d.id, medId = d.medId, day = d.day, time = d.time, status = d.status, at = d.at))
             }
@@ -480,6 +542,7 @@ object DataArchiveService {
                     source = a.source, syncedAt = a.syncedAt, createdAt = a.createdAt,
                     updatedAt = a.updatedAt,
                     estimatedActiveCalories = a.estimatedActiveCalories,
+                    estimatedActiveCaloriesAdjusted = a.estimatedActiveCaloriesAdjusted,
                     deletedSteps = a.deletedSteps,
                     deletedDistanceMeters = a.deletedDistanceMeters,
                 ))

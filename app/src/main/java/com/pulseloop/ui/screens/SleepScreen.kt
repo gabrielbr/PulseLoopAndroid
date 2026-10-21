@@ -105,6 +105,7 @@ fun SleepScreen(
         item {
             SleepRangeSelector(state.range) { viewModel?.setRange(it) }
         }
+        state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
         if (state.range == SleepRangeKey.DAY) dayItems(state, navController, viewModel)
         else aggregateItems(state, navController)
         item { Spacer(Modifier.height(64.dp)) }

@@ -52,8 +52,12 @@ import com.pulseloop.data.entity.*
         PeriodEntity::class,
         MedEntity::class,
         MedDoseEntity::class,
+        AccuracyCheckEntity::class,
+        AccuracyPausedUnitEntity::class,
+        AccuracyCheckDayEntity::class,
+        AccuracyCorrectionEntity::class,
     ],
-    version = 35,
+    version = 36,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -88,6 +92,8 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun periodDao(): PeriodDao
     /** Medications and supplements, and answered doses (v35). */
     abstract fun medDao(): MedDao
+    /** The accuracy check against another device (docs/accuracy-check-plan.md, v36). */
+    abstract fun accuracyDao(): AccuracyDao
     abstract fun coachSummaryDao(): CoachSummaryDao
     abstract fun wearableLogDao(): WearableLogDao
     abstract fun rawPacketDao(): RawPacketDao
@@ -142,6 +148,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "findings",
             "periods",
             "meds", "med_doses",
+            "accuracy_checks", "accuracy_paused_units", "accuracy_check_days", "accuracy_corrections",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -647,6 +654,43 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v35 → v36: the accuracy check (docs/accuracy-check-plan.md) — its checks, the export
+         * units each one holds back, its scored days, and the per-ring corrections — plus the
+         * corrected copy of the day's estimated active calories, kept beside the raw one because
+         * the raw one is what Health Connect receives.
+         */
+        private val MIGRATION_35_36 = object : Migration(35, 36) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `accuracy_checks` (`id` TEXT NOT NULL, `deviceKey` TEXT NOT NULL, " +
+                        "`deviceLabel` TEXT NOT NULL, `referencePackage` TEXT NOT NULL, `referenceLabel` TEXT NOT NULL, " +
+                        "`startedAt` INTEGER NOT NULL, `plannedEndAt` INTEGER NOT NULL, `endedAt` INTEGER, " +
+                        "`state` TEXT NOT NULL, `endReason` TEXT, `resumeChoice` TEXT, `bandsRaw` TEXT, " +
+                        "`pauseRefreshedAt` INTEGER, `scoredAt` INTEGER, `firmware` TEXT, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_accuracy_checks_state` ON `accuracy_checks` (`state`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `accuracy_paused_units` (`checkId` TEXT NOT NULL, `unit` TEXT NOT NULL, " +
+                        "`pausedFrom` INTEGER NOT NULL, PRIMARY KEY(`checkId`, `unit`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `accuracy_check_days` (`checkId` TEXT NOT NULL, `metric` TEXT NOT NULL, " +
+                        "`day` INTEGER NOT NULL, `ringValue` REAL, `refValue` REAL, `pairs` INTEGER NOT NULL, " +
+                        "`sumDiff` REAL NOT NULL, `sumSqDiff` REAL NOT NULL, `sumAbsDiff` REAL NOT NULL, " +
+                        "`inBand` INTEGER NOT NULL, `valid` INTEGER NOT NULL, `note` TEXT, `computedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`checkId`, `metric`, `day`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `accuracy_corrections` (`deviceKey` TEXT NOT NULL, `metric` TEXT NOT NULL, " +
+                        "`kind` TEXT NOT NULL, `value` REAL NOT NULL, `fittedValue` REAL NOT NULL, `fromCheckId` TEXT NOT NULL, " +
+                        "`enabled` INTEGER NOT NULL, `firmware` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`deviceKey`, `metric`))"
+                )
+                db.execSQL("ALTER TABLE `activity_daily` ADD COLUMN `estimatedActiveCaloriesAdjusted` REAL")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -748,6 +792,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_32_33,
                         MIGRATION_33_34,
                         MIGRATION_34_35,
+                        MIGRATION_35_36,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

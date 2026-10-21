@@ -54,6 +54,38 @@ data class PulseArchive(
     /** Medications and supplements, and answered doses (v35). */
     val meds: List<MedDTO> = emptyList(),
     val medDoses: List<MedDoseDTO> = emptyList(),
+    /**
+     * Accuracy checks (v36). Carried because they hold the export exclusions too: without them a
+     * restore would forget which days were held back from Health Connect, and the next export
+     * pass would write the check window's duplicates after all.
+     */
+    val accuracyChecks: List<AccuracyCheckDTO> = emptyList(),
+    val accuracyPausedUnits: List<AccuracyPausedUnitDTO> = emptyList(),
+    val accuracyCheckDays: List<AccuracyCheckDayDTO> = emptyList(),
+    val accuracyCorrections: List<AccuracyCorrectionDTO> = emptyList(),
+)
+
+@Serializable data class AccuracyCheckDTO(
+    val id: String, val deviceKey: String, val deviceLabel: String, val referencePackage: String,
+    val referenceLabel: String, val startedAt: Long, val plannedEndAt: Long, val endedAt: Long? = null,
+    val state: String, val endReason: String? = null, val resumeChoice: String? = null,
+    val bandsRaw: String? = null, val pauseRefreshedAt: Long? = null, val scoredAt: Long? = null,
+    val firmware: String? = null,
+)
+
+@Serializable data class AccuracyPausedUnitDTO(val checkId: String, val unit: String, val pausedFrom: Long)
+
+@Serializable data class AccuracyCheckDayDTO(
+    val checkId: String, val metric: String, val day: Long, val ringValue: Double? = null,
+    val refValue: Double? = null, val pairs: Int = 0, val sumDiff: Double = 0.0, val sumSqDiff: Double = 0.0,
+    val sumAbsDiff: Double = 0.0, val inBand: Int = 0, val valid: Boolean = true, val note: String? = null,
+    val computedAt: Long,
+)
+
+@Serializable data class AccuracyCorrectionDTO(
+    val deviceKey: String, val metric: String, val kind: String, val value: Double, val fittedValue: Double,
+    val fromCheckId: String, val enabled: Boolean = true, val firmware: String? = null,
+    val createdAt: Long, val updatedAt: Long,
 )
 
 @Serializable data class FoodPreferenceDTO(
@@ -119,6 +151,7 @@ data class PulseArchive(
      *  buckets back into the day. */
     val deletedSteps: Int = 0, val deletedDistanceMeters: Double = 0.0,
     val estimatedActiveCalories: Double? = null,
+    val estimatedActiveCaloriesAdjusted: Double? = null,
 )
 
 @Serializable data class ActivityBucketDTO(

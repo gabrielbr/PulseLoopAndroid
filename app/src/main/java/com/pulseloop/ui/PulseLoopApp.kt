@@ -628,6 +628,9 @@ fun PulseLoopApp() {
                 paddedComposable("settings/health-connect") {
                     HealthConnectSettingsScreen(onBack = { navController.popBackStack() })
                 }
+                paddedComposable("settings/accuracy-check") {
+                    AccuracyCheckSettingsScreen(onBack = { navController.popBackStack() })
+                }
                 paddedComposable("settings/nutrition") {
                     NutritionSettingsScreen(
                         onBack = { navController.popBackStack() },
@@ -750,6 +753,7 @@ fun PulseLoopApp() {
                         elapsedSeconds = workoutState.elapsedSeconds,
                         distanceMeters = workoutState.distanceMeters,
                         heartRate = workoutState.latestHeartRate,
+                        heartRateAdjusted = workoutState.heartRateAdjusted,
                         spO2 = workoutState.latestSpO2,
                         isPaused = workoutState.isPaused,
                         useGps = workoutState.activeSession?.useGps ?: true,

@@ -133,6 +133,9 @@ class MainActivity : ComponentActivity() {
         if (intent?.action == ACTION_LOG_MEAL) {
             com.pulseloop.ui.LaunchRequests.route.value = "nutrition/photo"
             intent.action = null // a recreated Activity must not reopen it
+        } else if (intent?.action == ACTION_OPEN_ACCURACY_CHECK) {
+            com.pulseloop.ui.LaunchRequests.route.value = "settings/accuracy-check"
+            intent.action = null
         }
     }
 
@@ -154,6 +157,8 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val ACTION_LOG_MEAL = "com.pulseloop.action.LOG_MEAL"
+        /** The accuracy-report-ready notification. */
+        const val ACTION_OPEN_ACCURACY_CHECK = "com.pulseloop.action.OPEN_ACCURACY_CHECK"
     }
 
     private fun handleStravaRedirect(intent: Intent) {

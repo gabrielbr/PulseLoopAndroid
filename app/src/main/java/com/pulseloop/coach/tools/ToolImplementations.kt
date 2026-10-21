@@ -59,13 +59,15 @@ object RetrievalTools {
         val result = kotlinx.coroutines.runBlocking {
             val dayTs = CoachDataAccess.parseLocalDate(date)
             if (dayTs == null) return@runBlocking """{"error":"invalid date: $date"}"""
-            val activity = db.activityDailyDao().byDay(dayTs)
-            val hrVals = db.measurementDao().range(MeasurementKind.HEART_RATE.name, dayTs, dayTs + 86400000L)
+            // What the app shows: accuracy corrections applied (read-time only).
+            val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+            val activity = db.activityDailyDao().byDay(dayTs)?.let(corrections::day)
+            val hrVals = db.measurementDao().range(MeasurementKind.HEART_RATE.name, dayTs, dayTs + 86400000L).map(corrections::measurement)
             val hrStats = if (hrVals.isNotEmpty()) {
                 val vals = hrVals.map { it.value }
                 """"mean":${(vals.average() * 10).toLong() / 10.0},"min":${vals.minOrNull()!!.toInt()},"max":${vals.maxOrNull()!!.toInt()}""""
             } else null
-            val sleep = db.sleepSessionDao().byDay(dayTs)
+            val sleep = db.sleepSessionDao().byDay(dayTs)?.let(corrections::sleep)
             """{"date":"$date","data_available":${activity != null || hrVals.isNotEmpty()},"activity":{"${if (activity != null) """steps":${activity.steps},"calories":${(activity.calories * 10).toLong() / 10.0},"distance_km":${(activity.distanceMeters / 1000 * 10).toLong() / 10.0},"active_minutes":${activity.activeMinutes}""" else """steps":0,"calories":0,"distance_km":0,"active_minutes":0"""}},"hr":{${hrStats ?: """"mean":null,"min":null,"max":null""""}},"sleep":${if (sleep != null) """{"total_min":${sleep.totalMinutes},"score":${sleep.totalMinutes / 5}}""" else "null"}}"""
         }
         ToolResult(result)
@@ -174,7 +176,8 @@ object RetrievalTools {
             val sb = StringBuilder("{")
             sb.append(""""start_date":"$start","end_date":"$end",""")
             if ("activity" in include || "goals" in include) {
-                val rows = db.activityDailyDao().recent(365).filter {
+                val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+                val rows = db.activityDailyDao().recent(365).map(corrections::day).filter {
                     val d = java.time.Instant.ofEpochMilli(it.date).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString()
                     d >= start && d <= end
                 }
@@ -304,7 +307,10 @@ object RetrievalTools {
         val params = Json.parseToJsonElement(jsonParams).jsonObject
         val range = params["range"]?.jsonPrimitive?.content ?: "week"
         val limit = when (range) { "week" -> 7; "month" -> 30; else -> 365 }
-        val sessions = kotlinx.coroutines.runBlocking { db.sleepSessionDao().recent(limit) }
+        val sessions = kotlinx.coroutines.runBlocking {
+            val c = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+            db.sleepSessionDao().recent(limit).map(c::sleep)
+        }
         val avgMin = if (sessions.isNotEmpty()) sessions.map { it.totalMinutes }.average().toInt() else 0
         ToolResult("""{"range":"$range","nights_tracked":${sessions.size},"expected_nights":$limit,"avg_total_min":$avgMin,"note":"experimental decoder (light/deep/awake only)"}""")
     }
@@ -325,7 +331,9 @@ object RetrievalTools {
         val db = ctx.db ?: return@CoachToolDef ToolResult("""{"error":"database not available"}""", isError = true)
         val goal = kotlinx.coroutines.runBlocking { db.userGoalDao().get() }
         val todayStart = java.time.Instant.now().atZone(java.time.ZoneId.systemDefault()).truncatedTo(java.time.temporal.ChronoUnit.DAYS).toInstant().toEpochMilli()
-        val today = kotlinx.coroutines.runBlocking { db.activityDailyDao().byDay(todayStart) }
+        val today = kotlinx.coroutines.runBlocking {
+            db.activityDailyDao().byDay(todayStart)?.let(com.pulseloop.health.accuracy.AccuracyCorrections.load(db)::day)
+        }
         ToolResult("""{"today":{"steps":${today?.steps ?: 0},"steps_goal":${goal?.steps ?: 10000},"active_minutes":${today?.activeMinutes ?: 0},"active_minutes_goal":${goal?.activeMinutes ?: 45}},"sleep_hours_goal":${(goal?.sleepMinutes ?: 480) / 60}}""")
     }
 
@@ -343,7 +351,10 @@ object RetrievalTools {
         )),
     ) { _, ctx ->
         val db = ctx.db ?: return@CoachToolDef ToolResult("""{"error":"database not available"}""", isError = true)
-        val recentSteps = kotlinx.coroutines.runBlocking { db.activityDailyDao().recent(14) }.map { it.steps.toDouble() }
+        val recentSteps = kotlinx.coroutines.runBlocking {
+            val c = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+            db.activityDailyDao().recent(14).map { c.steps(it.steps).toDouble() }
+        }
         val stepOutliers = AnalysisEngine.outliers(recentSteps)
         ToolResult("""{"steps_outliers":${stepOutliers.size},"steps_analyzed":${recentSteps.size}}""")
     }

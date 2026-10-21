@@ -158,6 +158,7 @@ fun ActivityScreen(
         // Day navigation (issue #76): the summary + RECORDS cards follow the shown day, so a
         // past day's steps/distance/calories are reachable the way Sleep already allows.
         item { ActivityDayNavHeader(state, viewModel) }
+        state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
 
         item { DailyActivitySummaryCard(state, units) }
 
@@ -459,6 +460,7 @@ private fun SummaryMetric(label: String, value: String, unit: String?, color: Co
 /** One workout in the TODAY list / history sheet (ActivityWorkoutRow in Swift). */
 @Composable
 fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap: () -> Unit) {
+    val corrections = rememberAccuracyCorrections()
     val shape = RoundedCornerShape(8.dp)
     val durationSec = session.endedAt?.let { ((it - session.startedAt) / 1000 - session.totalPauseSeconds).toInt() }
     Row(
@@ -501,7 +503,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
                     )
                 }
                 session.avgHeartRate?.let {
-                    Text("${it.toInt()} bpm avg", fontSize = 12.sp, color = PulseColors.textSecondary)
+                    Text("${corrections.heartRate(it).toInt()} bpm avg", fontSize = 12.sp, color = PulseColors.textSecondary)
                 }
                 Spacer(Modifier.weight(1f))
                 if (session.useGps && session.gpsPointCount > 1) {

@@ -8,6 +8,7 @@ import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.metadata.Device
 import com.pulseloop.data.PulseLoopDatabase
+import com.pulseloop.health.accuracy.ExportPause
 import com.pulseloop.health.exporters.ActivityExporter
 import com.pulseloop.health.exporters.NutritionExporter
 import com.pulseloop.health.exporters.RestingHeartRateExporter
@@ -300,6 +301,16 @@ class HealthConnectExporter(
         val skipped = mutableListOf<String>()
         val errors = mutableListOf<String>()
 
+        // Accuracy check (docs/accuracy-check-plan.md): records of a type the reference device also
+        // writes are held back for the check's window — by data time, so the watermarks below still
+        // advance past them (see [ExportPause]). Read once per pass; the pass runs under
+        // HealthConnectExportWorker.passMutex, which the resume choice also takes, so a choice can't
+        // land halfway through a pass.
+        val exclusions = ExportPause.exclusions(db.accuracyDao().all(), db.accuracyDao().allPausedUnits())
+        fun noteHeldBack(label: String, f: ExportPause.Filtered) {
+            if (f.heldBack > 0) skipped += "$label: ${f.heldBack} record(s) held back by the accuracy check"
+        }
+
         // ── Vitals group (Phase 1; watermarked on Measurement.createdAt, one group watermark) ──
         val kindToggles = mapOf(
             "hr" to prefs.heartRate,
@@ -336,7 +347,13 @@ class HealthConnectExporter(
                 skipped += kindLabels.getValue(kindKey) + " (permission not granted)"
                 continue
             }
-            val pending = exporter.build(kindKey, effectiveWatermark(vitalsWm, prefs.newOnlyConsentAt), device)
+            val built = exporter.build(kindKey, effectiveWatermark(vitalsWm, prefs.newOnlyConsentAt), device)
+            val held = ExportPause.filter(built.records, built.highWaters, exclusions)
+            noteHeldBack(kindLabels.getValue(kindKey), held)
+            val pending = built.copy(
+                records = held.records, highWaters = held.highWaters,
+                droppedHighWater = ExportPause.maxOfNullable(built.droppedHighWater, held.heldBackHighWater),
+            )
             val progress = insertChunked(pending.records, pending.highWaters) { chunk ->
                 client.insertRecords(chunk)
             }
@@ -378,7 +395,13 @@ class HealthConnectExporter(
             if (permission !in granted) {
                 skipped += "sleep (permission not granted)"
             } else {
-                val sleepPending = SleepExporter(db).build(effectiveWatermark(wm0.sleep, prefs.newOnlyConsentAt), device)
+                val sleepBuilt = SleepExporter(db).build(effectiveWatermark(wm0.sleep, prefs.newOnlyConsentAt), device)
+                val sleepHeld = ExportPause.filter(sleepBuilt.records, sleepBuilt.highWaters, exclusions)
+                noteHeldBack("sleep", sleepHeld)
+                val sleepPending = sleepBuilt.copy(
+                    records = sleepHeld.records, highWaters = sleepHeld.highWaters,
+                    droppedHighWater = ExportPause.maxOfNullable(sleepBuilt.droppedHighWater, sleepHeld.heldBackHighWater),
+                )
                 val sleepProgress = insertChunked(sleepPending.records, sleepPending.highWaters) { chunk ->
                     client.insertRecords(chunk)
                 }
@@ -434,7 +457,7 @@ class HealthConnectExporter(
             }
             val metrics = metricPermissions.filterValues { it in granted }.keys
             if (metrics.isNotEmpty()) {
-                val activityPending = ActivityExporter(db).build(
+                val activityBuilt = ActivityExporter(db).build(
                     watermark = effectiveWatermark(wm0.activity, prefs.newOnlyConsentAt),
                     device = device,
                     metrics = metrics,
@@ -442,6 +465,12 @@ class HealthConnectExporter(
                     // actually being written — see [shouldNetWorkouts].
                     netWorkouts = shouldNetWorkouts(prefs, granted),
                     nowMs = timestamp,
+                )
+                val activityHeld = ExportPause.filter(activityBuilt.records, activityBuilt.highWaters, exclusions)
+                noteHeldBack("activity", activityHeld)
+                val activityPending = activityBuilt.copy(
+                    records = activityHeld.records, highWaters = activityHeld.highWaters,
+                    droppedHighWater = ExportPause.maxOfNullable(activityBuilt.droppedHighWater, activityHeld.heldBackHighWater),
                 )
                 val activityProgress = insertChunked(activityPending.records, activityPending.highWaters) { chunk ->
                     client.insertRecords(chunk)
@@ -492,8 +521,15 @@ class HealthConnectExporter(
                 val withRoute = HealthConnectPermissions.exerciseRoute.first() in granted
                 val withEnergy = HealthConnectPermissions.activeCalories.first() in granted
                 val withDistance = HealthConnectPermissions.distance.first() in granted
-                val workoutsPending = WorkoutExporter(db).build(
+                val workoutsBuilt = WorkoutExporter(db).build(
                     effectiveWatermark(wm0.workouts, prefs.newOnlyConsentAt), device, withRoute, withEnergy, withDistance, timestamp,
+                )
+                // Only the calorie and distance siblings can be held back; the session always exports.
+                val workoutsHeld = ExportPause.filter(workoutsBuilt.records, workoutsBuilt.highWaters, exclusions)
+                noteHeldBack("workouts", workoutsHeld)
+                val workoutsPending = workoutsBuilt.copy(
+                    records = workoutsHeld.records, highWaters = workoutsHeld.highWaters,
+                    invalidHighWater = ExportPause.maxOfNullable(workoutsBuilt.invalidHighWater, workoutsHeld.heldBackHighWater),
                 )
                 val workoutsProgress = insertChunked(workoutsPending.records, workoutsPending.highWaters) { chunk ->
                     insertChunkWithRouteShrink(chunk) { client.insertRecords(it) }
@@ -546,7 +582,12 @@ class HealthConnectExporter(
             if (restingPermission !in granted) {
                 skipped += "resting heart rate (permission not granted)"
             } else {
-                val restingPending = RestingHeartRateExporter(db).build(effectiveWatermark(wm0.restingHr, prefs.newOnlyConsentAt), device)
+                val restingBuilt = RestingHeartRateExporter(db).build(effectiveWatermark(wm0.restingHr, prefs.newOnlyConsentAt), device)
+                val restingHeld = ExportPause.filter(restingBuilt.records, restingBuilt.highWaters, exclusions)
+                noteHeldBack("resting heart rate", restingHeld)
+                // Empty after holding back takes the "nothing to export" branch below, which moves
+                // the watermark to now — past the held-back baseline, as for every other group.
+                val restingPending = restingBuilt.copy(records = restingHeld.records, highWaters = restingHeld.highWaters)
                 if (restingPending.records.isEmpty()) {
                     // Nothing to export (no baseline yet, already current, or implausible): the
                     // group's "everything exported" point is now - same rule as the other groups.
