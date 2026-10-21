@@ -1031,3 +1031,71 @@ interface MedDao {
     @Query("DELETE FROM med_doses WHERE medId = :medId")
     suspend fun deleteDosesFor(medId: String)
 }
+
+/** The accuracy check (docs/accuracy-check-plan.md, v36). */
+@Dao
+interface AccuracyDao {
+    @Query("SELECT * FROM accuracy_checks WHERE state IN ('RUNNING', 'AWAITING_RESUME') ORDER BY startedAt DESC LIMIT 1")
+    suspend fun open(): AccuracyCheckEntity?
+
+    @Query("SELECT * FROM accuracy_checks WHERE state IN ('RUNNING', 'AWAITING_RESUME') ORDER BY startedAt DESC LIMIT 1")
+    fun openFlow(): Flow<AccuracyCheckEntity?>
+
+    @Query("SELECT * FROM accuracy_checks ORDER BY startedAt DESC")
+    fun allFlow(): Flow<List<AccuracyCheckEntity>>
+
+    @Query("SELECT * FROM accuracy_checks ORDER BY startedAt DESC")
+    suspend fun all(): List<AccuracyCheckEntity>
+
+    @Query("SELECT * FROM accuracy_checks WHERE id = :id")
+    suspend fun byId(id: String): AccuracyCheckEntity?
+
+    @Query("SELECT * FROM accuracy_checks WHERE id = :id")
+    fun byIdFlow(id: String): Flow<AccuracyCheckEntity?>
+
+    @Upsert
+    suspend fun upsert(check: AccuracyCheckEntity)
+
+    @Query("SELECT * FROM accuracy_paused_units")
+    suspend fun allPausedUnits(): List<AccuracyPausedUnitEntity>
+
+    @Query("SELECT * FROM accuracy_paused_units WHERE checkId = :checkId")
+    suspend fun pausedUnits(checkId: String): List<AccuracyPausedUnitEntity>
+
+    @Query("SELECT * FROM accuracy_paused_units")
+    fun allPausedUnitsFlow(): Flow<List<AccuracyPausedUnitEntity>>
+
+    /** Ignore: a unit already paused keeps its original [AccuracyPausedUnitEntity.pausedFrom]. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPausedUnits(units: List<AccuracyPausedUnitEntity>)
+
+    @Query("SELECT * FROM accuracy_check_days WHERE checkId = :checkId")
+    suspend fun days(checkId: String): List<AccuracyCheckDayEntity>
+
+    @Query("SELECT * FROM accuracy_check_days WHERE checkId = :checkId")
+    fun daysFlow(checkId: String): Flow<List<AccuracyCheckDayEntity>>
+
+    @Query("SELECT * FROM accuracy_check_days")
+    suspend fun allDays(): List<AccuracyCheckDayEntity>
+
+    @Upsert
+    suspend fun upsertDays(days: List<AccuracyCheckDayEntity>)
+
+    @Query("DELETE FROM accuracy_check_days WHERE checkId = :checkId")
+    suspend fun clearDays(checkId: String)
+
+    @Query("SELECT * FROM accuracy_corrections")
+    suspend fun allCorrections(): List<AccuracyCorrectionEntity>
+
+    @Query("SELECT * FROM accuracy_corrections")
+    fun allCorrectionsFlow(): Flow<List<AccuracyCorrectionEntity>>
+
+    @Query("SELECT * FROM accuracy_corrections WHERE deviceKey = :deviceKey")
+    suspend fun corrections(deviceKey: String): List<AccuracyCorrectionEntity>
+
+    @Upsert
+    suspend fun upsertCorrection(c: AccuracyCorrectionEntity)
+
+    @Query("DELETE FROM accuracy_corrections WHERE deviceKey = :deviceKey AND metric = :metric")
+    suspend fun deleteCorrection(deviceKey: String, metric: String)
+}

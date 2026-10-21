@@ -304,6 +304,30 @@ class HealthConnectPrefsStore internal constructor(private val prefsStore: Share
         }
     }
 
+    /**
+     * Move the named groups' watermarks back to [to], never forward — the accuracy check's
+     * "Export them too" (docs/accuracy-check-plan.md): rows written since the check began
+     * re-select and export now that their exclusion is gone, and nothing older is re-read. A null
+     * watermark stays null (that group never exported, so it will reach the window anyway), and
+     * an EXPORT_NEW_ONLY user is never rewound past the consent instant.
+     */
+    fun rewindWatermarks(keys: Set<HealthConnectWatermarks.Key>, to: Long) {
+        if (keys.isEmpty()) return
+        synchronized(writeLock) {
+            val prefs = _prefs.value
+            val floor = if (prefs.backfillChoice == HealthConnectPrefs.BackfillChoice.EXPORT_NEW_ONLY) {
+                maxOf(to, prefs.newOnlyConsentAt ?: to)
+            } else to
+            var next = _watermarks.value
+            for (key in keys) {
+                val cur = next.get(key) ?: continue
+                if (floor < cur) next = next.copyWith(key, floor)
+            }
+            if (next == _watermarks.value) return
+            _watermarks.value = next
+            prefsStore.edit().putString(KEY_WATERMARKS, json.encodeToString(HealthConnectWatermarks.serializer(), next)).apply()
+        }
+    }
 
     /** Clear every watermark (iOS `removeAllExportedData`; Phase 6 revocation reset). */
     fun clearWatermarks() {

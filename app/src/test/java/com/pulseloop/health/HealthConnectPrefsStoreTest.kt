@@ -402,4 +402,27 @@ class HealthConnectPrefsStoreTest {
         assertNull(store.current.newOnlyConsentAt)
         assertTrue(store.current.newOnlyStamped)
     }
+
+    @Test
+    fun rewindMovesOnlyBackwardsAndLeavesNeverExportedGroupsAlone() {
+        val store = storeWith("{\"enabled\":true,\"backfillChoice\":\"EXPORT_ALL\"}")
+        store.setWatermark(HealthConnectWatermarks.Key.VITALS, 5_000L)
+        store.setWatermark(HealthConnectWatermarks.Key.SLEEP, 1_000L)
+        store.rewindWatermarks(
+            setOf(HealthConnectWatermarks.Key.VITALS, HealthConnectWatermarks.Key.SLEEP, HealthConnectWatermarks.Key.ACTIVITY),
+            2_000L,
+        )
+        assertEquals(2_000L, store.currentWatermarks.vitals)
+        assertEquals(1_000L, store.currentWatermarks.sleep) // already earlier: untouched
+        assertNull(store.currentWatermarks.activity) // never exported: stays null
+    }
+
+    @Test
+    fun rewindNeverCrossesANewOnlyUsersConsent() {
+        val store = storeWith("{\"enabled\":true}")
+        store.update { it.copy(backfillChoice = HealthConnectPrefs.BackfillChoice.EXPORT_NEW_ONLY, newOnlyConsentAt = 3_000L) }
+        store.setWatermark(HealthConnectWatermarks.Key.VITALS, 9_000L)
+        store.rewindWatermarks(setOf(HealthConnectWatermarks.Key.VITALS), 1_000L)
+        assertEquals(3_000L, store.currentWatermarks.vitals)
+    }
 }

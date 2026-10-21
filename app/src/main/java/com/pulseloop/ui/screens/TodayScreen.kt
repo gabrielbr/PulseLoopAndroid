@@ -128,6 +128,7 @@ fun TodayScreen(
     }
     // Drinks, when the user tracks them: the tile and the morning-after line on Last night.
     var drinkTick by remember { mutableIntStateOf(0) }
+    val accuracyOpen by db.accuracyDao().openFlow().collectAsState(initial = null)
     val drinks by produceState<com.pulseloop.service.DrinksRepository.Snapshot?>(null, state.lastUpdated, sleep.lastNight?.id, drinkTick) {
         value = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching { com.pulseloop.service.DrinksRepository.load(db) }.getOrNull() else null
     }
@@ -215,6 +216,9 @@ fun TodayScreen(
                     onActivity = { navController?.navigate("activity_score") },
                 )
             }
+
+            // Accuracy check in progress (docs/accuracy-check-plan.md): say so, since it pauses export.
+            accuracyOpen?.let { c -> item { AccuracyCheckBanner(c) { navController?.navigate("settings/accuracy-check") } } }
 
             // Glance: one line of what today means, and an alert line only when something is off.
             item {

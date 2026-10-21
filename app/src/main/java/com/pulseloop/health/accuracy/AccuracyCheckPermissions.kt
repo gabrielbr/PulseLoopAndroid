@@ -41,6 +41,13 @@ object AccuracyCheckPermissions {
 
     val all: Set<String> = ReferenceMetric.entries.map(::readPermission).toSet()
 
+    /**
+     * What the screen asks for: the types, plus background reading so the 6-hourly worker can
+     * grow the pause set without the app open. Optional — where Health Connect doesn't offer it,
+     * or the user declines, the pause set is refreshed whenever the screen is opened instead.
+     */
+    val request: Set<String> = all + HealthPermission.PERMISSION_READ_HEALTH_DATA_IN_BACKGROUND
+
     /** The metrics [granted] lets the scan read. */
     fun readable(granted: Set<String>): Set<ReferenceMetric> =
         ReferenceMetric.entries.filter { readPermission(it) in granted }.toSet()

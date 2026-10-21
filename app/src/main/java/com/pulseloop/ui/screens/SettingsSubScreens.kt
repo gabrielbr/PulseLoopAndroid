@@ -3396,6 +3396,12 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(8.dp))
+                    // Accuracy check: rows whose records the reference device also writes are held
+                    // back while a check runs (docs/accuracy-check-plan.md). The switch still works;
+                    // the hold applies whatever it says, so it's shown as a note, not a disabled row.
+                    val accuracyPaused by produceState(emptySet<com.pulseloop.health.accuracy.ExportUnit>()) {
+                        value = runCatching { com.pulseloop.health.accuracy.AccuracyCheckController.pausedNow(context) }.getOrDefault(emptySet())
+                    }
                     val rows = listOf(
                         HealthConnectPermissions.DataTypeRow.HEART_RATE to "Heart rate",
                         HealthConnectPermissions.DataTypeRow.OXYGEN_SATURATION to "Oxygen saturation (SpO₂)",
@@ -3440,6 +3446,16 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                                         "Awaiting permission",
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                                val heldUnits = accuracyPaused.filter { it.row == row }
+                                if (heldUnits.isNotEmpty()) {
+                                    Text(
+                                        if (row == HealthConnectPermissions.DataTypeRow.STEPS_AND_ACTIVITY) {
+                                            "Paused by the accuracy check: " + heldUnits.joinToString(", ") { it.metric.label.lowercase() }
+                                        } else "Paused by the accuracy check",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = PulseColors.warning,
                                     )
                                 }
                             }
