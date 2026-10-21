@@ -51,6 +51,9 @@ data class PulseArchive(
     val drinks: List<DrinkEntryDTO> = emptyList(),
     /** Logged periods (v34). */
     val periods: List<PeriodDTO> = emptyList(),
+    /** Medications and supplements, and answered doses (v35). */
+    val meds: List<MedDTO> = emptyList(),
+    val medDoses: List<MedDoseDTO> = emptyList(),
 )
 
 @Serializable data class FoodPreferenceDTO(
@@ -59,6 +62,13 @@ data class PulseArchive(
     val kcal: Double? = null, val proteinG: Double? = null, val reason: String? = null,
     val timesAgreed: Int = 1, val createdAt: Long, val updatedAt: Long,
 )
+
+@Serializable data class MedDTO(
+    val id: String, val name: String, val dose: String? = null, val kind: String = "medication",
+    val timesCsv: String, val active: Boolean = true, val createdAt: Long,
+)
+
+@Serializable data class MedDoseDTO(val id: String, val medId: String, val day: Long, val time: String, val status: String, val at: Long)
 
 @Serializable data class PeriodDTO(val id: String, val startDay: Long, val endDay: Long? = null, val createdAt: Long)
 

@@ -995,3 +995,39 @@ interface PeriodDao {
     @Query("DELETE FROM periods WHERE id = :id")
     suspend fun delete(id: String)
 }
+
+@Dao
+interface MedDao {
+    @Query("SELECT * FROM meds ORDER BY active DESC, name ASC")
+    fun allFlow(): Flow<List<MedEntity>>
+
+    @Query("SELECT * FROM meds WHERE active = 1")
+    suspend fun active(): List<MedEntity>
+
+    @Query("SELECT * FROM meds")
+    suspend fun all(): List<MedEntity>
+
+    @Upsert
+    suspend fun upsert(m: MedEntity)
+
+    @Query("DELETE FROM meds WHERE id = :id")
+    suspend fun delete(id: String)
+
+    @Query("SELECT * FROM med_doses WHERE day >= :fromDay")
+    fun dosesSinceFlow(fromDay: Long): Flow<List<MedDoseEntity>>
+
+    @Query("SELECT * FROM med_doses WHERE day >= :fromDay")
+    suspend fun dosesSince(fromDay: Long): List<MedDoseEntity>
+
+    @Query("SELECT * FROM med_doses")
+    suspend fun allDoses(): List<MedDoseEntity>
+
+    @Upsert
+    suspend fun upsertDose(d: MedDoseEntity)
+
+    @Query("DELETE FROM med_doses WHERE id = :id")
+    suspend fun deleteDose(id: String)
+
+    @Query("DELETE FROM med_doses WHERE medId = :medId")
+    suspend fun deleteDosesFor(medId: String)
+}

@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -127,7 +128,7 @@ private fun Sparkline(values: List<Double>, color: Color, modifier: Modifier = M
 }
 
 @Composable
-fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}) {
+fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -143,6 +144,24 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
             Text("My Health", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            val shareScope = rememberCoroutineScope()
+            IconButton(
+                onClick = {
+                    shareScope.launch {
+                        runCatching {
+                            val recap = com.pulseloop.service.WeeklyRecap.load(db)
+                            val uri = com.pulseloop.service.WeeklyRecap.share(context, recap)
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share my week"))
+                        }
+                    }
+                },
+                modifier = Modifier.align(Alignment.CenterEnd),
+            ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, "Share my week", tint = PulseColors.textSecondary) }
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -176,6 +195,17 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     Column(Modifier.weight(1f)) {
                         Text(cycle?.let { "Cycle · day ${it.cycleDay} · ${it.phase.label}" } ?: "Cycle", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         Text(cycle?.phase?.note ?: "Log your period to see its phase beside your sleep and recovery", fontSize = 12.sp, color = PulseColors.textMuted)
+                    }
+                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                        .clickable(onClick = onMeds).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Medications & supplements", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text("Your schedule, today's doses and a week's record", fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }

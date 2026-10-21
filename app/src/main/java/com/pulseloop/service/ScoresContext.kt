@@ -33,6 +33,8 @@ data class ScoresContext(
     /** Today's cardio load against the user's quiet waking heart rate, and its band. */
     val cardioLoad: Int? = null,
     val cardioLoadBand: String? = null,
+    /** Today's scheduled medications and supplements with their state ("Vitamin D 08:00: taken"). */
+    val medsToday: List<String> = emptyList(),
     val note: String = "Scores are PulseLoop estimates from ring data compared with the user's own baseline, not medical measurements.",
 ) {
     /** Short stable string for coach-summary regeneration signatures. */
@@ -57,7 +59,12 @@ data class ScoresContext(
                             Cycle.Period(java.time.LocalDate.ofEpochDay(it.startDay), it.endDay?.let { e -> java.time.LocalDate.ofEpochDay(e) })
                         }, java.time.LocalDate.now())
                     }.getOrNull()
-                    withLoad.copy(cycleDay = cycle?.cycleDay, cyclePhase = cycle?.phase?.label)
+                    val meds = runCatching {
+                        val today = java.time.LocalDate.now()
+                        Meds.dosesOn(today, db.medDao().active(), db.medDao().dosesSince(today.toEpochDay()), java.time.LocalDateTime.now())
+                            .map { "${it.med.name} ${it.time}: ${it.state.label.lowercase()}" }
+                    }.getOrDefault(emptyList())
+                    withLoad.copy(cycleDay = cycle?.cycleDay, cyclePhase = cycle?.phase?.label, medsToday = meds)
                 }
             }
 
