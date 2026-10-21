@@ -1,6 +1,6 @@
 # Accuracy check — compare the ring against another device via Health Connect
 
-Status: **plan, nothing implemented.** Date: 2026-10-21.
+Status: **Phase 0 implemented** (2026-10-21), waiting on a real-device scan. Later phases are plan only.
 
 ## The idea
 
@@ -318,6 +318,14 @@ say it is derived"* (#67), and the ring re-supplying its own history on every sy
    user can see what each app actually shares with Health Connect. *Verify on real devices
    which types Fitbit and Samsung Health actually write; this decides what the report can
    cover.*
+   *Done:* `health/accuracy/` — `AccuracyCheckPermissions` (8 READ_* types), `ReferenceSurvey`
+   (pure: per source and type, record/sample counts, median cadence, median delivery delay =
+   `lastModifiedTime − endTime`, devices from `Metadata.device`, sleep stage types, and the HR
+   echo check), `ReferenceSourceScanner` (foreground read of the last 7 days),
+   `ReferenceSurveyText` (wording + "Copy summary", counts and timings only). Screen:
+   Settings → Accuracy check (`AccuracyCheckUi.kt`). Nothing is stored yet. **Next:** run the
+   scan on the Huawei/Health Sync setup and paste the copied summary; it answers the four
+   Health Sync questions under Open questions.
 1. **Session lifecycle + per-type export pause**: table, the exporter's per-row pause gate that
    holds watermarks, daily refresh of the pause set, export-screen state, end job, notification,
    resume dialog with the per-kind skip, early end on a ring change. Unit-test the skip and that

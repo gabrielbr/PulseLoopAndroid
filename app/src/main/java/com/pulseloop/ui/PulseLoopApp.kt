@@ -628,6 +628,9 @@ fun PulseLoopApp() {
                 paddedComposable("settings/health-connect") {
                     HealthConnectSettingsScreen(onBack = { navController.popBackStack() })
                 }
+                paddedComposable("settings/accuracy-check") {
+                    AccuracyCheckSettingsScreen(onBack = { navController.popBackStack() })
+                }
                 paddedComposable("settings/nutrition") {
                     NutritionSettingsScreen(
                         onBack = { navController.popBackStack() },

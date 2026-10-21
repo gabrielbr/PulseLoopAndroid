@@ -46,7 +46,8 @@
     <!-- Phase 8: Health Connect export (write-only). Exactly the Phase 1–4 data types from
          docs/health-connect-integration.md — Phase 5 types (blood pressure, glucose, respiratory
          rate, VO2max, resting HR, nutrition) - the Phase 5 "beyond iOS" types, added in Phase 5 so the
-         first permission sheet stayed narrow. No READ_* permissions anywhere. -->
+         first permission sheet stayed narrow. The export itself holds no READ_* permissions; the
+         two read paths below each ask for their own. -->
     <uses-permission android:name="android.permission.health.WRITE_HEART_RATE" />
     <uses-permission android:name="android.permission.health.WRITE_OXYGEN_SATURATION" />
     <uses-permission android:name="android.permission.health.WRITE_HEART_RATE_VARIABILITY" />
@@ -66,7 +67,7 @@
     <uses-permission android:name="android.permission.health.WRITE_VO2_MAX" />
     <uses-permission android:name="android.permission.health.WRITE_RESTING_HEART_RATE" />
     <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
-    <!-- The one Health Connect READ path: a smart scale's body measurements (HealthConnectBodyImport). -->
+    <!-- Health Connect READ path 1: a smart scale's body measurements (HealthConnectBodyImport). -->
     <uses-permission android:name="android.permission.health.READ_WEIGHT" />
     <uses-permission android:name="android.permission.health.READ_HEIGHT" />
     <uses-permission android:name="android.permission.health.READ_BODY_FAT" />
@@ -74,6 +75,17 @@
     <uses-permission android:name="android.permission.health.READ_BONE_MASS" />
     <uses-permission android:name="android.permission.health.READ_BODY_WATER_MASS" />
     <uses-permission android:name="android.permission.health.READ_BASAL_METABOLIC_RATE" />
+    <!-- Accuracy check (docs/accuracy-check-plan.md): reads another device's data to compare the
+         ring against it. Its own permission set (AccuracyCheckPermissions), requested from
+         Settings → Accuracy check, never through the export's sheet. -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_RESTING_HEART_RATE" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_OXYGEN_SATURATION" />
+    <uses-permission android:name="android.permission.health.READ_HEART_RATE_VARIABILITY" />
 
     <application
         android:name=".PulseLoopApplication"

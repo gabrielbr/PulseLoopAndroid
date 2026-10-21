@@ -170,6 +170,9 @@ fun SettingsScreen(
                 add(SettingsRowItem(Icons.Filled.Sync, PulseColors.success, "Health Connect") {
                     navigate("settings/health-connect")
                 })
+                add(SettingsRowItem(Icons.Filled.Verified, PulseColors.info, "Accuracy check") {
+                    navigate("settings/accuracy-check")
+                })
                 add(SettingsRowItem(Icons.Filled.Info, PulseColors.textMuted, "About PulseLoop") {
                     navigate("settings/about")
                 })
