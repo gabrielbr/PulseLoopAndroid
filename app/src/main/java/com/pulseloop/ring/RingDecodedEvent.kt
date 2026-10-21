@@ -137,11 +137,13 @@ sealed class RingDecodedEvent {
     data class ActivityBucket(
         val _timestamp: Instant,
         val steps: Int,
-        val distanceMeters: Int
+        val distanceMeters: Int,
+        /** The ring's per-slot calories where the protocol carries them, unscaled; diagnostics only. */
+        val rawCalories: Int? = null,
     ) : RingDecodedEvent() {
         override val kind = "activity_bucket"
         override val confidence = DecodeConfidence.KNOWN
-        override val debugJSON = """{"steps":$steps,"distance_m":$distanceMeters}"""
+        override val debugJSON = """{"steps":$steps,"distance_m":$distanceMeters${rawCalories?.let { ",\"raw_kcal\":$it" } ?: ""}}"""
     }
 
     data class HeartRateSample(

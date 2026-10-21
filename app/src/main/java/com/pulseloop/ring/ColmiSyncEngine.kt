@@ -87,6 +87,22 @@ class ColmiSyncEngine(
      */
     internal val legacyTemperatureWatchdogTimeoutMs = 3_000L
 
+    /**
+     * How long a paged day may sit silent after its last frame before it counts as complete.
+     * Explicit end markers still end a day at once; this only catches a day whose last packet
+     * never comes, which used to sit out the 10–20 s stage watchdog while the ring counts down
+     * its own ~20 s idle hang-up (OpenStrap Edge ends a walk after 800 ms of quiet; 2 s leaves
+     * slower firmware room).
+     */
+    internal val pagedQuietMs = 2_000L
+    internal val activityQuietMs = 5_000L
+
+    /** After a legacy temperature reply, how long to wait for the next day's reply before the
+     *  sync is done; some firmware sends one reply per day. */
+    internal val legacyTemperatureQuietMs = 1_500L
+    private var quietJob: Job? = null
+    private var legacyTemperatureReplies = 0
+
     // Realtime HR keepalive.
     // Volatile: written on Main (start/stop actions), read on the notify thread —
     // [handleRawNotify] → [onRealtimeHeartRateRejected] decides whether a `0x9E` is the reply to
@@ -141,7 +157,21 @@ class ColmiSyncEngine(
      */
     @Volatile private var sportRejected = false
 
+    override val hasLiveSession: Boolean
+        get() = realtimeHRActive || manualHRActive || manualSpO2Active || sportActive ||
+            realtimeRejected && System.currentTimeMillis() - lastFallbackFrameAt < 30_000L
+
     companion object {
+        private const val MAX_LEGACY_TEMPERATURE_REPLIES = 8
+        private val PAGED_STAGES = setOf(Stage.ACTIVITY, Stage.HEART_RATE, Stage.STRESS, Stage.HRV)
+
+        /** A history opcode with the high bit set: the ring refusing that history request. */
+        fun rejectedHistoryOpcode(op: UByte): UByte? {
+            if (op.toInt() and 0x80 == 0) return null
+            val base = (op.toInt() and 0x7F).toUByte()
+            return base.takeIf { isHistoryOpcode(it) }
+        }
+
         fun isHistoryOpcode(op: UByte): Boolean =
             op == ColmiCommandID.SYNC_ACTIVITY ||
             op == ColmiCommandID.SYNC_HEART_RATE ||
@@ -365,9 +395,39 @@ class ColmiSyncEngine(
     fun handleHistoryFrame(data: ByteArray): List<RingDecodedEvent> {
         captureStageMetadata(data)
         val events = decoder.decodeHistory(data, day = syncDay, slotMinutes = slotMinutes)
+        val before = stage to daysAgo
         advanceAfterPagedFrame(data)
         armWatchdog()
+        // The day didn't end on this frame: if nothing more arrives, end it on quiet.
+        if ((stage to daysAgo) == before && stage in PAGED_STAGES) armQuiet(before.first, before.second)
         return events
+    }
+
+    /**
+     * The ring refused a history request (`opcode | 0x80`): this firmware doesn't keep that
+     * history, so the stage is over. Previously the refusal fell through to the plain decoder and
+     * the stage waited out its whole watchdog.
+     */
+    fun handleHistoryRejected(op: UByte) {
+        val rejected = when (op) {
+            ColmiCommandID.SYNC_ACTIVITY -> Stage.ACTIVITY
+            ColmiCommandID.SYNC_HEART_RATE -> Stage.HEART_RATE
+            ColmiCommandID.SYNC_STRESS -> Stage.STRESS
+            ColmiCommandID.SYNC_HRV -> Stage.HRV
+            else -> return
+        }
+        if (stage != rejected) return
+        quietJob?.cancel()
+        forceAdvanceStage(rejected)
+    }
+
+    private fun armQuiet(expected: Stage, day: Int) {
+        quietJob?.cancel()
+        quietJob = scope.launch {
+            // Activity keeps a longer quiet: its 20 s watchdog predates this and nothing records why.
+            delay(if (expected == Stage.ACTIVITY) activityQuietMs else pagedQuietMs)
+            if (isActive && stage == expected && daysAgo == day) advanceDay()
+        }
     }
 
     /**
@@ -448,7 +508,20 @@ class ColmiSyncEngine(
                 // request the ring answers by re-emitting its temperature frame, which re-entered this
                 // branch and looped into a GATT write storm that starved the sleep sync. The stage
                 // guard also makes a repeated temperature frame idempotent (finish once, then ignore).
-                if (stage == Stage.TEMPERATURE) finishSync()
+                //
+                // Some firmware answers with one reply per day, so the finish waits a moment of quiet
+                // for the rest instead of firing on the first reply, which started the idle hang-up
+                // logic while data was still arriving. Capped so a ring that keeps re-sending can't
+                // hold the sync open.
+                if (stage != Stage.TEMPERATURE) return
+                legacyTemperatureReplies++
+                watchdogJob?.cancel()
+                quietJob?.cancel()
+                if (legacyTemperatureReplies >= MAX_LEGACY_TEMPERATURE_REPLIES) { finishSync(); return }
+                quietJob = scope.launch {
+                    delay(legacyTemperatureQuietMs)
+                    if (isActive && stage == Stage.TEMPERATURE) finishSync()
+                }
             }
             ColmiCommandID.BIG_DATA_INTERVAL_TEMPERATURE -> {
                 if (stage != Stage.TEMPERATURE) return
@@ -531,6 +604,7 @@ class ColmiSyncEngine(
             lastIntervalTempPacket = -1
             writer?.enqueue(encoder.bigDataIntervalTemperature(daysAgo, 0))
         } else {
+            legacyTemperatureReplies = 0
             writer?.enqueue(encoder.bigDataTemperature())
         }
     }
@@ -544,7 +618,12 @@ class ColmiSyncEngine(
         val isEmpty = packetNr == 0xFF
         val dayComplete = isEmpty || isTerminalPacket(data)
         if (!dayComplete) return
+        quietJob?.cancel()
+        advanceDay()
+    }
 
+    /** The current paged day is complete: ask for the next one, or move to the next stage. */
+    private fun advanceDay() {
         when (stage) {
             Stage.ACTIVITY -> {
                 if (daysAgo < 7) { daysAgo++; requestActivity() }
@@ -628,6 +707,8 @@ class ColmiSyncEngine(
         stage = Stage.DONE
         watchdogJob?.cancel()
         watchdogJob = null
+        quietJob?.cancel()
+        quietJob = null
         // iOS publishes `.syncProgress("done")` here — it is the ONLY signal that stamps
         // `DeviceEntity.lastFullSyncAt`, and without it every freshness consumer silently
         // degrades for Colmi rings: the coach check-in skip gate and done-wait (#61c), the

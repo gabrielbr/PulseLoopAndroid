@@ -2509,6 +2509,8 @@ fun PrivacyDataSettingsScreen(
             }
         }
 
+        AutoBackupCard()
+
         // App data — destructive reset/restore actions.
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
@@ -3726,4 +3728,84 @@ private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, 
             Text("Let my goal manage these", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
+}
+
+
+/** Scheduled backups into a folder the user picks (see data/AutoBackup.kt). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AutoBackupCard() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var enabled by remember { mutableStateOf(com.pulseloop.data.AutoBackup.isEnabled(context)) }
+    var folderName by remember { mutableStateOf(com.pulseloop.data.AutoBackup.folderName(context)) }
+    var interval by remember { mutableStateOf(com.pulseloop.data.AutoBackup.intervalDays(context)) }
+    var status by remember { mutableStateOf(backupStatus(context)) }
+    var running by remember { mutableStateOf(false) }
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            com.pulseloop.data.AutoBackup.setFolder(context, uri)
+            folderName = com.pulseloop.data.AutoBackup.folderName(context)
+            if (!enabled) { enabled = true; com.pulseloop.data.AutoBackup.setEnabled(context, true) }
+            status = backupStatus(context)
+        }
+    }
+    Card(Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Automatic backups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "Saves the same file as Export to a folder you choose, and keeps the latest 5.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = enabled, onCheckedChange = {
+                    if (it && com.pulseloop.data.AutoBackup.folder(context) == null) picker.launch(null)
+                    else { enabled = it; com.pulseloop.data.AutoBackup.setEnabled(context, it) }
+                })
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    "Folder: ${folderName ?: "not chosen"}",
+                    style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
+                )
+                TextButton(onClick = { picker.launch(null) }) { Text(if (folderName == null) "Choose" else "Change") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(1 to "Daily", 7 to "Weekly").forEach { (d, label) ->
+                    FilterChip(
+                        selected = interval == d,
+                        onClick = { interval = d; com.pulseloop.data.AutoBackup.setIntervalDays(context, d) },
+                        label = { Text(label) },
+                    )
+                }
+            }
+            Text(status, style = MaterialTheme.typography.bodySmall,
+                color = if (com.pulseloop.data.AutoBackup.lastError(context) != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+            OutlinedButton(
+                enabled = !running && folderName != null,
+                onClick = {
+                    running = true
+                    scope.launch {
+                        com.pulseloop.data.AutoBackup.runNow(context)
+                        status = backupStatus(context)
+                        running = false
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) { Text(if (running) "Backing up…" else "Back up now") }
+        }
+    }
+}
+
+private fun backupStatus(context: android.content.Context): String {
+    com.pulseloop.data.AutoBackup.lastError(context)?.let { return it }
+    val last = com.pulseloop.data.AutoBackup.lastAt(context)
+    if (last <= 0) return "No backup yet."
+    val fmt = java.text.SimpleDateFormat("EEE d MMM, HH:mm", java.util.Locale.getDefault())
+    return "Last backup: ${fmt.format(java.util.Date(last))}"
 }
