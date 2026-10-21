@@ -53,6 +53,14 @@ class PulseLoopApplication : Application() {
             },
         )
         WidgetRefreshWorker.schedule(this)
+        // Scheduled backups: the daily worker, plus a catch-up on start when one is overdue.
+        com.pulseloop.data.AutoBackup.schedule(this)
+        appScope.launch {
+            val c = this@PulseLoopApplication
+            if (com.pulseloop.data.AutoBackup.isEnabled(c) &&
+                com.pulseloop.data.AutoBackup.isDue(com.pulseloop.data.AutoBackup.lastAt(c), com.pulseloop.data.AutoBackup.intervalDays(c), System.currentTimeMillis())
+            ) com.pulseloop.data.AutoBackup.runNow(c)
+        }
 
     }
 }

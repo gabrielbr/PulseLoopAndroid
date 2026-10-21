@@ -218,6 +218,9 @@ class RingBLEClient(
     // finished a sync (so a later quiet drop is the ring idling, not a fault) and how long the
     // watchdog should leave the ring alone afterwards.
     @Volatile private var syncCompletedOnLink = false
+    /** Set when the app hangs up a quiet Colmi link itself, so the disconnect counts as idle. */
+    @Volatile private var appIdleDisconnect = false
+    private var settleJob: kotlinx.coroutines.Job? = null
     @Volatile private var idleRestUntil = 0L
     // When the reconnect budget ran out (0 = not spent); lets unattended retries resume later.
     private var budgetExhaustedAt = 0L
@@ -246,6 +249,7 @@ class RingBLEClient(
                     _state.value.connectionState == RingConnectionState.CONNECTED
                 ) {
                     syncCompletedOnLink = true
+                    if (activeCoordinator?.deviceType == RingDeviceType.COLMI_R02) settleIdleLink()
                 }
             }
         }
@@ -572,6 +576,38 @@ class RingBLEClient(
      * into "connected-but-invisible" (won't appear in scans until Bluetooth is
      * toggled). Keeps the stored identity so [connectLastKnown] can reconnect later.
      */
+    /**
+     * After a Colmi sync, hang up once the link has gone quiet instead of waiting for the ring's
+     * own ~20 s idle hang-up (OpenStrap Edge disconnects after every sync). A local disconnect has
+     * a clean status, the ring is free for its own app sooner, and the drop is still treated as
+     * idle (rest, no red error) through [IdleLinkPolicy.isIdleDrop]'s requestedByApp. Never while
+     * a live stream, spot measurement or workout runs, or while commands are still queued.
+     */
+    private fun settleIdleLink() {
+        settleJob?.cancel()
+        settleJob = scope.launch {
+            val started = System.currentTimeMillis()
+            while (System.currentTimeMillis() - started < IdleLinkPolicy.SETTLE_MAX_MS) {
+                delay(1_000L)
+                if (_state.value.connectionState != RingConnectionState.CONNECTED) return@launch
+                if (activeSyncEngine?.hasLiveSession == true) return@launch
+                val busy = synchronized(opLock) { inFlightOp != null || opQueue.isNotEmpty() }
+                val quiet = System.currentTimeMillis() - lastActivityAt >= IdleLinkPolicy.SETTLE_QUIET_MS
+                if (!busy && quiet) {
+                    val gatt = bluetoothGatt ?: return@launch
+                    recordDiagnostic("sync done, link quiet — disconnecting until the next sync")
+                    appIdleDisconnect = true
+                    try { gatt.disconnect() } catch (_: Exception) { appIdleDisconnect = false; return@launch }
+                    // Under Doze the stack can drop the STATE_DISCONNECTED callback; finish the
+                    // teardown ourselves rather than leave a half-closed link marked connected.
+                    delay(3_000L)
+                    if (appIdleDisconnect && bluetoothGatt === gatt) handleDisconnect(gatt, BluetoothGatt.GATT_SUCCESS)
+                    return@launch
+                }
+            }
+        }
+    }
+
     fun disconnect() {
         // Lifecycle/worker teardown is intentional. Leave genuine link-loss callbacks eligible
         // for watchdog recovery, but do not let this client undo an explicit transient teardown.
@@ -1952,8 +1988,10 @@ class RingBLEClient(
             deviceType = activeCoordinator?.deviceType,
             syncCompletedOnLink = syncCompletedOnLink,
             status = status,
+            requestedByApp = appIdleDisconnect,
         )
         syncCompletedOnLink = false
+        appIdleDisconnect = false
         val now = System.currentTimeMillis()
         if (idleDrop) {
             // The ring hung up after syncing: let it rest instead of redialling straight away,

@@ -59,10 +59,19 @@ object IdleLinkPolicy {
         deviceType: RingDeviceType?,
         syncCompletedOnLink: Boolean,
         status: Int,
+        /** The app hung up itself after the sync ([RingBLEClient.settleIdleLink]): an idle drop
+         *  whatever status the stack reports for a locally initiated disconnect. */
+        requestedByApp: Boolean = false,
     ): Boolean =
         deviceType == RingDeviceType.COLMI_R02 &&
             syncCompletedOnLink &&
-            status in idleStatuses
+            (status in idleStatuses || requestedByApp)
+
+    /** After a Colmi sync, how long the link must be quiet before the app hangs up itself. */
+    const val SETTLE_QUIET_MS = 4_000L
+
+    /** Stop waiting for quiet after this long: the ring hangs up on its own at ~20 s anyway. */
+    const val SETTLE_MAX_MS = 15_000L
 
     /** Whether the watchdog should still leave an idle ring alone at [now]. */
     fun isResting(restUntil: Long, now: Long): Boolean = now < restUntil

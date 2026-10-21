@@ -175,16 +175,27 @@ object ColmiDecoder {
         val packet = ColmiPacket.validating(data) ?: return emptyList()
         val v = packet.bytes.map { it.toUByte() }
         return when (v[0]) {
-            ColmiCommandID.SYNC_HEART_RATE -> decodeHRHistory(v, day, zone, slotMinutes ?: 5)
-            ColmiCommandID.SYNC_STRESS -> decodeStressHistory(v, day, zone, slotMinutes ?: 30)
-            ColmiCommandID.SYNC_HRV -> decodeHRVHistory(v, day, zone, slotMinutes ?: 30)
+            ColmiCommandID.SYNC_HEART_RATE -> decodeHRHistory(v, day, zone, slotMinutes ?: 5, now)
+            ColmiCommandID.SYNC_STRESS -> decodeStressHistory(v, day, zone, slotMinutes ?: 30, now)
+            ColmiCommandID.SYNC_HRV -> decodeHRVHistory(v, day, zone, slotMinutes ?: 30, now)
             ColmiCommandID.SYNC_ACTIVITY -> decodeActivityHistory(v, zone, now)
             else -> emptyList()
         }
     }
 
+    /**
+     * The ring keeps one buffer slot per time of day and doesn't clear a slot it hasn't measured
+     * yet today, so yesterday's byte comes back in today's log at a time that hasn't happened
+     * (observed by OpenStrap Edge; our own HR echo comment noted the missing clamp). Drop
+     * anything later than now, with two minutes' grace for clock skew.
+     */
+    internal fun isFutureSlot(ts: Instant, now: Instant): Boolean = ts.isAfter(now.plusSeconds(120))
+
+    /** A plausible stored heart rate; anything outside is a sensor artefact, not a reading. */
+    internal val HR_HISTORY_BPM = 25..230
+
     private fun decodeHRHistory(
-        v: List<UByte>, day: LocalDate, zone: ZoneId, slotMin: Int
+        v: List<UByte>, day: LocalDate, zone: ZoneId, slotMin: Int, now: Instant,
     ): List<RingDecodedEvent> {
         val packetNr = v[1].toInt()
         if (packetNr == 0xFF || packetNr == 0) return emptyList()
@@ -193,8 +204,9 @@ object ColmiDecoder {
         val minutesInPrevious = if (packetNr > 1) (9 + (packetNr - 2) * 13) * slotMin else 0
         return (startIndex until v.size - 1).mapNotNull { i ->
             val bpm = v[i].toInt()
-            if (bpm == 0) return@mapNotNull null
+            if (bpm !in HR_HISTORY_BPM) return@mapNotNull null
             val ts = base.plusMinutes((minutesInPrevious + (i - startIndex) * slotMin).toLong()).toInstant()
+            if (isFutureSlot(ts, now)) return@mapNotNull null
             RingDecodedEvent.HistoryMeasurement(
                 kind_field = MeasurementKind.HEART_RATE, value = bpm.toDouble(), _timestamp = ts
             )
@@ -202,7 +214,7 @@ object ColmiDecoder {
     }
 
     private fun decodeStressHistory(
-        v: List<UByte>, day: LocalDate, zone: ZoneId, slotMin: Int
+        v: List<UByte>, day: LocalDate, zone: ZoneId, slotMin: Int, now: Instant,
     ): List<RingDecodedEvent> {
         val packetNr = v[1].toInt()
         if (packetNr == 0xFF || packetNr == 0) return emptyList()
@@ -213,6 +225,7 @@ object ColmiDecoder {
             val stress = v[i].toInt()
             if (stress == 0) return@mapNotNull null
             val ts = base.plusMinutes((minutesInPrevious + (i - startIndex) * slotMin).toLong()).toInstant()
+            if (isFutureSlot(ts, now)) return@mapNotNull null
             RingDecodedEvent.StressSample(
                 value = stress,
                 _timestamp = ts,
@@ -222,7 +235,7 @@ object ColmiDecoder {
     }
 
     private fun decodeHRVHistory(
-        v: List<UByte>, day: LocalDate, zone: ZoneId, slotMin: Int
+        v: List<UByte>, day: LocalDate, zone: ZoneId, slotMin: Int, now: Instant,
     ): List<RingDecodedEvent> {
         val packetNr = v[1].toInt()
         if (packetNr == 0xFF || packetNr == 0) return emptyList()
@@ -233,6 +246,7 @@ object ColmiDecoder {
             val hrv = v[i].toInt()
             if (hrv == 0) return@mapNotNull null
             val ts = base.plusMinutes((minutesInPrevious + (i - startIndex) * slotMin).toLong()).toInstant()
+            if (isFutureSlot(ts, now)) return@mapNotNull null
             RingDecodedEvent.HistoryMeasurement(
                 kind_field = MeasurementKind.HRV,
                 value = hrv.toDouble(),
@@ -267,8 +281,11 @@ object ColmiDecoder {
 
         val steps = ColmiBytes.u16(v[9], v[10])
         val distance = ColmiBytes.u16(v[11], v[12]).toInt()
+        // Bytes 7-8 are the slot's calories (OpenStrap Edge reads them; a header flag may scale
+        // them ×10). Carried for diagnostics only until a capture confirms the scale.
+        val calories = ColmiBytes.u16(v[7], v[8])
         return listOf(RingDecodedEvent.ActivityBucket(
-            _timestamp = ts, steps = steps, distanceMeters = distance
+            _timestamp = ts, steps = steps, distanceMeters = distance, rawCalories = calories,
         ))
     }
 
@@ -472,12 +489,27 @@ object ColmiDecoder {
             }
             if (stages.isNotEmpty()) {
                 events.add(RingDecodedEvent.SleepTimeline(
-                    _timestamp = sessionStart.toInstant(), stages = stages
+                    _timestamp = sleepAnchor(sessionStart, dayStart.atStartOfDay(zone).plusMinutes(sleepEnd.toLong()), stages.size).toInstant(),
+                    stages = stages,
                 ))
             }
         }
         return events
     }
+
+    /**
+     * Where a night's stage blocks start. Normally the header's start; when the header's span and
+     * the blocks' own minutes disagree by more than [SLEEP_ANCHOR_TOLERANCE_MIN], the night is laid
+     * back from its end instead, which is how the ring lays out its data (a header saying 22:00
+     * over blocks that only cover 05:00–06:00 otherwise put an hour of sleep at 22:00).
+     */
+    internal fun sleepAnchor(headerStart: java.time.ZonedDateTime, headerEnd: java.time.ZonedDateTime, blockMinutes: Int): java.time.ZonedDateTime {
+        val span = java.time.Duration.between(headerStart, headerEnd).toMinutes()
+        if (span <= 0 || kotlin.math.abs(span - blockMinutes) <= SLEEP_ANCHOR_TOLERANCE_MIN) return headerStart
+        return headerEnd.minusMinutes(blockMinutes.toLong())
+    }
+
+    internal const val SLEEP_ANCHOR_TOLERANCE_MIN = 15L
 
     fun sleepStage(type: UByte): SleepStage = when (type) {
         ColmiCommandID.SLEEP_LIGHT -> SleepStage.LIGHT

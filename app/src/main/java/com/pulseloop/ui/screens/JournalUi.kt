@@ -200,7 +200,7 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
                 }
             }
             Text(
-                "These are patterns in your own data, not proof of cause and effect. They get more reliable the more days you tag.",
+                "These are patterns in your own data, not proof of cause and effect. Every tag is checked against your sleep, HRV and resting heart rate together, so a difference that could easily be chance isn't shown. They get more reliable the more days you tag.",
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))

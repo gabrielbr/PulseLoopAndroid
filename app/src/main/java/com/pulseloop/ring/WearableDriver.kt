@@ -144,6 +144,12 @@ interface RingSyncEngine {
         const val DEFAULT_SPOT_SPO2_SECONDS = 60
     }
 
+    /**
+     * A live stream, spot measurement or workout session is running on this link, so the app
+     * must not hang up on its own once history is done (see `RingBLEClient.settleIdleLink`).
+     */
+    val hasLiveSession: Boolean get() = false
+
     /** True only for protocols with one native command that returns a combined vitals packet.
      * Capability bits such as manual BP/glucose do not imply this transport feature. */
     val supportsCombinedMeasurement: Boolean get() = false

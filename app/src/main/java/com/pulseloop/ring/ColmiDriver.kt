@@ -45,6 +45,10 @@ class ColmiDriver(private val writer: RingCommandWriter) : WearableDriver {
 
     private fun ingestNormal(data: ByteArray): List<RingDecodedEvent> {
         val op = if (data.isNotEmpty()) data[0].toUByte() else 0u
+        ColmiSyncEngine.rejectedHistoryOpcode(op)?.let { refused ->
+            engine.handleHistoryRejected(refused)
+            return listOf(RingDecodedEvent.Unknown(commandId = op, raw = data))
+        }
         if (ColmiSyncEngine.isHistoryOpcode(op)) {
             return engine.handleHistoryFrame(data)
         }

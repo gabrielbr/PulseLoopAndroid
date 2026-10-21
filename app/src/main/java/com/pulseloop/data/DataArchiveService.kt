@@ -353,6 +353,11 @@ object DataArchiveService {
         )
     }
 
+    /** The whole archive as JSON, the same text a manual export writes. */
+    suspend fun exportJson(db: PulseLoopDatabase): String = withContext(Dispatchers.Default) {
+        json.encodeToString(PulseArchive.serializer(), exportArchive(db))
+    }
+
     suspend fun exportToFile(context: Context, db: PulseLoopDatabase): Uri? = withContext(Dispatchers.Default) {
         val archive = exportArchive(db)
         val jsonStr = json.encodeToString(PulseArchive.serializer(), archive)

@@ -58,4 +58,17 @@ class JournalInsightsTest {
         }
         assertFalse(JournalInsights.effects(tags, nights).single().hasEffect)
     }
+
+    @Test
+    fun `a big-looking difference that is only noise is not reported`() {
+        // HRV alternates 30/50 for everyone; the three tagged nights happen to average 36.7
+        // against about 40.6 — a 10 % "drop" the old rule reported, and chance at p ≈ 0.6.
+        val tags = setOf(1, 3, 6).associate { start.plusDays(it.toLong()) to setOf("stress") }
+        val nights = (1..20).map { i ->
+            NightSummary(start.plusDays(i.toLong()), 0, 8 * 3600_000L, 450, 55.0, if (i % 2 == 0) 30.0 else 50.0, 1.0)
+        }
+        val e = JournalInsights.effects(tags, nights).single()
+        assertNull(e.hrvPct)
+        assertFalse(e.hasEffect)
+    }
 }
