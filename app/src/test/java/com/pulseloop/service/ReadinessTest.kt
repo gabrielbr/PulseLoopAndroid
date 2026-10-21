@@ -117,9 +117,20 @@ class ReadinessTest {
     }
 
     @Test
-    fun `a night without HR or HRV gives Learning rather than a sleep-only readiness`() {
+    fun `a night without HR or HRV is withheld rather than a sleep-only readiness`() {
+        // The baseline exists, so this isn't "learning": last night's readings were too poor.
         val r = Readiness.compute(inputs(last = night(today, rhr = null, hrv = null)))
-        assertTrue(r is Readiness.Result.Learning)
+        assertTrue(r is Readiness.Result.Withheld)
+        assertTrue((r as Readiness.Result.Withheld).reasons.isNotEmpty())
+    }
+
+    @Test
+    fun `hrv that is too sparse, flat or scattered is withheld with a reason`() {
+        assertTrue(hrvQuality(listOf(40.0, 42.0))!!.startsWith("Only 2 HRV readings"))
+        assertTrue(hrvQuality(listOf(40.0, 40.0, 40.0, 40.0))!!.contains("same value"))
+        assertTrue(hrvQuality(listOf(10.0, 90.0, 15.0, 80.0, 40.0))!!.contains("scattered"))
+        assertNull(hrvQuality(listOf(38.0, 42.0, 40.0, 45.0, 36.0)))
+        assertNull(hrvQuality(emptyList()))
     }
 
     @Test

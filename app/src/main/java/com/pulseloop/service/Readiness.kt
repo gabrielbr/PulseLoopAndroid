@@ -83,6 +83,14 @@ data class NightSummary(
     val temperature: Double? = null,
     /** When the night's sustained lowest heart rate happened (recovery index). */
     val minHrAt: Long? = null,
+    /** Readings behind the night's numbers, for the "data behind this score" view. */
+    val hrSamples: Int = 0,
+    val hrvSamples: Int = 0,
+    /**
+     * Numbers withheld tonight and why ("hrv" → "…"), so the UI says "not measured" with a
+     * reason instead of guessing (OpenStrap Edge refuses an artefact night the same way).
+     */
+    val withheld: Map<String, String> = emptyMap(),
 ) {
     /** Clock midpoint of the night, in minutes past local midnight of the waking day (may be negative). */
     fun midpointMinutes(zone: ZoneId): Int {
@@ -118,7 +126,12 @@ object NightlyVitals {
         val lowest = if (hr.size >= MIN_HR_SAMPLES) windows.minByOrNull { w -> w.sumOf { it.value } } else null
         val restingHr = lowest?.map { it.value }?.average()
 
-        val hrvValue = if (hrvNight.size >= MIN_HRV_SAMPLES) median(hrvNight.map { it.value }) else null
+        val hrvGate = hrvQuality(hrvNight.map { it.value })
+        val hrvValue = if (hrvGate == null) median(hrvNight.map { it.value }) else null
+        val withheld = buildMap {
+            hrvGate?.let { put("hrv", it) }
+            if (hr.size < MIN_HR_SAMPLES) put("restingHr", "Only ${hr.size} heart-rate reading${if (hr.size == 1) "" else "s"} during the night ($MIN_HR_SAMPLES needed)")
+        }
 
         val slots = ((endAt - startAt) / SLOT_MS).toInt().coerceAtLeast(1)
         val covered = hr.map { ((it.timestampMs - startAt) / SLOT_MS).toInt().coerceIn(0, slots - 1) }.toSet().size
@@ -137,11 +150,44 @@ object NightlyVitals {
                 .takeIf { it.size >= MIN_HRV_SAMPLES }
                 ?.let { s -> median(s.map { it.value }) }?.let { (it * 100).roundToInt() / 100.0 },
             minHrAt = lowest?.get(1)?.timestampMs,
+            hrSamples = hr.size,
+            hrvSamples = hrvNight.size,
+            withheld = withheld,
         )
     }
 }
 
+/**
+ * Whether a night's HRV readings can stand for the night, or why not. A ring reports HRV as a
+ * few vendor values a night, so the checks are about those values, not beat intervals: too few,
+ * all identical (a stored value repeated, not measurements), or scattered so widely that their
+ * middle means nothing. Null when the night's HRV can be used.
+ */
+internal fun hrvQuality(values: List<Double>): String? {
+    if (values.isEmpty()) return null
+    if (values.size < NightlyVitals.MIN_HRV_SAMPLES) {
+        return "Only ${values.size} HRV reading${if (values.size == 1) "" else "s"} during the night (${NightlyVitals.MIN_HRV_SAMPLES} needed)"
+    }
+    if (values.size >= 4 && values.distinct().size == 1) {
+        return "Every HRV reading was the same value, which looks like a repeated stored number rather than a measurement"
+    }
+    val sorted = values.sorted()
+    val med = sorted[sorted.size / 2]
+    val mad = values.map { kotlin.math.abs(it - med) }.sorted()[values.size / 2]
+    if (med > 0 && mad / med > HRV_MAX_SPREAD) {
+        return "HRV readings were scattered too widely to trust (half were more than ${(mad / med * 100).roundToInt()}% from the middle)"
+    }
+    return null
+}
+
+/** Median absolute deviation over median above which a night's HRV is noise, not a level. */
+internal const val HRV_MAX_SPREAD = 0.5
+
 object Readiness {
+
+    /** Readiness needs at least this many contributors carrying at least this share of the weight. */
+    const val MIN_CONTRIBUTORS = 2
+    const val MIN_WEIGHT_SHARE = 0.5
 
     /** Oura asks for "up to two weeks"; a week of nights is the least that is a baseline at all. */
     const val MIN_BASELINE_NIGHTS = 7
@@ -209,6 +255,12 @@ object Readiness {
 
         /** No sleep recorded for last night: there is nothing to be ready *from*. */
         data object NoSleep : Result()
+
+        /**
+         * The baseline exists but last night's readings can't carry a score: shown as "—" with the
+         * reasons rather than a number built from whatever happened to survive.
+         */
+        data class Withheld(val reasons: List<String>, val nightCoverage: Double?) : Result()
     }
 
     data class Inputs(
@@ -240,12 +292,21 @@ object Readiness {
             previousDayActivity(inputs.dailySteps),
             activityBalance(inputs.dailySteps),
         )
-        // A score from sleep alone is a sleep score; readiness needs the body's own signal.
-        if (contributors.none { it.kind == ContributorKind.RESTING_HR || it.kind == ContributorKind.HRV_BALANCE }) {
-            return Result.Learning(nightsWithVitals, MIN_BASELINE_NIGHTS)
+        // A score from sleep alone is a sleep score; readiness needs the body's own signal, and
+        // enough of the whole that what survived isn't a guess.
+        val weightSum = contributors.sumOf { it.kind.weight }
+        val applicableWeight = ContributorKind.entries
+            .filter { !(it.optionalSensor && !sensorSeen(it, night, inputs.history)) }
+            .sumOf { it.weight }
+        if (contributors.none { it.kind == ContributorKind.RESTING_HR || it.kind == ContributorKind.HRV_BALANCE } ||
+            contributors.size < MIN_CONTRIBUTORS || weightSum < applicableWeight * MIN_WEIGHT_SHARE
+        ) {
+            val reasons = night.withheld.values.toList().ifEmpty {
+                listOf("Last night's heart rate and HRV readings weren't enough to score recovery")
+            }
+            return Result.Withheld(reasons, night.coverage)
         }
 
-        val weightSum = contributors.sumOf { it.kind.weight }
         val value = (contributors.sumOf { it.score * it.kind.weight } / weightSum).roundToInt().coerceIn(0, 100)
         val present = contributors.map { it.kind }.toSet()
         return Result.Score(
@@ -435,6 +496,8 @@ object ReadinessCopy {
         is Readiness.Result.Learning ->
             "Learning your baseline: ${result.nightsCollected} of ${result.nightsNeeded} nights. Keep wearing your ring to bed."
         Readiness.Result.NoSleep -> "No sleep recorded for last night yet. Sync your ring after you wake up."
+        is Readiness.Result.Withheld ->
+            "No readiness today: ${result.reasons.first().replaceFirstChar { it.lowercase() }}. Wear the ring snugly tonight."
     }
 
     /** A visible caution when the ring missed much of the night, or null when coverage is fine. */

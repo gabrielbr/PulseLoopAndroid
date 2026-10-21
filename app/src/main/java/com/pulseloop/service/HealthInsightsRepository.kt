@@ -182,7 +182,7 @@ object HealthInsightsRepository {
                 val expected = profile?.age?.let { CardioCapacity.expectedVo2(it, profile?.sex?.lowercase() == "female") }
                 val score = expected?.let { HealthArea.scoreOf(c.vo2max / it * 0.85) } ?: 60
                 add(HealthArea("Heart health", HealthArea.rate(score), score, weekly { it.restingHr },
-                    "Cardio capacity ${c.level.label.lowercase()}" + (c.cardioAge?.let { ", cardiovascular age about $it" } ?: "")))
+                    "Cardio capacity ${c.level.label.lowercase()}, estimated from resting heart rate and age"))
             }
         }
 

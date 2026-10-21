@@ -689,7 +689,11 @@ fun PulseLoopApp() {
                     com.pulseloop.ui.screens.MyHealthScreen(
                         onBack = { navController.popBackStack() },
                         onBreathe = { navController.navigate("breathe") },
+                        onWhatChanged = { navController.navigate("what_changed") },
                     )
+                }
+                paddedComposable("what_changed") {
+                    com.pulseloop.ui.screens.WhatChangedScreen(onBack = { navController.popBackStack() })
                 }
                 paddedComposable("breathe") {
                     com.pulseloop.ui.screens.BreatheScreen(onBack = { navController.popBackStack() })

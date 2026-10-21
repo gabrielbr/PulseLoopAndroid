@@ -416,3 +416,19 @@ data class FoodPreferenceEntity(
         fun idFor(slot: String, item: String, action: String) = "$slot:${item.trim().lowercase()}:$action"
     }
 }
+
+/**
+ * One "what changed" finding (service/Findings.kt): one row per day and kind, stamped with the
+ * formula version that produced it. Derived and recomputable, so it isn't in the backup archive.
+ */
+@Entity(tableName = "findings", indices = [Index("day")])
+data class FindingEntity(
+    @PrimaryKey val id: String,
+    val day: Long,
+    val kind: String,
+    val title: String,
+    val detail: String,
+    val positive: Boolean,
+    val algorithmVersion: Int,
+    val createdAt: Long = System.currentTimeMillis(),
+)
