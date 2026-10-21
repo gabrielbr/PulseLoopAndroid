@@ -179,4 +179,12 @@ class DrinkInsightsTest {
         assertTrue(AuditC.advice(AuditC.Level.HIGHER).contains("don't stop all at once"))
         assertFalse(AuditC.advice(AuditC.Level.LOW).contains("doctor"))
     }
+
+    @Test
+    fun `a drink logged on the card names its meal and carries carbs`() {
+        assertEquals("Beer (can)", DrinksRepository.mealName(DrinkType.BEER, 1))
+        assertEquals("3 × Wine", DrinksRepository.mealName(DrinkType.WINE, 3))
+        assertEquals(0.0, DrinkType.SPIRIT.carbsG, 0.0)
+        assertTrue(DrinkType.entries.filter { it != DrinkType.SPIRIT }.all { it.carbsG > 0 })
+    }
 }
