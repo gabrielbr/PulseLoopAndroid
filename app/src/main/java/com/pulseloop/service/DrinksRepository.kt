@@ -87,9 +87,20 @@ object DrinksRepository {
     private fun dayStart(d: LocalDate, zone: ZoneId) = d.atStartOfDay(zone).toInstant().toEpochMilli()
     private fun dateOf(ms: Long, zone: ZoneId) = Instant.ofEpochMilli(ms).atZone(zone).toLocalDate()
 
+    /** Marks a meal the Drinks card created, so removing one of its drinks can restate it. */
+    const val MEAL_NOTE = "Logged from Drinks"
+
+    /** The meal-log name for [count] drinks of [type]: "Beer (can)" or "2 × Wine". */
+    fun mealName(type: DrinkType, count: Int): String = if (count <= 1) type.label else "$count × ${type.label}"
+
     /**
      * Log [count] drinks of [type] at [timestamp]. Each drink is its own row, so one can be removed.
      * Ticks the journal's Alcohol tag for that evening, so "What affects you" keeps working.
+     *
+     * A drink logged on its own (no [mealId]) also lands in the meal log as a snack carrying its
+     * calories, so the day's calorie count includes it. That meal is written straight to the table
+     * rather than through [MealJournal.afterLog]: logging a beer must not switch nutrition tracking
+     * on, and the drinks already point at the meal, so [fromMeal] has nothing to add.
      */
     suspend fun log(
         db: PulseLoopDatabase,
@@ -103,10 +114,26 @@ object DrinksRepository {
     ): List<DrinkEntryEntity> {
         val evening = MealJournal.eveningOf(timestamp, zone)
         val day = dayStart(evening, zone)
-        val rows = (0 until count.coerceIn(1, 12)).map {
+        val n = count.coerceIn(1, 12)
+        val linkedMeal = mealId ?: runCatching {
+            val meal = MealEntryEntity(
+                date = dayStart(dateOf(timestamp, zone), zone),
+                timestamp = timestamp,
+                name = mealName(type, n),
+                mealTypeRaw = "snack",
+                calories = type.kcal * n,
+                carbsG = type.carbsG * n,
+                servingDescription = type.label,
+                quantity = n.toDouble(),
+                notes = MEAL_NOTE,
+            )
+            db.mealEntryDao().upsert(meal)
+            meal.id
+        }.getOrNull()
+        val rows = (0 until n).map {
             DrinkEntryEntity(
                 timestamp = timestamp, day = day, type = type.key, volumeMl = type.volumeMl, abvPct = type.abvPct,
-                grams = type.grams, kcal = type.kcal, price = price, mealId = mealId, note = note,
+                grams = type.grams, kcal = type.kcal, price = price, mealId = linkedMeal, note = note,
             )
         }
         rows.forEach { db.drinkDao().upsert(it) }
@@ -117,20 +144,53 @@ object DrinksRepository {
     }
 
     /**
-     * A logged meal that names a drink becomes drink entries too, so nobody logs twice. Skipped
-     * when Drinks is off, when the meal already has drinks, or when the same kind of drink was
-     * logged on its own within 30 minutes.
+     * Remove one drink. When the Drinks card created its meal, the meal shrinks with it (and goes
+     * once its last drink does), so the calorie count follows. A meal the user logged themselves
+     * ("2 beers and fries") is left alone: its calories aren't only the drink's.
+     */
+    suspend fun delete(db: PulseLoopDatabase, entry: DrinkEntryEntity) {
+        db.drinkDao().delete(entry.id)
+        val mealId = entry.mealId ?: return
+        runCatching {
+            val meal = db.mealEntryDao().byId(mealId) ?: return
+            if (meal.notes != MEAL_NOTE) return
+            val left = db.drinkDao().byMeal(mealId)
+            if (left.isEmpty()) {
+                db.mealEntryDao().deleteById(mealId)
+            } else {
+                val type = DrinkType.of(left.first().type)
+                db.mealEntryDao().upsert(
+                    meal.copy(
+                        name = mealName(type, left.size),
+                        calories = left.sumOf { it.kcal },
+                        carbsG = type.carbsG * left.size,
+                        quantity = left.size.toDouble(),
+                        updatedAt = System.currentTimeMillis(),
+                    )
+                )
+            }
+        }
+    }
+
+    /**
+     * A logged meal that names a drink becomes drink entries too, so nobody logs twice and the
+     * week's count is right even before Drinks is switched on. Skipped when the meal already has
+     * drinks, or when the same kind of drink was logged on its own within 30 minutes.
      */
     suspend fun fromMeal(db: PulseLoopDatabase, meal: MealEntryEntity, zone: ZoneId = ZoneId.systemDefault()) {
-        if (!DrinkPrefs.enabled || !MealJournal.isAlcohol(meal.name, meal.notes)) return
+        if (!MealJournal.isAlcohol(meal.name, meal.notes)) return
         if (db.drinkDao().byMeal(meal.id).isNotEmpty()) return
         val text = listOfNotNull(meal.name, meal.notes).joinToString(" ")
         val type = DrinkType.guess(text)
         val evening = MealJournal.eveningOf(meal.timestamp, zone)
         val recent = db.drinkDao().between(dayStart(evening, zone), dayStart(evening.plusDays(1), zone))
-        if (recent.any { it.mealId == null && it.type == type.key && kotlin.math.abs(it.timestamp - meal.timestamp) <= 30 * 60_000L }) return
-        log(db, type, DrinkType.count(meal.name), meal.timestamp, mealId = meal.id, zone = zone)
+        // Logged on the Drinks card: no meal, or the snack the card made for it.
+        val near = recent.filter { it.type == type.key && it.note != FROM_MEAL && kotlin.math.abs(it.timestamp - meal.timestamp) <= 30 * 60_000L }
+        if (near.any { d -> d.mealId == null || db.mealEntryDao().byId(d.mealId)?.notes == MEAL_NOTE }) return
+        log(db, type, DrinkType.count(meal.name), meal.timestamp, mealId = meal.id, note = FROM_MEAL, zone = zone)
     }
+
+    private const val FROM_MEAL = "from_meal"
 
     suspend fun onMealDeleted(db: PulseLoopDatabase, mealId: String) {
         runCatching { db.drinkDao().deleteByMeal(mealId) }
@@ -202,7 +262,7 @@ object DrinksRepository {
             todayStandard = DrinkInsights.standardDrinks(byDay[today] ?: 0.0, std),
             auditDue = DrinkPrefs.auditDate?.let { it.plusDays(AuditC.RETAKE_DAYS) <= today } ?: true,
             weekDays = (0L until 7L).map { DrinkInsights.weekStart(today).plusDays(it) }.map { it to (byDay[it] ?: 0.0) },
-            topTypes = topTypes(all.filter { it.mealId == null }.map { DrinkType.of(it.type) }),
+            topTypes = topTypes(all.filter { it.note != FROM_MEAL }.map { DrinkType.of(it.type) }),
         )
     }
 

@@ -428,7 +428,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
     var more by remember { mutableStateOf(false) }
     var planOpen by remember { mutableStateOf(false) }
     var showTonight by remember { mutableStateOf(false) }
-    var lastLogged by remember { mutableStateOf<Pair<String, List<String>>?>(null) }
+    var lastLogged by remember { mutableStateOf<Pair<String, List<DrinkEntryEntity>>?>(null) }
     var toDelete by remember { mutableStateOf<DrinkEntryEntity?>(null) }
 
     DrinkCard("Log a drink", action = {
@@ -448,7 +448,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                         .clickable {
                             scope.launch {
                                 val rows = DrinksRepository.log(db, t)
-                                lastLogged = "+1 ${t.short.lowercase()}" to rows.map { it.id }
+                                lastLogged = "+1 ${t.short.lowercase()}" to rows
                                 onChange()
                             }
                         }
@@ -468,7 +468,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                     "Undo",
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                     modifier = Modifier.clickable {
-                        scope.launch { ids.forEach { db.drinkDao().delete(it) }; lastLogged = null; onChange() }
+                        scope.launch { ids.forEach { DrinksRepository.delete(db, it) }; lastLogged = null; onChange() }
                     }.padding(4.dp),
                 )
             }
@@ -505,7 +505,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
             confirmButton = {
                 TextButton(onClick = {
                     toDelete = null
-                    scope.launch { db.drinkDao().delete(e.id); onChange() }
+                    scope.launch { DrinksRepository.delete(db, e); onChange() }
                 }) { Text("Delete", color = PulseColors.danger) }
             },
             dismissButton = { TextButton(onClick = { toDelete = null }) { Text("Cancel") } },
@@ -521,7 +521,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
             MoreDrinkSheet { type, count, hoursAgo, price ->
                 scope.launch {
                     val rows = DrinksRepository.log(db, type, count, System.currentTimeMillis() - hoursAgo * 3_600_000L, price = price)
-                    lastLogged = "$count ${type.short.lowercase()}" to rows.map { it.id }
+                    lastLogged = "$count ${type.short.lowercase()}" to rows
                     more = false
                     onChange()
                 }

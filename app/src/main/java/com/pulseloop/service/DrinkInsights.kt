@@ -11,15 +11,16 @@ import kotlin.math.roundToInt
  */
 
 /** A drink as logged, with typical Brazilian and international sizes. */
-enum class DrinkType(val key: String, val label: String, val volumeMl: Double, val abvPct: Double, val kcal: Double) {
-    BEER("beer", "Beer (can)", 350.0, 5.0, 150.0),
-    BEER_600("beer_600", "Beer (600 ml)", 600.0, 5.0, 255.0),
-    DRAFT("draft", "Chopp", 300.0, 5.0, 130.0),
-    WINE("wine", "Wine", 150.0, 12.0, 125.0),
+/** [carbsG] per drink, rough label values, so a drink logged from the Drinks card fills the meal log's macros too. */
+enum class DrinkType(val key: String, val label: String, val volumeMl: Double, val abvPct: Double, val kcal: Double, val carbsG: Double = 0.0) {
+    BEER("beer", "Beer (can)", 350.0, 5.0, 150.0, 12.0),
+    BEER_600("beer_600", "Beer (600 ml)", 600.0, 5.0, 255.0, 21.0),
+    DRAFT("draft", "Chopp", 300.0, 5.0, 130.0, 11.0),
+    WINE("wine", "Wine", 150.0, 12.0, 125.0, 4.0),
     SPIRIT("spirit", "Spirit (shot)", 40.0, 40.0, 95.0),
-    CAIPIRINHA("caipirinha", "Caipirinha", 50.0, 40.0, 240.0),
-    COCKTAIL("cocktail", "Cocktail", 50.0, 40.0, 200.0),
-    OTHER("other", "Cider / other", 330.0, 4.5, 140.0);
+    CAIPIRINHA("caipirinha", "Caipirinha", 50.0, 40.0, 240.0, 25.0),
+    COCKTAIL("cocktail", "Cocktail", 50.0, 40.0, 200.0, 15.0),
+    OTHER("other", "Cider / other", 330.0, 4.5, 140.0, 12.0);
 
     val grams: Double get() = DrinkInsights.grams(volumeMl, abvPct)
 
