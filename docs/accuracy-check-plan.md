@@ -88,7 +88,7 @@ another device"). The code name in this doc is `AccuracyCheck`.
 - Records PulseLoop exported *before* the check stay in Health Connect. The comparison filters
   them out by `DataOrigin` (below), so they don't get in the way.
 - Process death, reboot or an app update mid-check: everything is persisted, and the check
-  picks up where it left off. A WorkManager job ends the check at `activeSince + N days` even if
+  picks up where it left off. A WorkManager job ends the check at `startedAt + N days` even if
   the app is never opened. It posts a "Your accuracy report is ready" notification and leaves
   export **paused until the user answers the resume dialog**. Resuming silently would make the
   choice for them.
