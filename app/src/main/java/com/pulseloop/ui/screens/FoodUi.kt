@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -87,10 +88,10 @@ fun FoodCard(
             if (!f.enabled) {
                 Text(
                     "Hide", fontSize = 12.sp, color = PulseColors.textMuted,
-                    modifier = Modifier.clickable {
+                    modifier = Modifier.clickable(role = Role.Button) {
                         hidden = true
                         hiddenPrefs(context).edit().putBoolean("hidden", true).apply()
-                    }.padding(4.dp),
+                    }.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 12.dp),
                 )
             }
         }

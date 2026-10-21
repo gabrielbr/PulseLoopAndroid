@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -35,6 +37,10 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -112,7 +118,8 @@ fun ProfileEditor(
                                 textAlign = TextAlign.End,
                             ),
                             cursorBrush = SolidColor(PulseColors.accent),
-                            modifier = Modifier.fillMaxWidth(),
+                            // The "Name" label is a sibling Text, so the field names itself.
+                            modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Name" },
                         )
                     }
                 }
@@ -248,7 +255,8 @@ private fun SegmentedRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(4.dp))
             .background(PulseColors.cardSoft)
-            .padding(3.dp),
+            .padding(3.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         options.forEachIndexed { index, option ->
@@ -258,7 +266,7 @@ private fun SegmentedRow(
                     .weight(1f)
                     .clip(RoundedCornerShape(4.dp))
                     .background(if (selected) PulseColors.accent else Color.Transparent)
-                    .clickable { onSelect(index) }
+                    .selectable(selected = selected, role = Role.RadioButton) { onSelect(index) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
             ) {
@@ -280,7 +288,7 @@ private fun PickerRow(title: String, value: String?, onClick: () -> Unit) {
         Modifier
             .fillMaxWidth()
             .heightIn(min = 50.dp)
-            .clickable(onClick = onClick),
+            .clickable(role = Role.Button, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -352,14 +360,14 @@ private fun NumberPickerSheet(
             }
             LazyColumn(
                 state = listState,
-                modifier = Modifier.fillMaxWidth().height(300.dp),
+                modifier = Modifier.fillMaxWidth().height(300.dp).selectableGroup(),
             ) {
                 itemsIndexed(values) { _, value ->
                     val selected = value == selection
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .clickable { selection = value }
+                            .selectable(selected = selected, role = Role.RadioButton) { selection = value }
                             .then(if (selected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center,
@@ -472,11 +480,20 @@ private fun DecimalValueSheet(
                         ),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
+                            imeAction = androidx.compose.ui.text.input.ImeAction.Done,
                         ),
+                        // Done on the keyboard saves, as the sheet's Done does, once the value is valid.
+                        keyboardActions = androidx.compose.foundation.text.KeyboardActions(onDone = {
+                            if (parsedValue != null) {
+                                onSave(parsedValue)
+                                onDismiss()
+                            }
+                        }),
                         cursorBrush = SolidColor(PulseColors.accent),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(focusRequester),
+                            .focusRequester(focusRequester)
+                            .semantics { contentDescription = "Weight in $unit" },
                     )
                 }
 
@@ -636,6 +653,10 @@ private fun GoalSliderCard(
                 onValueChange(snapped.toDouble())
             },
             valueRange = range,
+            modifier = Modifier.semantics {
+                contentDescription = title
+                stateDescription = label
+            },
             colors = SliderDefaults.colors(
                 thumbColor = tint,
                 activeTrackColor = tint,

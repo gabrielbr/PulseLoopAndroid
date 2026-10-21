@@ -1,6 +1,7 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.theme.PulseColors
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -52,6 +53,24 @@ fun RecordScreen(
         paceOrSpeedLabel = "Pace"
         paceOrSpeedValue = ActivityMeta.pace(distanceMeters, elapsedSeconds, units)
             ?.let { it + ActivityMeta.paceUnit(units) } ?: "—"
+    }
+
+    // System back used to pop this screen while the workout kept recording, with no way back to
+    // it. Ask instead: keep going, or finish (which lands on the summary).
+    var showLeaveDialog by remember { mutableStateOf(false) }
+    BackHandler { showLeaveDialog = true }
+    if (showLeaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showLeaveDialog = false },
+            title = { Text("Workout in progress") },
+            text = { Text("Your workout is still recording. Finish it now, or keep recording?") },
+            confirmButton = {
+                TextButton(onClick = { showLeaveDialog = false; onFinish() }) { Text("Finish") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showLeaveDialog = false }) { Text("Keep recording") }
+            },
+        )
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
@@ -109,19 +128,19 @@ fun RecordScreen(
         Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (isPaused) {
                 Button(onClick = onResume, Modifier.weight(1f).height(52.dp)) {
-                    Icon(Icons.Filled.PlayArrow, "Resume")
+                    Icon(Icons.Filled.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))
                     Text("Resume")
                 }
             } else {
                 OutlinedButton(onClick = onPause, Modifier.weight(1f).height(52.dp)) {
-                    Icon(Icons.Filled.Pause, "Pause")
+                    Icon(Icons.Filled.Pause, null)
                     Spacer(Modifier.width(8.dp))
                     Text("Pause")
                 }
             }
             Button(onClick = onFinish, Modifier.weight(1f).height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                Icon(Icons.Filled.Stop, "Finish")
+                Icon(Icons.Filled.Stop, null)
                 Spacer(Modifier.width(8.dp))
                 Text("Finish")
             }

@@ -18,7 +18,8 @@ object PulseColors {
     val elevated = Color(0xFF2C2B30)
     val textPrimary = Color(0xFFF2F2F2)
     val textSecondary = Color(0xFFA8A7AD)
-    val textMuted = Color(0xFF7C7B82)
+    /** Tertiary text. #8E8D94 so it still reads at 4.5:1 on [card] and [cardSoft] (#7C7B82 was 4.1 / 3.7). */
+    val textMuted = Color(0xFF8E8D94)
     /** GMind mint: the primary action, the selected state, the screen frame. */
     val accent = Color(0xFF43F3B7)
     val accentSoft = Color(0x2E43F3B7)   // accent @ 18%

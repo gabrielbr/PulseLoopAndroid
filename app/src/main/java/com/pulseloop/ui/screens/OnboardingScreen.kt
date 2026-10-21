@@ -3,8 +3,12 @@ package com.pulseloop.ui.screens
 import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
@@ -52,6 +56,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -112,6 +119,9 @@ fun OnboardingScreen(
         progressStore.savePath(path)
     }
 
+    // System back walks the step stack before it leaves the flow.
+    BackHandler(enabled = path.size > 1) { goBack() }
+
     fun finish() {
         scope.launch {
             val profile = db.userProfileDao().get() ?: UserProfileEntity()
@@ -129,6 +139,8 @@ fun OnboardingScreen(
     }
 
     // BLE permissions gate on "Get started" (preserved from the previous onboarding screen).
+    // A denial used to leave the button silently doing nothing; it now explains and offers a way out.
+    var blePermissionDenied by remember { mutableStateOf(false) }
     val blePermissions = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             arrayOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT)
@@ -139,7 +151,12 @@ fun OnboardingScreen(
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { results ->
-        if (blePermissions.all { results[it] == true }) push(OnboardingStep.RING)
+        if (blePermissions.all { results[it] == true }) {
+            blePermissionDenied = false
+            push(OnboardingStep.RING)
+        } else {
+            blePermissionDenied = true
+        }
     }
 
     fun getStarted() {
@@ -178,6 +195,14 @@ fun OnboardingScreen(
                 OnboardingStep.WELCOME -> WelcomeStep(
                     getStarted = ::getStarted,
                     exploreWithoutRing = { push(OnboardingStep.PROFILE) },
+                    permissionDenied = blePermissionDenied,
+                    openAppSettings = {
+                        context.startActivity(
+                            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                .setData(Uri.fromParts("package", context.packageName, null))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        )
+                    },
                 )
                 OnboardingStep.RING -> PairingScreen(
                     bleClient = bleClient,
@@ -282,7 +307,12 @@ private data class WelcomeFeature(
 )
 
 @Composable
-private fun WelcomeStep(getStarted: () -> Unit, exploreWithoutRing: () -> Unit) {
+private fun WelcomeStep(
+    getStarted: () -> Unit,
+    exploreWithoutRing: () -> Unit,
+    permissionDenied: Boolean = false,
+    openAppSettings: () -> Unit = {},
+) {
     val features = listOf(
         WelcomeFeature(Icons.Filled.Paid, "No subscription", "Own your ring data", PulseColors.success),
         WelcomeFeature(Icons.Filled.Lock, "Privacy first", "Data stays on device", PulseColors.info),
@@ -295,8 +325,24 @@ private fun WelcomeStep(getStarted: () -> Unit, exploreWithoutRing: () -> Unit) 
     StepScaffold(
         footer = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                PrimaryButton("Get started", icon = Icons.Filled.ArrowForward, onClick = getStarted)
-                SecondaryButton("Explore without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
+                if (permissionDenied) {
+                    Text(
+                        "PulseLoop needs Bluetooth permission to find and connect to your ring. " +
+                            "Allow it in Settings, or continue without a ring and pair one later.",
+                        fontSize = 13.sp,
+                        color = PulseColors.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                    // "Try again" re-checks the grant first, so it also carries on after the user
+                    // allowed Bluetooth in Settings; without it a denial had no way back to pairing.
+                    PrimaryButton("Try again", icon = Icons.Filled.ArrowForward, onClick = getStarted)
+                    SecondaryButton("Open settings", onClick = openAppSettings)
+                    SecondaryButton("Continue without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
+                } else {
+                    PrimaryButton("Get started", icon = Icons.Filled.ArrowForward, onClick = getStarted)
+                    SecondaryButton("Explore without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
+                }
             }
         },
     ) {

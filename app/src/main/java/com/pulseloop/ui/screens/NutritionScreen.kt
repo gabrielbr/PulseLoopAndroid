@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -78,6 +80,7 @@ fun NutritionScreen(
     LaunchedEffect(dayOffset) { reload() }
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var mealToDelete by remember { mutableStateOf<MealEntryEntity?>(null) }
     var analysisRequest by remember { mutableStateOf<AnalysisRequest?>(null) }
 
     // iOS gates the Photo/Describe pills on coach + cloud provider + a photo-analysis
@@ -122,9 +125,9 @@ fun NutritionScreen(
             // Day navigation — left goes to older dates (higher offset), right goes to today (offset 0).
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { dayOffset++ }) { Icon(Icons.Filled.ChevronLeft, "Previous") }
+                    IconButton(onClick = { dayOffset++ }) { Icon(Icons.Filled.ChevronLeft, "Previous day") }
                     Text(dateLabel, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    IconButton(onClick = { if (dayOffset > 0) dayOffset-- }, enabled = dayOffset > 0) { Icon(Icons.Filled.ChevronRight, "Next") }
+                    IconButton(onClick = { if (dayOffset > 0) dayOffset-- }, enabled = dayOffset > 0) { Icon(Icons.Filled.ChevronRight, "Next day") }
                 }
             }
 
@@ -208,14 +211,8 @@ fun NutritionScreen(
                                     Text(meal.name, fontWeight = FontWeight.Medium)
                                     Text("${meal.calories.roundToInt()} kcal · P${meal.proteinG.roundToInt()} C${meal.carbsG.roundToInt()} F${meal.fatG.roundToInt()}", fontSize = 12.sp, color = PulseColors.textMuted)
                                 }
-                                IconButton(onClick = {
-                                    scope.launch {
-                                        db.mealEntryDao().deleteById(meal.id)
-                                        com.pulseloop.service.DrinksRepository.onMealDeleted(db, meal.id)
-                                        reload()
-                                    }
-                                }) {
-                                    Icon(Icons.Filled.Delete, "Delete", tint = PulseColors.danger, modifier = Modifier.size(18.dp))
+                                IconButton(onClick = { mealToDelete = meal }) {
+                                    Icon(Icons.Filled.Delete, "Delete ${meal.name}", tint = PulseColors.danger, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -260,6 +257,25 @@ fun NutritionScreen(
                 }
             }
         }
+    }
+
+    mealToDelete?.let { meal ->
+        AlertDialog(
+            onDismissRequest = { mealToDelete = null },
+            title = { Text("Delete meal?") },
+            text = { Text("\"${meal.name}\" will be removed from this day's log.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    mealToDelete = null
+                    scope.launch {
+                        db.mealEntryDao().deleteById(meal.id)
+                        com.pulseloop.service.DrinksRepository.onMealDeleted(db, meal.id)
+                        reload()
+                    }
+                }) { Text("Delete", color = PulseColors.danger) }
+            },
+            dismissButton = { TextButton(onClick = { mealToDelete = null }) { Text("Cancel") } },
+        )
     }
 
     if (showAddDialog) {
@@ -333,7 +349,7 @@ data class MealLogSave(
 private fun MacroBar(label: String, value: Double, goal: Double, color: Color) {
     val pct = if (goal > 0) (value / goal).coerceAtMost(1.0) else 0.0
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 10.sp, color = PulseColors.textMuted)
+        Text(label, fontSize = 12.sp, color = PulseColors.textMuted)
         Text("${value.roundToInt()}g", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         LinearProgressIndicator(
             progress = { pct.toFloat() },
@@ -343,6 +359,7 @@ private fun MacroBar(label: String, value: Double, goal: Double, color: Color) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealLogDialog(
     onDismiss: () -> Unit,
@@ -427,7 +444,8 @@ fun MealLogDialog(
         onDismissRequest = onDismiss,
         title = { Text("Log Meal") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Scrolls so the fields stay reachable on short screens and with the keyboard up.
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -448,18 +466,18 @@ fun MealLogDialog(
                     Text(it, fontSize = 12.sp, color = PulseColors.warning)
                 }
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("breakfast", "lunch", "dinner", "snack").forEach { t ->
                         FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t.replaceFirstChar { it.uppercase() }) })
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = cal, onValueChange = { cal = it }, label = { Text("kcal") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
-                    OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("P(g)") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = cal, onValueChange = { cal = decimalInput(it) ?: cal }, label = { Text("kcal", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = protein, onValueChange = { protein = decimalInput(it) ?: protein }, label = { Text("Protein (g)", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("C(g)") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
-                    OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("F(g)") }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = carbs, onValueChange = { carbs = decimalInput(it) ?: carbs }, label = { Text("Carbs (g)", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = fat, onValueChange = { fat = decimalInput(it) ?: fat }, label = { Text("Fat (g)", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
             }
         },
@@ -510,6 +528,12 @@ fun MealLogDialog(
             onDismiss = { showScanner = false },
         )
     }
+}
+
+/** Keeps a numeric field to digits and one decimal point (comma accepted), as MealAnalysisSheet's NumberField does; null rejects the edit. */
+private fun decimalInput(raw: String): String? {
+    val cleaned = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
+    return if (cleaned.count { it == '.' } <= 1) cleaned else null
 }
 
 /**

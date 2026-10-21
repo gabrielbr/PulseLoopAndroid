@@ -120,7 +120,7 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
 private fun EstimatedChip() {
     Text(
         "ESTIMATED",
-        fontSize = 9.sp,
+        fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.8.sp,
         color = ZonePalette.ZoneAmber,

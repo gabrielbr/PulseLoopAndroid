@@ -23,6 +23,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -215,7 +216,10 @@ fun TagDaySheet(db: PulseLoopDatabase, onDismiss: () -> Unit, onSeeEffects: () -
                 Text(
                     "See what affects you",
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-                    modifier = Modifier.clickable(onClick = onSeeEffects).padding(top = 4.dp),
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .clickable(role = Role.Button, onClick = onSeeEffects)
+                        .wrapContentHeight(Alignment.CenterVertically),
                 )
             }
         }
@@ -245,7 +249,7 @@ private fun SheetOption(title: String, subtitle: String, icon: ImageVector, onCl
 }
 
 /** The whole coach brief (the Today line shows only its first lines), with a way into the chat. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun CoachBriefSheet(
     title: String,
@@ -272,7 +276,12 @@ fun CoachBriefSheet(
             Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(body, fontSize = 15.sp, lineHeight = 22.sp, color = PulseColors.textSecondary)
             if (chips.isNotEmpty()) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Wraps rather than squeezing the third chip on a narrow phone or at a large font.
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
                     chips.take(3).forEach {
                         Text(
                             it, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1,

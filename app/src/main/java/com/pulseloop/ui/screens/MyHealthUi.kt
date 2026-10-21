@@ -1,5 +1,9 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.components.rememberReduceMotion
+import com.pulseloop.ui.components.switchRow
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -13,6 +17,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -24,6 +30,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,6 +43,11 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -53,8 +65,11 @@ import com.pulseloop.service.Trends
 import com.pulseloop.service.VitalSample
 import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.theme.dither
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 /*
@@ -115,8 +130,11 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
+    // A failed load used to leave "Reading your history…" up forever.
+    var loadFailed by remember { mutableStateOf(false) }
     val snap by produceState<HealthInsightsRepository.Snapshot?>(null, refresh) {
-        value = runCatching { HealthInsightsRepository.load(db) }.getOrNull()
+        loadFailed = false
+        value = runCatching { HealthInsightsRepository.load(db) }.onFailure { loadFailed = true }.getOrNull()
     }
     var restUntil by remember { mutableStateOf(RestMode.until(context)) }
 
@@ -131,7 +149,10 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
         ) {
             val s = snap
             if (s == null) {
-                Text("Reading your history…", color = PulseColors.textMuted, fontSize = 13.sp)
+                Text(
+                    if (loadFailed) "Couldn't load your health history." else "Reading your history…",
+                    color = if (loadFailed) PulseColors.warning else PulseColors.textMuted, fontSize = 13.sp,
+                )
             } else {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
@@ -197,7 +218,7 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
                 Text("Not a diagnosis. Rest, fluids and an easier day help; see a doctor if you feel unwell.", fontSize = 12.sp, color = PulseColors.textMuted)
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.switchRow(checked = restUntil != null, onCheckedChange = { on -> onRest(if (on) 3 else null) }), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text("Rest Mode", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
@@ -206,7 +227,7 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
             }
-            Switch(checked = restUntil != null, onCheckedChange = { on -> onRest(if (on) 3 else null) })
+            Switch(checked = restUntil != null, onCheckedChange = null)
         }
     }
 }
@@ -290,7 +311,11 @@ private fun Legend(color: Color, label: String) {
 @Composable
 fun HeartRateContextChart(samples: List<VitalSample>, sleep: List<LongRange>, workouts: List<LongRange>) {
     val sorted = remember(samples) { samples.sortedBy { it.timestampMs } }
-    Canvas(Modifier.fillMaxWidth().height(90.dp)) {
+    val summary = remember(sorted) {
+        "Heart rate since last night: latest ${sorted.last().value.roundToInt()} bpm, " +
+            "range ${sorted.minOf { it.value }.roundToInt()}–${sorted.maxOf { it.value }.roundToInt()} bpm, ${sorted.size} readings"
+    }
+    Canvas(Modifier.fillMaxWidth().height(90.dp).semantics { contentDescription = summary }) {
         val t0 = sorted.first().timestampMs; val t1 = sorted.last().timestampMs.coerceAtLeast(t0 + 1)
         val lo = sorted.minOf { it.value } - 5; val hi = sorted.maxOf { it.value } + 5
         fun x(t: Long) = (t - t0).toFloat() / (t1 - t0) * size.width
@@ -327,39 +352,46 @@ private fun HabitsSection(h: HealthInsightsRepository.Habits) {
 private fun TrendsSection(db: PulseLoopDatabase) {
     var metric by remember { mutableStateOf(TrendMetric.SLEEP) }
     var period by remember { mutableStateOf(Trends.Period.WEEK) }
+    var trendFailed by remember { mutableStateOf(false) }
     val points by produceState<List<Trends.Point>?>(null, metric, period) {
         value = null
-        value = runCatching { Trends.aggregate(HealthInsightsRepository.daily(db, metric, period.days), period) }.getOrNull()
+        trendFailed = false
+        value = runCatching { Trends.aggregate(HealthInsightsRepository.daily(db, metric, period.days), period) }
+            .onFailure { trendFailed = true }.getOrNull()
     }
     Section("Trends") {
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TrendMetric.entries.forEach { m ->
                 val on = m == metric
                 Text(m.label, fontSize = 12.sp, color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-                    modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                    modifier = Modifier.minimumInteractiveComponentSize().clip(RoundedCornerShape(16.dp))
                         .background(if (on) PulseColors.accent else PulseColors.cardSoft)
-                        .clickable { metric = m }.padding(horizontal = 10.dp, vertical = 6.dp))
+                        .selectable(selected = on, role = Role.Tab) { metric = m }.padding(horizontal = 10.dp, vertical = 6.dp))
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Trends.Period.entries.forEach { p ->
                 val on = p == period
                 Text(p.label, fontSize = 12.sp, color = if (on) PulseColors.textPrimary else PulseColors.textMuted,
                     fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(4.dp))
+                    modifier = Modifier.weight(1f).minimumInteractiveComponentSize().clip(RoundedCornerShape(4.dp))
                         .then(if (on) Modifier.dither(PulseColors.accent, 0.18f) else Modifier)
                         .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(4.dp))
-                        .clickable { period = p }.padding(vertical = 6.dp),
+                        .selectable(selected = on, role = Role.Tab) { period = p }.padding(vertical = 6.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
         val pts = points
         when {
+            pts == null && trendFailed -> Text("Couldn't load ${metric.label.lowercase()} trends.", fontSize = 12.sp, color = PulseColors.warning)
             pts == null -> Text("Loading…", fontSize = 12.sp, color = PulseColors.textMuted)
             pts.size < 2 -> Text("Not enough ${metric.label.lowercase()} data for this view yet.", fontSize = 12.sp, color = PulseColors.textMuted)
             else -> {
                 val shown = pts.takeLast(if (period == Trends.Period.DAY) 30 else 26)
-                Canvas(Modifier.fillMaxWidth().height(120.dp)) {
+                val fmt = if (metric == TrendMetric.TEMPERATURE || metric == TrendMetric.SLEEP || metric == TrendMetric.WEIGHT) "%.1f" else "%.0f"
+                val summary = "${metric.label} by ${period.label.lowercase()}: latest ${fmt.format(shown.last().value)} ${metric.unit}, " +
+                    "range ${fmt.format(shown.minOf { it.value })}–${fmt.format(shown.maxOf { it.value })} ${metric.unit}, ${shown.size} points"
+                Canvas(Modifier.fillMaxWidth().height(120.dp).semantics { contentDescription = summary }) {
                     val max = shown.maxOf { it.value }; val min = minOf(0.0, shown.minOf { it.value })
                     val lo = if (metric in setOf(TrendMetric.RESTING_HR, TrendMetric.HRV, TrendMetric.SPO2, TrendMetric.TEMPERATURE, TrendMetric.WEIGHT))
                         shown.minOf { it.value } * 0.95 else min
@@ -371,7 +403,6 @@ private fun TrendsSection(db: PulseLoopDatabase) {
                     }
                 }
                 val last = shown.last()
-                val fmt = if (metric == TrendMetric.TEMPERATURE || metric == TrendMetric.SLEEP || metric == TrendMetric.WEIGHT) "%.1f" else "%.0f"
                 Text("Latest ${period.label.lowercase()}: ${fmt.format(last.value)} ${metric.unit} · average ${fmt.format(shown.map { it.value }.average())} ${metric.unit}",
                     fontSize = 12.sp, color = PulseColors.textSecondary)
             }
@@ -393,20 +424,31 @@ fun BreatheScreen(onBack: () -> Unit) {
     var minutes by remember { mutableIntStateOf(5) }
     var startedAt by remember { mutableStateOf<Long?>(null) }
     var remaining by remember { mutableIntStateOf(0) }
+    var elapsedMs by remember { mutableLongStateOf(0L) }
     var result by remember { mutableStateOf<MindfulSessions.Session?>(null) }
+    val reduceMotion = rememberReduceMotion()
 
     fun finish() {
         val s = startedAt ?: return
         startedAt = null
-        scope.launch { result = MindfulSessions.finish(context, db, s, System.currentTimeMillis()) }
+        val end = System.currentTimeMillis()
+        // Leaving the screen right after finish() disposes `scope`; the save must outlive it.
+        // UNDISPATCHED enters the NonCancellable block before any dispose can cancel the launch.
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
+            val saved = withContext(NonCancellable) { MindfulSessions.finish(context, db, s, end) }
+            result = saved
+        }
     }
+
+    BackHandler(enabled = startedAt != null) { finish(); onBack() }
 
     LaunchedEffect(startedAt) {
         val s = startedAt ?: return@LaunchedEffect
         while (true) {
-            remaining = (minutes * 60 - ((System.currentTimeMillis() - s) / 1000)).toInt()
+            elapsedMs = System.currentTimeMillis() - s
+            remaining = (minutes * 60 - (elapsedMs / 1000)).toInt()
             if (remaining <= 0) { finish(); break }
-            delay(500)
+            delay(200)
         }
     }
 
@@ -421,15 +463,24 @@ fun BreatheScreen(onBack: () -> Unit) {
         val r = result
         when {
             startedAt != null -> {
-                val t = rememberInfiniteTransition(label = "breath")
-                val s by t.animateFloat(
-                    0.55f, 1f,
-                    infiniteRepeatable(keyframes { durationMillis = 10_000; 1f at 4_000 using FastOutSlowInEasing; 0.55f at 10_000 }, RepeatMode.Restart),
-                    label = "scale",
-                )
+                // Same 10 s cycle as the circle (in for the first 4 s, out for 6), counted from the
+                // session start so the cue and the circle agree.
+                val inhaling = elapsedMs % BREATH_CYCLE_MS < INHALE_MS
+                val s = if (reduceMotion) 0.8f else {
+                    val t = rememberInfiniteTransition(label = "breath")
+                    val animated by t.animateFloat(
+                        0.55f, 1f,
+                        infiniteRepeatable(keyframes { durationMillis = BREATH_CYCLE_MS.toInt(); 1f at INHALE_MS.toInt() using FastOutSlowInEasing; 0.55f at BREATH_CYCLE_MS.toInt() }, RepeatMode.Restart),
+                        label = "scale",
+                    )
+                    animated
+                }
                 Box(Modifier.size(220.dp).scale(s).clip(CircleShape).dither(PulseColors.accent, 0.35f, CircleShape).border(2.dp, PulseColors.accent, CircleShape))
                 Spacer(Modifier.height(24.dp))
-                Text(if (s > 0.98f || remaining % 10 < 4) "Breathe in" else "Breathe out", fontSize = 18.sp, color = PulseColors.textPrimary)
+                Text(
+                    if (inhaling) "Breathe in" else "Breathe out", fontSize = 18.sp, color = PulseColors.textPrimary,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                )
                 Text("%d:%02d".format(remaining / 60, remaining % 60), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Spacer(Modifier.height(16.dp))
                 OutlinedButton(onClick = { finish() }) { Text("End session") }
@@ -449,22 +500,25 @@ fun BreatheScreen(onBack: () -> Unit) {
             else -> {
                 Text("Slow breathing: in for 4 seconds, out for 6.", fontSize = 15.sp, color = PulseColors.textSecondary)
                 Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(1, 3, 5, 10).forEach { m ->
                         val on = m == minutes
                         Text("$m min", fontSize = 14.sp, color = if (on) PulseColors.onAccent else PulseColors.textPrimary,
-                            modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                            modifier = Modifier.minimumInteractiveComponentSize().clip(RoundedCornerShape(16.dp))
                                 .background(if (on) PulseColors.accent else PulseColors.card)
-                                .clickable { minutes = m }.padding(horizontal = 14.dp, vertical = 8.dp))
+                                .selectable(selected = on, role = Role.RadioButton) { minutes = m }.padding(horizontal = 14.dp, vertical = 8.dp))
                     }
                 }
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = { result = null; startedAt = System.currentTimeMillis() }) { Text("Start") }
+                Button(onClick = { result = null; elapsedMs = 0L; startedAt = System.currentTimeMillis() }) { Text("Start") }
             }
         }
         Spacer(Modifier.weight(1f))
     }
 }
+
+private const val BREATH_CYCLE_MS = 10_000L
+private const val INHALE_MS = 4_000L
 
 /** The way into [MyHealthScreen] from Vitals: one row, with Rest Mode shown while it is on. */
 @Composable

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.components.switchRow
+
 import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.pm.PackageManager
@@ -10,6 +12,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -36,6 +43,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -97,11 +107,14 @@ fun ActivityScreen(
     // ACTIVITY_RECOGNITION or startForeground() throws — request it right before starting rather
     // than at app launch, since it's only needed for this one action.
     var pendingStart by remember { mutableStateOf<Pair<String, Boolean>?>(null) }
+    // A denial used to do nothing at all; say why the workout didn't start.
+    var permissionDenied by remember { mutableStateOf(false) }
     val activityRecognitionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
         val pending = pendingStart
         pendingStart = null
+        if (!granted) permissionDenied = true
         if (granted && pending != null) {
             val (type, useGps) = pending
             scope.launch {
@@ -125,7 +138,7 @@ fun ActivityScreen(
     }
 
     val todayStart = com.pulseloop.util.TimeUtil.startOfTodayLocal()
-    val todayWorkouts = state.finishedWorkouts.filter { it.startedAt >= todayStart }
+    val todayWorkouts = remember(state.finishedWorkouts, todayStart) { state.finishedWorkouts.filter { it.startedAt >= todayStart } }
     val todayIdx = ((Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1) + 6) % 7
     // recentDays is newest-first; index 0..6 = Monday..Sunday of this week's steps.
     val stepsByWeekday = weeklySteps(state, todayIdx)
@@ -160,7 +173,7 @@ fun ActivityScreen(
                         .height(60.dp)
                         .clip(CircleShape)
                         .background(PulseColors.accent)
-                        .clickable { pickerOpen = true }
+                        .clickable(role = Role.Button) { pickerOpen = true }
                         .wrapContentHeight(),
                 )
                 Box(
@@ -169,7 +182,7 @@ fun ActivityScreen(
                         .clip(CircleShape)
                         .background(PulseColors.card)
                         .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                        .clickable { historyOpen = true },
+                        .clickable(role = Role.Button) { historyOpen = true },
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(Icons.Filled.CalendarMonth, "Workout history", tint = PulseColors.textSecondary)
@@ -181,7 +194,7 @@ fun ActivityScreen(
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .height(68.dp)
+                    .heightIn(min = 68.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(PulseColors.card)
                     .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
@@ -228,9 +241,9 @@ fun ActivityScreen(
                 }
             }
         } else {
-            items(todayWorkouts.size) { i ->
-                ActivityWorkoutRow(todayWorkouts[i], units) {
-                    navController?.navigate("activity_detail/${todayWorkouts[i].id}")
+            items(todayWorkouts, key = { it.id }) { workout ->
+                ActivityWorkoutRow(workout, units) {
+                    navController?.navigate("activity_detail/${workout.id}")
                 }
             }
         }
@@ -250,6 +263,19 @@ fun ActivityScreen(
         item { Spacer(Modifier.height(64.dp)) }
     }
 
+    if (permissionDenied) {
+        AlertDialog(
+            onDismissRequest = { permissionDenied = false },
+            title = { Text("Permission needed") },
+            text = {
+                Text(
+                    "Recording a workout needs the Physical activity permission. " +
+                        "You can allow it in Android Settings › Apps › PulseLoop › Permissions.",
+                )
+            },
+            confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text("OK") } },
+        )
+    }
     if (pickerOpen) {
         RecordTypePickerDialog(
             onDismiss = { pickerOpen = false },
@@ -336,9 +362,9 @@ private fun ActivityNavChevron(
 ) {
     Box(
         Modifier
-            .size(44.dp)
+            .size(48.dp)
             .clip(CircleShape)
-            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier),
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
@@ -400,6 +426,7 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
             size = 112.dp,
             strokeWidth = 11.dp,
             ringSpacing = 5.dp,
+            labels = listOf("steps", "distance", "calories"),
         )
     }
 }
@@ -511,7 +538,7 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$activeMinutes", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                    Text("MIN", fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = PulseColors.textMuted)
+                    Text("MIN", fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = PulseColors.textMuted)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -526,7 +553,7 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
         WeeklyPillCalendar(days)
         Text(
             "TAP TO EDIT GOALS",
-            fontSize = 10.sp, fontWeight = FontWeight.Medium,
+            fontSize = 11.sp, fontWeight = FontWeight.Medium,
             letterSpacing = 1.sp, color = PulseColors.textMuted,
         )
     }
@@ -598,7 +625,7 @@ private fun WeeklyPillCalendar(days: List<WeeklyDay>) {
                 }
                 Text(
                     day.label,
-                    fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
+                    fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
                     color = if (day.isToday) PulseColors.textPrimary else PulseColors.textMuted,
                 )
             }
@@ -617,33 +644,38 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
         onDismissRequest = onDismiss,
         title = { Text("Record activity") },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                ActivityMeta.ORDER.forEach { type ->
-                    val active = type == selected
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(4.dp))
-                            .then(if (active) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
-                            .clickable { selected = type }
-                            .padding(horizontal = 10.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    ) {
-                        Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(18.dp))
-                        Column {
-                            Text(ActivityMeta.label(type), fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                            Text(ActivityMeta.helper(type), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // Scrolls: eight types plus the GPS row overflow a landscape or large-font dialog.
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ActivityMeta.ORDER.forEach { type ->
+                        val active = type == selected
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 48.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .then(if (active) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
+                                .selectable(selected = active, role = Role.RadioButton) { selected = type }
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(18.dp))
+                            Column {
+                                Text(ActivityMeta.label(type), fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                                Text(ActivityMeta.helper(type), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
                         }
                     }
                 }
                 if (ActivityMeta.gpsCapable(selected)) {
                     Row(
-                        Modifier.fillMaxWidth().padding(top = 8.dp),
+                        Modifier.fillMaxWidth().padding(top = 8.dp)
+                        .switchRow(checked = useGps, onCheckedChange = { useGps = it }),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text("Track GPS route", fontSize = 14.sp, modifier = Modifier.weight(1f))
-                        Switch(checked = useGps, onCheckedChange = { useGps = it })
+                        Switch(checked = useGps, onCheckedChange = null)
                     }
                 }
             }
@@ -792,7 +824,13 @@ private fun ActivityRecordsCard(
         Modifier.fillMaxWidth().clip(shape).background(PulseColors.card).border(1.dp, PulseColors.borderSubtle, shape),
     ) {
         Row(
-            Modifier.fillMaxWidth().clickable { expanded = !expanded }.padding(16.dp),
+            Modifier.fillMaxWidth()
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = if (expanded) "Hide activity records" else "Show activity records",
+                ) { expanded = !expanded }
+                .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+                .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -806,7 +844,7 @@ private fun ActivityRecordsCard(
             }
             Icon(
                 if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                contentDescription = if (expanded) "Hide activity records" else "Show activity records",
+                contentDescription = null,
                 tint = PulseColors.textMuted,
                 modifier = Modifier.size(20.dp),
             )
@@ -847,7 +885,7 @@ private fun ActivityRecordsCard(
                                     fontSize = 11.sp, color = PulseColors.textMuted,
                                 )
                             }
-                            IconButton(onClick = { pending = bucket }, modifier = Modifier.size(36.dp)) {
+                            IconButton(onClick = { pending = bucket }) {
                                 Icon(
                                     Icons.Filled.DeleteOutline,
                                     contentDescription = "Delete this activity record",

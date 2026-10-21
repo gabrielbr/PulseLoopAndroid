@@ -23,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -79,7 +80,7 @@ fun DeviceHeroCard(
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable(onClick = onOpenWearable),
+                .clickable(onClickLabel = "Open ring settings", role = Role.Button, onClick = onOpenWearable),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             RingArtView(
@@ -145,7 +146,7 @@ fun DeviceHeroCard(
                 }
                 Icon(
                     Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "Opens ring settings",
+                    contentDescription = null, // the row's click label says it
                     modifier = Modifier.size(20.dp),
                     tint = PulseColors.textMuted,
                 )
@@ -162,10 +163,10 @@ fun DeviceHeroCard(
                     fontWeight = FontWeight.SemiBold,
                     color = if (status.actionEnabled) PulseColors.accent else PulseColors.textMuted,
                     modifier = Modifier
-                        .heightIn(min = 44.dp)
+                        .heightIn(min = 48.dp)
                         .clip(CircleShape)
                         .then(if (status.actionEnabled) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.elevated))
-                        .clickable(enabled = status.actionEnabled) {
+                        .clickable(enabled = status.actionEnabled, role = Role.Button) {
                             when (status.action) {
                                 DeviceHeroStatus.Action.CONNECT -> onConnect()
                                 DeviceHeroStatus.Action.SET_UP -> onSetUp()

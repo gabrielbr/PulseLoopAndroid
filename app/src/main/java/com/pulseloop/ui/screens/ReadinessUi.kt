@@ -9,7 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,6 +23,13 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -70,7 +77,14 @@ fun ScoreRing(
     centerText: String = value?.toString() ?: "—",
     centerSize: Int = 22,
 ) {
-    Box(Modifier.size(size), contentAlignment = Alignment.Center) {
+    Box(
+        Modifier.size(size).clearAndSetSemantics {
+            // One spoken value instead of a bare number; an empty ring says so.
+            contentDescription = value?.let { "Score $it out of 100" } ?: "No score"
+            if (value != null) progressBarRangeInfo = ProgressBarRangeInfo(value.coerceIn(0, 100).toFloat(), 0f..100f)
+        },
+        contentAlignment = Alignment.Center,
+    ) {
         Canvas(Modifier.fillMaxSize()) {
             val w = stroke.toPx()
             val inset = w / 2
@@ -197,7 +211,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
             }
             Text(
                 "Readiness", modifier = Modifier.align(Alignment.Center),
@@ -287,7 +301,10 @@ fun ContributorsCard(contributors: List<ScoreContributor>, title: String = "Cont
 @Composable
 private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().clickable(onClick = onTap).padding(horizontal = 16.dp, vertical = 12.dp),
+        Modifier.fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onTap)
+            .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -318,7 +335,7 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
             }
             Text(
                 "Activity", modifier = Modifier.align(Alignment.Center),

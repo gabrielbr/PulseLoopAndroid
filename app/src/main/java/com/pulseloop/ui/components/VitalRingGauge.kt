@@ -17,6 +17,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -71,7 +75,20 @@ fun VitalRingGauge(
         return ((v - domain.start) / span).coerceIn(0.0, 1.0)
     }
 
-    Box(modifier.size(size), contentAlignment = Alignment.Center) {
+    // One spoken summary for the whole gauge (value, unit, status), plus its position on the scale.
+    val description = listOfNotNull(centerValue, centerUnit, centerStatus, subtitle).joinToString(" ")
+    Box(
+        modifier.size(size).clearAndSetSemantics {
+            contentDescription = description
+            if (domain.endInclusive > domain.start) {
+                progressBarRangeInfo = ProgressBarRangeInfo(
+                    value.coerceIn(domain.start, domain.endInclusive).toFloat(),
+                    domain.start.toFloat()..domain.endInclusive.toFloat(),
+                )
+            }
+        },
+        contentAlignment = Alignment.Center,
+    ) {
         Canvas(Modifier.matchParentSize()) {
             val strokePx = lineWidth.toPx()
             // Inset the arc radius by half the stroke so the stroke fits inside the frame (no

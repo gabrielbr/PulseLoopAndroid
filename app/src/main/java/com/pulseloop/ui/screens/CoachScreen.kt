@@ -17,13 +17,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +37,14 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -113,7 +121,8 @@ fun CoachScreen(
                     onCheckIn = { viewModel?.sendMessage("How am I doing on my goal? What should I focus on this week?", emptyList()) },
                 )
             }
-            items(state.messages.size) { idx ->
+            // Persisted rows key by id; the greeting and this session's unsaved turns have none.
+            items(state.messages.size, key = { idx -> state.messages[idx].id ?: "local-$idx" }) { idx ->
                 MessageBubble(state.messages[idx], viewModel)
             }
             if (state.isThinking) {
@@ -127,7 +136,10 @@ fun CoachScreen(
             }
             if (state.error != null) {
                 item {
-                    Text("Error: ${state.error}", fontSize = 12.sp, color = PulseColors.danger, modifier = Modifier.padding(start = 8.dp))
+                    Text(
+                        "Error: ${state.error}", fontSize = 12.sp, color = PulseColors.danger,
+                        modifier = Modifier.padding(start = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                    )
                 }
             }
         }
@@ -185,29 +197,45 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null) {
             Text("Using your latest ring sync", fontSize = 12.sp, color = PulseColors.textMuted)
         }
         if (onOpenUsage != null) {
-            Box(
-                Modifier
-                    .size(36.dp)
-                    .clip(CircleShape)
-                    .background(PulseColors.card)
-                    .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                    .clickable(onClick = onOpenUsage),
-                contentAlignment = Alignment.Center,
-            ) {
+            RoundIconTarget(visualSize = 36.dp, onClick = onOpenUsage) {
                 Icon(Icons.Filled.Info, "Usage & cost", tint = PulseColors.textSecondary, modifier = Modifier.size(16.dp))
             }
         }
-        Box(
-            Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(PulseColors.card)
-                .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                .clickable(onClick = onNewChat),
-            contentAlignment = Alignment.Center,
-        ) {
+        RoundIconTarget(visualSize = 36.dp, onClick = onNewChat) {
             Icon(Icons.Filled.Add, "New chat", tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
         }
+    }
+}
+
+/**
+ * A round icon button drawn at [visualSize] inside a 48dp touch target, so the small circles
+ * keep their look while meeting the minimum target size.
+ */
+@Composable
+private fun RoundIconTarget(
+    visualSize: Dp,
+    background: Color = PulseColors.card,
+    bordered: Boolean = true,
+    enabled: Boolean = true,
+    onClick: () -> Unit,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        Modifier
+            .size(48.dp)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .size(visualSize)
+                .clip(CircleShape)
+                .background(background)
+                .then(if (bordered) Modifier.border(1.dp, PulseColors.borderSubtle, CircleShape) else Modifier),
+            contentAlignment = Alignment.Center,
+            content = content,
+        )
     }
 }
 
@@ -308,6 +336,11 @@ private fun Composer(
         }
     }
     val canSend = (inputText.isNotBlank() || staged.isNotEmpty()) && !isThinking
+    fun send() {
+        if (!canSend) return
+        onSend(inputText.trim(), staged)
+        staged = emptyList()
+    }
 
     // Coach draws full-bleed under the bottom nav bar, so the composer must lift itself: above the
     // keyboard while it's open, above the nav bar otherwise. max() (not sum) of the two insets
@@ -326,26 +359,34 @@ private fun Composer(
             .padding(bottom = composerBottom + 8.dp),
     ) {
         if (showChips) {
+            // Each chip sits in a 48dp-tall touch target, which stands in for the row's old
+            // vertical padding.
             Row(
                 Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 SUGGESTIONS.forEach { chip ->
-                    Text(
-                        chip,
-                        fontSize = 12.sp, fontWeight = FontWeight.Medium,
-                        color = PulseColors.textSecondary,
-                        maxLines = 1,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .background(PulseColors.card)
-                            .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                            .clickable(enabled = !isThinking) { onSend(chip, emptyList()) }
-                            .padding(horizontal = 12.dp, vertical = 7.dp),
-                    )
+                    Box(
+                        Modifier
+                            .heightIn(min = 48.dp)
+                            .clickable(enabled = !isThinking, role = Role.Button) { onSend(chip, emptyList()) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            chip,
+                            fontSize = 12.sp, fontWeight = FontWeight.Medium,
+                            color = PulseColors.textSecondary,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .background(PulseColors.card)
+                                .border(1.dp, PulseColors.borderSubtle, CircleShape)
+                                .padding(horizontal = 12.dp, vertical = 7.dp),
+                        )
+                    }
                 }
             }
         }
@@ -365,13 +406,20 @@ private fun Composer(
                                 contentScale = ContentScale.Crop,
                             )
                         }
-                        IconButton(
-                            onClick = {
-                                CoachAttachmentStore.delete(ctx, ref)
-                                staged = staged - ref
-                            },
-                            modifier = Modifier.size(20.dp).align(Alignment.TopEnd),
-                        ) { Icon(Icons.Filled.Close, "Remove photo", Modifier.size(14.dp), tint = Color.White) }
+                        // 48dp touch target over the thumbnail's corner; the glyph stays small
+                        // in that corner, where it always sat.
+                        Box(
+                            Modifier
+                                .size(48.dp)
+                                .align(Alignment.TopEnd)
+                                .clickable(role = Role.Button) {
+                                    CoachAttachmentStore.delete(ctx, ref)
+                                    staged = staged - ref
+                                },
+                            contentAlignment = Alignment.TopEnd,
+                        ) {
+                            Icon(Icons.Filled.Close, "Remove photo", Modifier.padding(3.dp).size(14.dp), tint = Color.White)
+                        }
                     }
                 }
             }
@@ -385,28 +433,16 @@ private fun Composer(
                 // Landscape has no Coach header — bring its new-chat button down in line with the
                 // input. Bordered circle + "+" glyph mirrors the header's affordance exactly so the
                 // control reads the same in both orientations.
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                        .clickable(onClick = onNewChat),
-                    contentAlignment = Alignment.Center,
-                ) {
+                RoundIconTarget(visualSize = 40.dp, onClick = onNewChat) {
                     Icon(Icons.Filled.Add, "New chat", tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
                 }
             }
             if (imageInputEnabled) {
-                Box(
-                    Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(PulseColors.card)
-                        .clickable(enabled = !isThinking) {
-                            pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                        },
-                    contentAlignment = Alignment.Center,
+                RoundIconTarget(
+                    visualSize = 40.dp,
+                    bordered = false,
+                    enabled = !isThinking,
+                    onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 ) {
                     Icon(Icons.Filled.Add, "Attach photo", tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
                 }
@@ -431,19 +467,22 @@ private fun Composer(
                         fontSize = 14.sp, color = PulseColors.textPrimary,
                     ),
                     cursorBrush = SolidColor(PulseColors.accent),
-                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(
+                        capitalization = KeyboardCapitalization.Sentences,
+                        imeAction = ImeAction.Send,
+                    ),
+                    keyboardActions = KeyboardActions(onSend = { send() }),
+                    // The placeholder is a sibling Text that disappears once typing starts, so
+                    // the field carries its own label.
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Message the coach" },
                 )
             }
-            Box(
-                Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(if (canSend) PulseColors.accent else PulseColors.card)
-                    .clickable(enabled = canSend) {
-                        onSend(inputText.trim(), staged)
-                        staged = emptyList()
-                    },
-                contentAlignment = Alignment.Center,
+            RoundIconTarget(
+                visualSize = 40.dp,
+                background = if (canSend) PulseColors.accent else PulseColors.card,
+                bordered = false,
+                enabled = canSend,
+                onClick = ::send,
             ) {
                 Icon(
                     Icons.Filled.ArrowUpward, "Send",

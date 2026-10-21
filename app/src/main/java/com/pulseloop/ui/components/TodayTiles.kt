@@ -27,6 +27,8 @@ import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.theme.ditherFade
+import kotlin.math.roundToInt
 
 // Today-page tiles, ported from Views/TodayTiles.swift. Every tile is half-width (2-column grid)
 // and shares one fixed height so the grid never jumps. Each wraps the shared [TodayTile] chrome
@@ -163,6 +166,7 @@ fun ActivityTile(
                 size = 76.dp,
                 strokeWidth = 8.dp,
                 ringSpacing = 4.dp,
+                labels = values.map { it.label.lowercase() },
             )
             // Three metrics (steps/distance/calories) share one tile. At 22.sp the third value
             // overflowed and clipped the calories row (issue #24), so each pair is compact —
@@ -265,7 +269,7 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
     val total = segments.sumOf { it.minutes }.coerceAtLeast(1.0)
     val measurer = rememberTextMeasurer()
     val labelStyle = TextStyle(
-        fontSize = 9.sp,
+        fontSize = 10.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.5.sp,
     )
@@ -273,8 +277,14 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
     // directly, but it is a SubcomposeLayout and the Today grid measures these tiles with
     // IntrinsicSize.Min, which subcomposition can't answer. onSizeChanged keeps intrinsics intact.
     var barWidthPx by remember { mutableIntStateOf(0) }
+    // Labels drop out when a segment is too narrow, and the bar itself says nothing to TalkBack,
+    // so the whole bar speaks one summary instead.
+    val spoken = segments.joinToString(", ") { "${stageName(it.label)} ${it.minutes.roundToInt()} min" }
     Column(
-        modifier = modifier.fillMaxWidth().onSizeChanged { barWidthPx = it.width },
+        modifier = modifier
+            .fillMaxWidth()
+            .onSizeChanged { barWidthPx = it.width }
+            .clearAndSetSemantics { contentDescription = "Sleep stages: $spoken" },
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Row(Modifier.fillMaxWidth().height(12.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -303,7 +313,8 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
                         Text(
                             seg.label,
                             style = labelStyle,
-                            color = seg.color,
+                            // Deep's indigo is ~2.4:1 on the card: legible as a bar, not as text.
+                            color = if (seg.color == PulseColors.stageDeep) PulseColors.textSecondary else seg.color,
                             maxLines = 1,
                             overflow = TextOverflow.Clip,
                         )
@@ -312,6 +323,12 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
             }
         }
     }
+}
+
+private fun stageName(label: String) = when (label) {
+    "AWK" -> "awake"
+    "REM" -> "REM"
+    else -> label.lowercase()
 }
 
 /** Sleep tile: duration on top, stage distribution bar, score below (SleepTileView in Swift). */
