@@ -129,4 +129,32 @@ object AccuracyReportText {
         .filter { it.verdict == Verdict.CONSISTENTLY_HIGH || it.verdict == Verdict.CONSISTENTLY_LOW || it.verdict == Verdict.INCONSISTENT }
         .filter { it.metric.kind != ComparisonMetric.Kind.STAGES }
         .sortedByDescending { maxOf(abs(it.bias), it.mae) / it.band.coerceAtLeast(1e-6) }
+
+    /**
+     * The shareable summary (plan, Phase 5): verdicts and headline differences with the ring's
+     * model and firmware — the kind of line that helps in an issue ("my SR08 counts ~20 % fewer
+     * steps"). Aggregates only, no day-by-day values and no readings from either device, for the
+     * same reason the diagnostics export carries none: this is text people paste in public.
+     */
+    fun share(
+        ringLabel: String,
+        model: String?,
+        firmware: String?,
+        referenceLabel: String,
+        span: String,
+        summaries: List<Summary>,
+    ): String = buildString {
+        appendLine("PulseLoop accuracy check: $ringLabel vs $referenceLabel ($span)")
+        val ring = listOfNotNull(model?.takeIf { it.isNotBlank() }, firmware?.takeIf { it.isNotBlank() }?.let { "firmware $it" })
+        if (ring.isNotEmpty()) appendLine("Ring: " + ring.joinToString(", "))
+        for (s in summaries) {
+            val headline = when {
+                s.verdict == Verdict.NOT_ENOUGH_DATA -> "not enough data"
+                s.metric.kind == ComparisonMetric.Kind.STAGES -> s.stageAgreement?.let { "same stage ${(it * 100).roundToInt()} % of the night" } ?: "no overlap"
+                else -> "${signed(s.metric, s.bias)} on average, ${verdictLabel(s.verdict).lowercase()} (${s.validDays} ${if (s.metric.source == ReferenceMetric.SLEEP || s.metric == ComparisonMetric.RESTING_HR || s.metric == ComparisonMetric.HRV) "nights" else "days"})"
+            }
+            appendLine("• ${s.metric.label}: $headline")
+        }
+        append("Agreement with the reference device, not a lab measurement.")
+    }
 }

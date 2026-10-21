@@ -104,6 +104,20 @@ internal fun AccuracyReportSection(
             )
             if (scoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
             else TextButton(onClick = { rescore(force = true) }) { Text("Recompute") }
+            if (summaries.isNotEmpty()) TextButton(onClick = {
+                scope.launch {
+                    val ring = db.deviceDao().currentReal()?.takeIf { RingIdentity.keyOf(it) == check.deviceKey }
+                    val text = AccuracyReportText.share(
+                        ringLabel = check.deviceLabel, model = ring?.wearableModelID, firmware = check.firmware,
+                        referenceLabel = check.referenceLabel, span = AccuracyUiText.span(check), summaries = summaries,
+                    )
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    }
+                    context.startActivity(android.content.Intent.createChooser(send, "Share accuracy report"))
+                }
+            }) { Text("Share") }
         }
         Text(
             "How your ring compares with ${check.referenceLabel}, the device you chose to trust. This is agreement between two " +

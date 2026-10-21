@@ -267,4 +267,14 @@ class AccuracyComparisonTest {
         assertEquals("23:30", AccuracyReportText.clock(-30.0))
         assertEquals("07:05", AccuracyReportText.clock(425.0))
     }
+
+    @Test
+    fun theShareableSummaryHoldsVerdictsButNoDayValues() {
+        val steps = AccuracyComparison.summarize(ComparisonMetric.STEPS, (0 until 4).map { daily(ComparisonMetric.STEPS, it.toLong(), 7_123.0, 8_765.0) })
+        val text = AccuracyReportText.share("SR08", "jring-sr08", "V138", "Health Sync (Huawei)", "21 Oct – 28 Oct", listOf(steps))
+        assertTrue(text, text.contains("SR08 vs Health Sync (Huawei)"))
+        assertTrue(text, text.contains("firmware V138"))
+        assertTrue(text, text.contains("Steps: −19 % on average, consistently low (4 days)"))
+        assertFalse(text, text.contains("7123") || text.contains("7,123") || text.contains("8765") || text.contains("8,765"))
+    }
 }

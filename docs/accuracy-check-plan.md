@@ -1,6 +1,80 @@
 # Accuracy check — compare the ring against another device via Health Connect
 
-Status: **Phase 0 implemented** (2026-10-21), waiting on a real-device scan. Later phases are plan only.
+Status: **all phases implemented** (2026-10-21), not yet run on real hardware. The plan below is
+kept as written; **"As built"** right after it records where the code differs and why. The first
+real check (Huawei through Health Sync) still has to confirm the Health Sync questions under
+Open questions.
+
+## As built (2026-10-21)
+
+Code: `health/accuracy/` (engine, scorer, controller, corrections, export pause), screens in
+`ui/screens/AccuracyCheckUi.kt` and `AccuracyReportUi.kt`, Room v36. Commits per phase on
+`claude/brave-cerf-2jew36`.
+
+**Export pause: held back by data time, not by holding the watermark.** The plan said to hold each
+paused unit's watermark. The code does the opposite. A record of a paused type whose data time
+overlaps the check window is dropped from the pass, and its watermark advances past it like a
+never-exportable row (`ExportPause`). That makes "Skip these days" the default with nothing to do
+on resume except close the window. It also keeps the window skipped: a window record updated
+later (a re-synced night) re-selects, meets the same closed exclusion, and is dropped again.
+"Export them too" removes the exclusion and rewinds the affected watermarks to where holding back
+began (`HealthConnectPrefsStore.rewindWatermarks`: never forward, never past a new-only user's
+consent), under the export's pass mutex. Side effect: because the rule is overlap, the whole-day
+activity record for the day a check starts and the day it ends is held back too, since its total
+includes steps from inside the window.
+- The export units are finer than the settings rows: steps, distance and active calories are
+  separate (`ExportUnit`). Workout calorie and distance siblings are held back with the daily
+  records; the workout session itself always exports.
+- Exclusions live in Room with the checks and ride the archive, so a restore can't forget them.
+
+**Lifecycle.** `AccuracyCheckController` owns every state change: RUNNING → AWAITING_RESUME →
+DONE. A one-shot worker at the planned end, a 6-hourly backstop and a notification end the check
+on time. A different ring ends it immediately: `AccuracyRingWatcher` watches the device row from
+`PulseLoopApplication`, because ring data has no device id and can't be split afterwards. A row
+that only *learns* its address re-keys the check instead of ending it. The pause set grows from
+the screen (foreground) and from the worker when Health Connect allows background reads
+(`READ_HEALTH_DATA_IN_BACKGROUND`, optional).
+
+**Scoring** (`AccuracyScorer`, foreground, re-read at most every 30 min unless "Recompute"):
+- Daily totals count only whole local days inside the window. A day is dropped when the reference
+  has fewer than 500 steps or the ring has none (not worn on both).
+- A day is scored once the reference has delivered past its end, or 24 h after it ends. Until
+  then it shows "waiting for <reference>".
+- Sleep: the ring's longest session per waking day vs the reference's, by time asleep, onset and
+  wake (as minutes from the waking day's midnight), and minute-by-minute stage agreement.
+  Unstaged minutes count neither way.
+- Heart rate: each ring sample is paired with the nearest unused reference sample. The window is
+  half the reference's own cadence, clamped to 60–150 s, so a sparse bridge still pairs. Samples
+  split into rest (asleep, or a 15-min bucket under 50 steps) and active (a workout, or 300+
+  steps); anything in between is skipped.
+- SpO₂ pairs within 5 min. Resting HR and HRV are compared per night, using `NightlyVitals` for
+  the ring.
+- The HR echo check runs on every scoring pass, and the report warns when it trips.
+- Verdict (`AccuracyComparison.summarize`): Agrees / Consistently high or low / Inconsistent /
+  Not enough data. A consistent bias needs ≥ 80 % of days pointing the same way and a
+  day-to-day wobble smaller than the bias.
+
+**Report differences from the plan.** No Bland-Altman scatter or bar charts. Each metric shows
+its limits of agreement as text and a per-day list. There is no "hours where the ring missed
+activity" figure either. Bands are editable per metric (slider) and stored on the check.
+
+**Corrections differences from the plan.**
+- Sleep onset/wake are report-only (no offset): shifting a hypnogram's clock would be a second,
+  stranger kind of correction. Time asleep does get an offset, applied to the night's total
+  only; stage blocks are never touched.
+- A single heart-rate sample's context isn't known at read time, so rest vs active is split at
+  Flex-HR (0.6 × (220 − age)), the calorie estimator's own threshold.
+- Applied in the ViewModels (Today, Vitals and its detail, Sleep, Activity). The home-screen
+  widgets share `VitalsViewModel.buildState`, so they show corrected heart rate and SpO₂ too,
+  but are too small for the caption. Known gap.
+- Not applied to: the coach's tools and scores context, the live workout stream, the
+  Health Connect export, and stored rows. All of these read raw.
+- Applied to everything shown while that ring is paired, history included, because stored data
+  carries no ring id.
+- A steps correction supersedes the existing phone step calibration (`StepCalibration`) on
+  Today, rather than stacking on it.
+- The adjusted calorie copy is recomputed over 90 days when a correction changes, without
+  bumping `updatedAt`, so the export doesn't re-read those days.
 
 ## The idea
 
@@ -323,9 +397,9 @@ say it is derived"* (#67), and the ring re-supplying its own history on every sy
    `lastModifiedTime − endTime`, devices from `Metadata.device`, sleep stage types, and the HR
    echo check), `ReferenceSourceScanner` (foreground read of the last 7 days),
    `ReferenceSurveyText` (wording + "Copy summary", counts and timings only). Screen:
-   Settings → Accuracy check (`AccuracyCheckUi.kt`). Nothing is stored yet. **Next:** run the
-   scan on the Huawei/Health Sync setup and paste the copied summary; it answers the four
-   Health Sync questions under Open questions.
+   Settings → Accuracy check (`AccuracyCheckUi.kt`). **Still to do on hardware:** run the scan on
+   the Huawei/Health Sync setup and paste the copied summary; it answers the four Health Sync
+   questions under Open questions.
 1. **Session lifecycle + per-type export pause**: table, the exporter's per-row pause gate that
    holds watermarks, daily refresh of the pause set, export-screen state, end job, notification,
    resume dialog with the per-kind skip, early end on a ring change. Unit-test the skip and that
