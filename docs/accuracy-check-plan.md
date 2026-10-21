@@ -65,10 +65,15 @@ activity" figure either. Bands are editable per metric (slider) and stored on th
 - A single heart-rate sample's context isn't known at read time, so rest vs active is split at
   Flex-HR (0.6 × (220 − age)), the calorie estimator's own threshold.
 - Applied in the ViewModels (Today, Vitals and its detail, Sleep, Activity). The home-screen
-  widgets share `VitalsViewModel.buildState`, so they show corrected heart rate and SpO₂ too,
-  but are too small for the caption. Known gap.
-- Not applied to: the coach's tools and scores context, the live workout stream, the
-  Health Connect export, and stored rows. All of these read raw.
+  widgets get the same corrected steps, distance, sleep, heart rate and SpO₂, and a corrected
+  tile adds "· adjusted" to its header (each payload carries an `adjusted` flag).
+- The coach sees what the app shows: its context builders, summary and notification contexts,
+  and its data tools all read through the corrections, and its data-quality notes say which
+  figures are adjusted, so it doesn't present them as raw ring readings or correct them again.
+- The live workout readout and its zone are corrected, labelled on the record screen. So are
+  a finished workout's displayed HR and SpO₂ stats. The samples a workout stores, and its stored
+  summary, stay raw, because Health Connect and Strava get them.
+- Not applied to: the Health Connect export, Strava, and stored rows.
 - Applied to everything shown while that ring is paired, history included, because stored data
   carries no ring id.
 - A steps correction supersedes the existing phone step calibration (`StepCalibration`) on

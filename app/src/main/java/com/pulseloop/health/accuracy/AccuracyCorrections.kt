@@ -79,6 +79,22 @@ data class Corrections(
     fun sleep(s: com.pulseloop.data.entity.SleepSessionEntity): com.pulseloop.data.entity.SleepSessionEntity =
         if (!has(ComparisonMetric.SLEEP_ASLEEP)) s else s.copy(totalMinutes = asleepMinutes(s.totalMinutes))
 
+    /** A stored reading as shown: heart rate and SpO₂ corrected, any other kind unchanged. */
+    fun measurement(m: com.pulseloop.data.entity.MeasurementEntity): com.pulseloop.data.entity.MeasurementEntity = when (m.kindRaw) {
+        com.pulseloop.ring.MeasurementKind.HEART_RATE.name -> if (has(ComparisonMetric.HR_REST) || has(ComparisonMetric.HR_ACTIVE)) m.copy(value = heartRate(m.value)) else m
+        com.pulseloop.ring.MeasurementKind.SPO2.name -> if (has(ComparisonMetric.SPO2)) m.copy(value = spo2(m.value)) else m
+        else -> m
+    }
+
+    /**
+     * The line the coach is told when it's handed corrected figures, so it neither presents them
+     * as raw ring readings nor "corrects" them a second time.
+     */
+    fun coachNote(): String? = describe()?.let {
+        "Some figures are adjusted by the user's accuracy check against another device ($it). " +
+            "They are what the app shows; the ring's stored readings are unchanged."
+    }
+
     /** "Steps ×1.18 · heart rate at rest −3.0 bpm" — the caption a corrected screen carries. */
     fun describe(only: Set<ComparisonMetric>? = null): String? = items.values
         .mapNotNull { c -> ComparisonMetric.byName(c.metric)?.let { it to c } }

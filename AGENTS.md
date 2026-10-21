@@ -1001,7 +1001,9 @@ because breaking it fails silently:
   `estimatedActiveCalories` (raw, exported) vs `estimatedActiveCaloriesAdjusted` (shown), and
   `hrRestingBaseline` (raw, exported) vs `Corrections.baseline()` at read time. The display
   helpers (`DailyCalorieEstimator.displayActiveCalories` / `displayCalories`) must not be used
-  by an exporter. A screen showing corrected figures carries the `AdjustedCaption`.
+  by an exporter. A screen showing corrected figures carries the `AdjustedCaption` (a widget tile,
+  its `adjusted` flag). The coach reads through the corrections too and is told so; a workout's
+  stored samples and summary stay raw because Health Connect and Strava get them.
 - **Corrections belong to one ring (BLE address) and only exist after a consistent-bias
   verdict.** Don't widen them to "Inconsistent": a slider that moves the average of an erratic
   ring is exactly the false fix the verdict exists to refuse. Sleep stages, onset/wake, HRV and

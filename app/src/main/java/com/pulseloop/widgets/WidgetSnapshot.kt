@@ -76,6 +76,8 @@ data class WidgetActivityPayload(
     val stepsText: String? = null,
     val distanceText: String? = null,
     val caloriesText: String? = null,
+    /** Steps or distance carry an accuracy-check correction; the tile says so. */
+    val adjusted: Boolean = false,
 )
 
 // ─────────────────────────── Sleep (duration + stage bar + score tile) ───────────────────────────
@@ -85,6 +87,8 @@ data class WidgetSleepPayload(
     val durationText: String,
     val score: Int,
     val segments: List<Segment> = emptyList(),
+    /** The duration carries an accuracy-check correction; the tile says so. */
+    val adjusted: Boolean = false,
 ) {
     @Serializable
     data class Segment(
@@ -147,6 +151,8 @@ data class WidgetMetricPayload(
     val kind: String,
     val title: String,
     val valueText: String,
+    /** The readings carry an accuracy-check correction; the tile says so. Defaulted for old snapshots. */
+    val adjusted: Boolean = false,
     /** The raw reading behind [valueText] in display units (gauge needle position) — never parse
      *  the locale-formatted [valueText] back. Defaulted so pre-field snapshots still decode. */
     val latestValue: Double? = null,

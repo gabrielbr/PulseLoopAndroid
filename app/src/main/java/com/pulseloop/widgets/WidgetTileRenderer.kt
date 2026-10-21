@@ -113,10 +113,14 @@ class WidgetTileRenderer(private val density: Float) {
         } else {
             drawActivityWideContent(canvas, rect, payload)
         }
-        // Staleness time in the top-right corner (iOS overlay alignment: .topTrailing).
-        snapshot?.stalenessEpochSeconds(nowMs)?.let { stale ->
+        // Staleness time in the top-right corner (iOS overlay alignment: .topTrailing), and the
+        // accuracy-correction marker beside it (labelled wherever shown).
+        val corner = listOfNotNull(
+            ADJUSTED_MARK.takeIf { payload?.adjusted == true && !rolledOver },
+            snapshot?.stalenessEpochSeconds(nowMs)?.let(::formatTime),
+        ).joinToString(" · ").ifEmpty { null }
+        corner?.let { text ->
             val p = textPaint(9f, withAlpha(textMuted, 0.8f))
-            val text = formatTime(stale)
             drawTextTop(canvas, text, rect.right - p.measureText(text), rect.top, p)
         }
         return bitmap
@@ -149,7 +153,14 @@ class WidgetTileRenderer(private val density: Float) {
     private fun drawMetricTile(canvas: Canvas, rect: RectF, metric: WidgetMetric, snapshot: WidgetSnapshot?, nowMs: Long) {
         val accent = metric.accentColor.toArgb()
         val staleText = snapshot?.stalenessEpochSeconds(nowMs)?.let(::formatTime)
-        val headerH = drawHeader(canvas, rect, metric.headerLabel, accent, staleText)
+        val adjusted = when (metric.tileStyle) {
+            WidgetMetric.TileStyle.RINGS -> snapshot?.activity?.adjusted == true
+            WidgetMetric.TileStyle.SLEEP -> snapshot?.sleep?.adjusted == true
+            else -> snapshot?.metrics?.get(metric.metricKind?.widgetKey)?.adjusted == true
+        }
+        // Accuracy-corrected figures say so, even on a home-screen tile.
+        val label = if (adjusted) "${metric.headerLabel} · $ADJUSTED_MARK" else metric.headerLabel
+        val headerH = drawHeader(canvas, rect, label, accent, staleText)
         val content = RectF(rect.left, rect.top + headerH + dp(8f), rect.right, rect.bottom)
         val rolledOver = snapshot?.isRolledOver(nowMs) ?: false
 
@@ -607,3 +618,6 @@ class WidgetTileRenderer(private val density: Float) {
         }
     }
 }
+
+/** Shown on a widget tile whose figures carry an accuracy-check correction. */
+internal const val ADJUSTED_MARK = "adjusted"

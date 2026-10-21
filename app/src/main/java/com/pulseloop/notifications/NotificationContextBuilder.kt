@@ -32,14 +32,16 @@ object NotificationContextBuilder {
 
         // Today's activity
         val todayStart = localStartOfDay(now)
-        val todayActivity = db.activityDailyDao().byDay(todayStart)
+        // What the app shows: accuracy corrections applied (read-time only).
+        val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+        val todayActivity = db.activityDailyDao().byDay(todayStart)?.let(corrections::day)
 
         // Latest sleep
-        val latestSleep = db.sleepSessionDao().recent(1).firstOrNull()
+        val latestSleep = db.sleepSessionDao().recent(1).firstOrNull()?.let(corrections::sleep)
 
         // 12h HR & SpO2 stats
-        val hrRows = db.measurementDao().range(MeasurementKind.HEART_RATE.name, cutoff, now)
-        val spo2Rows = db.measurementDao().range(MeasurementKind.SPO2.name, cutoff, now)
+        val hrRows = db.measurementDao().range(MeasurementKind.HEART_RATE.name, cutoff, now).map(corrections::measurement)
+        val spo2Rows = db.measurementDao().range(MeasurementKind.SPO2.name, cutoff, now).map(corrections::measurement)
 
         val hrStats = if (hrRows.isNotEmpty()) {
             Stats(

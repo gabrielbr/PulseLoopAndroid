@@ -1,5 +1,7 @@
 package com.pulseloop.widgets
 
+import com.pulseloop.health.accuracy.ComparisonMetric
+import com.pulseloop.health.accuracy.Corrections
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Context
@@ -157,11 +159,18 @@ object WidgetSnapshotPublisher {
         val units = keyStore?.resolvedUnitSystem ?: UnitSystem.METRIC
         val vitals = VitalsViewModel.buildState(db, keyStore)
         val inputs = vitals.toCardInputs(units)
+        // Same accuracy corrections the Today tiles apply (buildState has already applied them to
+        // the vitals series); each corrected tile is flagged so the widget can say so.
+        val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
 
         val metrics = mutableMapOf<String, WidgetMetricPayload>()
         for (kind in MetricKind.entries) {
             val card = VitalsCardFactory.card(kind, inputs, vitals.profile)
-            var payload = metricPayload(kind, card)
+            var payload = metricPayload(kind, card).copy(adjusted = when (kind) {
+                MetricKind.HEART_RATE -> corrections.has(ComparisonMetric.HR_REST) || corrections.has(ComparisonMetric.HR_ACTIVE)
+                MetricKind.SPO2 -> corrections.has(ComparisonMetric.SPO2)
+                else -> false
+            })
             if (kind == MetricKind.BLOOD_PRESSURE) {
                 // Same values/zones the Today BP tile reads (offsets already applied in the state).
                 payload = payload.copy(
@@ -180,15 +189,16 @@ object WidgetSnapshotPublisher {
         return WidgetSnapshot(
             generatedAt = nowMs / 1000L,
             dayStart = TimeUtil.startOfTodayLocal() / 1000L,
-            activity = activityPayload(db, units),
-            sleep = sleepPayload(db),
+            activity = activityPayload(db, units, corrections),
+            sleep = sleepPayload(db, corrections),
             metrics = metrics,
         )
     }
 
     /** Replicates the Today activity tile's value derivations (unit conversion, formatting). */
-    private suspend fun activityPayload(db: PulseLoopDatabase, units: UnitSystem): WidgetActivityPayload {
+    private suspend fun activityPayload(db: PulseLoopDatabase, units: UnitSystem, corrections: Corrections): WidgetActivityPayload {
         val today = try { db.activityDailyDao().byDay(TimeUtil.startOfTodayLocal()) } catch (_: Exception) { null }
+            ?.let(corrections::day)
         val goal = try { db.userGoalDao().get() } catch (_: Exception) { null }
 
         val steps = today?.steps
@@ -206,14 +216,15 @@ object WidgetSnapshotPublisher {
             stepsText = steps?.let { Formats.count(it) },
             distanceText = distanceDisplay?.let { Formats.distance(it) },
             caloriesText = calories?.let { Formats.count(it.toInt()) },
+            adjusted = corrections.has(ComparisonMetric.STEPS) || corrections.has(ComparisonMetric.DISTANCE),
         )
     }
 
     /** Replicates the Today sleep tile's derivations (reference night, stage bar, score). */
-    private suspend fun sleepPayload(db: PulseLoopDatabase): WidgetSleepPayload? {
+    private suspend fun sleepPayload(db: PulseLoopDatabase, corrections: Corrections): WidgetSleepPayload? {
         val reference = TimeUtil.referenceNightLocal()
         val night = try {
-            db.sleepSessionDao().byDay(reference)?.takeIf { it.totalMinutes > 0 }
+            db.sleepSessionDao().byDay(reference)?.takeIf { it.totalMinutes > 0 }?.let(corrections::sleep)
         } catch (_: Exception) { null } ?: return null
         val blocks = try { db.sleepStageBlockDao().forSession(night.id) } catch (_: Exception) { emptyList() }
         val score = SleepScore.calculate(night, blocks).score
@@ -223,6 +234,7 @@ object WidgetSnapshotPublisher {
             segments = buildSleepStageSegments(blocks).map {
                 WidgetSleepPayload.Segment(it.minutes, colorToHex(it.color), it.label)
             },
+            adjusted = corrections.has(ComparisonMetric.SLEEP_ASLEEP),
         )
     }
 

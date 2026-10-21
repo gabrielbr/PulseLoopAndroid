@@ -144,4 +144,34 @@ class AccuracyCorrectionsTest {
         assertEquals("+25 min", AccuracyCorrections.formatValue(ComparisonMetric.SLEEP_ASLEEP, 25.0))
         assertEquals("−2.0 points", AccuracyCorrections.formatValue(ComparisonMetric.SPO2, -2.0))
     }
+
+    @Test
+    fun storedReadingsAreCorrectedByKindOnly() {
+        val corr = Corrections("K", mapOf(
+            ComparisonMetric.HR_REST to c(ComparisonMetric.HR_REST, -3.0),
+            ComparisonMetric.SPO2 to c(ComparisonMetric.SPO2, 1.0),
+        ), age = 40)
+        fun m(kind: com.pulseloop.ring.MeasurementKind, v: Double) =
+            com.pulseloop.data.entity.MeasurementEntity(kindRaw = kind.name, value = v, unit = "", timestamp = 0, sourceRaw = "history")
+        assertEquals(57.0, corr.measurement(m(com.pulseloop.ring.MeasurementKind.HEART_RATE, 60.0)).value, 1e-9)
+        assertEquals(97.0, corr.measurement(m(com.pulseloop.ring.MeasurementKind.SPO2, 96.0)).value, 1e-9)
+        assertEquals(45.0, corr.measurement(m(com.pulseloop.ring.MeasurementKind.HRV, 45.0)).value, 1e-9)
+    }
+
+    @Test
+    fun theCoachIsToldOnlyWhenSomethingIsAdjusted() {
+        assertNull(Corrections.NONE.coachNote())
+        val note = Corrections("K", mapOf(ComparisonMetric.STEPS to c(ComparisonMetric.STEPS, 1.2))).coachNote()!!
+        assertTrue(note, note.contains("steps ×1.20"))
+        assertTrue(note, note.contains("stored readings are unchanged"))
+    }
+
+    @Test
+    fun aWidgetSnapshotFromBeforeTheAdjustedFlagStillDecodes() {
+        val json = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
+        val old = """{"generatedAt":1,"dayStart":0,"activity":{"steps":5.0},"sleep":{"durationText":"7h","score":80}}"""
+        val snap = json.decodeFromString(com.pulseloop.widgets.WidgetSnapshot.serializer(), old)
+        assertFalse(snap.activity!!.adjusted)
+        assertFalse(snap.sleep!!.adjusted)
+    }
 }

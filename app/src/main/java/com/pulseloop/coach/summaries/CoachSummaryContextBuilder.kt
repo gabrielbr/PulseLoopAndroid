@@ -46,12 +46,14 @@ object CoachSummaryContextBuilder {
             /** Readiness and activity scores (docs/oura-ux-analysis.md phase 5). */
             val scores: com.pulseloop.service.ScoresContext? = null,
         )
+        // What the app shows: accuracy corrections applied (packet.dataQualityWarnings says so).
+        val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
         val activity = db.activityDailyDao().byDay(
             java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
                 .toInstant().toEpochMilli()
-        )
-        val latestHr = db.measurementDao().latest(com.pulseloop.ring.MeasurementKind.HEART_RATE.name)
-        val latestSpo2 = db.measurementDao().latest(com.pulseloop.ring.MeasurementKind.SPO2.name)
+        )?.let(corrections::day)
+        val latestHr = db.measurementDao().latest(com.pulseloop.ring.MeasurementKind.HEART_RATE.name)?.let(corrections::heartRate)
+        val latestSpo2 = db.measurementDao().latest(com.pulseloop.ring.MeasurementKind.SPO2.name)?.let(corrections::spo2)
 
         val tp = TodayPacket(
             today = todayDate,
@@ -92,12 +94,13 @@ object CoachSummaryContextBuilder {
     suspend fun sleepDay(db: PulseLoopDatabase): Built? {
         val todayStart = java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault())
             .toInstant().toEpochMilli()
-        val session = db.sleepSessionDao().byDay(todayStart) ?: return null
+        val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+        val session = db.sleepSessionDao().byDay(todayStart)?.let(corrections::sleep) ?: return null
         if (session.totalMinutes <= 0) return null
 
         val blocks = db.sleepStageBlockDao().forSession(session.id)
         val score = SleepScore.calculate(session, blocks)
-        val activitySteps = db.activityDailyDao().byDay(todayStart)?.steps
+        val activitySteps = db.activityDailyDao().byDay(todayStart)?.let(corrections::day)?.steps
 
         @Serializable
         data class SleepDayPacket(

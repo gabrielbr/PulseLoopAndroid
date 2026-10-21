@@ -427,6 +427,18 @@ internal fun AdjustedCaption(note: String) {
     )
 }
 
+/** The paired ring's accuracy corrections, for a composable that formats stored figures itself. */
+@Composable
+internal fun rememberAccuracyCorrections(): com.pulseloop.health.accuracy.Corrections {
+    val context = LocalContext.current
+    val db = remember { PulseLoopDatabase.getInstance(context) }
+    val tick by com.pulseloop.health.accuracy.AccuracyCorrections.flow(db).collectAsState(initial = com.pulseloop.health.accuracy.Corrections.NONE)
+    val loaded by androidx.compose.runtime.produceState(com.pulseloop.health.accuracy.Corrections.NONE, tick) {
+        value = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+    }
+    return loaded
+}
+
 /** Today's one-line banner while a check is open. */
 @Composable
 internal fun AccuracyCheckBanner(c: AccuracyCheckEntity, onOpen: () -> Unit) {

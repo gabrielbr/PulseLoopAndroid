@@ -26,11 +26,13 @@ object CoachContextBuilder {
         val goal = db.userGoalDao().get()
 
         val todayStart = localStartOfDay(now)
-        val todayActivity = db.activityDailyDao().byDay(todayStart)
+        // The coach is given what the app shows: accuracy corrections applied, and said so below.
+        val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+        val todayActivity = db.activityDailyDao().byDay(todayStart)?.let(corrections::day)
 
         // Latest HR / SpO2
-        val latestHr = db.measurementDao().latest(MeasurementKind.HEART_RATE.name, now)
-        val latestSpo2 = db.measurementDao().latest(MeasurementKind.SPO2.name, now)
+        val latestHr = db.measurementDao().latest(MeasurementKind.HEART_RATE.name, now)?.let(corrections::heartRate)
+        val latestSpo2 = db.measurementDao().latest(MeasurementKind.SPO2.name, now)?.let(corrections::spo2)
 
         // 7-day trends. Real wins over seeded rows once the ring has synced (`DemoDataPolicy`):
         // a connect no longer purges demo data, so without this the coach LLM is handed a
@@ -38,7 +40,7 @@ object CoachContextBuilder {
         val activityHasReal = db.activityDailyDao().hasReal()
         val sevenDaysAgo = todayStart - 7 * 24 * 3600_000L
         val activityWeek = (if (activityHasReal) db.activityDailyDao().recentReal(7)
-            else db.activityDailyDao().recent(7)).filter { it.date >= sevenDaysAgo }
+            else db.activityDailyDao().recent(7)).filter { it.date >= sevenDaysAgo }.map(corrections::day)
         val stepsWeek = activityWeek.map { it.steps.toDouble() }
         val daysAvailable = activityWeek.count { it.steps > 0 }
 
@@ -46,15 +48,16 @@ object CoachContextBuilder {
         val hr24h = if (db.measurementDao().hasReal(MeasurementKind.HEART_RATE.name))
             db.measurementDao().rangeReal(MeasurementKind.HEART_RATE.name, now - 24 * 3600_000L, now)
         else db.measurementDao().range(MeasurementKind.HEART_RATE.name, now - 24 * 3600_000L, now)
+        val hr24hShown = hr24h.map(corrections::measurement)
         val restingHr = if (hr24h.isNotEmpty()) {
-            val sorted = hr24h.map { it.value }.sorted()
+            val sorted = hr24hShown.map { it.value }.sorted()
             sorted[(sorted.size * 0.25).toInt().coerceAtMost(sorted.size - 1)]
         } else null
 
         // Sleep
         val sleepHasReal = db.sleepSessionDao().hasReal()
         val latestSleep = (if (sleepHasReal) db.sleepSessionDao().recentReal(1)
-            else db.sleepSessionDao().recent(1)).firstOrNull()
+            else db.sleepSessionDao().recent(1)).firstOrNull()?.let(corrections::sleep)
 
         val completeness = profileCompleteness(profile)
         val warnings = DataQualityAnalyzer.warnings(
@@ -71,7 +74,7 @@ object CoachContextBuilder {
                     (activityWeek.isNotEmpty() || latestSleep != null || hr24h.isNotEmpty()),
             ),
             now = now,
-        )
+        ) + listOfNotNull(corrections.coachNote())
 
         return CoachContextPacket(
             today = LocalDate.now().toString(),

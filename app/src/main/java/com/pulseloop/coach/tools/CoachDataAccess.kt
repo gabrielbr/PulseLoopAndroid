@@ -1,5 +1,6 @@
 package com.pulseloop.coach.tools
 
+import com.pulseloop.health.accuracy.AccuracyCorrections
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.*
 import com.pulseloop.ring.MeasurementKind
@@ -79,7 +80,9 @@ object CoachDataAccess {
         db: PulseLoopDatabase, kind: MeasurementKind, start: String, end: String
     ): List<MeasurementEntity> {
         val bounds = dayBounds(start, end) ?: return emptyList()
-        return db.measurementDao().range(kind.name, bounds.first, bounds.second)
+        // The coach sees what the app shows: accuracy corrections applied (read-time only).
+        val c = AccuracyCorrections.load(db)
+        return db.measurementDao().range(kind.name, bounds.first, bounds.second).map(c::measurement)
     }
 
     suspend fun activityRows(
@@ -88,12 +91,13 @@ object CoachDataAccess {
         val s = parseLocalDate(start) ?: return emptyList()
         val e = parseLocalDate(end) ?: return emptyList()
         val recent = db.activityDailyDao().recent(90)  // broad window; filter in Kotlin
-        return recent.filter { it.date >= s && it.date <= e }.sortedBy { it.date }
+        val c = AccuracyCorrections.load(db)
+        return recent.filter { it.date >= s && it.date <= e }.sortedBy { it.date }.map(c::day)
     }
 
     suspend fun activityRow(db: PulseLoopDatabase, date: String): ActivityDailyEntity? {
         val day = parseLocalDate(date) ?: return null
-        return db.activityDailyDao().byDay(day)
+        return db.activityDailyDao().byDay(day)?.let(AccuracyCorrections.load(db)::day)
     }
 
     suspend fun sleepSessions(
@@ -102,7 +106,8 @@ object CoachDataAccess {
         val s = parseLocalDate(start) ?: return emptyList()
         val e = parseLocalDate(end) ?: return emptyList()
         val recent = db.sleepSessionDao().recent(90)
-        return recent.filter { it.date in s..e }.sortedBy { it.date }
+        val c = AccuracyCorrections.load(db)
+        return recent.filter { it.date in s..e }.sortedBy { it.date }.map(c::sleep)
     }
 
     suspend fun activitySessions(

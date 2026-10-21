@@ -30,6 +30,8 @@ class LiveWorkoutManager(
         val latestHeartRate: Int? = null,
         val latestSpO2: Int? = null,
         val hrZone: HeartRateZones.Zone = HeartRateZones.Zone.REST,
+        /** [latestHeartRate] carries an accuracy-check correction; the screen says so. */
+        val heartRateAdjusted: Boolean = false,
         /** Set when a finish completes — the record route observes this to navigate to the
          *  summary, since a finish from the notification action has no button handler to do it
          *  (iOS routes off state the same way after an App Group command). */
@@ -220,6 +222,11 @@ class LiveWorkoutManager(
     private fun startTick(session: ActivitySessionEntity) {
         tickJob?.cancel()
         tickJob = scope.launch {
+            // Accuracy corrections for the live readout and its zone (read-time only: the samples
+            // the workout stores, and its summary, stay as measured — they reach Health Connect).
+            val corrections = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
+            val adjusted = corrections.has(com.pulseloop.health.accuracy.ComparisonMetric.HR_ACTIVE) ||
+                corrections.has(com.pulseloop.health.accuracy.ComparisonMetric.HR_REST)
             while (isActive) {
                 val now = System.currentTimeMillis()
                 // The live clock shows *active* time — wall time minus completed pauses (iOS
@@ -228,7 +235,7 @@ class LiveWorkoutManager(
                 // always current.
                 val elapsed = maxOf(0, ((now - session.startedAt) / 1000.0 - session.totalPauseSeconds).toInt())
                 val distance = gps.state.value.totalDistance
-                val hr = coordinator.latestHRValue
+                val hr = coordinator.latestHRValue?.let { kotlin.math.round(corrections.heartRate(it.toDouble())).toInt() }
                 val zone = hr?.let { HeartRateZones.zoneFor(it) } ?: HeartRateZones.Zone.REST
 
                 _state.value = _state.value.copy(
@@ -236,6 +243,7 @@ class LiveWorkoutManager(
                     distanceMeters = distance,
                     latestHeartRate = hr,
                     hrZone = zone,
+                    heartRateAdjusted = adjusted && hr != null,
                 )
 
                 if (elapsed % 5 == 0) refreshNotification()
