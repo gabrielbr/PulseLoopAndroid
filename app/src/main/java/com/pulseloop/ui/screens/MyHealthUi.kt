@@ -126,7 +126,7 @@ private fun Sparkline(values: List<Double>, color: Color, modifier: Modifier = M
 }
 
 @Composable
-fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit) {
+fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -154,6 +154,17 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit) {
                     color = if (loadFailed) PulseColors.warning else PulseColors.textMuted, fontSize = 13.sp,
                 )
             } else {
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                        .clickable(onClick = onWhatChanged).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("What changed", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text("Your nights against your own normal, kept as a log", fontSize = 12.sp, color = PulseColors.textMuted)
+                    }
+                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
                 RadarSection(s.radar, restUntil) { days ->
                     RestMode.set(context, days); restUntil = RestMode.until(context)
                 }
@@ -280,7 +291,9 @@ private fun HeartSection(s: HealthInsightsRepository.Snapshot) {
         s.cardio?.let { c ->
             Fact("Cardio capacity (VO₂max)", "%.0f · %s".format(c.vo2max, c.level.label),
                 if (c.fromRing) "Measured by your ring" else "Estimated from resting heart rate and age")
-            c.cardioAge?.let { Fact("Cardiovascular age", "about $it", "Estimate from VO₂max and HRV against age norms") }
+            // No "cardiovascular age": from a ring it would only restate resting heart rate and age
+            // as a number of years, which reads as far more than it is (OpenStrap Edge dropped its
+            // own for the same reason).
         } ?: Text("Add your age in Settings → User Profile for cardio capacity.", fontSize = 12.sp, color = PulseColors.textMuted)
     }
 }

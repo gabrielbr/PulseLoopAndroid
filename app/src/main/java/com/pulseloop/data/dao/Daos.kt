@@ -965,3 +965,18 @@ interface DrinkDao {
     @Query("DELETE FROM drink_entries")
     suspend fun clear()
 }
+
+@Dao
+interface FindingDao {
+    @Query("SELECT * FROM findings WHERE day >= :from ORDER BY day DESC, kind ASC")
+    fun sinceFlow(from: Long): Flow<List<FindingEntity>>
+
+    @Query("SELECT * FROM findings WHERE day >= :from ORDER BY day DESC, kind ASC")
+    suspend fun since(from: Long): List<FindingEntity>
+
+    @Query("DELETE FROM findings WHERE day >= :from AND algorithmVersion = :version")
+    suspend fun deleteWindow(from: Long, version: Int)
+
+    @Upsert
+    suspend fun upsertAll(rows: List<FindingEntity>)
+}

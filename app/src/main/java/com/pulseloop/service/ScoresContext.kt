@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class ScoresContext(
-    /** "score", "learning" or "no_sleep". */
+    /** "score", "learning", "withheld" (readings too poor; contributors hold the reasons) or "no_sleep". */
     val readinessStatus: String,
     val readiness: Int? = null,
     val readinessBand: String? = null,
@@ -61,6 +61,13 @@ data class ScoresContext(
                 is Readiness.Result.Learning -> ScoresContext(
                     readinessStatus = "learning",
                     baselineNightsCollected = r.nightsCollected,
+                    activityScore = activity?.value,
+                    activityBand = activity?.band?.label,
+                )
+                is Readiness.Result.Withheld -> ScoresContext(
+                    readinessStatus = "withheld",
+                    readinessContributors = r.reasons,
+                    lastNightCoveragePct = r.nightCoverage?.let { (it * 100).toInt() },
                     activityScore = activity?.value,
                     activityBand = activity?.band?.label,
                 )

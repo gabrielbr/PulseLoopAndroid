@@ -42,6 +42,7 @@ import com.pulseloop.service.ReadinessRepository
 import com.pulseloop.service.ScoreContributor
 import com.pulseloop.service.asScoreContributor
 import com.pulseloop.ui.theme.PulseColors
+import kotlin.math.roundToInt
 
 /*
  * Oura-style score surfaces (docs/oura-ux-analysis.md, phase 2): the three-ring header on Today
@@ -153,6 +154,7 @@ fun ScoreHeader(
                     is Readiness.Result.Score -> readiness.band.label
                     is Readiness.Result.Learning -> "Learning"
                     Readiness.Result.NoSleep -> "No sleep yet"
+                    is Readiness.Result.Withheld -> "Not measured"
                     null -> " "
                 },
                 color = score?.let { bandColor(it.band) } ?: PulseColors.readiness,
@@ -259,6 +261,18 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                     )
                 }
             }
+
+            if (result is Readiness.Result.Withheld) {
+                Column(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text("Why there's no score today", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+                    result.reasons.forEach { Text("• $it", fontSize = 13.sp, color = PulseColors.textSecondary) }
+                }
+            }
+
+            DataBehindScore(db, result)
 
             Text(ReadinessCopy.DERIVED_FOOTER, fontSize = 12.sp, color = PulseColors.textMuted)
             Spacer(Modifier.height(24.dp))
@@ -369,5 +383,50 @@ fun activityHeadline(result: com.pulseloop.service.ActivityScore.Result?): Strin
         Readiness.Band.GOOD -> "A solid active day so far."
         Readiness.Band.FAIR, Readiness.Band.PAY_ATTENTION ->
             if (weakest != null) "There's room to move more. Start with your $weakest." else "There's room to move more today."
+    }
+}
+
+
+/**
+ * "Data behind this score": the readings last night's numbers stand on, anything withheld and
+ * why, and the formula version — so a surprising number can be checked, not just trusted.
+ */
+@Composable
+private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
+    var open by remember { mutableStateOf(false) }
+    val inputs by produceState<Readiness.Inputs?>(null, result) {
+        value = runCatching { com.pulseloop.service.ReadinessRepository.loadInputs(db) }.getOrNull()
+    }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+            .clickable { open = !open }.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Data behind this score", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+            Text(if (open) "Hide" else "Show", fontSize = 13.sp, color = PulseColors.accent)
+        }
+        if (open) {
+            val night = inputs?.lastNight
+            fun line(label: String, value: String) = label to value
+            val rows = buildList {
+                if (night != null) {
+                    add(line("Night covered by the ring", "${(night.coverage * 100).roundToInt()}%"))
+                    add(line("Heart-rate readings", "${night.hrSamples}"))
+                    add(line("HRV readings", "${night.hrvSamples}"))
+                    add(line("Resting heart rate", night.restingHr?.let { "${it.roundToInt()} bpm" } ?: "not measured"))
+                    add(line("HRV", night.hrv?.let { "${it.roundToInt()} ms" } ?: "not measured"))
+                } else add(line("Last night", "no sleep recorded"))
+                inputs?.let { add(line("Nights in your baseline", "${it.history.count { n -> n.restingHr != null || n.hrv != null }}")) }
+                add(line("Formula version", "${com.pulseloop.service.Algorithms.VERSION}"))
+            }
+            rows.forEach { (k, v) ->
+                Row(Modifier.fillMaxWidth()) {
+                    Text(k, fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+                    Text(v, fontSize = 13.sp, color = PulseColors.textPrimary)
+                }
+            }
+            night?.withheld?.values?.forEach { Text("Withheld: $it.", fontSize = 12.sp, color = PulseColors.warning) }
+        }
     }
 }
