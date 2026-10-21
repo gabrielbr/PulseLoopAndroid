@@ -9,8 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,6 +37,8 @@ import com.pulseloop.data.entity.AccuracyCheckDayEntity
 import com.pulseloop.data.entity.AccuracyCheckEntity
 import com.pulseloop.health.accuracy.AccuracyComparison
 import com.pulseloop.health.accuracy.AccuracyComparison.Verdict
+import com.pulseloop.health.accuracy.AccuracyCorrections
+import com.pulseloop.health.accuracy.RingIdentity
 import com.pulseloop.health.accuracy.AccuracyReportText
 import com.pulseloop.health.accuracy.AccuracyScorer
 import com.pulseloop.health.accuracy.ComparisonMetric
@@ -268,7 +273,136 @@ private fun StageConfusion(days: List<AccuracyCheckDayEntity>, ref: String) {
     }
 }
 
-/** Filled in by the corrections phase; shows nothing until then. */
+/**
+ * Under a metric with a consistent bias: apply the fitted correction, adjust it, or switch it off
+ * (plan, "Corrections"). Only for the ring the check was run on, and only while it is paired.
+ */
 @Composable
 internal fun AccuracyCorrectionControl(check: AccuracyCheckEntity, summary: AccuracyComparison.Summary) {
+    val metric = summary.metric
+    val fitted = summary.suggestedCorrection ?: return
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val db = remember { PulseLoopDatabase.getInstance(context) }
+    val all by db.accuracyDao().allCorrectionsFlow().collectAsState(initial = emptyList())
+    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val existing = all.firstOrNull { it.deviceKey == check.deviceKey && it.metric == metric.name }
+    var editing by remember { mutableStateOf(false) }
+    val paired = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID && RingIdentity.keyOf(it) == check.deviceKey } == true
+
+    if (!paired) {
+        Text("This check was run on ${check.deviceLabel}. Pair that ring to apply a correction from it.", fontSize = 12.sp, color = PulseColors.textMuted)
+        return
+    }
+    when {
+        existing != null && existing.enabled -> Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Correction on: ${AccuracyCorrections.formatValue(metric, existing.value)}", fontSize = 12.sp,
+                color = PulseColors.success, modifier = Modifier.weight(1f))
+            TextButton(onClick = { editing = true }) { Text("Change") }
+            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, false) } }) { Text("Turn off") }
+        }
+        existing != null -> Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Correction off (${AccuracyCorrections.formatValue(metric, existing.value)})", fontSize = 12.sp,
+                color = PulseColors.textMuted, modifier = Modifier.weight(1f))
+            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, true) } }) { Text("Turn on") }
+        }
+        else -> Button(onClick = { editing = true }, modifier = Modifier.fillMaxWidth()) {
+            Text("Apply correction (${AccuracyCorrections.formatValue(metric, fitted)})")
+        }
+    }
+    if (editing) {
+        CorrectionDialog(metric, fitted, existing?.value ?: fitted, check.referenceLabel, onDismiss = { editing = false }) { value ->
+            editing = false
+            scope.launch { AccuracyCorrections.accept(db, check, summary, value) }
+        }
+    }
+}
+
+@Composable
+private fun CorrectionDialog(
+    metric: ComparisonMetric,
+    fitted: Double,
+    start: Double,
+    ref: String,
+    onDismiss: () -> Unit,
+    onSave: (Double) -> Unit,
+) {
+    val range = correctionRange(metric, fitted)
+    var value by remember { mutableStateOf(start.coerceIn(range.start.toDouble(), range.endInclusive.toDouble())) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Correct ${metric.label.lowercase()}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "Fitted from this check so your ring matches $ref: ${AccuracyCorrections.formatValue(metric, fitted)}. " +
+                        "It changes what PulseLoop shows and what it works out from it (zones, resting baseline, calorie estimate). " +
+                        "Your ring's stored readings and what goes to Health Connect stay as measured.",
+                    fontSize = 12.sp,
+                )
+                Text(AccuracyCorrections.formatValue(metric, value), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                Slider(value = value.toFloat(), onValueChange = { value = it.toDouble() }, valueRange = range)
+                TextButton(onClick = { value = fitted }) { Text("Use the fitted value") }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(roundCorrection(metric, value)) }) { Text("Apply") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+private fun correctionRange(m: ComparisonMetric, fitted: Double): ClosedFloatingPointRange<Float> = when (m.correction) {
+    com.pulseloop.health.accuracy.CorrectionKind.SCALE ->
+        (minOf(fitted, 1.0) * 0.8).coerceAtLeast(0.5).toFloat()..(maxOf(fitted, 1.0) * 1.2).coerceAtMost(2.5).toFloat()
+    else -> {
+        val span = maxOf(kotlin.math.abs(fitted) * 2, when (m) {
+            ComparisonMetric.SLEEP_ASLEEP -> 60.0
+            ComparisonMetric.SPO2 -> 4.0
+            else -> 10.0
+        })
+        (-span).toFloat()..span.toFloat()
+    }
+}
+
+private fun roundCorrection(m: ComparisonMetric, v: Double): Double = when (m.correction) {
+    com.pulseloop.health.accuracy.CorrectionKind.SCALE -> (v * 100).roundToInt() / 100.0
+    else -> if (m == ComparisonMetric.SLEEP_ASLEEP) v.roundToInt().toDouble() else (v * 2).roundToInt() / 2.0
+}
+
+/** The paired ring's corrections, on the accuracy-check screen: switch, stale flag, remove. */
+@Composable
+internal fun AccuracyCorrectionsCard() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val db = remember { PulseLoopDatabase.getInstance(context) }
+    val all by db.accuracyDao().allCorrectionsFlow().collectAsState(initial = emptyList())
+    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val r = ring?.takeIf { it.id != RingIdentity.DEMO_DEVICE_ID } ?: return
+    val key = RingIdentity.keyOf(r)
+    val mine = all.filter { it.deviceKey == key }.sortedBy { ComparisonMetric.byName(it.metric)?.ordinal ?: 99 }
+    AccuracyCard {
+        Text("Corrections for ${RingIdentity.labelOf(r)}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        if (mine.isEmpty()) {
+            Text(
+                if (all.isNotEmpty()) "No accuracy check for this ring yet. Corrections from another ring don't carry over."
+                else "None. A finished check offers one wherever the ring is consistently off.",
+                fontSize = 12.sp, color = PulseColors.textMuted,
+            )
+            return@AccuracyCard
+        }
+        mine.forEach { c ->
+            val m = ComparisonMetric.byName(c.metric) ?: return@forEach
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("${m.label}: ${AccuracyCorrections.formatValue(m, c.value)}", fontSize = 13.sp, color = PulseColors.textPrimary)
+                    if (AccuracyCorrections.isStale(c, r)) {
+                        Text("Fitted ${AccuracyUiText.date(c.createdAt)}${if (c.firmware != null && c.firmware != r.firmwareVersion) " on other firmware" else ""}: worth a fresh check.",
+                            fontSize = 11.sp, color = PulseColors.warning)
+                    }
+                }
+                Switch(checked = c.enabled, onCheckedChange = { on -> scope.launch { AccuracyCorrections.setEnabled(db, c, on) } })
+                TextButton(onClick = { scope.launch { AccuracyCorrections.remove(db, c) } }) { Text("Remove") }
+            }
+        }
+        Text("Applied to what PulseLoop shows, never to stored readings or Health Connect.", fontSize = 11.sp, color = PulseColors.textMuted)
+    }
 }

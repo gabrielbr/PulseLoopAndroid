@@ -120,7 +120,10 @@ fun TodayScreen(
     val mealsToday = food?.meals
     // Ring steps calibrated against the phone, only when the user applied it in My Health.
     val stepFactor by produceState<Double?>(null, state.lastUpdated) {
-        value = if (!com.pulseloop.service.StepCalibration.isApplied(context)) null else runCatching {
+        // An accuracy-check steps correction supersedes the phone factor: applying both would
+        // correct the same undercount twice.
+        val accuracySteps = com.pulseloop.health.accuracy.AccuracyCorrections.load(db).has(com.pulseloop.health.accuracy.ComparisonMetric.STEPS)
+        value = if (accuracySteps || !com.pulseloop.service.StepCalibration.isApplied(context)) null else runCatching {
             val zone = java.time.ZoneId.systemDefault()
             val ring = db.activityDailyDao().recentReal(60).associate { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate() to it.steps }
             com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())?.factor
@@ -219,6 +222,7 @@ fun TodayScreen(
 
             // Accuracy check in progress (docs/accuracy-check-plan.md): say so, since it pauses export.
             accuracyOpen?.let { c -> item { AccuracyCheckBanner(c) { navController?.navigate("settings/accuracy-check") } } }
+            state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
 
             // Glance: one line of what today means, and an alert line only when something is off.
             item {

@@ -190,6 +190,8 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
             }
         }
 
+        if (hasRing) AccuracyCorrectionsCard()
+
         val past = history.filter { it.state == AccuracyCheckEntity.STATE_DONE }
         if (past.isNotEmpty()) {
             AccuracyCard {
@@ -411,6 +413,18 @@ internal fun AccuracyCard(content: @Composable () -> Unit) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) { content() }
+}
+
+/**
+ * The caption a screen carries while it shows accuracy-corrected figures (plan, Corrections rule
+ * 4: labelled wherever shown). [note] is [com.pulseloop.health.accuracy.Corrections.describe].
+ */
+@Composable
+internal fun AdjustedCaption(note: String) {
+    Text(
+        "Adjusted by your accuracy check: $note. Settings → Accuracy check to change.",
+        fontSize = 11.sp, color = PulseColors.textMuted,
+    )
 }
 
 /** Today's one-line banner while a check is open. */

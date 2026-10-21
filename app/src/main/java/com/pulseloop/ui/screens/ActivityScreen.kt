@@ -158,6 +158,7 @@ fun ActivityScreen(
         // Day navigation (issue #76): the summary + RECORDS cards follow the shown day, so a
         // past day's steps/distance/calories are reachable the way Sleep already allows.
         item { ActivityDayNavHeader(state, viewModel) }
+        state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
 
         item { DailyActivitySummaryCard(state, units) }
 

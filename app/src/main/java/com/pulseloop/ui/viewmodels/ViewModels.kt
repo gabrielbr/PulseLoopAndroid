@@ -8,6 +8,7 @@ import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.dao.Bucket
 import com.pulseloop.data.dao.MeasurementDeletionDao
 import com.pulseloop.data.entity.*
+import com.pulseloop.health.accuracy.AccuracyCorrections
 import com.pulseloop.ring.*
 import com.pulseloop.coach.summaries.CoachSummaryKind
 import com.pulseloop.service.DailyCalorieEstimator
@@ -72,6 +73,8 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
         val steps7d: List<Int> = emptyList(),
         /** Latest "today" coach summary card, when the coach has generated one. */
         val coachSummary: CoachSummaryEntity? = null,
+        /** The accuracy corrections applied to this screen's figures, for its caption; null = none. */
+        val adjustedNote: String? = null,
     )
 
     private val _state = MutableStateFlow(TodayState())
@@ -84,14 +87,19 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
 
     init {
         viewModelScope.launch {
-            currentDayValues(todayStart, db.activityDailyDao()::byDayFlow).collect { activity ->
+            currentDayValues(todayStart, db.activityDailyDao()::byDayFlow)
+                .combine(AccuracyCorrections.flow(db)) { activity, _ -> activity }
+                .collect { raw ->
+                // Accuracy corrections are read-time only (docs/accuracy-check-plan.md).
+                val corrections = AccuracyCorrections.load(db)
+                val activity = raw?.let(corrections::day)
                 // iOS #98: the ring's own calorie figure wins when it reported one; otherwise show
                 // the on-device estimate (BMR accrued so far + net active). Reading `calories`
                 // straight off the row would show 0 all day for rings that report none — which is
                 // the whole reason the estimator exists.
                 val profile = db.userProfileDao().get()?.let { DailyCalorieEstimator.profileOf(it) }
                 val calories = activity?.let { row ->
-                    profile?.let { DailyCalorieEstimator.effectiveCalories(row, it) }
+                    profile?.let { DailyCalorieEstimator.displayCalories(row, it) }
                         ?: DailyCalorieEstimator.deviceReportedCalories(row)
                 }
                 _state.update { it.copy(
@@ -99,6 +107,7 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                     calories = calories,
                     distanceMeters = activity?.distanceMeters,
                     activeMinutes = activity?.activeMinutes,
+                    adjustedNote = corrections.describe(),
                 ) }
             }
         }
@@ -117,8 +126,8 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
         }
         // 7-day step series for the hero delta (oldest→newest; DAO returns newest-first).
         viewModelScope.launch {
-            db.activityDailyDao().recentFlow(7).collect { days ->
-                _state.update { it.copy(steps7d = days.reversed().map { d -> d.steps }) }
+            db.activityDailyDao().recentFlow(7).combine(AccuracyCorrections.flow(db)) { days, c -> days to c }.collect { (days, c) ->
+                _state.update { it.copy(steps7d = days.reversed().map { d -> c.steps(d.steps) }) }
             }
         }
         // Today's coach summary card (kind="today", scopeKey=local date).
@@ -145,10 +154,11 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
             while (true) {
                 try {
                     val nowMs = System.currentTimeMillis()
-                    val hr = db.measurementDao().latest(MeasurementKind.HEART_RATE.name)
+                    val corrections = AccuracyCorrections.load(db)
+                    val hr = db.measurementDao().latest(MeasurementKind.HEART_RATE.name)?.let(corrections::heartRate)
                     val samples = db.measurementDao()
                         .range(MeasurementKind.HEART_RATE.name, nowMs - 24 * 3600_000L, nowMs)
-                        .map { it.value }
+                        .map { corrections.heartRate(it.value) }
                     val resting = com.pulseloop.service.HeartRateZones.restingHeartRate(samples)
                     _state.update { it.copy(heartRate = hr?.toInt(), restingHR = resting, lastUpdated = nowMs) }
                 } catch (_: Exception) {}
@@ -159,7 +169,7 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
         viewModelScope.launch {
             while (true) {
                 try {
-                    val spo2 = db.measurementDao().latest(MeasurementKind.SPO2.name)
+                    val spo2 = db.measurementDao().latest(MeasurementKind.SPO2.name)?.let(AccuracyCorrections.load(db)::spo2)
                     _state.update { it.copy(spo2 = spo2?.toInt(), lastUpdated = System.currentTimeMillis()) }
                 } catch (_: Exception) {}
                 kotlinx.coroutines.delay(2000)
@@ -237,6 +247,8 @@ class SleepViewModel(
         // LLM summaries when present (fallback = the scripted coach above)
         val daySummary: CoachSummaryEntity? = null,
         val rangeSummary: CoachSummaryEntity? = null,
+        /** Accuracy corrections applied to the time-asleep figures; null = none. */
+        val adjustedNote: String? = null,
     )
 
     private val _state = MutableStateFlow(SleepState())
@@ -255,8 +267,8 @@ class SleepViewModel(
     init {
         // Any sleep-table change retriggers a rebuild of the selected range.
         viewModelScope.launch {
-            db.sleepSessionDao().recentFlow(7).collect { sessions ->
-                _state.update { it.copy(recentSessions = sessions) }
+            db.sleepSessionDao().recentFlow(7).combine(AccuracyCorrections.flow(db)) { sessions, c -> sessions to c }.collect { (sessions, c) ->
+                _state.update { it.copy(recentSessions = sessions.map(c::sleep)) }
                 try { rebuild(_state.value.range) } catch (_: Exception) {}
             }
         }
@@ -272,7 +284,9 @@ class SleepViewModel(
 
         // ── Today tile (never moves with Day-view navigation) ──
         val todayReference = TimeUtil.referenceNightLocal()
-        val night = db.sleepSessionDao().byDay(todayReference)?.takeIf { it.totalMinutes > 0 }
+        // Time asleep as corrected by an accuracy check, read-time only; stages stay as the ring sent them.
+        val corrections = AccuracyCorrections.load(db)
+        val night = db.sleepSessionDao().byDay(todayReference)?.takeIf { it.totalMinutes > 0 }?.let(corrections::sleep)
         val nightBlocks = night?.let { blocksFor(it.id) } ?: emptyList()
         val scoreResult = night?.let { SleepScore.calculate(it, nightBlocks, goal ?: 480) }
 
@@ -285,7 +299,7 @@ class SleepViewModel(
         // afterwards. Real wins (`DemoDataPolicy`).
         val shownAll = db.sleepSessionDao().allByDay(shownReference).filter { it.totalMinutes > 0 }
         val shownRing = shownAll.filterNot { DemoDataPolicy.isDemo(it.sourceRaw) }
-        val daySessions = (if (shownRing.isNotEmpty()) shownRing else shownAll).sortedBy { it.startAt }
+        val daySessions = (if (shownRing.isNotEmpty()) shownRing else shownAll).sortedBy { it.startAt }.map(corrections::sleep)
         val dayBlocks = daySessions.associate { it.id to blocksFor(it.id) }
         // The primary (longest) session drives the scripted day-level coach fallback.
         val primary = daySessions.maxByOrNull { it.totalMinutes }
@@ -319,7 +333,7 @@ class SleepViewModel(
         // Collapse each waking day (main night + naps) into one combined summary so a night plus
         // naps counts as ONE tracked night, consistent with the "N of M nights" hero and averages.
         val collapsed = SleepInsights.collapseByDay(sessions, realLookup)
-        val collapsedSessions = collapsed.map { it.session }
+        val collapsedSessions = collapsed.map { corrections.sleep(it.session) }
         val collapsedBlocks = collapsed.associate { it.session.id to it.blocks }
         val lookup: (String) -> List<SleepStageBlockEntity> = { collapsedBlocks[it] ?: emptyList() }
         val valid = SleepInsights.validSessions(collapsedSessions)
@@ -363,6 +377,7 @@ class SleepViewModel(
                 goalMinutes = goal,
                 daySummary = daySummary,
                 rangeSummary = rangeSummary,
+                adjustedNote = corrections.describe(setOf(com.pulseloop.health.accuracy.ComparisonMetric.SLEEP_ASLEEP)),
             )
         }
     }
@@ -460,6 +475,8 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         val caloriesGoal: Int = UserGoalEntity.DEFAULT_CALORIES,
         val sleepMinutesGoal: Int = 480,
         val workoutsPerWeekGoal: Int = 4,
+        /** Accuracy corrections applied to steps and distance; null = none. */
+        val adjustedNote: String? = null,
     )
 
     private val _state = MutableStateFlow(ActivityState())
@@ -481,23 +498,29 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
 
     init {
         viewModelScope.launch {
-            db.activityDailyDao().recentFlow(7).collect { days ->
-                _state.update { it.copy(recentDays = days) }
+            db.activityDailyDao().recentFlow(7).combine(AccuracyCorrections.flow(db)) { days, c -> days to c }.collect { (days, c) ->
+                _state.update { it.copy(recentDays = days.map(c::day)) }
             }
         }
         viewModelScope.launch {
-            currentDayValues(todayStart, db.activityDailyDao()::byDayFlow).collect { day ->
-                _state.update { it.copy(today = day) }
-            }
+            currentDayValues(todayStart, db.activityDailyDao()::byDayFlow)
+                .combine(AccuracyCorrections.flow(db)) { day, c -> day?.let(c::day) to c }
+                .collect { (day, c) ->
+                    _state.update { it.copy(today = day, adjustedNote = c.describe(setOf(
+                        com.pulseloop.health.accuracy.ComparisonMetric.STEPS, com.pulseloop.health.accuracy.ComparisonMetric.DISTANCE,
+                    ))) }
+                }
         }
         viewModelScope.launch {
-            shownDayStart.flatMapLatest { day -> db.activityDailyDao().byDayFlow(day) }.collect { day ->
+            shownDayStart.flatMapLatest { day -> db.activityDailyDao().byDayFlow(day) }
+                .combine(AccuracyCorrections.flow(db)) { day, c -> day?.let(c::day) }
+                .collect { day ->
                 val profile = db.userProfileDao().get()?.let { DailyCalorieEstimator.profileOf(it) }
                 val calories = day?.let { row ->
-                    profile?.let { DailyCalorieEstimator.effectiveCalories(row, it) }
+                    profile?.let { DailyCalorieEstimator.displayCalories(row, it) }
                         ?: DailyCalorieEstimator.deviceReportedCalories(row)
                 }
-                val activeCalories = day?.let { DailyCalorieEstimator.effectiveActiveCalories(it) }
+                val activeCalories = day?.let { DailyCalorieEstimator.displayActiveCalories(it) }
                 _state.update { it.copy(daySummary = day, dayCalories = calories, dayActiveCalories = activeCalories) }
             }
         }
@@ -658,6 +681,8 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         val supportsGlucose: Boolean = false,
         val supportsManualHr: Boolean = false,
         val supportsManualSpo2: Boolean = false,
+        /** Accuracy corrections applied to heart rate and SpO₂ here; null = none. */
+        val adjustedNote: String? = null,
     )
 
     private val _state = MutableStateFlow(VitalsState())
@@ -727,8 +752,11 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             else -> emptyList()
         }
 
-        val hr = series(MeasurementKind.HEART_RATE)
-        val spo2 = series(MeasurementKind.SPO2)
+        // Accuracy corrections (docs/accuracy-check-plan.md) are applied here, at read time, so the
+        // cards, charts, widgets and zones built from this state all see the same figures.
+        val corrections = AccuracyCorrections.load(db)
+        val hr = series(MeasurementKind.HEART_RATE).map { it.copy(value = corrections.heartRate(it.value)) }
+        val spo2 = series(MeasurementKind.SPO2).map { it.copy(value = corrections.spo2(it.value)) }
         val hrv = if (caps.contains(WearableCapability.HRV)) series(MeasurementKind.HRV) else emptyList()
         val stress = if (caps.contains(WearableCapability.STRESS)) series(MeasurementKind.STRESS) else emptyList()
         val fatigue = if (caps.contains(WearableCapability.FATIGUE)) series(MeasurementKind.FATIGUE) else emptyList()
@@ -820,7 +848,7 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             bpDiaSeries = bpDia.map { VitalSample(it.timestamp, it.value) },
             glucoseSeries = gluc.map { VitalSample(it.timestamp, it.value + glucoseOffset) },
             peakHr = hr.maxOfOrNull { it.value },
-            profile = apiKeyStore.physiologyProfile(userProfile),
+            profile = apiKeyStore.physiologyProfile(userProfile, corrections),
             // "Reference entered" ⇔ a non-zero calibration offset in Settings (0 = not set).
             hasBPReference = (apiKeyStore?.bpAdjustSystolic ?: 0) != 0 || (apiKeyStore?.bpAdjustDiastolic ?: 0) != 0,
             isGlucoseCalibrated = glucoseOffset != 0.0 || (apiKeyStore?.glucoseRefMgdl ?: 0.0) != 0.0,
@@ -832,6 +860,10 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             supportsGlucose = caps.contains(WearableCapability.BLOOD_SUGAR),
             supportsManualHr = caps.contains(WearableCapability.MANUAL_HEART_RATE),
             supportsManualSpo2 = caps.contains(WearableCapability.MANUAL_SPO2),
+            adjustedNote = corrections.describe(setOf(
+                com.pulseloop.health.accuracy.ComparisonMetric.HR_REST, com.pulseloop.health.accuracy.ComparisonMetric.HR_ACTIVE,
+                com.pulseloop.health.accuracy.ComparisonMetric.SPO2, com.pulseloop.health.accuracy.ComparisonMetric.RESTING_HR,
+            )),
         )
     }
 
@@ -848,7 +880,10 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
  * with it — dropping them here left [VitalsThresholdEngine] with a null baseline and no way to see
  * the user's chosen mode or custom boundaries, so every zone computation took the default branch.
  */
-private fun ApiKeyStore?.physiologyProfile(profile: UserProfileEntity?): UserPhysiologyProfile =
+private fun ApiKeyStore?.physiologyProfile(
+    profile: UserProfileEntity?,
+    corrections: com.pulseloop.health.accuracy.Corrections = com.pulseloop.health.accuracy.Corrections.NONE,
+): UserPhysiologyProfile =
     UserPhysiologyProfile.fromProfile(
         profile?.age, profile?.sex,
         athleteMode = this?.athleteMode ?: false,
@@ -857,7 +892,9 @@ private fun ApiKeyStore?.physiologyProfile(profile: UserProfileEntity?): UserPhy
         hasKnownLungCondition = this?.hasKnownLungCondition == true,
         preferredGlucoseUnit = this?.preferredGlucoseUnit ?: com.pulseloop.service.GlucoseUnit.MGDL,
         hrZoneModeRaw = profile?.hrZoneModeRaw ?: "auto",
-        hrRestingBaseline = profile?.hrRestingBaseline,
+        // The zones follow the corrected heart rate, so the baseline they sit on is corrected too
+        // (plan, Corrections rule 6); the stored baseline, which Health Connect gets, stays raw.
+        hrRestingBaseline = profile?.hrRestingBaseline?.let(corrections::baseline),
         hrCustomLowUpper = profile?.hrCustomLowUpper,
         hrCustomAthleticUpper = profile?.hrCustomAthleticUpper,
         hrCustomElevatedStart = profile?.hrCustomElevatedStart,
@@ -1143,6 +1180,8 @@ class VitalDetailViewModel(
         val isDerived: Boolean = false,
         /** The user's own 30-day usual range in display units, drawn as a band (service/UsualRange). */
         val usualRange: ClosedFloatingPointRange<Double>? = null,
+        /** Accuracy correction applied to this metric's readings; null = none. */
+        val adjustedNote: String? = null,
     )
 
     /**
@@ -1179,7 +1218,7 @@ class VitalDetailViewModel(
         viewModelScope.launch {
             try {
                 val userProfile = db.userProfileDao().get()
-                val physiology = apiKeyStore.physiologyProfile(userProfile)
+                val physiology = apiKeyStore.physiologyProfile(userProfile, AccuracyCorrections.load(db))
                 engineThresholds(metric, physiology)?.let { engine ->
                     _state.update { it.copy(thresholds = engine) }
                 }
@@ -1272,11 +1311,12 @@ class VitalDetailViewModel(
         val prevEnd = if (now < windowEnd) minOf(windowStart, prevStart + (now - windowStart)) else windowStart
 
         val dao = db.measurementDao()
+        val corrections = AccuracyCorrections.load(db)
         // Profile-aware zones for the REFERENCE ZONES card (iOS legend) — HRV gets its
         // baseline-relative zones from the window's samples further below.
         val physiology = try {
             val userProfile = db.userProfileDao().get()
-            apiKeyStore.physiologyProfile(userProfile)
+            apiKeyStore.physiologyProfile(userProfile, corrections)
         } catch (_: Exception) { UserPhysiologyProfile.UNKNOWN }
 
         if (metric == "bp") {
@@ -1336,6 +1376,9 @@ class VitalDetailViewModel(
             fun convert(v: Double): Double = when (kind) {
                 MeasurementKind.BLOOD_SUGAR -> glucoseUnit.fromMgdl(v + glucoseOffset)
                 MeasurementKind.TEMPERATURE -> UnitConverter.temperature(v, unitSystem)
+                // Accuracy corrections, read-time only (docs/accuracy-check-plan.md).
+                MeasurementKind.HEART_RATE -> corrections.heartRate(v)
+                MeasurementKind.SPO2 -> corrections.spo2(v)
                 else -> v
             }
 
@@ -1364,7 +1407,7 @@ class VitalDetailViewModel(
 
             // Resting HR from the window's raw samples (low-percentile estimate).
             val resting = if (kind == MeasurementKind.HEART_RATE)
-                HeartRateZones.restingHeartRate(samples.map { it.value })
+                HeartRateZones.restingHeartRate(samples.map { corrections.heartRate(it.value) })
             else null
 
             // HRV zones are baseline-relative; the detail window (Week/Month) carries enough
@@ -1409,6 +1452,13 @@ class VitalDetailViewModel(
                 engineZones = engineZones,
                 isDerived = derived.isNotEmpty(),
                 usualRange = usualRange,
+                adjustedNote = when (kind) {
+                    MeasurementKind.HEART_RATE -> corrections.describe(setOf(
+                        com.pulseloop.health.accuracy.ComparisonMetric.HR_REST, com.pulseloop.health.accuracy.ComparisonMetric.HR_ACTIVE,
+                    ))
+                    MeasurementKind.SPO2 -> corrections.describe(setOf(com.pulseloop.health.accuracy.ComparisonMetric.SPO2))
+                    else -> null
+                },
                 loading = false,
             ) }
         }
