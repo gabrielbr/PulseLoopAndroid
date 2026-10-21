@@ -56,18 +56,33 @@ another device"). The code name in this doc is `AccuracyCheck`.
 
 ## Export pause and resume
 
-- New pref `accuracyCheck.activeSince: Long?`. `HealthConnectExportWorker.doWork` returns
-  `Result.success()` with a log line while it is set. The gate goes in the worker, not at the 8
-  `enqueue` call sites, so no trigger can slip past it.
-- The export settings screen shows "Paused by Accuracy check (ends Oct 28)", and the user can't
-  turn export back on there while the check runs. They end the check instead, so there is one
+- **Only the types the reference writes are paused** (decided). The pause set is a list of export
+  rows (`HealthConnectPermissions.DataTypeRow`), not one switch. With a Health Sync/Huawei
+  reference that writes steps, sleep and HR, PulseLoop keeps exporting SpO₂, HRV, temperature
+  and the rest, because those would duplicate nothing. The gate lives in
+  `HealthConnectExporter.run`, next to the existing per-kind permission check: a row in the pause
+  set is skipped **and its watermark isn't advanced**, so the resume choice below still applies to
+  it. `HealthConnectExportWorker` itself keeps running.
+- **The pause set comes from the reference device, never from the ring.** It's what the
+  reference was seen writing in Health Connect, re-read once a day during the check. It does
+  **not** come from the current ring's capability list. That way a ring change can't create a
+  duplicate: if the user switches to a ring that measures SpO₂ and the reference writes SpO₂ too,
+  SpO₂ was paused already. A type the reference *starts* writing mid-check (the user switches
+  on a new sync category in Health Sync) joins the pause set from that day on, and its watermark
+  is held from that day.
+- The export settings screen marks each paused row "Paused by Accuracy check (ends Oct 28)", and
+  the user can't switch those rows back on while the check runs. They end the check instead, so there is one
   switch and not two that disagree.
 - **On resume, the default is to skip the check window.** If the watermarks were simply left
   alone, the first pass after the check would export the whole window, and the duplicates the
   pause existed to prevent would land in Health Connect anyway, just a week late. The resume
   dialog offers:
-  - **Skip these days (recommended)**: move each `HealthConnectWatermarks.Key` to the check's
-    end, the same way `EXPORT_NEW_ONLY` already works.
+  - **Skip these days (recommended)**: move the watermark of every *paused* group to the check's
+    end, the same way `EXPORT_NEW_ONLY` already works. Groups that weren't paused have exported
+    all along and are left alone. Watermarks are per group (`VITALS` covers HR, SpO₂, HRV…), so
+    the skip has to be per kind within `VITALS`, not per watermark key, or skipping HR would also
+    skip the SpO₂ that never paused. That makes it a small exporter change, not just a prefs
+    write, and it needs its own test.
   - **Export them too**: leave the watermarks alone, for a user who will take the reference
     device off afterwards and wants a complete ring history in Health Connect.
 - Records PulseLoop exported *before* the check stay in Health Connect. The comparison filters
@@ -77,6 +92,58 @@ another device"). The code name in this doc is `AccuracyCheck`.
   the app is never opened. It posts a "Your accuracy report is ready" notification and leaves
   export **paused until the user answers the resume dialog**. Resuming silently would make the
   choice for them.
+
+## Reference via Health Sync (the Huawei case)
+
+The first real user's reference is a Huawei device whose data reaches Health Connect through
+**Health Sync** (a third-party bridge app), not from Huawei directly. What that changes:
+
+- **The `DataOrigin` is Health Sync's package, not Huawei's.** Discovery lists "Health Sync", and
+  filtering on it is correct. Health Connect has no record of the original source, so the screen
+  should show the label as "Health Sync" and offer to name it ("Health Sync (Huawei Watch GT 4)").
+  If `Metadata.device` (manufacturer/model) is filled in on Health Sync's records, show that
+  instead. *Unverified whether Health Sync fills it in; check in Phase 0.*
+- **A bridge can relay more than one source.** Health Sync may be copying from Huawei Health
+  *and* from somewhere else (Google Fit, Samsung Health). The origin filter can't separate those.
+  If `Metadata.device` is present and varies, offer a device filter on top of the origin filter.
+  If not, the explainer says to set Health Sync to sync from the watch only during the check.
+- **Echo risk: the ring's own data coming back as the "reference".** Health Sync can also *read*
+  Health Connect and write elsewhere. If it is set up two-way (Health Connect → Huawei Health →
+  Health Connect), PulseLoop's earlier exports could come back under Health Sync's origin, and the
+  report would say the ring agrees perfectly with itself. The origin filter doesn't catch this.
+  Guard: an **echo check** in the engine. If a large share of reference samples match ring
+  samples exactly (same value, timestamp within a second), stop and show "The reference data
+  looks like PulseLoop's own — check Health Sync's sync direction". The per-type pause also
+  helps from the start of the check on, but it does nothing about history that echoed earlier.
+- **Lag.** Health Sync syncs on its own schedule (periodically, not live), and Huawei Health syncs
+  from the watch on its own schedule before that. So the most recent day is usually incomplete.
+  The engine only scores a day once reference data covers it to the end, or 24 h have passed.
+  When the check ends, the report waits for the last day ("Waiting for Health Sync to deliver
+  Oct 28 — open Health Sync to sync now") before scoring it. Without this, the last day would
+  always read as "ring overcounts".
+- **Granularity.** Whatever Huawei exports is what we get. HR may arrive as sparser samples than
+  the ring's, and sleep stages may be mapped by Health Sync to Health Connect's stage set. The
+  pairing windows above (±60 s HR, ±5 min SpO₂) may need widening per source. Phase 0 measures
+  the actual cadence on this setup before the engine fixes those numbers.
+
+## Changing rings
+
+A user can swap rings, mid-check or between checks, and the new ring may measure things the old
+one didn't. The rules:
+
+- **A check belongs to one ring** (`deviceKey`). If a different ring connects mid-check, the check
+  for the old ring **ends early**: its days so far are kept and reported as a partial check for
+  that ring. The user is offered a new check for the new ring. Data from two rings is never
+  scored as one ring's. The export pause stays in place across the switch (it follows the
+  reference, see above) until the user answers the resume dialog or starts the new check.
+- **What gets compared = what both devices produce.** This is decided at scoring time, not when
+  the check starts. A new ring with HRV, SpO₂ or temperature gets those metrics in its report
+  as long as the reference writes them. A metric the new ring has and the reference doesn't
+  shows "Your reference device doesn't share this", which is a different case from "not enough
+  data".
+- **Corrections are per ring.** A new ring starts with none, and the old ring's are kept, so
+  they come back if that ring is paired again. The new ring's Settings entry says "No accuracy
+  check for this ring yet".
 
 ## Reading the reference data
 
@@ -201,18 +268,31 @@ say it is derived"* (#67), and the ring re-supplying its own history on every sy
 4. **Labelled wherever it's shown.** A corrected figure carries a small "adjusted" marker, the
    same way `VitalsState.stressIsDerived` drives the derived-stress caption. Detail screens say
    "Adjusted from ring reading 7,412 (×1.18, from your Oct 21–28 accuracy check)".
-5. **What a correction does *not* touch:**
-   - Health Connect export sends **raw** values by default. A corrected value in Health Connect
-     would be indistinguishable from a measured one, for every app reading it. That's an open
-     question below, not a default.
-   - Values that are persisted or derived (`hrRestingBaseline`, HR zones,
-     `estimatedActiveCalories`) keep using raw values in the first version. Feeding corrected
-     values into persisted figures makes a correction hard to undo, the same trap
-     `DemoDataPolicy` describes for demo data.
-6. **Corrections belong to one ring.** Key them by device identity (address + model). Pairing a
-   different ring turns them off and prompts "Run an accuracy check for this ring?". A
+5. **Corrections never reach Health Connect** (decided). The export always sends raw ring values.
+   A corrected value in Health Connect would look like a measurement to every app reading it.
+6. **Corrections do feed the app's own derived figures** (decided): resting-HR baseline, HR zones,
+   calorie estimates. These two decisions meet at two values that are *both* derived *and*
+   exported, so each of those needs a raw copy and an adjusted copy:
+   - **Resting-HR baseline.** `RestingHRBaselineService` keeps computing `hrRestingBaseline` from
+     raw HR; that's the value `RestingHeartRateExporter` sends. The adjusted baseline isn't
+     stored. The baseline is a percentile (p10) and the HR correction at rest is an offset, and
+     an offset shifts a percentile by exactly itself, so adjusted = raw + rest offset, computed
+     at read time. `HeartRateZones` / `VitalsZoneModel` read the adjusted value.
+   - **Estimated active calories.** `DailyCalorieEstimator.estimateNetActive` isn't linear in its
+     inputs (HR thresholds, step buckets), so there's no shortcut. Add a second column,
+     `activity_daily.estimatedActiveCaloriesAdjusted`. The estimator writes both from the same
+     buckets (raw inputs and corrected inputs); the activity exporter keeps reading the raw
+     column and the UI reads the adjusted one.
+   - **Undo must be exact.** Switching a correction off, changing its value, or a ring change that
+     turns corrections off: each one re-runs the estimator over the days the correction covered
+     and recomputes the zones. The figures go back to exactly what they were. Since only the
+     adjusted copies are ever touched, the raw ones are always there to recompute from.
+   - The device-reported calories path (`deviceReportedCalories`) is left alone. A correction
+     derived from steps doesn't apply to a figure the ring computed with its own formula.
+7. **Corrections belong to one ring.** Key them by device identity (address + model). Pairing a
+   different ring turns them off (see "Changing rings") and prompts "Run an accuracy check for this ring?". A
    correction fitted for an R11 applied to an R10 would be invented data.
-7. **Corrections go stale.** Show "fitted 3 months ago, re-check?" after ~90 days or after a
+8. **Corrections go stale.** Show "fitted 3 months ago, re-check?" after ~90 days or after a
    firmware change (the firmware revision is already decoded on several families).
 
 ## Data model (Room, v36)
@@ -221,6 +301,9 @@ say it is derived"* (#67), and the ring re-supplying its own history on every sy
   endedAt, state (RUNNING / AWAITING_RESUME_CHOICE / DONE / CANCELLED), bandsJson.
 - `accuracy_check_days`: checkId, metric, dayEpoch, ringValue, refValue, pairCount, meanDiff,
   sdDiff, mae, validDay flag. These are aggregates only; no raw samples (see above).
+- `accuracy_check_paused_rows`: checkId, row, pausedFrom (the day the reference was first seen
+  writing it, which is what the skip-on-resume moves the watermark past).
+- `activity_daily.estimatedActiveCaloriesAdjusted: Double?` (null = no correction applied).
 - `accuracy_corrections`: deviceKey, metric, context (rest/active/—), kind (SCALE/OFFSET), value,
   fittedValue, fromCheckId, enabled, createdAt.
 - Archive: all three go in `PulseArchive` (they are the user's own findings). Diagnostics export:
@@ -230,31 +313,42 @@ say it is derived"* (#67), and the ring re-supplying its own history on every sy
 ## Phases
 
 0. **Foundation**: a read-permission set (`AccuracyCheckPermissions`, separate from export and
-   body import), manifest entries, the reference-source discovery screen. Value on its own: the
+   body import), manifest entries, the reference-source discovery screen (with per-type sample
+   cadence and `Metadata.device`, if any, so the Health Sync questions get answered here). Value on its own: the
    user can see what each app actually shares with Health Connect. *Verify on real devices
    which types Fitbit and Samsung Health actually write; this decides what the report can
    cover.*
-1. **Session lifecycle + export pause**: prefs/table, worker gate, export-screen state, end job,
-   notification, resume dialog with watermark skip. Unit-test the watermark move.
+1. **Session lifecycle + per-type export pause**: table, the exporter's per-row pause gate that
+   holds watermarks, daily refresh of the pause set, export-screen state, end job, notification,
+   resume dialog with the per-kind skip, early end on a ring change. Unit-test the skip and that
+   an unpaused kind inside `VITALS` keeps exporting.
 2. **Engine + report for steps, sleep, HR**: the pure comparison module with tests built from
    synthetic series (constant bias, pure noise, missing hours, a non-wear day, a nap, a night
-   that crosses 20:00/midnight), and the report UI.
+   that crosses 20:00/midnight, an echoed series, a last day the reference hasn't delivered
+   yet), and the report UI.
 3. **Remaining metrics**: resting HR, SpO₂, distance, HRV, calories.
 4. **Corrections**: read-time transform, labelling everywhere a corrected value is shown,
-   keyed to the ring, stale prompt.
+   keyed to the ring, stale prompt; the adjusted baseline, zones and
+   `estimatedActiveCaloriesAdjusted` column (v37 or folded into v36), with recompute on every
+   correction change. Test that switching a correction off restores every derived figure exactly
+   and that the export payload is the same with corrections on and off.
 5. *(Optional)* **Shareable summary**: a text/image of the verdicts and headline numbers, with
    model and firmware, no raw values. Useful in GitHub issues ("my SR08 undercounts steps by
    20 %") and, over time, as crowd-sourced accuracy notes per model.
 
+## Decisions (2026-10-21)
+
+1. **Corrected values never go to Health Connect.** Export is raw, always (Corrections rule 5).
+2. **Corrections feed resting-HR baseline, HR zones and calorie estimates**, with raw and
+   adjusted copies kept apart where a figure is also exported (rule 6).
+3. **The pause covers only the types the reference device writes**, decided from the reference
+   and not the ring, so a ring change can't open a duplication gap (Export pause; Changing
+   rings).
+
 ## Open questions
 
-1. **Should corrected values ever go to Health Connect?** Proposed: no in v1. Possibly a later
-   opt-in with the correction recorded in the record's metadata.
-2. **Should corrections feed HR zones / resting baseline / calorie estimates?** Proposed: not in
-   v1 (see rule 5).
-3. **Pause the export per type instead of all of it?** If the reference device only writes steps
-   and sleep, PulseLoop's SpO₂/HRV would duplicate nothing and could keep exporting. More
-   correct, a little more UI. Proposed: pause only the types the chosen reference actually
-   writes, and say which ones on the banner.
-4. **iOS**: the same feature maps onto HealthKit (`HKSource` plays the part of `DataOrigin`).
+1. **iOS**: the same feature maps onto HealthKit (`HKSource` plays the part of `DataOrigin`).
    Worth tracking as an iOS-parity item once the Android version has proved itself.
+2. **Health Sync specifics** to confirm on the real Huawei setup in Phase 0: whether
+   `Metadata.device` is filled in, HR sample cadence, how sleep stages are mapped, and typical
+   sync lag.
