@@ -432,3 +432,40 @@ data class FindingEntity(
     val algorithmVersion: Int,
     val createdAt: Long = System.currentTimeMillis(),
 )
+
+/** A logged period (service/Cycle.kt); days are epoch days in the user's calendar. */
+@Entity(tableName = "periods")
+data class PeriodEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val startDay: Long,
+    val endDay: Long? = null,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+/** A medication or supplement on a daily schedule (service/Meds.kt). [timesCsv] is "08:00,20:00". */
+@Entity(tableName = "meds")
+data class MedEntity(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val name: String,
+    val dose: String? = null,
+    /** "medication" or "supplement". */
+    val kind: String = "medication",
+    val timesCsv: String,
+    val active: Boolean = true,
+    val createdAt: Long = System.currentTimeMillis(),
+)
+
+/** One answered dose: taken or skipped. A past dose with no row is missed; nothing is stored for it. */
+@Entity(tableName = "med_doses", indices = [Index("day")])
+data class MedDoseEntity(
+    @PrimaryKey val id: String,
+    val medId: String,
+    /** Epoch day of the scheduled dose. */
+    val day: Long,
+    val time: String,
+    /** "taken" or "skipped". */
+    val status: String,
+    val at: Long = System.currentTimeMillis(),
+) {
+    companion object { fun idFor(medId: String, day: Long, time: String) = "$medId:$day:$time" }
+}

@@ -49,8 +49,11 @@ import com.pulseloop.data.entity.*
         FoodPreferenceEntity::class,
         DrinkEntryEntity::class,
         FindingEntity::class,
+        PeriodEntity::class,
+        MedEntity::class,
+        MedDoseEntity::class,
     ],
-    version = 33,
+    version = 35,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -81,6 +84,10 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun drinkDao(): DrinkDao
     /** "What changed" findings (v33). */
     abstract fun findingDao(): FindingDao
+    /** Logged periods for cycle tracking (v34). */
+    abstract fun periodDao(): PeriodDao
+    /** Medications and supplements, and answered doses (v35). */
+    abstract fun medDao(): MedDao
     abstract fun coachSummaryDao(): CoachSummaryDao
     abstract fun wearableLogDao(): WearableLogDao
     abstract fun rawPacketDao(): RawPacketDao
@@ -133,6 +140,8 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "food_preferences",
             "drink_entries",
             "findings",
+            "periods",
+            "meds", "med_doses",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -613,6 +622,31 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** v33 → v34: logged periods for cycle tracking. */
+        private val MIGRATION_33_34 = object : Migration(33, 34) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `periods` (`id` TEXT NOT NULL, `startDay` INTEGER NOT NULL, " +
+                        "`endDay` INTEGER, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+            }
+        }
+
+        /** v34 → v35: medications and supplements, and their answered doses. */
+        private val MIGRATION_34_35 = object : Migration(34, 35) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `meds` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `dose` TEXT, `kind` TEXT NOT NULL, " +
+                        "`timesCsv` TEXT NOT NULL, `active` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `med_doses` (`id` TEXT NOT NULL, `medId` TEXT NOT NULL, `day` INTEGER NOT NULL, " +
+                        "`time` TEXT NOT NULL, `status` TEXT NOT NULL, `at` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_med_doses_day` ON `med_doses` (`day`)")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -712,6 +746,8 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_30_31,
                         MIGRATION_31_32,
                         MIGRATION_32_33,
+                        MIGRATION_33_34,
+                        MIGRATION_34_35,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

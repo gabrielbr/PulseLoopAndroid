@@ -690,7 +690,15 @@ fun PulseLoopApp() {
                         onBack = { navController.popBackStack() },
                         onBreathe = { navController.navigate("breathe") },
                         onWhatChanged = { navController.navigate("what_changed") },
+                        onCycle = { navController.navigate("cycle") },
+                        onMeds = { navController.navigate("meds") },
                     )
+                }
+                paddedComposable("meds") {
+                    com.pulseloop.ui.screens.MedsScreen(onBack = { navController.popBackStack() })
+                }
+                paddedComposable("cycle") {
+                    com.pulseloop.ui.screens.CycleScreen(onBack = { navController.popBackStack() })
                 }
                 paddedComposable("what_changed") {
                     com.pulseloop.ui.screens.WhatChangedScreen(onBack = { navController.popBackStack() })

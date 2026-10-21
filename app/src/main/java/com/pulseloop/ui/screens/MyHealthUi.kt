@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.service.BodyClock
+import com.pulseloop.service.Cycle
 import com.pulseloop.service.HealthArea
 import com.pulseloop.service.HealthInsightsRepository
 import com.pulseloop.service.HealthInsightsRepository.TrendMetric
@@ -126,7 +128,7 @@ private fun Sparkline(values: List<Double>, color: Color, modifier: Modifier = M
 }
 
 @Composable
-fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}) {
+fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -142,6 +144,24 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
             Text("My Health", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            val shareScope = rememberCoroutineScope()
+            IconButton(
+                onClick = {
+                    shareScope.launch {
+                        runCatching {
+                            val recap = com.pulseloop.service.WeeklyRecap.load(db)
+                            val uri = com.pulseloop.service.WeeklyRecap.share(context, recap)
+                            val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                type = "image/png"
+                                putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            }
+                            context.startActivity(android.content.Intent.createChooser(intent, "Share my week"))
+                        }
+                    }
+                },
+                modifier = Modifier.align(Alignment.CenterEnd),
+            ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, "Share my week", tint = PulseColors.textSecondary) }
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -162,6 +182,30 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     Column(Modifier.weight(1f)) {
                         Text("What changed", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         Text("Your nights against your own normal, kept as a log", fontSize = 12.sp, color = PulseColors.textMuted)
+                    }
+                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
+                val periods by remember { db.periodDao().allFlow() }.collectAsState(initial = emptyList())
+                val cycle = Cycle.status(periods.map { it.toPeriod() }, java.time.LocalDate.now())
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                        .clickable(onClick = onCycle).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(cycle?.let { "Cycle · day ${it.cycleDay} · ${it.phase.label}" } ?: "Cycle", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(cycle?.phase?.note ?: "Log your period to see its phase beside your sleep and recovery", fontSize = 12.sp, color = PulseColors.textMuted)
+                    }
+                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                        .clickable(onClick = onMeds).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Medications & supplements", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text("Your schedule, today's doses and a week's record", fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }
@@ -186,6 +230,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                 StressSection(s, onBreathe)
                 HeartSection(s)
                 HabitsSection(s.habits)
+                StepCalibrationCard(db)
                 TrendsSection(db)
                 Text(
                     "Estimates from your ring compared with your own recent normal, not medical measurements.",
@@ -274,6 +319,14 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
         val sessions = remember { MindfulSessions.all(context) }
         val week = sessions.filter { it.startAt >= System.currentTimeMillis() - 7 * 86_400_000L }
         Fact("Breathing sessions this week", "${week.size} · ${week.sumOf { it.minutes }} min")
+        val effectDb = remember { PulseLoopDatabase.getInstance(context) }
+        val effect by produceState<MindfulSessions.Effect?>(null) { value = runCatching { MindfulSessions.effect(context, effectDb) }.getOrNull() }
+        effect?.let { e ->
+            Fact(
+                "After a session", "HRV ${if (e.hrvChangePct >= 0) "+" else ""}${e.hrvChangePct}%",
+                "Two hours after against two hours before, over ${e.sessions} sessions. Readings during a session aren't counted: slow breathing raises HRV while it lasts.",
+            )
+        }
         OutlinedButton(onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text("Start a breathing session") }
     }
 }
@@ -287,6 +340,13 @@ private fun HeartSection(s: HealthInsightsRepository.Snapshot) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Legend(PulseColors.sleep, "Sleep"); Legend(PulseColors.steps, "Workout"); Legend(PulseColors.heartRate, "Day")
             }
+        }
+        s.cardioLoad?.let { l ->
+            Fact(
+                "Cardio load today", "${l.load}" + (l.band?.let { " · ${it.label}" } ?: ""),
+                "Heart rate above your quiet waking ${l.quietHr} bpm, ${l.elevatedMinutes} min well above it" +
+                    (l.usual?.let { ". Your usual day: $it" } ?: ""),
+            )
         }
         s.cardio?.let { c ->
             Fact("Cardio capacity (VO₂max)", "%.0f · %s".format(c.vo2max, c.level.label),
@@ -539,5 +599,59 @@ fun MyHealthEntryCard(onClick: () -> Unit) {
             )
         }
         Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+    }
+}
+
+
+/** Ring steps against the phone's own counter, with the option to show calibrated steps on Today. */
+@Composable
+private fun StepCalibrationCard(db: PulseLoopDatabase) {
+    val context = LocalContext.current
+    var granted by remember { mutableStateOf(com.pulseloop.service.StepCalibration.hasPermission(context)) }
+    var applied by remember { mutableStateOf(com.pulseloop.service.StepCalibration.isApplied(context)) }
+    val scope = rememberCoroutineScope()
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { ok ->
+        granted = ok
+        if (ok) scope.launch { com.pulseloop.service.StepCalibration.sample(context) }
+    }
+    val result by produceState<com.pulseloop.service.StepCalibration.Result?>(null, granted) {
+        value = runCatching {
+            val zone = java.time.ZoneId.systemDefault()
+            val ring = db.activityDailyDao().recentReal(60).associate { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate() to it.steps }
+            com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())
+        }.getOrNull()
+    }
+    Section("Ring steps vs your phone") {
+        when {
+            !granted -> {
+                Text("Your phone counts steps too. Comparing the two over a few days shows whether your ring over- or under-counts.", fontSize = 13.sp, color = PulseColors.textSecondary)
+                OutlinedButton(onClick = {
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) launcher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
+                }, modifier = Modifier.fillMaxWidth()) { Text("Compare with my phone") }
+            }
+            result == null -> Text(
+                "Collecting: needs ${com.pulseloop.service.StepCalibration.MIN_DAYS} days with at least ${com.pulseloop.service.StepCalibration.MIN_STEPS} steps on both. Carry your phone as usual.",
+                fontSize = 13.sp, color = PulseColors.textMuted,
+            )
+            else -> {
+                val r = result!!
+                val pct = ((r.factor - 1) * 100).roundToInt()
+                Text(
+                    when {
+                        kotlin.math.abs(pct) < 5 -> "Your ring and phone agree within 5% (${r.days} days)."
+                        pct > 0 -> "Your ring counts about $pct% fewer steps than your phone (${r.days} days)."
+                        else -> "Your ring counts about ${-pct}% more steps than your phone (${r.days} days)."
+                    },
+                    fontSize = 14.sp, color = PulseColors.textPrimary,
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Show phone-calibrated steps on Today", fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+                    Switch(checked = applied, onCheckedChange = { applied = it; com.pulseloop.service.StepCalibration.setApplied(context, it) })
+                }
+                Text("Goals, scores and Health Connect keep the ring's own count.", fontSize = 11.sp, color = PulseColors.textMuted)
+            }
+        }
     }
 }

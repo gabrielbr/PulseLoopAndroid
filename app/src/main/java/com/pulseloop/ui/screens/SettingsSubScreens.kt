@@ -1093,6 +1093,7 @@ private fun DailyGuidanceSettingsCard() {
     var battery by remember { mutableStateOf(prefs.bedtimeBattery) }
     var inactive by remember { mutableStateOf(prefs.inactivityAlerts) }
     var progress by remember { mutableStateOf(prefs.activityProgress) }
+    var medsOn by remember { mutableStateOf(prefs.medReminders) }
 
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -1137,6 +1138,11 @@ private fun DailyGuidanceSettingsCard() {
                 "Early evening, when you're under 70% of your step goal. Off in Rest Mode.",
                 progress,
             ) { progress = it; prefs.activityProgress = it }
+            GuidanceSwitch(
+                "Medication reminders",
+                "Once per dose, at its time, for what you add in My Health → Medications & supplements.",
+                medsOn,
+            ) { medsOn = it; prefs.medReminders = it }
         }
     }
 }

@@ -55,6 +55,32 @@ object MindfulSessions {
     }
 
     /**
+     * What sessions do for HRV, measured honestly: readings in the two hours after a session
+     * against the two hours before it, never during it (slow breathing raises HRV mechanically
+     * while it lasts, so in-session readings would flatter every session — OpenStrap Edge's rule).
+     * Null until three sessions have readings on both sides.
+     */
+    data class Effect(val sessions: Int, val hrvChangePct: Int)
+
+    fun effectFrom(pairs: List<Pair<List<Double>, List<Double>>>): Effect? {
+        fun med(v: List<Double>) = v.sorted().let { s -> if (s.size % 2 == 1) s[s.size / 2] else (s[s.size / 2 - 1] + s[s.size / 2]) / 2 }
+        val changes = pairs.filter { (b, a) -> b.isNotEmpty() && a.isNotEmpty() }
+            .mapNotNull { (b, a) -> med(b).takeIf { it > 0 }?.let { base -> (med(a) - base) / base * 100 } }
+        if (changes.size < 3) return null
+        return Effect(changes.size, med(changes).roundToInt())
+    }
+
+    suspend fun effect(c: Context, db: PulseLoopDatabase): Effect? {
+        val window = 2 * 3_600_000L
+        val pairs = all(c).filter { it.endAt > System.currentTimeMillis() - 60L * 86_400_000L && it.endAt + window < System.currentTimeMillis() }.map { s ->
+            val before = db.measurementDao().rangeReal(MeasurementKind.HRV.name, s.startAt - window, s.startAt - 1).map { it.value }.filter { it > 0 }
+            val after = db.measurementDao().rangeReal(MeasurementKind.HRV.name, s.endAt + 1, s.endAt + window).map { it.value }.filter { it > 0 }
+            before to after
+        }
+        return effectFrom(pairs)
+    }
+
+    /**
      * Saves a finished session with the heart rate the ring recorded during it, and ticks the
      * day's "Meditation or relaxing" journal tag so its effect on the night shows up.
      */
@@ -99,6 +125,8 @@ object HealthInsightsRepository {
         val hrToday: List<VitalSample>,
         val sleepWindows: List<LongRange>,
         val workoutWindows: List<LongRange>,
+        /** Today's cardio load against the user's quiet waking HR; null until 3 days of data. */
+        val cardioLoad: CardioLoad.Result? = null,
     )
 
     private const val DAY = 86_400_000L
@@ -214,7 +242,15 @@ object HealthInsightsRepository {
             .filter { it.statusRaw == "finished" && (it.endedAt ?: 0) >= dayStart - 6 * 3_600_000L }
             .map { it.startedAt..(it.endedAt ?: it.startedAt) }
 
-        return Snapshot(nights, need, debt, radar, todayStress, resilience, bodyClock, cardio, areas, habits, hrToday, sleepWindows, workoutWindows)
+        // Cardio load: 29 days of all-day HR, sleep excluded from the quiet level.
+        val hr29 = db.measurementDao().rangeReal(MeasurementKind.HEART_RATE.name, start(today.minusDays(29)), now)
+            .map { it.timestamp to it.value }
+        val nightRanges = nights.map { it.startAt..it.endAt }
+        val cardioLoad = runCatching {
+            CardioLoad.compute(hr29, { t -> nightRanges.any { t in it } }, today, zone, profile?.age)
+        }.getOrNull()
+
+        return Snapshot(nights, need, debt, radar, todayStress, resilience, bodyClock, cardio, areas, habits, hrToday, sleepWindows, workoutWindows, cardioLoad)
     }
 
     // ── Trends ───────────────────────────────────────────────────────────────

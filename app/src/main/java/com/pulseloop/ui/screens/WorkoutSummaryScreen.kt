@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -124,6 +125,24 @@ fun WorkoutSummaryScreen(
             Row(Modifier.fillMaxWidth()) {
                 CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PulseColors.textSecondary, onTap = onBack)
                 Spacer(Modifier.weight(1f))
+                if (s.useGps && points.any { it.accepted }) {
+                    CircleIconButton(Icons.Filled.Share, "Export route as GPX", tint = PulseColors.textSecondary, onTap = {
+                        scope.launch {
+                            val hr = db.measurementDao().rangeReal(
+                                com.pulseloop.ring.MeasurementKind.HEART_RATE.name, s.startedAt, s.endedAt ?: System.currentTimeMillis(),
+                            ).map { it.timestamp to it.value }
+                            com.pulseloop.service.GpxExport.share(context, s, points, ActivityMeta.label(s.type), hr)?.let { uri ->
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "application/gpx+xml"
+                                    putExtra(android.content.Intent.EXTRA_STREAM, uri)
+                                    addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                }
+                                context.startActivity(android.content.Intent.createChooser(intent, "Export route (GPX)"))
+                            }
+                        }
+                    })
+                    Spacer(Modifier.width(10.dp))
+                }
                 CircleIconButton(Icons.Filled.Edit, "Edit workout", tint = PulseColors.accent, onTap = { editing = true })
                 Spacer(Modifier.width(10.dp))
                 CircleIconButton(Icons.Filled.Delete, "Delete workout", tint = PulseColors.danger, onTap = { confirmDelete = true })

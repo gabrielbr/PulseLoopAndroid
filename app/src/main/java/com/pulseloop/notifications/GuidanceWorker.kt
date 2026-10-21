@@ -72,6 +72,12 @@ class GuidancePrefs(context: Context) {
     internal var lastInactivityAt: Long
         get() = p.getLong("lastInactivityAt", 0L)
         set(v) = p.edit().putLong("lastInactivityAt", v).apply()
+    var medReminders: Boolean
+        get() = p.getBoolean("medReminders", true)
+        set(v) = p.edit().putBoolean("medReminders", v).apply()
+    internal var remindedDoses: Set<String>
+        get() = p.getStringSet("remindedDoses", emptySet()).orEmpty()
+        set(v) = p.edit().putStringSet("remindedDoses", v).apply()
     internal var lastProgressDay: String?
         get() = p.getString("lastProgressDay", null)
         set(v) = p.edit().putString("lastProgressDay", v).apply()
@@ -102,6 +108,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val local = Instant.ofEpochMilli(now).atZone(zone)
         val today = local.toLocalDate()
         val inputs = runCatching { ReadinessRepository.loadInputs(db, now, zone) }.getOrNull() ?: return Result.success()
+        runCatching { com.pulseloop.service.StepCalibration.sample(ctx, now, zone) }
         // Keep the "what changed" log current even when the screen isn't opened.
         runCatching { com.pulseloop.service.FindingsRepository.refresh(db, now, zone) }
 
@@ -189,6 +196,22 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
             }
         }
 
+        // 8. Medication doses: once per dose, from its time until it would count as missed.
+        runCatching {
+            val meds = db.medDao().active()
+            if (meds.isNotEmpty() && prefs.medReminders) {
+                val answers = db.medDao().dosesSince(today.toEpochDay())
+                val due = com.pulseloop.service.Meds.dosesOn(today, meds, answers, local.toLocalDateTime())
+                    .filter { it.state == com.pulseloop.service.Meds.State.DUE && !local.toLocalTime().isBefore(java.time.LocalTime.parse(it.time)) }
+                val fresh = due.filter { it.id !in prefs.remindedDoses }
+                if (fresh.isNotEmpty()) {
+                    val names = fresh.joinToString(", ") { it.med.name + (it.med.dose?.let { d -> " $d" } ?: "") }
+                    notify(ctx, ID_MEDS, "Time for ${fresh.first().med.name}" + if (fresh.size > 1) " and more" else "",
+                        "$names. Open PulseLoop to mark it taken or skipped.")
+                    prefs.remindedDoses = (prefs.remindedDoses + fresh.map { it.id }).toList().takeLast(50).toSet()
+                }
+            }
+        }
         // 4. Meal reminder — optional, and only while nothing has been logged for that meal.
         if (prefs.mealReminder && db.userGoalDao().get()?.nutritionEnabled == true) {
             val meals = db.mealEntryDao().byDay(todayStart).map { it.timestamp }
@@ -214,6 +237,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         private const val ID_BATTERY = 3005
         private const val ID_INACTIVE = 3006
         private const val ID_PROGRESS = 3007
+        private const val ID_MEDS = 3008
 
         /** Minutes from [now] until [target] later today or, if already past, tomorrow. */
         internal fun minutesUntil(now: LocalTime, target: LocalTime): Int {

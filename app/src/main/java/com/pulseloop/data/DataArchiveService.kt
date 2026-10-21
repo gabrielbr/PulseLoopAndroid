@@ -329,6 +329,16 @@ object DataArchiveService {
                     timesAgreed = c.intOrNull("timesAgreed") ?: 1, createdAt = c.long("createdAt"), updatedAt = c.long("updatedAt"),
                 )
             },
+            meds = collect("meds") { c ->
+                MedDTO(id = c.str("id"), name = c.str("name"), dose = c.strOrNull("dose"), kind = c.str("kind"),
+                    timesCsv = c.str("timesCsv"), active = (c.intOrNull("active") ?: 1) == 1, createdAt = c.long("createdAt"))
+            },
+            medDoses = collect("med_doses") { c ->
+                MedDoseDTO(id = c.str("id"), medId = c.str("medId"), day = c.long("day"), time = c.str("time"), status = c.str("status"), at = c.long("at"))
+            },
+            periods = collect("periods") { c ->
+                PeriodDTO(id = c.str("id"), startDay = c.long("startDay"), endDay = c.longOrNull("endDay"), createdAt = c.long("createdAt"))
+            },
             drinks = collect("drink_entries") { c ->
                 DrinkEntryDTO(
                     id = c.str("id"), timestamp = c.long("timestamp"), day = c.long("day"), type = c.str("type"),
@@ -432,6 +442,15 @@ object DataArchiveService {
                     portion = f.portion, kcal = f.kcal, proteinG = f.proteinG, reason = f.reason,
                     timesAgreed = f.timesAgreed, createdAt = f.createdAt, updatedAt = f.updatedAt,
                 ))
+            }
+            for (m in archive.meds) {
+                db.medDao().upsert(MedEntity(id = m.id, name = m.name, dose = m.dose, kind = m.kind, timesCsv = m.timesCsv, active = m.active, createdAt = m.createdAt))
+            }
+            for (d in archive.medDoses) {
+                db.medDao().upsertDose(MedDoseEntity(id = d.id, medId = d.medId, day = d.day, time = d.time, status = d.status, at = d.at))
+            }
+            for (p in archive.periods) {
+                db.periodDao().upsert(PeriodEntity(id = p.id, startDay = p.startDay, endDay = p.endDay, createdAt = p.createdAt))
             }
             for (d in archive.drinks) {
                 db.drinkDao().upsert(DrinkEntryEntity(

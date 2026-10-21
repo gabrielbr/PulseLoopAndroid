@@ -63,6 +63,7 @@ import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.viewmodels.ActivityViewModel
 import com.pulseloop.util.Formats
 import kotlinx.coroutines.launch
+import com.pulseloop.service.accept
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -189,6 +190,8 @@ fun ActivityScreen(
                 }
             }
         }
+
+        item { DetectedActivityCard() }
 
         item {
             Row(
@@ -934,3 +937,75 @@ private fun ActivityRecordsCard(
 
 /** How many activity records the list shows before asking (issue #70). */
 private const val ACTIVITY_RECORDS_PAGE_SIZE = 50
+
+
+/**
+ * Workouts and naps the ring's data suggests, waiting for the user's answer. Nothing is recorded
+ * until they confirm; a discard is remembered so the same stretch isn't offered again.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun DetectedActivityCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
+    val scope = rememberCoroutineScope()
+    var tick by remember { mutableIntStateOf(0) }
+    val proposals by produceState<List<com.pulseloop.service.ActivityDetection.Proposal>>(emptyList(), tick) {
+        value = runCatching { com.pulseloop.service.ActivityDetection.load(context, db) }.getOrDefault(emptyList())
+    }
+    if (proposals.isEmpty()) return
+    val fmt = remember { java.time.format.DateTimeFormatter.ofPattern("EEE HH:mm") }
+    val zone = remember { java.time.ZoneId.systemDefault() }
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text("DETECTED · REVIEW", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        proposals.forEach { p ->
+            val defaultType = when (p.kind) {
+                com.pulseloop.service.ActivityDetection.Proposal.Kind.WALK -> "walk"
+                com.pulseloop.service.ActivityDetection.Proposal.Kind.RUN -> "run"
+                else -> "cycle"
+            }
+            var type by remember(p.key) { mutableStateOf(defaultType) }
+            val isNap = p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    (if (isNap) "Possible nap" else "Possible ${ActivityMeta.label(type).lowercase()}") + " · ${p.minutes} min",
+                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                )
+                Text(
+                    "${java.time.Instant.ofEpochMilli(p.startAt).atZone(zone).format(fmt)} · ${p.detail}",
+                    fontSize = 12.sp, color = PulseColors.textMuted,
+                )
+                if (p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.CARDIO) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf("cycle", "gym", "sport", "dance", "other").forEach { t ->
+                            val on = t == type
+                            Text(
+                                ActivityMeta.label(t), fontSize = 12.sp,
+                                color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
+                                modifier = Modifier.clip(RoundedCornerShape(16.dp))
+                                    .background(if (on) PulseColors.accent else PulseColors.cardSoft)
+                                    .clickable { type = t }.padding(horizontal = 10.dp, vertical = 6.dp),
+                            )
+                        }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        if (isNap) "Yes, a nap" else "Add workout", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+                        modifier = Modifier.clickable {
+                            scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
+                        }.padding(vertical = 4.dp),
+                    )
+                    Text(
+                        "Not this", fontSize = 13.sp, color = PulseColors.textMuted,
+                        modifier = Modifier.clickable { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }.padding(vertical = 4.dp),
+                    )
+                }
+            }
+        }
+    }
+}
