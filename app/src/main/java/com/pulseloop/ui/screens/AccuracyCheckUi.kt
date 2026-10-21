@@ -406,7 +406,7 @@ private fun MetricRow(m: MetricSurvey) {
 }
 
 @Composable
-private fun AccuracyCard(content: @Composable () -> Unit) {
+internal fun AccuracyCard(content: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
