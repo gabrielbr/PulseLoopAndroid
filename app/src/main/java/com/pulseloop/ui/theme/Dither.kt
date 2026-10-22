@@ -75,6 +75,8 @@ object Dither {
 }
 
 fun DrawScope.ditherBrush(color: Color, coverage: Float): Brush? {
+    // Fairy mode trades the bitmap dots for a soft wash of the same strength.
+    if (FairyMode.on) return if (coverage <= 0f) null else SolidColor(color.copy(alpha = coverage.coerceIn(0f, 1f)))
     val lit = Dither.steps(coverage)
     if (lit == 0) return null
     return with(Dither) { brush(color, lit, cellPx()) }
@@ -118,6 +120,8 @@ private val OUTLINE_DIRECTIONS = listOf(
  * any dither density.
  */
 private fun ContentDrawScope.drawContentOutlined() {
+    // A smooth wash needs no outline to stay readable.
+    if (FairyMode.on) { drawContent(); return }
     val w = OUTLINE_WIDTH.toPx()
     val tint = Paint().apply { colorFilter = ColorFilter.tint(OUTLINE_COLOR, BlendMode.SrcIn) }
     drawIntoCanvas { canvas ->
@@ -139,6 +143,18 @@ fun DrawScope.drawDitherFade(
     top: Float,
     bottom: Float,
 ) {
+    if (FairyMode.on) {
+        clipPath(path) {
+            drawRect(
+                Brush.verticalGradient(
+                    listOf(color.copy(alpha = fromCoverage.coerceIn(0f, 1f)), color.copy(alpha = toCoverage.coerceIn(0f, 1f))),
+                    startY = top, endY = bottom,
+                ),
+                topLeft = Offset(0f, top), size = Size(size.width, bottom - top),
+            )
+        }
+        return
+    }
     val from = Dither.steps(fromCoverage)
     val to = Dither.steps(toCoverage)
     val bands = maxOf(1, kotlin.math.abs(from - to) + 1)

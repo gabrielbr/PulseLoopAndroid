@@ -486,6 +486,9 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profiles LIMIT 1")
     suspend fun get(): UserProfileEntity?
 
+    @Query("SELECT * FROM user_profiles LIMIT 1")
+    fun getFlow(): kotlinx.coroutines.flow.Flow<UserProfileEntity?>
+
     @Upsert
     suspend fun upsert(profile: UserProfileEntity)
 }
