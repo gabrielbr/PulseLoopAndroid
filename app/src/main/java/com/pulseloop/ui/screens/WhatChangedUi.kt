@@ -76,7 +76,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
             }
             val older = rows.filter { it.day < recentKey }.groupBy { it.day }
             if (older.isNotEmpty()) {
-                Text("EARLIER", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("EARLIER"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 older.forEach { (day, list) ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),

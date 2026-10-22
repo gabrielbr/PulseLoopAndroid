@@ -463,6 +463,8 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         val recentDays: List<ActivityDailyEntity> = emptyList(),
         /** All finished sessions, newest first (drives Today + the history sheet). */
         val finishedWorkouts: List<ActivitySessionEntity> = emptyList(),
+        /** True once the sessions table has answered, so "no workouts" is only said when it's so. */
+        val workoutsLoaded: Boolean = false,
         val today: ActivityDailyEntity? = null,
         // ── Day navigation (issue #76 — mirrors SleepViewModel's, iOS #84) ──
         /** How many days back the shown day is: 0 = today, clamped to [0, maxDayOffset]. */
@@ -538,7 +540,7 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         }
         viewModelScope.launch {
             db.activitySessionDao().recentFlow(200).collect { sessions ->
-                _state.update { it.copy(finishedWorkouts = sessions.filter { s -> s.statusRaw == "finished" }) }
+                _state.update { it.copy(finishedWorkouts = sessions.filter { s -> s.statusRaw == "finished" }, workoutsLoaded = true) }
             }
         }
         viewModelScope.launch { refreshMaxDayOffset() }

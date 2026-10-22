@@ -122,7 +122,7 @@ fun CycleScreen(onBack: () -> Unit) {
             OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
 
             if (periods.isNotEmpty()) {
-                Text("HISTORY", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("HISTORY"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 val starts = periods.map { it.startDay }.sorted()
                 periods.forEach { p ->
                     val next = starts.firstOrNull { it > p.startDay }

@@ -408,7 +408,7 @@ private fun WeekHero(s: DrinksRepository.Snapshot) {
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(std(total), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text("of ${std(s.weeklyLimit)}", fontSize = 11.sp, color = PulseColors.textMuted)
+                    Text(trf("of {0}", std(s.weeklyLimit)), fontSize = 11.sp, color = PulseColors.textMuted)
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {

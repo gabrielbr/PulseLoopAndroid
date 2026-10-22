@@ -155,7 +155,7 @@ fun NutritionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text("${totalCal.roundToInt()} kcal", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-                        Text("of ${goalCal.roundToInt()}", color = PulseColors.textMuted)
+                        Text(trf("of {0}", goalCal.roundToInt()), color = PulseColors.textMuted)
                         Spacer(Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = { pct.toFloat() },

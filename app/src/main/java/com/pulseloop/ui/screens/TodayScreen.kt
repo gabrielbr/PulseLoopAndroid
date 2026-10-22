@@ -189,7 +189,7 @@ fun TodayScreen(
             DashboardCard.ACTIVITY -> ActivityTileFor(state, units, m, onTap = { navController?.navigate("activity") }, stepFactor = stepFactor)
             DashboardCard.SLEEP -> SleepTileFor(sleep, m) { navController?.navigate("sleep") }
             DashboardCard.NUTRITION -> NutritionTile(food, foodLoaded, m, onLog = { mealSheet = true }) { navController?.navigate("nutrition") }
-            DashboardCard.DRINKS -> TodayTile(label = "Drinks", color = PulseColors.drinks, modifier = m, onTap = { navController?.navigate("drinks") }) {
+            DashboardCard.DRINKS -> TodayTile(label = tr("Drinks"), color = PulseColors.drinks, modifier = m, onTap = { navController?.navigate("drinks") }) {
                 // The empty tile until the first load, not "0 of 14 this week".
                 if (drinksLoaded) DrinksTileContent(
                     week = drinks?.week,
@@ -685,7 +685,7 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
         Box(Modifier.fillMaxWidth().height(6.dp).clip(shape).dither(PulseColors.calories, 0.25f)) {
             Box(Modifier.fillMaxWidth((kcal / goal).toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(PulseColors.calories))
         }
-        Text("of ${Formats.count(goal.toInt())}", fontSize = 11.sp, color = PulseColors.textMuted)
+        Text(trf("of {0}", Formats.count(goal.toInt())), fontSize = 11.sp, color = PulseColors.textMuted)
     }
     Spacer(Modifier.weight(1f))
     if (food != null && food.meals > 0) {
@@ -697,7 +697,7 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
         Text(tr("Nothing logged yet"), fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
     }
     Text(
-        "+ Log meal",
+        tr("+ Log meal"),
         fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
         // No min height here: it would stretch the tile and its row. Compose already widens a
         // small clickable's hit area towards 48dp.

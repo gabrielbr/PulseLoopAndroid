@@ -31,6 +31,8 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.ring.RingDeviceType
@@ -62,6 +64,7 @@ import kotlinx.coroutines.launch
  * Vitals dashboard — ported from VitalsView.swift.
  * Shows historical trends: HR, SpO2, HRV, stress, temperature with real data from Room.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun VitalsScreen(
     navController: androidx.navigation.NavController? = null,
@@ -371,11 +374,18 @@ fun VitalsScreen(
                     if (separateLegs) {
                       // Stacked, not side by side: this sits in the header Row beside the title,
                       // so a second Row here would be laid out horizontally and crush the title.
+                      // Bounded, with each group wrapping: the buttons are measured before the
+                      // weighted title, so three or four unbounded buttons ("PA e HRV", a running
+                      // "SpO₂ 45s") squeezed "Sinais vitais" to a letter or two per line.
                       Column(
+                        Modifier.widthIn(max = 208.dp),
                         horizontalAlignment = Alignment.End,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                       ) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
                             Button(
                                 enabled = !measuring,
                                 onClick = {
@@ -430,7 +440,10 @@ fun VitalsScreen(
                             }
                         }
                         if (spotVitals.isNotEmpty()) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
                                 for (vital in spotVitals) {
                                     val label = vital.label
                                     Button(
@@ -457,6 +470,8 @@ fun VitalsScreen(
                     } else {
                     Button(
                         enabled = !measuring,
+                        // Same reason as the bound above: the title is weighted, this isn't.
+                        modifier = Modifier.widthIn(max = 208.dp),
                         onClick = {
                             runMeasurement(
                                 measureSeconds, "all",
@@ -535,7 +550,9 @@ fun VitalsScreen(
             }
         }
 
-        items(visibleOrdered, key = { it.key }) { card ->
+        // Not before the first load: until then every series is empty and every supports* flag
+        // false, so the list showed "No HR samples yet" cards and then grew as the rest arrived.
+        items(if (viewModel == null || state.loaded) visibleOrdered else emptyList(), key = { it.key }) { card ->
             EditableCard(editState, card, Modifier.fillMaxWidth()) {
                 vitalsCardFor(card)
             }
@@ -804,14 +821,17 @@ fun VitalDetailScreen(
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, cardShape)
                             .padding(horizontal = 10.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                        // Bottom, so the values stay on one line when a translated title
+                        // ("MAIS RECENTE") wraps to two; the dividers stay centred.
+                        verticalAlignment = Alignment.Bottom,
                     ) {
+                        val divider = Modifier.align(Alignment.CenterVertically)
                         DetailStat(tr("Latest"), state.latest?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
-                        DetailStatDivider()
+                        DetailStatDivider(divider)
                         DetailStat(tr("Average"), state.avg?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
-                        DetailStatDivider()
+                        DetailStatDivider(divider)
                         DetailStat(tr("Min"), state.min?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
-                        DetailStatDivider()
+                        DetailStatDivider(divider)
                         DetailStat(tr("Max"), state.max?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
                     }
                 }
@@ -862,13 +882,15 @@ fun VitalDetailScreen(
                                             .size(8.dp)
                                             .background(zone.colorToken.toColor(), CircleShape),
                                     )
+                                    // Takes the free width (instead of a Spacer) so a long
+                                    // translated zone label wraps beside its range.
                                     Text(
                                         tr(zone.label),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = PulseColors.textPrimary,
+                                        modifier = Modifier.weight(1f),
                                     )
-                                    Spacer(Modifier.weight(1f))
                                     Text(
                                         zoneRangeText(zone, metric, units, gUnit),
                                         fontSize = 12.sp,
@@ -933,6 +955,7 @@ fun VitalDetailScreen(
                                 fontSize = 12.sp,
                                 lineHeight = 17.sp,
                                 color = PulseColors.textSecondary,
+                                modifier = Modifier.weight(1f),
                             )
                         }
                     }
@@ -991,7 +1014,7 @@ private fun ReadingsCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "READINGS",
+                tr("READINGS"),
                 fontSize = 11.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 1.sp,
@@ -1125,6 +1148,9 @@ private fun PeriodSegmentedControl(selected: Period, onSelect: (Period) -> Unit)
                     fontSize = 13.sp,
                     fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (isSelected) PulseColors.textPrimary else PulseColors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 4.dp),
                 )
             }
         }
@@ -1145,7 +1171,10 @@ private fun DetailStat(title: String, value: String, modifier: Modifier = Modifi
             fontWeight = FontWeight.Medium,
             letterSpacing = 0.6.sp,
             color = PulseColors.textMuted,
-            maxLines = 1,
+            // A quarter of the card: "MAIS RECENTE" doesn't fit one line, so it wraps centred.
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
         )
         Text(
             value,
@@ -1158,9 +1187,9 @@ private fun DetailStat(title: String, value: String, modifier: Modifier = Modifi
 }
 
 @Composable
-private fun DetailStatDivider() {
+private fun DetailStatDivider(modifier: Modifier = Modifier) {
     Box(
-        Modifier
+        modifier
             .width(1.dp)
             .height(34.dp)
             .background(PulseColors.borderSubtle),

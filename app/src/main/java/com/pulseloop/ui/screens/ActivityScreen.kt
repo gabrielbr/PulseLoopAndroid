@@ -44,6 +44,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -169,7 +170,7 @@ fun ActivityScreen(
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "+ Record Activity",
+                    tr("+ Record Activity"),
                     fontSize = 17.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.onAccent,
@@ -227,7 +228,7 @@ fun ActivityScreen(
 
         item {
             Text(
-                "TODAY",
+                tr("TODAY"),
                 fontSize = 11.sp, fontWeight = FontWeight.Medium,
                 letterSpacing = 1.4.sp, color = PulseColors.textMuted,
             )
@@ -244,8 +245,11 @@ fun ActivityScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(tr("No workouts recorded today"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
-                    Text(tr("Start one manually when your ring misses an activity."), fontSize = 12.sp, color = PulseColors.textMuted)
+                    // Until the sessions have loaded the card keeps its size but says nothing, so
+                    // "no workouts" never flashes for a day that has them.
+                    val shown = Modifier.alpha(if (state.workoutsLoaded) 1f else 0f)
+                    Text(tr("No workouts recorded today"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = shown)
+                    Text(tr("Start one manually when your ring misses an activity."), fontSize = 12.sp, color = PulseColors.textMuted, modifier = shown)
                 }
             }
         } else {
@@ -688,7 +692,7 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
                         .switchRow(checked = useGps, onCheckedChange = { useGps = it }),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("Track GPS route", fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        Text(tr("Track GPS route"), fontSize = 14.sp, modifier = Modifier.weight(1f))
                         Switch(checked = useGps, onCheckedChange = null)
                     }
                 }
@@ -719,8 +723,8 @@ private fun WorkoutHistoryDialog(
             .toList().sortedByDescending { it.first }
     }
     fun header(day: LocalDate): String = when (day) {
-        today -> "TODAY"
-        today.minusDays(1) -> "YESTERDAY"
+        today -> tr("TODAY")
+        today.minusDays(1) -> tr("YESTERDAY")
         // Locale.ROOT: iOS's uppercased() is locale-insensitive; a Turkish locale would turn
         // month-name i's into dotted İ otherwise.
         else -> headerFmt.format(day).uppercase(java.util.Locale.ROOT)

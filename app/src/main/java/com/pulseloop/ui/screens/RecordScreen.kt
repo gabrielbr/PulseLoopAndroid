@@ -88,7 +88,7 @@ fun RecordScreen(
             )
             if (isPaused) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
-                    Text("PAUSED", Modifier.padding(horizontal = 12.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(tr("PAUSED"), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }

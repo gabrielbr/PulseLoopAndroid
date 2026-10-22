@@ -364,7 +364,7 @@ fun SleepTile(
                             color = PulseColors.textPrimary,
                         )
                         Text(
-                            "SCORE",
+                            tr("SCORE"),
                             fontSize = 10.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.sp,
@@ -501,7 +501,7 @@ fun CoachMessageCard(
                     .background(PulseColors.accent),
             )
             Text(
-                "COACH",
+                tr("COACH"),
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 1.8.sp,

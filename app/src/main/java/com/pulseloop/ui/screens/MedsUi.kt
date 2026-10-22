@@ -85,7 +85,7 @@ fun MedsScreen(onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("TODAY", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("TODAY"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                     doses.forEach { d ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {

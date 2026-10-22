@@ -95,7 +95,7 @@ fun FoodCard(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(PulseColors.calories))
             Spacer(Modifier.width(8.dp))
-            Text("FOOD", fontSize = 12.sp, letterSpacing = 1.8.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+            Text(tr("FOOD"), fontSize = 12.sp, letterSpacing = 1.8.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
             if (!f.enabled) {
                 Text(
                     tr("Hide"), fontSize = 12.sp, color = PulseColors.textMuted,
@@ -111,13 +111,13 @@ fun FoodCard(
         if (f.enabled) {
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(fmt.format(f.eaten.roundToInt()), fontSize = 30.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text(" kcal eaten", fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(" " + tr("kcal eaten"), fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
             }
             val parts = buildList {
                 burned?.takeIf { it > 0 }?.let { add(trf("{0} burned", fmt.format(it.roundToInt()))) }
                 f.calorieGoal?.takeIf { it > 0 }?.let { add(trf("goal {0}", fmt.format(it.roundToInt()))) }
                 if (f.proteinG > 0) add(trf("{0} g protein", f.proteinG.roundToInt()))
-                if (f.meals == 0) add("nothing logged yet")
+                if (f.meals == 0) add(tr("nothing logged yet"))
             }
             if (parts.isNotEmpty()) {
                 Text(parts.joinToString(" · "), fontSize = 13.sp, color = PulseColors.textSecondary)

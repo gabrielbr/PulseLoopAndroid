@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -124,7 +125,7 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
 @Composable
 private fun EstimatedChip() {
     Text(
-        "ESTIMATED",
+        tr("ESTIMATED"),
         fontSize = 11.sp,
         fontWeight = FontWeight.SemiBold,
         letterSpacing = 0.8.sp,

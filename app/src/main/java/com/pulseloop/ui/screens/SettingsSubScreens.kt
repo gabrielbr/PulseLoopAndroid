@@ -3827,7 +3827,7 @@ private fun AutoBackupCard() {
                     FilterChip(
                         selected = interval == d,
                         onClick = { interval = d; com.pulseloop.data.AutoBackup.setIntervalDays(context, d) },
-                        label = { Text(label) },
+                        label = { Text(tr(label)) },
                     )
                 }
             }

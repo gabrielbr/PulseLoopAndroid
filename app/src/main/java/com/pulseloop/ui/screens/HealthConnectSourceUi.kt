@@ -168,7 +168,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                 val count = remember(refresh) { HealthConnectSource.lastImportCount(context) }
                 Text(
                     last?.let {
-                        "Last import " + DateTimeFormatter.ofPattern("EEE d MMM, HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())) +
+                        trf("Last import {0}", DateTimeFormatter.ofPattern("EEE d MMM, HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))) +
                             trf(" · {0} readings", "%,d".format(count))
                     } ?: tr("Not imported yet"),
                     fontSize = 13.sp, color = PulseColors.textSecondary,
@@ -251,7 +251,7 @@ fun HealthConnectSourceHeroCard(onOpen: () -> Unit) {
         Text(tr("DATA SOURCE"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
         Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(
-            last?.let { "Last import " + DateTimeFormatter.ofPattern("EEE HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())) }
+            last?.let { trf("Last import {0}", DateTimeFormatter.ofPattern("EEE HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))) }
                 ?: tr("Waiting for the first import"),
             fontSize = 13.sp, color = PulseColors.textSecondary,
         )
