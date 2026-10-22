@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
@@ -294,12 +296,12 @@ fun TodayScreen(
                     }
                     TodayMoments.Moment.TAG_DAY -> item {
                         JournalTagsCard(
-                            db, java.time.LocalDate.now(), "Tag your day",
+                            db, java.time.LocalDate.now(), tr("Tag your day"),
                             tags = com.pulseloop.service.JournalInsights.Tag.entries.take(6),
                             allowYesterday = true,
                         ) {
                             Text(
-                                "See what affects you",
+                                tr("See what affects you"),
                                 fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
                                 modifier = Modifier
                                     .heightIn(min = 48.dp)
@@ -360,7 +362,7 @@ fun TodayScreen(
             val summary = state.coachSummary
             val fromCoach = coachEnabled && summary != null
             CoachBriefSheet(
-                title = if (fromCoach) summary!!.title else (readiness?.let { "Today" } ?: hero.title),
+                title = if (fromCoach) summary!!.title else (readiness?.let { tr("Today") } ?: hero.title),
                 body = if (fromCoach) summary!!.body
                     else listOfNotNull(readiness?.let { com.pulseloop.service.ReadinessCopy.headline(it) }, hero.summary).joinToString("\n\n"),
                 chips = if (fromCoach) parseChips(summary!!.chipsJSON) else hero.chips.map { it.label },
@@ -513,7 +515,7 @@ private fun BloodPressureTile(
         val dia = vitals.bpDiastolic?.toDouble()
         Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
             if (sys == null || dia == null) {
-                Text("No reading", fontSize = 12.sp, color = PulseColors.textMuted)
+                Text(tr("No reading"), fontSize = 12.sp, color = PulseColors.textMuted)
             } else {
                 val sysZones = VitalsThresholdEngine.zones(MetricKind.BLOOD_PRESSURE, vitals.profile)
                 val diaZones = VitalsThresholdEngine.diastolicReferenceZones()
@@ -563,14 +565,14 @@ private data class Hero(val title: String, val summary: String, val chips: List<
 /** Ported from TodayInsights.deriveHero (TodayView.swift), minus the iOS calibration branch. */
 private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.SleepState): Hero {
     val steps = state.steps ?: return Hero(
-        title = "Waiting for first sync",
+        title = tr("Waiting for first sync"),
         summary = if (com.pulseloop.health.source.HealthConnectSource.enabledNow)
-            "Importing from Health Connect. Your steps, sleep and heart rate appear once your device's app has synced."
-        else "Sync your ring to start collecting movement, heart rate, blood oxygen, and recovery context.",
+            tr("Importing from Health Connect. Your steps, sleep and heart rate appear once your device's app has synced.")
+        else tr("Sync your ring to start collecting movement, heart rate, blood oxygen, and recovery context."),
         chips = listOf(
-            ToneChip("Baseline pending", ChipTone.WARN),
-            ToneChip(if (state.heartRate == null) "HR pending" else "HR collected", ChipTone.NEUTRAL),
-            ToneChip("Sleep pending", ChipTone.WARN),
+            ToneChip(tr("Baseline pending"), ChipTone.WARN),
+            ToneChip(if (state.heartRate == null) tr("HR pending") else tr("HR collected"), ChipTone.NEUTRAL),
+            ToneChip(tr("Sleep pending"), ChipTone.WARN),
         ),
     )
 
@@ -581,9 +583,9 @@ private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.S
     val stepsDelta = if (base == 0.0) 0 else (((steps - base) / base) * 100).toInt()
 
     val title = when {
-        stepsDelta >= 20 -> "Building momentum"
-        stepsDelta <= -20 -> "Take it easy"
-        else -> "Steady build"
+        stepsDelta >= 20 -> tr("Building momentum")
+        stepsDelta <= -20 -> tr("Take it easy")
+        else -> tr("Steady build")
     }
 
     val hrStr = state.heartRate?.let { "$it bpm" } ?: "—"
@@ -610,8 +612,8 @@ private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.S
                 if (series.size > 1) "Steps ${if (stepsDelta >= 0) "+" else ""}$stepsDelta%" else "Steps collected",
                 stepsTone,
             ),
-            ToneChip(if (state.heartRate == null) "HR pending" else "HR collected", hrTone),
-            ToneChip(if (night != null) "Sleep synced" else "Sleep pending", if (night != null) ChipTone.NEUTRAL else ChipTone.WARN),
+            ToneChip(if (state.heartRate == null) tr("HR pending") else tr("HR collected"), hrTone),
+            ToneChip(if (night != null) tr("Sleep synced") else tr("Sleep pending"), if (night != null) ChipTone.NEUTRAL else ChipTone.WARN),
         ),
     )
 }
@@ -641,7 +643,7 @@ internal data class FoodTotals(
 /** Half-width Nutrition tile: calories eaten against the goal, macros, and a one-tap log. */
 @Composable
 private fun NutritionTile(food: FoodTotals?, modifier: Modifier, onLog: () -> Unit, onTap: () -> Unit) {
-    TodayTile(label = "Nutrition", color = PulseColors.calories, modifier = modifier, onTap = onTap) {
+    TodayTile(label = tr("Nutrition"), color = PulseColors.calories, modifier = modifier, onTap = onTap) {
         val kcal = food?.kcal ?: 0.0
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(Formats.count(kcal.toInt()), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
@@ -662,7 +664,7 @@ private fun NutritionTile(food: FoodTotals?, modifier: Modifier, onLog: () -> Un
                 fontSize = 11.sp, color = PulseColors.textSecondary, maxLines = 1,
             )
         } else {
-            Text("Nothing logged yet", fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
+            Text(tr("Nothing logged yet"), fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
         }
         Text(
             "+ Log meal",

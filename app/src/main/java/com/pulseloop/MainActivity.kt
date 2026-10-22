@@ -7,6 +7,8 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -41,6 +43,11 @@ import kotlinx.coroutines.launch
  *   - Android 13+: POST_NOTIFICATIONS
  */
 class MainActivity : ComponentActivity() {
+
+    // Settings → Language: Android resources and system UI follow the app's language.
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.pulseloop.ui.i18n.L10n.wrap(newBase))
+    }
 
     // Request multiple permissions at once on Android 12+
     private val blePermissionLauncher = registerForActivityResult(
@@ -82,15 +89,29 @@ class MainActivity : ComponentActivity() {
             // (under the status bar, above the navigation bar) rather than at the window edge, where
             // the bars covered it. The bars' insets are consumed here, so nothing inside pads for
             // them a second time.
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(PulseColors.background)
-                    .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout))
-                    .border(4.dp, PulseColors.frame)
-                    .padding(4.dp),
-            ) {
-                PulseLoopApp()
+            // Tatá's Easter egg (ui/theme/FairyMode.kt): the profile's name decides the palette.
+            val profile by androidx.compose.runtime.remember {
+                com.pulseloop.data.PulseLoopDatabase.getInstance(applicationContext).userProfileDao().getFlow()
+            }.collectAsState(initial = null)
+            androidx.compose.runtime.LaunchedEffect(profile?.name) {
+                if (profile != null) com.pulseloop.ui.theme.FairyMode.onProfileName(profile?.name)
+            }
+            // The frame flows from mint to pink rather than snapping.
+            val frame by androidx.compose.animation.animateColorAsState(
+                PulseColors.frame, androidx.compose.animation.core.tween(1200), label = "frame",
+            )
+            Box(Modifier.fillMaxSize()) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(PulseColors.background)
+                        .windowInsetsPadding(WindowInsets.systemBars.union(WindowInsets.displayCutout))
+                        .border(4.dp, frame)
+                        .padding(4.dp),
+                ) {
+                    PulseLoopApp()
+                }
+                com.pulseloop.ui.components.FairyTransformOverlay()
             }
         }
 

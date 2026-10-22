@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.components.switchRow
 
 import com.pulseloop.ui.theme.dither
@@ -187,7 +189,7 @@ fun ActivityScreen(
                         .clickable(role = Role.Button) { historyOpen = true },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(Icons.Filled.CalendarMonth, "Workout history", tint = PulseColors.textSecondary)
+                    Icon(Icons.Filled.CalendarMonth, tr("Workout history"), tint = PulseColors.textSecondary)
                 }
             }
         }
@@ -214,8 +216,8 @@ fun ActivityScreen(
                 }
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Log Past Activity", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                    Text("Add a workout you forgot to record", fontSize = 12.sp, color = PulseColors.textMuted)
+                    Text(tr("Log Past Activity"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                    Text(tr("Add a workout you forgot to record"), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = PulseColors.textMuted)
             }
@@ -240,8 +242,8 @@ fun ActivityScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text("No workouts recorded today", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
-                    Text("Start one manually when your ring misses an activity.", fontSize = 12.sp, color = PulseColors.textMuted)
+                    Text(tr("No workouts recorded today"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
+                    Text(tr("Start one manually when your ring misses an activity."), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
         } else {
@@ -270,11 +272,11 @@ fun ActivityScreen(
     if (permissionDenied) {
         AlertDialog(
             onDismissRequest = { permissionDenied = false },
-            title = { Text("Permission needed") },
+            title = { Text(tr("Permission needed")) },
             text = {
                 Text(
-                    "Recording a workout needs the Physical activity permission. " +
-                        "You can allow it in Android Settings › Apps › PulseLoop › Permissions.",
+                    tr("Recording a workout needs the Physical activity permission. " +
+                        "You can allow it in Android Settings › Apps › PulseLoop › Permissions."),
                 )
             },
             confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text("OK") } },
@@ -346,14 +348,14 @@ private fun ActivityDayNavHeader(state: ActivityViewModel.ActivityState, viewMod
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        ActivityNavChevron(Icons.Filled.ChevronLeft, "Previous day", canOlder) { viewModel?.stepDay(older = true) }
+        ActivityNavChevron(Icons.Filled.ChevronLeft, tr("Previous day"), canOlder) { viewModel?.stepDay(older = true) }
         Text(
             dayHeaderLabel(shownDayStart(state)),
             fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
             modifier = Modifier.weight(1f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
-        ActivityNavChevron(Icons.Filled.ChevronRight, "Next day", canNewer) { viewModel?.stepDay(older = false) }
+        ActivityNavChevron(Icons.Filled.ChevronRight, tr("Next day"), canNewer) { viewModel?.stepDay(older = false) }
     }
 }
 
@@ -384,8 +386,8 @@ private fun dayHeaderLabel(dayMillis: Long): String {
     val daysAgo = ((today - dayMillis) / 86_400_000L).toInt()
     val date = Instant.ofEpochMilli(dayMillis).atZone(ZoneId.systemDefault())
     return when {
-        daysAgo <= 0 -> "Today"
-        daysAgo == 1 -> "Yesterday"
+        daysAgo <= 0 -> tr("Today")
+        daysAgo == 1 -> tr("Yesterday")
         daysAgo < 7 -> date.format(DateTimeFormatter.ofPattern("EEEE"))
         date.year == java.time.Year.now().value -> date.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
         else -> date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
@@ -414,12 +416,12 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row {
-                SummaryMetric("Steps", today?.steps?.let { Formats.count(it) } ?: "—", null, PulseColors.steps, Modifier.weight(1f))
-                SummaryMetric("Distance", distValue ?: "—", if (distValue != null) UnitConverter.distanceUnit(units) else null, PulseColors.distance, Modifier.weight(1f))
+                SummaryMetric(tr("Steps"), today?.steps?.let { Formats.count(it) } ?: "—", null, PulseColors.steps, Modifier.weight(1f))
+                SummaryMetric(tr("Distance"), distValue ?: "—", if (distValue != null) UnitConverter.distanceUnit(units) else null, PulseColors.distance, Modifier.weight(1f))
             }
             // The same figure the Today screen shows, not the row's raw `calories` (issue #101).
             val calories = state.dayCalories
-            SummaryMetric("Calories", calories?.let { Formats.count(it.toInt()) } ?: "—", if (calories != null) "cal" else null, PulseColors.calories)
+            SummaryMetric(tr("Calories"), calories?.let { Formats.count(it.toInt()) } ?: "—", if (calories != null) "cal" else null, PulseColors.calories)
         }
         ActivityRings(
             rings = listOf(
@@ -548,7 +550,7 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
-                    "WEEKLY GOAL",
+                    tr("WEEKLY GOAL"),
                     fontSize = 11.sp, fontWeight = FontWeight.Medium,
                     letterSpacing = 1.4.sp, color = PulseColors.textMuted,
                 )
@@ -557,7 +559,7 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
         }
         WeeklyPillCalendar(days)
         Text(
-            "TAP TO EDIT GOALS",
+            tr("TAP TO EDIT GOALS"),
             fontSize = 11.sp, fontWeight = FontWeight.Medium,
             letterSpacing = 1.sp, color = PulseColors.textMuted,
         )
@@ -647,7 +649,7 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
     var useGps by remember { mutableStateOf(true) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Record activity") },
+        title = { Text(tr("Record activity")) },
         text = {
             // Scrolls: eight types plus the GPS row overflow a landscape or large-font dialog.
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -686,9 +688,9 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
             }
         },
         confirmButton = {
-            TextButton(onClick = { onStart(selected, useGps && ActivityMeta.gpsCapable(selected)) }) { Text("Start") }
+            TextButton(onClick = { onStart(selected, useGps && ActivityMeta.gpsCapable(selected)) }) { Text(tr("Start")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -719,10 +721,10 @@ private fun WorkoutHistoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Workout history") },
+        title = { Text(tr("Workout history")) },
         text = {
             if (groups.isEmpty()) {
-                Text("No workouts yet — recorded workouts will appear here.")
+                Text(tr("No workouts yet — recorded workouts will appear here."))
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.heightIn(max = 420.dp)) {
                     groups.forEachIndexed { index, (day, daySessions) ->
@@ -745,7 +747,7 @@ private fun WorkoutHistoryDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Done") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Done")) } },
     )
 }
 
@@ -762,21 +764,21 @@ private fun GoalEditorDialog(
     var workouts by remember { mutableStateOf(state.workoutsPerWeekGoal.toFloat()) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit goals") },
+        title = { Text(tr("Edit goals")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                GoalSlider("Steps", Formats.count((steps / 500).toInt() * 500), steps, 2000f..20000f) { steps = it }
-                GoalSlider("Active minutes", "${active.toInt()} min", active, 10f..180f) { active = it }
+                GoalSlider(tr("Steps"), Formats.count((steps / 500).toInt() * 500), steps, 2000f..20000f) { steps = it }
+                GoalSlider(tr("Active minutes"), "${active.toInt()} min", active, 10f..180f) { active = it }
                 GoalSlider("Sleep", "%.1f h".format((sleepH * 2).toInt() / 2f), sleepH, 5f..10f) { sleepH = it }
-                GoalSlider("Workouts / week", "${workouts.toInt()}", workouts, 1f..7f) { workouts = it }
+                GoalSlider(tr("Workouts / week"), "${workouts.toInt()}", workouts, 1f..7f) { workouts = it }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 onSave((steps / 500).toInt() * 500, active.toInt(), ((sleepH * 2).toInt() * 30), workouts.toInt())
-            }) { Text("Save") }
+            }) { Text(tr("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -832,9 +834,9 @@ private fun ActivityRecordsCard(
             Modifier.fillMaxWidth()
                 .clickable(
                     role = Role.Button,
-                    onClickLabel = if (expanded) "Hide activity records" else "Show activity records",
+                    onClickLabel = if (expanded) tr("Hide activity records") else tr("Show activity records"),
                 ) { expanded = !expanded }
-                .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+                .semantics { stateDescription = if (expanded) tr("Expanded") else tr("Collapsed") }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -859,7 +861,7 @@ private fun ActivityRecordsCard(
             val rows = buckets
             when {
                 rows == null -> Text(
-                    "Loading…",
+                    tr("Loading…"),
                     fontSize = 13.sp, color = PulseColors.textMuted,
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
                 )
@@ -893,7 +895,7 @@ private fun ActivityRecordsCard(
                             IconButton(onClick = { pending = bucket }) {
                                 Icon(
                                     Icons.Filled.DeleteOutline,
-                                    contentDescription = "Delete this activity record",
+                                    contentDescription = tr("Delete this activity record"),
                                     tint = PulseColors.textMuted,
                                     modifier = Modifier.size(18.dp),
                                 )
@@ -917,12 +919,12 @@ private fun ActivityRecordsCard(
     pending?.let { bucket ->
         AlertDialog(
             onDismissRequest = { pending = null },
-            title = { Text("Delete this activity record?") },
+            title = { Text(tr("Delete this activity record?")) },
             text = {
                 Text(
                     "${Formats.count(bucket.steps)} steps at ${timeOf(bucket.startEpoch)}." +
-                        "\n\nThe day's total drops by that much. This can't be undone, and the record " +
-                        "stays deleted the next time this day syncs.",
+                        tr("\n\nThe day's total drops by that much. This can't be undone, and the record " +
+                        "stays deleted the next time this day syncs."),
                 )
             },
             confirmButton = {
@@ -930,9 +932,9 @@ private fun ActivityRecordsCard(
                     val target = bucket
                     pending = null
                     scope.launch { buckets = viewModel?.deleteBucket(target.startEpoch) ?: buckets }
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(tr("Delete"), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { pending = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { pending = null }) { Text(tr("Cancel")) } },
         )
     }
 }
@@ -963,7 +965,7 @@ private fun DetectedActivityCard() {
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("DETECTED · REVIEW", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("DETECTED · REVIEW"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
         proposals.forEach { p ->
             val defaultType = when (p.kind) {
                 com.pulseloop.service.ActivityDetection.Proposal.Kind.WALK -> "walk"
@@ -974,7 +976,7 @@ private fun DetectedActivityCard() {
             val isNap = p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    (if (isNap) "Possible nap" else "Possible ${ActivityMeta.label(type).lowercase()}") + " · ${p.minutes} min",
+                    (if (isNap) tr("Possible nap") else "Possible ${ActivityMeta.label(type).lowercase()}") + " · ${p.minutes} min",
                     fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 )
                 Text(
@@ -997,13 +999,13 @@ private fun DetectedActivityCard() {
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        if (isNap) "Yes, a nap" else "Add workout", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+                        if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
                         modifier = Modifier.clickable {
                             scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
                         }.padding(vertical = 4.dp),
                     )
                     Text(
-                        "Not this", fontSize = 13.sp, color = PulseColors.textMuted,
+                        tr("Not this"), fontSize = 13.sp, color = PulseColors.textMuted,
                         modifier = Modifier.clickable { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }.padding(vertical = 4.dp),
                     )
                 }

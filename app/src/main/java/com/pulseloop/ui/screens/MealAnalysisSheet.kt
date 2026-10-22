@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import android.content.Context
 import android.graphics.Bitmap
@@ -282,13 +284,13 @@ fun MealAnalysisDialog(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    "AI meal log",
+                    tr("AI meal log"),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(tr("Cancel")) }
             }
             Column(
                 Modifier
@@ -329,7 +331,7 @@ fun MealAnalysisDialog(
                                     onClick = { image = null },
                                     modifier = Modifier.align(Alignment.TopEnd),
                                 ) {
-                                    Icon(Icons.Filled.Close, "Remove photo", tint = Color.White)
+                                    Icon(Icons.Filled.Close, tr("Remove photo"), tint = Color.White)
                                 }
                             }
                         } else {
@@ -337,7 +339,7 @@ fun MealAnalysisDialog(
                                 OutlinedButton(onClick = { launchCamera() }, modifier = Modifier.weight(1f)) {
                                     Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Camera")
+                                    Text(tr("Camera"))
                                 }
                                 OutlinedButton(
                                     onClick = {
@@ -349,14 +351,14 @@ fun MealAnalysisDialog(
                                 ) {
                                     Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Library")
+                                    Text(tr("Library"))
                                 }
                             }
                         }
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
-                                if (image == null) "OR DESCRIBE IT" else "ADD DETAIL (OPTIONAL)",
+                                if (image == null) tr("OR DESCRIBE IT") else tr("ADD DETAIL (OPTIONAL)"),
                                 fontSize = 12.sp,
                                 letterSpacing = 1.4.sp,
                                 color = PulseColors.textMuted,
@@ -364,7 +366,7 @@ fun MealAnalysisDialog(
                             OutlinedTextField(
                                 value = describeText,
                                 onValueChange = { describeText = it },
-                                label = { Text(if (image == null) "Describe your meal" else "Meal details") },
+                                label = { Text(if (image == null) tr("Describe your meal") else tr("Meal details")) },
                                 placeholder = { Text("e.g. two eggs, toast with butter, black coffee") },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2,
@@ -379,12 +381,12 @@ fun MealAnalysisDialog(
                         ) {
                             Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Analyze")
+                            Text(tr("Analyze"))
                         }
 
                         // iOS disclaimer, verbatim (:145-148).
                         Text(
-                            "Sent to your configured AI provider only when you tap Analyze. Estimates are labeled and editable.",
+                            tr("Sent to your configured AI provider only when you tap Analyze. Estimates are labeled and editable."),
                             fontSize = 12.sp,
                             color = PulseColors.textMuted,
                             textAlign = TextAlign.Center,
@@ -402,7 +404,7 @@ fun MealAnalysisDialog(
                             )
                         }
                         CircularProgressIndicator(color = PulseColors.accent, modifier = Modifier.size(28.dp))
-                        Text("Estimating nutrition…", fontSize = 14.sp, color = PulseColors.textSecondary)
+                        Text(tr("Estimating nutrition…"), fontSize = 14.sp, color = PulseColors.textSecondary)
                     }
 
                     AnalysisPhase.Review -> {
@@ -421,7 +423,7 @@ fun MealAnalysisDialog(
                                     Icon(Icons.Filled.AutoAwesome, null, tint = PulseColors.accent, modifier = Modifier.size(12.dp))
                                     Spacer(Modifier.width(4.dp))
                                     Text(
-                                        "AI estimate",
+                                        tr("AI estimate"),
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = PulseColors.accent,
@@ -451,12 +453,12 @@ fun MealAnalysisDialog(
                             )
                         }
                         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            Text("Review & adjust", fontWeight = FontWeight.SemiBold, color = PulseColors.calories)
+                            Text(tr("Review & adjust"), fontWeight = FontWeight.SemiBold, color = PulseColors.calories)
                             // The name is text, full width, and may wrap: a dish name is often long.
                             OutlinedTextField(
                                 value = name,
                                 onValueChange = { name = it },
-                                label = { Text("Meal name") },
+                                label = { Text(tr("Meal name")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 1,
                                 maxLines = 3,
@@ -466,11 +468,11 @@ fun MealAnalysisDialog(
                                     imeAction = ImeAction.Next,
                                 ),
                             )
-                            NumberField("Calories", "kcal", calories, Modifier.fillMaxWidth()) { calories = it }
+                            NumberField(tr("Calories"), "kcal", calories, Modifier.fillMaxWidth()) { calories = it }
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                NumberField("Protein", "g", protein, Modifier.weight(1f)) { protein = it }
-                                NumberField("Carbs", "g", carbs, Modifier.weight(1f)) { carbs = it }
-                                NumberField("Fat", "g", fat, Modifier.weight(1f)) { fat = it }
+                                NumberField(tr("Protein"), "g", protein, Modifier.weight(1f)) { protein = it }
+                                NumberField(tr("Carbs"), "g", carbs, Modifier.weight(1f)) { carbs = it }
+                                NumberField(tr("Fat"), "g", fat, Modifier.weight(1f)) { fat = it }
                             }
                         }
                         val canSave = MealAnalysisLogic.canSave(name, calories)
@@ -482,7 +484,7 @@ fun MealAnalysisDialog(
                         ) {
                             Icon(Icons.Filled.Check, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Log meal")
+                            Text(tr("Log meal"))
                         }
                         TextButton(
                             onClick = { phase = AnalysisPhase.Input },
@@ -490,7 +492,7 @@ fun MealAnalysisDialog(
                         ) {
                             Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Re-analyze", color = PulseColors.accent)
+                            Text(tr("Re-analyze"), color = PulseColors.accent)
                         }
                     }
 
@@ -515,7 +517,7 @@ fun MealAnalysisDialog(
                         ) {
                             Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Try again")
+                            Text(tr("Try again"))
                         }
                     }
                 }
@@ -721,8 +723,8 @@ object MealEstimator {
             val resolution = CoachClientResolver.resolve(providerStore, keyStore)
             if (!keyStore.coachEnabled || resolution.key == null) {
                 return@withContext Result.Failure(
-                    "AI analysis needs the coach enabled with a configured provider (Settings → AI Coach). " +
-                        "You can still search the database or enter the meal manually.",
+                    tr("AI analysis needs the coach enabled with a configured provider (Settings → AI Coach). " +
+                        "You can still search the database or enter the meal manually."),
                 )
             }
             val model = CoachClientResolver.activeModel(providerStore.snapshot(), keyStore.model)
@@ -737,7 +739,7 @@ object MealEstimator {
                     CoachAttachmentStore.delete(appContext, ref)
                 }
                 if (images.isEmpty()) {
-                    return@withContext Result.Failure("Couldn't process that photo. Try again or describe the meal.")
+                    return@withContext Result.Failure(tr("Couldn't process that photo. Try again or describe the meal."))
                 }
             }
 
@@ -759,7 +761,7 @@ object MealEstimator {
                 val response = resolution.client.send(requestBody.toString().toByteArray())
                 val estimate = MealAnalysisLogic.decode(response.outputText)
                     ?: return@withContext Result.Failure(
-                        "The AI didn't return a usable estimate. Try again or enter the meal manually.",
+                        tr("The AI didn't return a usable estimate. Try again or enter the meal manually."),
                     )
                 Result.Success(estimate)
             } catch (e: CancellationException) {

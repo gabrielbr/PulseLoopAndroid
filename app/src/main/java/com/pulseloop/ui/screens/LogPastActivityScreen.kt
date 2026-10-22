@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -69,22 +71,22 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
     ) {
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PulseColors.textSecondary, onTap = onBack)
+                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), tint = PulseColors.textSecondary, onTap = onBack)
                 Spacer(Modifier.width(12.dp))
-                Text("Log Past Activity", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Log Past Activity"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             }
         }
         item {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("What did you do?", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("What did you do?"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
-                    "Choose an activity, when it started, and how long it lasted.",
+                    tr("Choose an activity, when it started, and how long it lasted."),
                     fontSize = 14.sp, color = PulseColors.textMuted,
                 )
             }
         }
 
-        item { SectionLabel("Activity type") }
+        item { SectionLabel(tr("Activity type")) }
         item {
             ActivityTypeGrid(selectedType) { type ->
                 selectedType = type
@@ -92,14 +94,14 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
             }
         }
 
-        item { SectionLabel("When") }
+        item { SectionLabel(tr("When")) }
         item {
-            EditFieldRow("Started") {
+            EditFieldRow(tr("Started")) {
                 DateTimeButton(startedAt) { startedAt = it; saveError = null }
             }
         }
         item {
-            EditFieldRow("Ends") {
+            EditFieldRow(tr("Ends")) {
                 Text(
                     formatDateTime(endedAt),
                     fontSize = 14.sp,
@@ -108,7 +110,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
             }
         }
 
-        item { SectionLabel("Duration") }
+        item { SectionLabel(tr("Duration")) }
         item {
             PastActivityDurationCard(durationMinutes) { newValue ->
                 durationMinutes = newValue
@@ -117,7 +119,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
         }
 
         if (!isValid) {
-            item { Text("The workout must finish before now.", fontSize = 12.sp, color = PulseColors.warning) }
+            item { Text(tr("The workout must finish before now."), fontSize = 12.sp, color = PulseColors.warning) }
         }
         saveError?.let { error ->
             item { Text(error, fontSize = 12.sp, color = PulseColors.danger) }
@@ -151,7 +153,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
             ) {
                 Icon(Icons.Filled.Check, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Log Activity", fontWeight = FontWeight.SemiBold)
+                Text(tr("Log Activity"), fontWeight = FontWeight.SemiBold)
             }
         }
         item { Spacer(Modifier.height(24.dp)) }
@@ -232,12 +234,12 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            DurationStepButton(Icons.Filled.Remove, "Decrease duration by 5 minutes", enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
+            DurationStepButton(Icons.Filled.Remove, tr("Decrease duration by 5 minutes"), enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(durationText(minutes), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text("DURATION", fontSize = 11.sp, letterSpacing = 1.1.sp, color = PulseColors.textMuted)
             }
-            DurationStepButton(Icons.Filled.Add, "Increase duration by 5 minutes", enabled = true) { onChange(minutes + 5) }
+            DurationStepButton(Icons.Filled.Add, tr("Increase duration by 5 minutes"), enabled = true) { onChange(minutes + 5) }
         }
         Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(15, 30, 45, 60, 90).forEach { value ->

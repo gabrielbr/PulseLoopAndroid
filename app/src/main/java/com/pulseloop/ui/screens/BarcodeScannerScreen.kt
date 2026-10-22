@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -218,13 +220,13 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "Scan barcode",
+                tr("Scan barcode"),
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(tr("Cancel")) }
         }
         when (availability) {
             ScanAvailability.Granted ->
@@ -250,14 +252,14 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                     )
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Scanning unavailable",
+                        tr("Scanning unavailable"),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textPrimary,
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Barcode scanning needs a working device camera. Enter the food manually instead.",
+                        tr("Barcode scanning needs a working device camera. Enter the food manually instead."),
                         fontSize = 12.sp,
                         color = PulseColors.textMuted,
                         textAlign = TextAlign.Center,
@@ -278,14 +280,14 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                     )
                     Spacer(Modifier.height(10.dp))
                     Text(
-                        "Camera access needed",
+                        tr("Camera access needed"),
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textPrimary,
                     )
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        "Allow camera access in Settings to scan barcodes, or enter the food manually instead.",
+                        tr("Allow camera access in Settings to scan barcodes, or enter the food manually instead."),
                         fontSize = 12.sp,
                         color = PulseColors.textMuted,
                         textAlign = TextAlign.Center,
@@ -298,7 +300,7 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                                     .setData(Uri.fromParts("package", context.packageName, null)),
                             )
                         }
-                    }) { Text("Open settings") }
+                    }) { Text(tr("Open settings")) }
                 }
             }
 

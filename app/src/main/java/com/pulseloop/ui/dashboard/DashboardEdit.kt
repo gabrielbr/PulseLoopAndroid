@@ -1,5 +1,7 @@
 package com.pulseloop.ui.dashboard
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -221,7 +223,7 @@ fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) ->
 @Composable
 fun CustomizeCardsButton(onClick: () -> Unit) {
     TextButton(onClick = onClick) {
-        Text("Customize", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(tr("Customize"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -235,12 +237,12 @@ fun ReorderDoneBar(onDone: () -> Unit) {
     ) {
         Row(Modifier.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                "Reorder or hide cards",
+                tr("Reorder or hide cards"),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp),
             )
-            TextButton(onClick = onDone) { Text("Done") }
+            TextButton(onClick = onDone) { Text(tr("Done")) }
         }
     }
 }

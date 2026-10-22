@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.PulseColors
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
@@ -26,7 +28,7 @@ import kotlinx.coroutines.delay
  */
 @Composable
 fun RecordScreen(
-    activityName: String = "Workout",
+    activityName: String = tr("Workout"),
     elapsedSeconds: Int = 0,
     distanceMeters: Double = 0.0,
     heartRate: Int? = null,
@@ -49,10 +51,10 @@ fun RecordScreen(
     val paceOrSpeedLabel: String
     val paceOrSpeedValue: String
     if (metricSet.showsSpeed) {
-        paceOrSpeedLabel = "Speed"
+        paceOrSpeedLabel = tr("Speed")
         paceOrSpeedValue = ActivityMeta.speed(distanceMeters, elapsedSeconds, units) ?: "—"
     } else {
-        paceOrSpeedLabel = "Pace"
+        paceOrSpeedLabel = tr("Pace")
         paceOrSpeedValue = ActivityMeta.pace(distanceMeters, elapsedSeconds, units)
             ?.let { it + ActivityMeta.paceUnit(units) } ?: "—"
     }
@@ -64,13 +66,13 @@ fun RecordScreen(
     if (showLeaveDialog) {
         AlertDialog(
             onDismissRequest = { showLeaveDialog = false },
-            title = { Text("Workout in progress") },
-            text = { Text("Your workout is still recording. Finish it now, or keep recording?") },
+            title = { Text(tr("Workout in progress")) },
+            text = { Text(tr("Your workout is still recording. Finish it now, or keep recording?")) },
             confirmButton = {
-                TextButton(onClick = { showLeaveDialog = false; onFinish() }) { Text("Finish") }
+                TextButton(onClick = { showLeaveDialog = false; onFinish() }) { Text(tr("Finish")) }
             },
             dismissButton = {
-                TextButton(onClick = { showLeaveDialog = false }) { Text("Keep recording") }
+                TextButton(onClick = { showLeaveDialog = false }) { Text(tr("Keep recording")) }
             },
         )
     }
@@ -103,7 +105,7 @@ fun RecordScreen(
                 if (heartRateAdjusted) {
                     Text("adjusted by your accuracy check", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                Text(hrZone.label, style = MaterialTheme.typography.labelMedium, color = zoneColor)
+                Text(tr(hrZone.label), style = MaterialTheme.typography.labelMedium, color = zoneColor)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -118,13 +120,13 @@ fun RecordScreen(
                     } else {
                         "%.2f %s".format(UnitConverter.distance(distanceMeters, units), UnitConverter.distanceUnit(units))
                     }
-                    StatTile("Distance", distText)
+                    StatTile(tr("Distance"), distText)
                 }
             }
             if (useGps && (metricSet.showsPace || metricSet.showsSpeed)) {
                 item { StatTile(paceOrSpeedLabel, paceOrSpeedValue) }
             }
-            item { StatTile("SpO₂", spO2?.let { "$it%" } ?: "--") }
+            item { StatTile(tr("SpO₂"), spO2?.let { "$it%" } ?: "--") }
         }
 
         Spacer(Modifier.weight(1f))
@@ -135,19 +137,19 @@ fun RecordScreen(
                 Button(onClick = onResume, Modifier.weight(1f).height(52.dp)) {
                     Icon(Icons.Filled.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Resume")
+                    Text(tr("Resume"))
                 }
             } else {
                 OutlinedButton(onClick = onPause, Modifier.weight(1f).height(52.dp)) {
                     Icon(Icons.Filled.Pause, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Pause")
+                    Text(tr("Pause"))
                 }
             }
             Button(onClick = onFinish, Modifier.weight(1f).height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                 Icon(Icons.Filled.Stop, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Finish")
+                Text(tr("Finish"))
             }
         }
     }

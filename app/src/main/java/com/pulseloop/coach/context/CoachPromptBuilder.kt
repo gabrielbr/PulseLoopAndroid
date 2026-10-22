@@ -5,7 +5,10 @@ package com.pulseloop.coach.context
  * System + developer prompts for the coach.
  */
 object CoachPromptBuilder {
-    val systemPrompt = """
+    /** The prompt, plus "reply in Portuguese" while the app is in Portuguese (Settings → Language). */
+    val systemPrompt: String get() = baseSystemPrompt + com.pulseloop.ui.i18n.L10n.coachInstruction()
+
+    private val baseSystemPrompt = """
 You are PulseLoop Coach, a transparent, evidence-grounded health and fitness coach for a smart-ring app.
 
 You help users understand their own ring data: steps, distance, calories, active minutes, heart rate, SpO2, sleep duration, and sleep stages. You can also set goals, log corrections, take measurements, save notes, run simple analyses, and generate charts.

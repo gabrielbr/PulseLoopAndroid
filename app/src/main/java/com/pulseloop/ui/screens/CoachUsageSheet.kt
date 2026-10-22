@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -71,7 +73,7 @@ fun CoachUsageSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("Usage & cost", fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(tr("Usage & cost"), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             SummaryCard(providerLabel, models, totalInputTokens, totalOutputTokens, totalCost)
             if (showsCostNote) CostNote()
             if (accounted.isNotEmpty()) BreakdownCard(accounted)
@@ -91,13 +93,13 @@ private fun SummaryCard(
             .background(PulseColors.card)
             .padding(horizontal = 16.dp),
     ) {
-        UsageRow("Provider", providerLabel)
+        UsageRow(tr("Provider"), providerLabel)
         Divider()
-        UsageRow(if (models.size > 1) "Models" else "Model", models.joinToString(", "))
+        UsageRow(if (models.size > 1) tr("Models") else tr("Model"), models.joinToString(", "))
         Divider()
-        UsageRow("Input tokens", formatTokens(totalInputTokens), mono = true)
+        UsageRow(tr("Input tokens"), formatTokens(totalInputTokens), mono = true)
         Divider()
-        UsageRow("Output tokens", formatTokens(totalOutputTokens), mono = true)
+        UsageRow(tr("Output tokens"), formatTokens(totalOutputTokens), mono = true)
         Divider()
         UsageRow("Estimated cost", totalCost?.let { "$" + "%.4f".format(it) } ?: "—", mono = true)
     }
@@ -115,7 +117,7 @@ private fun CostNote() {
     ) {
         Icon(Icons.Filled.Info, null, tint = PulseColors.textMuted, modifier = Modifier.size(14.dp))
         Text(
-            "Cost estimates aren't available for on-device or custom models.",
+            tr("Cost estimates aren't available for on-device or custom models."),
             fontSize = 12.sp, color = PulseColors.textMuted,
         )
     }
@@ -137,10 +139,10 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "Per-message breakdown", fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                tr("Per-message breakdown"), fontSize = 13.sp, fontWeight = FontWeight.Medium,
                 color = PulseColors.textPrimary,
             )
-            Text(if (expanded) "Hide" else "Show", fontSize = 12.sp, color = PulseColors.textSecondary)
+            Text(if (expanded) tr("Hide") else tr("Show"), fontSize = 12.sp, color = PulseColors.textSecondary)
         }
         if (expanded) {
             Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {

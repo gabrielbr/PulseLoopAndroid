@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.trackBrush
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
@@ -54,7 +56,7 @@ fun ActivityRings(
     labels: List<String> = emptyList(),
 ) {
     // Drawn arcs say nothing to TalkBack; speak each ring's share of its goal instead.
-    val description = "Goal progress: " + rings.mapIndexed { i, ring ->
+    val description = tr("Goal progress: ") + rings.mapIndexed { i, ring ->
         val name = labels.getOrNull(i) ?: "ring ${i + 1}"
         if (ring.value == null) "$name unavailable" else "$name ${(ring.progress * 100).toInt()}%"
     }.joinToString(", ")

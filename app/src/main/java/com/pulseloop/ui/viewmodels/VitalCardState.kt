@@ -1,5 +1,7 @@
 package com.pulseloop.ui.viewmodels
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.service.BaselineStats
 import com.pulseloop.service.MeasurementContext
 import com.pulseloop.service.MetricContext
@@ -214,7 +216,7 @@ object VitalsCardFactory {
             metric = MetricKind.HEART_RATE, title = MetricKind.HEART_RATE.title,
             valueText = valueText, latestValue = latest,
             unitText = if (latest != null) "bpm range" else null,
-            statusText = interp?.displayLabel ?: "No reading",
+            statusText = interp?.displayLabel ?: tr("No reading"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = "$resting · $peak",
             samples = samples, zones = VitalsThresholdEngine.zones(MetricKind.HEART_RATE, profile),
@@ -240,7 +242,7 @@ object VitalsCardFactory {
             metric = MetricKind.SPO2, title = MetricKind.SPO2.title,
             valueText = averageLabel(samples, latest), latestValue = latest,
             unitText = if (latest != null) "% avg" else null,
-            statusText = interp?.displayLabel ?: "No reading",
+            statusText = interp?.displayLabel ?: tr("No reading"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = subtitle,
             samples = samples, zones = VitalsThresholdEngine.zones(MetricKind.SPO2, profile),
@@ -273,13 +275,13 @@ object VitalsCardFactory {
         val subtitle = if (baseline != null && baseline.isEstablished) {
             "Baseline ${baseline.mean.toInt()} ms"
         } else {
-            "Building baseline"
+            tr("Building baseline")
         }
         return VitalCardState(
             metric = MetricKind.HRV, title = MetricKind.HRV.title,
             valueText = latest?.let { "${it.toInt()}" } ?: "--", latestValue = latest,
             unitText = if (latest != null) "ms" else null,
-            statusText = interp?.displayLabel ?: "Building baseline",
+            statusText = interp?.displayLabel ?: tr("Building baseline"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = subtitle,
             samples = samples,
@@ -304,11 +306,11 @@ object VitalsCardFactory {
         val latest = samples.lastOrNull()?.value
         val quality = quality(metric, samples.lastOrNull()?.timestampMs, inputs)
         val interp = latest?.let { VitalsThresholdEngine.interpret(it, metric, profile) }
-        val subtitle = if (metric == MetricKind.STRESS) "Lower is calmer" else "Ring model estimate"
+        val subtitle = if (metric == MetricKind.STRESS) tr("Lower is calmer") else tr("Ring model estimate")
         return VitalCardState(
             metric = metric, title = metric.title,
             valueText = latest?.let { "${it.toInt()}" } ?: "--", latestValue = latest, unitText = null,
-            statusText = interp?.displayLabel ?: "No data",
+            statusText = interp?.displayLabel ?: tr("No data"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = subtitle,
             samples = samples, zones = VitalsThresholdEngine.zones(metric, profile),
@@ -350,7 +352,7 @@ object VitalsCardFactory {
             valueText = latest?.let { "%.1f".format(tempValue(it, units)) } ?: "--",
             latestValue = latest?.let { tempValue(it, units) },
             unitText = if (latest != null) tempUnit(units) else null,
-            statusText = interp?.displayLabel ?: "No data",
+            statusText = interp?.displayLabel ?: tr("No data"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = null,
             samples = dispSamples, zones = zones,
@@ -380,7 +382,7 @@ object VitalsCardFactory {
             // No latestValue: the "sys/dia" label has no single number; BP gauges read the two
             // series directly.
             valueText = valueText, unitText = if (sys != null) "mmHg" else null,
-            statusText = interp?.displayLabel ?: "No reading",
+            statusText = interp?.displayLabel ?: tr("No reading"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             // Systolic/diastolic values are shown under each of the two gauges on the card, so the
             // subtitle would just repeat them.
@@ -390,7 +392,7 @@ object VitalsCardFactory {
             yDomain = 80.0..190.0, referenceBands = emptyList(), dashedRules = emptyList(),
             trend = TrendSummary.compute(inputs.systolic, MetricKind.BLOOD_PRESSURE, unitLabel = "mmHg"),
             sourceQuality = quality, isEstimated = true,
-            confidenceLabel = if (inputs.hasBPReference) "Estimated" else "Estimated · calibrate with a cuff",
+            confidenceLabel = if (inputs.hasBPReference) tr("Estimated") else tr("Estimated · calibrate with a cuff"),
             lastUpdatedText = lastUpdated(inputs.systolic.lastOrNull()?.timestampMs, inputs.nowMs),
             isEmpty = sys == null || dia == null,
         )
@@ -426,9 +428,9 @@ object VitalsCardFactory {
             metric = MetricKind.GLUCOSE, title = MetricKind.GLUCOSE.title,
             valueText = valueText ?: "--", latestValue = latest?.let(::gv),
             unitText = if (latest != null) gUnit.label else null,
-            statusText = interp?.displayLabel ?: "No estimate",
+            statusText = interp?.displayLabel ?: tr("No estimate"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
-            subtitleText = "Estimated wellness metric",
+            subtitleText = tr("Estimated wellness metric"),
             samples = dispSamples, zones = zones,
             yDomain = domain,
             referenceBands = listOf(ReferenceBand(gv(70.0), gv(140.0), VitalColorToken.Mint)),

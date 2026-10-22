@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -85,8 +87,8 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
         scope.launch {
             when (val r = runCatching { ReferenceSourceScanner.scan(context) }.getOrNull()) {
                 is ReferenceSourceScanner.Result.Done -> result = r
-                ReferenceSourceScanner.Result.Unavailable -> note = "Health Connect isn't available on this phone."
-                null -> note = "The scan failed. Try again in a moment."
+                ReferenceSourceScanner.Result.Unavailable -> note = tr("Health Connect isn't available on this phone.")
+                null -> note = tr("The scan failed. Try again in a moment.")
             }
             scanning = false
         }
@@ -104,19 +106,19 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
     val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { got ->
         granted = got
         if (AccuracyCheckPermissions.readable(got).isEmpty()) {
-            note = "No access granted. You can allow it in Health Connect's settings."
+            note = tr("No access granted. You can allow it in Health Connect's settings.")
         } else scan()
     }
 
     val viewingCheck = viewing?.let { id -> history.firstOrNull { it.id == id } }
     if (viewingCheck != null) {
-        SettingsSubScreen(title = "Accuracy report", onBack = { viewing = null }) {
+        SettingsSubScreen(title = tr("Accuracy report"), onBack = { viewing = null }) {
             AccuracyReportSection(viewingCheck)
         }
         return
     }
 
-    SettingsSubScreen(title = "Accuracy check", onBack = onBack) {
+    SettingsSubScreen(title = tr("Accuracy check"), onBack = onBack) {
         val current = open
         when (current?.state) {
             AccuracyCheckEntity.STATE_RUNNING -> RunningCard(current, scope)
@@ -127,24 +129,24 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
 
         if (current == null) {
             AccuracyCard {
-                Text("Compare your ring with another device", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Compare your ring with another device"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
-                    "Wear the ring and a watch or band you trust for a few days. PulseLoop reads that device's data from " +
-                        "Health Connect and shows where the ring agrees and where it falls short.",
+                    tr("Wear the ring and a watch or band you trust for a few days. PulseLoop reads that device's data from " +
+                        "Health Connect and shows where the ring agrees and where it falls short."),
                     fontSize = 13.sp, color = PulseColors.textSecondary,
                 )
                 Text(
-                    "While a check runs, PulseLoop stops exporting the types the other device also writes, so Health Connect " +
-                        "doesn't count your steps, sleep and heart rate twice.",
+                    tr("While a check runs, PulseLoop stops exporting the types the other device also writes, so Health Connect " +
+                        "doesn't count your steps, sleep and heart rate twice."),
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
                 if (!available) {
-                    Text("Health Connect isn't available on this phone.", fontSize = 12.sp, color = PulseColors.danger)
+                    Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = PulseColors.danger)
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         if (readable.size < ReferenceMetric.entries.size) {
                             Button(onClick = { launcher.launch(AccuracyCheckPermissions.request) }, enabled = !scanning) {
-                                Text(if (readable.isEmpty()) "Allow access" else "Allow more")
+                                Text(if (readable.isEmpty()) tr("Allow access") else tr("Allow more"))
                             }
                         }
                         if (readable.isNotEmpty()) {
@@ -153,7 +155,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                         if (scanning) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
                 }
-                if (!hasRing) Text("Pair your ring first: a check compares it against the other device.", fontSize = 12.sp, color = PulseColors.textMuted)
+                if (!hasRing) Text(tr("Pair your ring first: a check compares it against the other device."), fontSize = 12.sp, color = PulseColors.textMuted)
                 note?.let { Text(it, fontSize = 12.sp, color = PulseColors.warning) }
             }
 
@@ -163,7 +165,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                     AccuracyCard {
                         Text("No other app wrote readable data in the last ${ReferenceSourceScanner.LOOKBACK_DAYS} days.", fontSize = 13.sp, color = PulseColors.textSecondary)
                         Text(
-                            "If your watch syncs through an app like Health Sync, check that it's set to write to Health Connect.",
+                            tr("If your watch syncs through an app like Health Sync, check that it's set to write to Health Connect."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
                     }
@@ -174,19 +176,19 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                 if (r.unreadable.isNotEmpty() || r.failed.isNotEmpty()) {
                     AccuracyCard {
                         if (r.unreadable.isNotEmpty()) {
-                            Text("Not allowed to read: " + r.unreadable.joinToString(", ") { it.label }, fontSize = 12.sp, color = PulseColors.textMuted)
+                            Text(tr("Not allowed to read: ") + r.unreadable.joinToString(", ") { it.label }, fontSize = 12.sp, color = PulseColors.textMuted)
                         }
                         if (r.failed.isNotEmpty()) {
-                            Text("Couldn't read: " + r.failed.joinToString(", ") { it.label }, fontSize = 12.sp, color = PulseColors.warning)
+                            Text(tr("Couldn't read: ") + r.failed.joinToString(", ") { it.label }, fontSize = 12.sp, color = PulseColors.warning)
                         }
                     }
                 }
                 OutlinedButton(onClick = {
                     val text = ReferenceSurveyText.render(r.sources, ReferenceSourceScanner.LOOKBACK_DAYS, { ReferenceAppLabels.label(context, it) }, r.unreadable)
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
-                        .setPrimaryClip(ClipData.newPlainText("Accuracy check sources", text))
-                    note = "Summary copied. It holds counts and timings only, no readings."
-                }, modifier = Modifier.fillMaxWidth()) { Text("Copy summary") }
+                        .setPrimaryClip(ClipData.newPlainText(tr("Accuracy check sources"), text))
+                    note = tr("Summary copied. It holds counts and timings only, no readings.")
+                }, modifier = Modifier.fillMaxWidth()) { Text(tr("Copy summary")) }
             }
         }
 
@@ -195,7 +197,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
         val past = history.filter { it.state == AccuracyCheckEntity.STATE_DONE }
         if (past.isNotEmpty()) {
             AccuracyCard {
-                Text("Past checks", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Past checks"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 past.forEach { c ->
                     Row(
                         Modifier.fillMaxWidth().clickable { viewing = c.id }.padding(vertical = 6.dp),
@@ -205,7 +207,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                             Text("${c.deviceLabel} vs ${c.referenceLabel}", fontSize = 13.sp, color = PulseColors.textPrimary)
                             Text(AccuracyUiText.span(c), fontSize = 12.sp, color = PulseColors.textMuted)
                         }
-                        Text("View", fontSize = 13.sp, color = PulseColors.accent)
+                        Text(tr("View"), fontSize = 13.sp, color = PulseColors.accent)
                     }
                 }
             }
@@ -221,9 +223,9 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                 scope.launch {
                     note = when (AccuracyCheckController.start(context, src, label, days)) {
                         is AccuracyCheckController.StartResult.Started -> null
-                        AccuracyCheckController.StartResult.AlreadyOpen -> "A check is already open."
-                        AccuracyCheckController.StartResult.NoRing -> "Pair your ring first."
-                        AccuracyCheckController.StartResult.NothingToCompare -> "That app shares nothing PulseLoop can compare."
+                        AccuracyCheckController.StartResult.AlreadyOpen -> tr("A check is already open.")
+                        AccuracyCheckController.StartResult.NoRing -> tr("Pair your ring first.")
+                        AccuracyCheckController.StartResult.NothingToCompare -> tr("That app shares nothing PulseLoop can compare.")
                     }
                     starting = null
                 }
@@ -247,8 +249,8 @@ internal object AccuracyUiText {
     }
 
     fun endReason(c: AccuracyCheckEntity): String = when (c.endReason) {
-        AccuracyCheckEntity.END_RING_CHANGED -> "Ended early: a different ring was paired."
-        AccuracyCheckEntity.END_EARLY -> "Ended early."
+        AccuracyCheckEntity.END_RING_CHANGED -> tr("Ended early: a different ring was paired.")
+        AccuracyCheckEntity.END_EARLY -> tr("Ended early.")
         else -> "Finished."
     }
 
@@ -268,20 +270,20 @@ private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Co
         Text("Accuracy check · day $day of $total", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text("${check.deviceLabel} vs ${check.referenceLabel}, until ${AccuracyUiText.date(check.plannedEndAt)}.", fontSize = 13.sp, color = PulseColors.textSecondary)
         Text("Wear both as usual. Health Connect export paused for: ${AccuracyUiText.units(units)}.", fontSize = 12.sp, color = PulseColors.warning)
-        OutlinedButton(onClick = { confirmEnd = true }) { Text("End now") }
+        OutlinedButton(onClick = { confirmEnd = true }) { Text(tr("End now")) }
     }
     if (confirmEnd) {
         AlertDialog(
             onDismissRequest = { confirmEnd = false },
-            title = { Text("End the check now?") },
-            text = { Text("The report covers the days so far. You'll then choose what happens to the paused Health Connect export.") },
+            title = { Text(tr("End the check now?")) },
+            text = { Text(tr("The report covers the days so far. You'll then choose what happens to the paused Health Connect export.")) },
             confirmButton = {
                 TextButton(onClick = {
                     confirmEnd = false
                     scope.launch { AccuracyCheckController.end(context, AccuracyCheckEntity.END_EARLY) }
-                }) { Text("End now") }
+                }) { Text(tr("End now")) }
             },
-            dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text("Keep going") } },
+            dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text(tr("Keep going")) } },
         )
     }
 }
@@ -291,7 +293,7 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
     AccuracyCard {
-        Text("Check finished: resume Health Connect export", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(tr("Check finished: resume Health Connect export"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(AccuracyUiText.endReason(check) + " ${AccuracyUiText.span(check)}.", fontSize = 13.sp, color = PulseColors.textSecondary)
         Text(
             "During the check, ${check.referenceLabel} wrote the same types to Health Connect. Exporting the ring's copy " +
@@ -301,13 +303,13 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
         Button(onClick = {
             busy = true
             scope.launch { AccuracyCheckController.resolve(context, AccuracyCheckEntity.RESUME_SKIP); busy = false }
-        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Skip these days (recommended)") }
+        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(tr("Skip these days (recommended)")) }
         OutlinedButton(onClick = {
             busy = true
             scope.launch { AccuracyCheckController.resolve(context, AccuracyCheckEntity.RESUME_EXPORT); busy = false }
-        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Export them too") }
+        }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(tr("Export them too")) }
         Text(
-            "Export them too if you're taking the other device off and want the ring's full history in Health Connect.",
+            tr("Export them too if you're taking the other device off and want the ring's full history in Health Connect."),
             fontSize = 11.sp, color = PulseColors.textMuted,
         )
     }
@@ -330,17 +332,17 @@ private fun StartDialog(
     val units = source.metrics.map { ExportUnit.of(it.metric) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Start an accuracy check") },
+        title = { Text(tr("Start an accuracy check")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = label, onValueChange = { label = it }, singleLine = true,
-                    label = { Text("Reference device") },
+                    label = { Text(tr("Reference device")) },
                     supportingText = if (source.packageName in ReferenceAppLabels.BRIDGES) {
-                        { Text("A bridge app: name the watch behind it.") }
+                        { Text(tr("A bridge app: name the watch behind it.")) }
                     } else null,
                 )
-                Text("How long", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(tr("How long"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AccuracyCheckController.DURATIONS_DAYS.forEach { d ->
                         FilterChip(selected = days == d, onClick = { days = d }, label = { Text("$d days") })
@@ -351,11 +353,11 @@ private fun StartDialog(
                         "and you choose what to do with those days.",
                     fontSize = 12.sp,
                 )
-                Text("Wear both devices as you normally would, including at night.", fontSize = 12.sp)
+                Text(tr("Wear both devices as you normally would, including at night."), fontSize = 12.sp)
             }
         },
-        confirmButton = { TextButton(onClick = { onStart(label.trim(), days) }) { Text("Start") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = { TextButton(onClick = { onStart(label.trim(), days) }) { Text(tr("Start")) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -366,13 +368,13 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
         Text(s.packageName, fontSize = 11.sp, color = PulseColors.textMuted)
         if (s.packageName in ReferenceAppLabels.BRIDGES) {
             Text(
-                "A bridge app: it copies another app's data (for example Huawei Health) into Health Connect.",
+                tr("A bridge app: it copies another app's data (for example Huawei Health) into Health Connect."),
                 fontSize = 12.sp, color = PulseColors.textSecondary,
             )
         }
         Text(
-            if (s.devices.isEmpty()) "Device: not recorded"
-            else "Device: " + s.devices.joinToString("; ") { ReferenceSurveyText.device(it) },
+            if (s.devices.isEmpty()) tr("Device: not recorded")
+            else tr("Device: ") + s.devices.joinToString("; ") { ReferenceSurveyText.device(it) },
             fontSize = 12.sp, color = PulseColors.textSecondary,
         )
         s.echo?.takeIf { it.looksLikeEcho }?.let {
@@ -383,7 +385,7 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
             )
         }
         s.metrics.forEach { MetricRow(it) }
-        if (onUse != null) Button(onClick = onUse, modifier = Modifier.fillMaxWidth()) { Text("Compare my ring with this") }
+        if (onUse != null) Button(onClick = onUse, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare my ring with this")) }
     }
 }
 
@@ -399,8 +401,8 @@ private fun MetricRow(m: MetricSurvey) {
         )
         if (m.metric == ReferenceMetric.SLEEP) {
             Text(
-                if (ReferenceSurveyText.hasSleepStages(m)) "With stages: " + m.sleepStageTypes.sorted().joinToString(", ") { ReferenceSurveyText.sleepStage(it) }
-                else "No sleep stages, only time asleep",
+                if (ReferenceSurveyText.hasSleepStages(m)) tr("With stages: ") + m.sleepStageTypes.sorted().joinToString(", ") { ReferenceSurveyText.sleepStage(it) }
+                else tr("No sleep stages, only time asleep"),
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }
@@ -445,12 +447,12 @@ internal fun AccuracyCheckBanner(c: AccuracyCheckEntity, onOpen: () -> Unit) {
     val text = if (c.state == AccuracyCheckEntity.STATE_RUNNING) {
         val (day, total) = AccuracyUiText.dayOf(c)
         "Accuracy check · day $day of $total · Health Connect export paused"
-    } else "Accuracy report ready · choose what to do with the paused export"
+    } else tr("Accuracy report ready · choose what to do with the paused export")
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).clickable(onClick = onOpen).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, fontSize = 12.sp, color = PulseColors.warning, modifier = Modifier.weight(1f))
-        Text("Open", fontSize = 12.sp, color = PulseColors.accent)
+        Text(tr("Open"), fontSize = 12.sp, color = PulseColors.accent)
     }
 }

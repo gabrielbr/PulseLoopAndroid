@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.theme.ditherBrush
 import com.pulseloop.ui.theme.drawDitherFade
@@ -309,7 +311,7 @@ fun TrendChart(
     // TalkBack can't scrub; give it the shape of the data in one sentence instead.
     val summary = remember(points, secondary, title) {
         fun v(i: Int) = valueFormatter(points[i]) + (secondary.getOrNull(i)?.let { "/" + valueFormatter(it) } ?: "")
-        "${title ?: "Chart"}: latest ${v(points.lastIndex)}, " +
+        "${title ?: tr("Chart")}: latest ${v(points.lastIndex)}, " +
             "range ${valueFormatter(points.min())}–${valueFormatter(points.max())}, ${points.size} readings"
     }
 
@@ -586,7 +588,7 @@ fun TrendChart(
                     IconButton(onClick = { zoom = 1f; windowStart = 0f }) {
                         Icon(
                             Icons.Filled.Refresh,
-                            contentDescription = "Reset zoom",
+                            contentDescription = tr("Reset zoom"),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }

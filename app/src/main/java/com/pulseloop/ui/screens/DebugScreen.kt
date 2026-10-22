@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.components.switchRow
 
 import androidx.compose.foundation.layout.*
@@ -54,10 +56,10 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = { Text("Debug") },
+                title = { Text(tr("Debug")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.Filled.ArrowBack, contentDescription = tr("Back"))
                     }
                 },
                 windowInsets = WindowInsets(0, 0, 0, 0),
@@ -67,9 +69,9 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // ── Ring Event Log ──────────────────────────────────────────
             item {
-                DebugCard("Ring Events", trailing = "${events.size} recent") {
+                DebugCard(tr("Ring Events"), trailing = "${events.size} recent") {
                     Text(
-                        "Connection, command and reply events, stored as they happen. Times are local.",
+                        tr("Connection, command and reply events, stored as they happen. Times are local."),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp),
@@ -80,28 +82,28 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                             onClick = { viewModel.sync(connect = false) },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         ) {
-                            Text("Sync Now", style = MaterialTheme.typography.labelSmall)
+                            Text(tr("Sync Now"), style = MaterialTheme.typography.labelSmall)
                         }
                         OutlinedButton(
                             enabled = !busy,
                             onClick = { viewModel.sync(connect = true) },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         ) {
-                            Text("Connect + Query", style = MaterialTheme.typography.labelSmall)
+                            Text(tr("Connect + Query"), style = MaterialTheme.typography.labelSmall)
                         }
                     }
                     if (status.isNotBlank()) {
                         Text(status, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     if (events.isEmpty()) {
-                        Text("No events yet. Sync the ring or trigger a measurement to see data.",
+                        Text(tr("No events yet. Sync the ring or trigger a measurement to see data."),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp))
                     } else {
                         events.take(if (showAllEvents) 40 else 5).forEach { EventRow(it, timeFmt) }
                         TextButton(onClick = { showAllEvents = !showAllEvents }) {
-                            Text(if (showAllEvents) "Show fewer events" else "Show more events")
+                            Text(if (showAllEvents) tr("Show fewer events") else tr("Show more events"))
                         }
                     }
                 }
@@ -109,12 +111,12 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
 
             // ── Raw Packets ─────────────────────────────────────────────
             item {
-                DebugCard("Raw Packets") {
+                DebugCard(tr("Raw Packets")) {
                     Text("$packetCount packets captured", style = MaterialTheme.typography.bodyMedium)
                     Text("↓ = ring → app (response)   ↑ = app → ring (command)",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = { showPackets = !showPackets }) {
-                        Text(if (showPackets) "Hide packets" else "Show recent packets")
+                        Text(if (showPackets) tr("Hide packets") else tr("Show recent packets"))
                     }
                     if (showPackets) packets.forEach { PacketRow(it, timeFmt) }
                 }
@@ -122,9 +124,9 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
 
             // ── Database ────────────────────────────────────────────────
             item {
-                DebugCard("Database") {
-                    Text("Row counts include demo and real rows. Tap a table to see its newest rows. " +
-                        "Stored health rows are never included in a diagnostics export.",
+                DebugCard(tr("Database")) {
+                    Text(tr("Row counts include demo and real rows. Tap a table to see its newest rows. " +
+                        "Stored health rows are never included in a diagnostics export."),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     counts.forEach { count ->
                         Row(
@@ -143,11 +145,11 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                         }
                         if (expandedTable == count.name) {
                             when (count.name) {
-                                "raw_packets" -> Text("See Raw Packets above.", style = MaterialTheme.typography.bodySmall)
-                                "wearable_logs" -> Text("See Ring Events above.", style = MaterialTheme.typography.bodySmall)
+                                "raw_packets" -> Text(tr("See Raw Packets above."), style = MaterialTheme.typography.bodySmall)
+                                "wearable_logs" -> Text(tr("See Ring Events above."), style = MaterialTheme.typography.bodySmall)
                                 else -> {
                                     val selected = rows.filter { it.tableName == count.name }
-                                    if (selected.isEmpty()) Text("No rows to display.", style = MaterialTheme.typography.bodySmall)
+                                    if (selected.isEmpty()) Text(tr("No rows to display."), style = MaterialTheme.typography.bodySmall)
                                     selected.forEach { row ->
                                         Text("${timeFmt.format(Date(row.timestamp))} · ${row.detail}",
                                             style = MaterialTheme.typography.bodySmall)
@@ -165,17 +167,17 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                 // explicitly opts out for this export. Never persists "off".
                 var maskSensitive by remember { mutableStateOf(true) }
                 var exportError by remember { mutableStateOf<String?>(null) }
-                DebugCard("Diagnostics") {
-                    Text("Export app, device, and wearable logs as JSON.",
+                DebugCard(tr("Diagnostics")) {
+                    Text(tr("Export app, device, and wearable logs as JSON."),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Row(Modifier.switchRow(checked = maskSensitive, onCheckedChange = { maskSensitive = it }), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text("Mask sensitive data", style = MaterialTheme.typography.bodyMedium)
+                            Text(tr("Mask sensitive data"), style = MaterialTheme.typography.bodyMedium)
                             Text(
                                 if (maskSensitive)
-                                    "Removes health values, ring serial & MAC addresses. Keeps models, opcodes & errors."
+                                    tr("Removes health values, ring serial & MAC addresses. Keeps models, opcodes & errors.")
                                 else
-                                    "OFF — includes full unmasked BLE frames (for protocol debugging only).",
+                                    tr("OFF — includes full unmasked BLE frames (for protocol debugging only)."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (maskSensitive) MaterialTheme.colorScheme.onSurfaceVariant
                                         else MaterialTheme.colorScheme.error,
@@ -193,7 +195,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                                 } catch (e: CancellationException) {
                                     throw e
                                 } catch (_: Exception) {
-                                    exportError = "Could not export diagnostics."
+                                    exportError = tr("Could not export diagnostics.")
                                 }
                             }
                         },
@@ -201,7 +203,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                     ) {
                         Icon(Icons.Filled.Share, null)
                         Spacer(Modifier.width(8.dp))
-                        Text(if (maskSensitive) "Export Diagnostics" else "Export Full (Unmasked)")
+                        Text(if (maskSensitive) tr("Export Diagnostics") else tr("Export Full (Unmasked)"))
                     }
                     exportError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 }
@@ -209,9 +211,9 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
 
             // ── App Info ────────────────────────────────────────────────
             item {
-                DebugCard("App Info") {
+                DebugCard(tr("App Info")) {
                     Text("PulseLoop ${BuildConfig.VERSION_NAME} (Android)", style = MaterialTheme.typography.bodyMedium)
-                    Text("Port from iOS · Open Source", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("Port from iOS · Open Source"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.components.switchRow
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -85,7 +87,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
         scope.launch {
             val n = runCatching { HealthConnectBodyImport.run(context) }.getOrDefault(0)
             busy = false
-            note = if (n == 0) "No body measurements found in Health Connect yet." else null
+            note = if (n == 0) tr("No body measurements found in Health Connect yet.") else null
             refresh++
             onUpdated()
         }
@@ -95,7 +97,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
         val any = granted.any { it in HealthConnectBodyImport.permissions }
         enabled = any
         HealthConnectBodyImport.setEnabled(context, any)
-        if (any) importNow() else note = "No access granted. You can allow it in Health Connect's settings."
+        if (any) importNow() else note = tr("No access granted. You can allow it in Health Connect's settings.")
     }
 
     Column(
@@ -107,16 +109,16 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
                     else { enabled = false; HealthConnectBodyImport.setEnabled(context, false) }
                 }), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Sync from your scale", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Sync from your scale"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
-                    "Weight, height and body composition from Health Connect (Fitdays and other scale apps).",
+                    tr("Weight, height and body composition from Health Connect (Fitdays and other scale apps)."),
                     fontSize = 12.sp, color = PulseColors.textSecondary,
                 )
             }
             Switch(checked = enabled, enabled = available && !busy, onCheckedChange = null)
         }
         if (!available) {
-            Text("Health Connect isn't available on this phone.", fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = PulseColors.textMuted)
         }
 
         val s = snapshot
@@ -139,7 +141,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
         }
         note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         if (enabled) {
-            TextButton(onClick = { importNow() }, enabled = !busy) { Text(if (busy) "Syncing…" else "Sync now") }
+            TextButton(onClick = { importNow() }, enabled = !busy) { Text(if (busy) tr("Syncing…") else tr("Sync now")) }
         }
     }
 }

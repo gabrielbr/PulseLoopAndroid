@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -128,15 +130,15 @@ private fun androidx.compose.foundation.lazy.LazyListScope.dayItems(
             val noData = SleepInsights.noDataState(SleepRangeKey.DAY)
             item { SleepHeroCard(label = noData.label, value = noData.value, support = noData.support, score = null, scoreLabel = null, noData = true) }
             item {
-                VisualizationCard(eyebrow = "Stages", title = "Sleep architecture", legend = false) {
+                VisualizationCard(eyebrow = tr("Stages"), title = tr("Sleep architecture"), legend = false) {
                     Column(
                         Modifier.fillMaxWidth().height(180.dp),
                         verticalArrangement = Arrangement.Center,
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("No sleep recorded", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
+                        Text(tr("No sleep recorded"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
                         Text(
-                            "Wear your ring overnight to see your hypnogram here.",
+                            tr("Wear your ring overnight to see your hypnogram here."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
                     }
@@ -154,7 +156,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.dayItems(
         val summary = state.daySummary
         val fallback = state.coach
         CoachMessageCard(
-            headline = summary?.title ?: fallback?.headline ?: "Sleep insights",
+            headline = summary?.title ?: fallback?.headline ?: tr("Sleep insights"),
             body = summary?.body ?: fallback?.body ?: "",
             chips = summary?.let { parseChipsJson(it.chipsJSON) } ?: fallback?.chips ?: emptyList(),
             onTap = { navController?.navigate("coach") },
@@ -172,7 +174,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.sessionPageItems(
 ) {
     item { SessionHero(session, blocks, goalMinutes) }
     item {
-        VisualizationCard(eyebrow = "Stages", title = "Sleep architecture", legend = true) {
+        VisualizationCard(eyebrow = tr("Stages"), title = tr("Sleep architecture"), legend = true) {
             SleepHypnogram(blocks = remember(blocks) { com.pulseloop.service.hypnogramBlocks(blocks) }, spanMin = session.spanMinutes, startTs = session.startAt)
         }
     }
@@ -203,14 +205,14 @@ private fun SessionHero(session: SleepSessionEntity, blocks: List<SleepStageBloc
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SleepHeroCard(
-            label = "Last Sleep",
+            label = tr("Last Sleep"),
             value = SleepFormat.duration(session.totalMinutes),
             support = "${clockTime(session.startAt)} to ${clockTime(session.endAt)}",
             score = score.score,
             scoreLabel = qualityText(score.label),
         )
         // Oura-style breakdown of the score (docs/oura-ux-analysis.md phase 3).
-        ContributorsCard(score.contributors, title = "Sleep contributors")
+        ContributorsCard(score.contributors, title = tr("Sleep contributors"))
     }
 }
 
@@ -243,7 +245,7 @@ private fun SleepCarousel(
                     letterSpacing = 0.8.sp, color = PulseColors.textSecondary,
                 )
                 SessionHero(s, blocks, goalMinutes)
-                VisualizationCard(eyebrow = "Stages", title = "Sleep architecture", legend = true) {
+                VisualizationCard(eyebrow = tr("Stages"), title = tr("Sleep architecture"), legend = true) {
                     SleepHypnogram(blocks = remember(blocks) { com.pulseloop.service.hypnogramBlocks(blocks) }, spanMin = s.spanMinutes, startTs = s.startAt)
                 }
                 // Unlike the single-session page, shown even for a one-record session: on a
@@ -292,7 +294,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
     val noData = SleepInsights.noDataState(state.range)
     item {
         SleepHeroCard(
-            label = SleepInsights.rangeHeroLabel[state.range] ?: "Sleep",
+            label = SleepInsights.rangeHeroLabel[state.range] ?: tr("Sleep"),
             value = if (enough) SleepFormat.duration(state.avgMinutes ?: 0) else noData.value,
             support = if (state.range == SleepRangeKey.YEAR)
                 "Tracked ${valid.size} ${if (valid.size == 1) "night" else "nights"} this year"
@@ -305,8 +307,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
     }
     item {
         VisualizationCard(
-            eyebrow = "Duration",
-            title = if (state.range == SleepRangeKey.YEAR) "Monthly average" else "Nightly sleep",
+            eyebrow = tr("Duration"),
+            title = if (state.range == SleepRangeKey.YEAR) tr("Monthly average") else tr("Nightly sleep"),
             legend = false,
         ) {
             SleepDurationHistogram(
@@ -318,7 +320,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
     }
     item {
         SleepStageSummaryCards(
-            prefix = "Avg ",
+            prefix = tr("Avg "),
             deep = state.stageAvg?.let { SleepFormat.duration(it.first) } ?: "—",
             light = state.stageAvg?.let { SleepFormat.duration(it.second) } ?: "—",
             awake = state.stageAvg?.let { SleepFormat.duration(it.third) } ?: "—",
@@ -328,7 +330,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
         val summary = state.rangeSummary
         val fallback = state.aggregateCoach
         CoachMessageCard(
-            headline = summary?.title ?: fallback?.headline ?: "Sleep insights",
+            headline = summary?.title ?: fallback?.headline ?: tr("Sleep insights"),
             body = summary?.body ?: fallback?.body ?: "",
             chips = summary?.let { parseChipsJson(it.chipsJSON) } ?: fallback?.chips ?: emptyList(),
             onTap = { navController?.navigate("coach") },
@@ -457,10 +459,10 @@ private fun VisualizationCard(
             }
             if (legend) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    LegendItem("Deep", PulseColors.stageDeep)
-                    LegendItem("Light", PulseColors.stageLight)
+                    LegendItem(tr("Deep"), PulseColors.stageDeep)
+                    LegendItem(tr("Light"), PulseColors.stageLight)
                     LegendItem("REM", PulseColors.stageRem)
-                    LegendItem("Awake", PulseColors.stageAwake)
+                    LegendItem(tr("Awake"), PulseColors.stageAwake)
                 }
             }
         }
@@ -798,7 +800,7 @@ private fun SleepDurationHistogram(
 ) {
     if (bars.isEmpty()) {
         Box(Modifier.fillMaxWidth().height(height), contentAlignment = Alignment.Center) {
-            Text("No nights tracked in this range yet.", fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("No nights tracked in this range yet."), fontSize = 12.sp, color = PulseColors.textMuted)
         }
         return
     }
@@ -807,7 +809,7 @@ private fun SleepDurationHistogram(
     val labelInterval = if (bars.size > 14) maxOf(1, bars.size / 6) else 1
     val summary = remember(bars, goalMin) {
         val tracked = bars.filter { it.present }.mapNotNull { it.durationMin }
-        if (tracked.isEmpty()) "Nightly sleep: no nights tracked in this range"
+        if (tracked.isEmpty()) tr("Nightly sleep: no nights tracked in this range")
         else "Nightly sleep: latest ${SleepFormat.duration(tracked.last())}, " +
             "range ${SleepFormat.duration(tracked.min())}–${SleepFormat.duration(tracked.max())}, " +
             "${tracked.size} of ${bars.size} nights tracked" +
@@ -877,7 +879,7 @@ private fun SleepDayNavHeader(state: SleepViewModel.SleepState, viewModel: Sleep
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        NavChevron(Icons.Filled.ChevronLeft, "Previous day", canOlder) { viewModel?.stepDay(older = true) }
+        NavChevron(Icons.Filled.ChevronLeft, tr("Previous day"), canOlder) { viewModel?.stepDay(older = true) }
         Column(
             Modifier
                 .weight(1f)
@@ -897,7 +899,7 @@ private fun SleepDayNavHeader(state: SleepViewModel.SleepState, viewModel: Sleep
                 letterSpacing = 0.5.sp, color = PulseColors.textSecondary,
             )
         }
-        NavChevron(Icons.Filled.ChevronRight, "Next day", canNewer) { viewModel?.stepDay(older = false) }
+        NavChevron(Icons.Filled.ChevronRight, tr("Next day"), canNewer) { viewModel?.stepDay(older = false) }
     }
 
     if (showPicker) {
@@ -959,9 +961,9 @@ private fun SleepDayPickerDialog(
         confirmButton = {
             TextButton(onClick = {
                 state.selectedDateMillis?.let { onPick(utcMillisToLocalDayKey(it)) } ?: onDismiss()
-            }) { Text("Done") }
+            }) { Text(tr("Done")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
     ) {
         DatePicker(state = state, title = null)
     }
@@ -985,8 +987,8 @@ private fun dayLabel(dayMillis: Long): String {
     val daysAgo = ((today - dayMillis) / 86_400_000L).toInt()
     val date = java.time.Instant.ofEpochMilli(dayMillis).atZone(java.time.ZoneId.systemDefault())
     return when {
-        daysAgo <= 0 -> "Today"
-        daysAgo == 1 -> "Yesterday"
+        daysAgo <= 0 -> tr("Today")
+        daysAgo == 1 -> tr("Yesterday")
         daysAgo < 7 -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE"))
         date.year == java.time.Year.now().value -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
         else -> date.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
@@ -1007,10 +1009,10 @@ private fun daySubLabel(dayMillis: Long): String {
 private fun clockTime(ts: Long): String = SleepFormat.clockTime(ts)
 
 private fun qualityText(label: SleepQualityLabel): String = when (label) {
-    SleepQualityLabel.EXCELLENT -> "Excellent"
-    SleepQualityLabel.GOOD -> "Good"
-    SleepQualityLabel.FAIR -> "Fair"
-    SleepQualityLabel.NEEDS_WORK -> "Needs work"
+    SleepQualityLabel.EXCELLENT -> tr("Excellent")
+    SleepQualityLabel.GOOD -> tr("Good")
+    SleepQualityLabel.FAIR -> tr("Fair")
+    SleepQualityLabel.NEEDS_WORK -> tr("Needs work")
 }
 
 internal fun parseChipsJson(json: String?): List<String> {
@@ -1052,9 +1054,9 @@ private fun SleepRecordsCard(
     var pendingRun by remember { mutableStateOf<com.pulseloop.service.SleepRecordRun?>(null) }
     var editingRun by remember { mutableStateOf<com.pulseloop.service.SleepRecordRun?>(null) }
     VisualizationCard(
-        eyebrow = "Records",
+        eyebrow = tr("Records"),
         // One run only happens on a carousel page, which may be a nap rather than a night.
-        title = if (runs.size == 1) "The ring recorded this as one record"
+        title = if (runs.size == 1) tr("The ring recorded this as one record")
             else "The ring recorded this night in ${runs.size} parts",
         legend = false,
     ) {
@@ -1083,7 +1085,7 @@ private fun SleepRecordsCard(
                     IconButton(onClick = { editingRun = run }) {
                         Icon(
                             Icons.Filled.Edit,
-                            contentDescription = "Edit this record's times",
+                            contentDescription = tr("Edit this record's times"),
                             tint = PulseColors.textMuted,
                             modifier = Modifier.size(18.dp),
                         )
@@ -1094,7 +1096,7 @@ private fun SleepRecordsCard(
                     IconButton(onClick = { pendingRun = run }) {
                         Icon(
                             Icons.Filled.DeleteOutline,
-                            contentDescription = "Delete this record",
+                            contentDescription = tr("Delete this record"),
                             tint = PulseColors.textMuted,
                             modifier = Modifier.size(18.dp),
                         )
@@ -1127,7 +1129,7 @@ private fun SleepRecordsCard(
                     val updated = viewModel?.editSleepRecord(session.id, run.recordStartAt, newStart, newEnd) ?: false
                     if (!updated) {
                         android.widget.Toast.makeText(
-                            context, "Couldn't update this record", android.widget.Toast.LENGTH_SHORT,
+                            context, tr("Couldn't update this record"), android.widget.Toast.LENGTH_SHORT,
                         ).show()
                     }
                 }
@@ -1138,7 +1140,7 @@ private fun SleepRecordsCard(
     pendingRun?.let { run ->
         AlertDialog(
             onDismissRequest = { pendingRun = null },
-            title = { Text("Delete this record?") },
+            title = { Text(tr("Delete this record?")) },
             text = {
                 Text(
                     "${SleepFormat.clockTime(run.startAt)} – ${SleepFormat.clockTime(run.endAt)} " +
@@ -1152,14 +1154,14 @@ private fun SleepRecordsCard(
                         val removed = viewModel?.deleteSleepRecord(session.id, run.recordStartAt) ?: false
                         if (!removed) {
                             android.widget.Toast.makeText(
-                                context, "Couldn't delete this record", android.widget.Toast.LENGTH_SHORT,
+                                context, tr("Couldn't delete this record"), android.widget.Toast.LENGTH_SHORT,
                             ).show()
                         }
                     }
-                }) { Text("Delete", color = PulseColors.danger) }
+                }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRun = null }) { Text("Keep") }
+                TextButton(onClick = { pendingRun = null }) { Text(tr("Keep")) }
             },
         )
     }
@@ -1182,11 +1184,11 @@ private fun SleepRecordEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit sleep record") },
+        title = { Text(tr("Edit sleep record")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Adjust start or end time to trim this record. Stages outside the new range will be removed.",
+                    tr("Adjust start or end time to trim this record. Stages outside the new range will be removed."),
                     style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                     color = PulseColors.textMuted,
                 )
@@ -1217,7 +1219,7 @@ private fun SleepRecordEditDialog(
                 }
                 if (currentStart >= currentEnd) {
                     Text(
-                        "Start time must be before end time.",
+                        tr("Start time must be before end time."),
                         color = PulseColors.danger,
                         fontSize = 12.sp,
                     )
@@ -1229,11 +1231,11 @@ private fun SleepRecordEditDialog(
                 onClick = { onSave(currentStart, currentEnd) },
                 enabled = currentStart < currentEnd && (currentStart != run.startAt || currentEnd != run.endAt),
             ) {
-                Text("Save")
+                Text(tr("Save"))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(tr("Cancel")) }
         },
     )
 
@@ -1250,7 +1252,7 @@ private fun SleepRecordEditDialog(
 
         AlertDialog(
             onDismissRequest = { pickingTime = null },
-            title = { Text(if (which == "start") "Adjust start time" else "Adjust end time") },
+            title = { Text(if (which == "start") tr("Adjust start time") else tr("Adjust end time")) },
             // The dial doesn't fit a landscape dialog; the keyboard entry form does.
             text = { if (landscape) TimeInput(state = timeState) else TimePicker(state = timeState) },
             confirmButton = {
@@ -1264,10 +1266,10 @@ private fun SleepRecordEditDialog(
                         currentEnd = resolved
                     }
                     pickingTime = null
-                }) { Text("Done") }
+                }) { Text(tr("Done")) }
             },
             dismissButton = {
-                TextButton(onClick = { pickingTime = null }) { Text("Cancel") }
+                TextButton(onClick = { pickingTime = null }) { Text(tr("Cancel")) }
             },
         )
     }

@@ -23,7 +23,8 @@ val UbuntuMono = FontFamily(
     Font(R.font.ubuntu_mono_bold_italic, FontWeight.Bold, FontStyle.Italic),
 )
 
-private val DarkColorScheme = darkColorScheme(
+/** Built per composition, not once: the brand colours follow [FairyMode]. */
+private fun darkScheme() = darkColorScheme(
     primary = PulseColors.accent,
     onPrimary = PulseColors.onAccent,
     primaryContainer = PulseColors.accentSoft,
@@ -71,7 +72,7 @@ private val PulseTypography = Typography().withFamily(UbuntuMono)
 @Composable
 fun PulseLoopTheme(content: @Composable () -> Unit) {
     MaterialTheme(
-        colorScheme = DarkColorScheme,
+        colorScheme = darkScheme(),
         typography = PulseTypography,
         // GMind radii: 4dp for small controls, 8dp for cards and dialogs, 16dp for sheets.
         shapes = Shapes(

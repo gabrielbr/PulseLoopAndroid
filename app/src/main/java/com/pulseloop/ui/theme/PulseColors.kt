@@ -11,6 +11,8 @@ import androidx.compose.ui.graphics.Color
  * ZonePalette alias.
  */
 object PulseColors {
+    /** GMind mint. The brand colours below are getters so [FairyMode] can turn them pink. */
+    private val MINT = Color(0xFF43F3B7)
     val background = Color(0xFF121214)
     val secondaryBackground = Color(0xFF161619)
     val card = Color(0xFF1C1B1F)
@@ -21,11 +23,11 @@ object PulseColors {
     /** Tertiary text. #8E8D94 so it still reads at 4.5:1 on [card] and [cardSoft] (#7C7B82 was 4.1 / 3.7). */
     val textMuted = Color(0xFF8E8D94)
     /** GMind mint: the primary action, the selected state, the screen frame. */
-    val accent = Color(0xFF43F3B7)
-    val accentSoft = Color(0x2E43F3B7)   // accent @ 18%
+    val accent: Color get() = if (FairyMode.on) FairyMode.Palette.accent else MINT
+    val accentSoft: Color get() = if (FairyMode.on) FairyMode.Palette.accentSoft else Color(0x2E43F3B7)   // accent @ 18%
     /** Text and icons on a mint fill (GMind ON_MINT, 9:1 on mint). Never white on mint. */
-    val onAccent = Color(0xFF033423)
-    val success = Color(0xFF43F3B7)
+    val onAccent: Color get() = if (FairyMode.on) FairyMode.Palette.onAccent else Color(0xFF033423)
+    val success: Color get() = accent
     val warning = Color(0xFFFFC46B)
     val danger = Color(0xFFFF7A70)     // GMind coral (dark)
     val info = Color(0xFF5AD8F0)
@@ -45,7 +47,7 @@ object PulseColors {
     val bloodSugar = Color(0xFFFFC46B)
     val fatigue = Color(0xFFC98CFF)
     val drinks = Color(0xFFE38FB5)     // wine rose
-    val readiness = Color(0xFF43F3B7)   // the headline score wears the brand mint
+    val readiness: Color get() = accent   // the headline score wears the brand colour
 
     // Vitals reference-zone colors (AppTheme.swift zone*) — aliased by
     // ZonePalette (fine iOS-parity palette) and [MetricColors] (coarse semantic palette)
@@ -61,12 +63,12 @@ object PulseColors {
     // Sleep stage colors (DesignSystem/Charts.swift SleepStageColors)
     val stageDeep = Color(0xFF4B3BD6)
     val stageLight = Color(0xFF9A8CFF)
-    val stageRem = Color(0xFF43F3B7)
+    val stageRem: Color get() = if (FairyMode.on) FairyMode.Palette.rem else MINT
     val stageAwake = Color(0xFFFFC46B)
 
     val borderSubtle = Color(0xFF2C2B30)  // GMind hairline (LINE, dark)
     val borderStrong = Color(0xFF3D3C42)
 
     /** The GMind frame: a 4dp mint border round every screen. */
-    val frame = accent
+    val frame: Color get() = accent
 }
