@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.data.DemoDataPolicy
 import com.pulseloop.data.entity.SleepSessionEntity
 import com.pulseloop.data.entity.SleepStageBlockEntity
@@ -104,50 +107,50 @@ object SleepScore {
         if (asleep > 0 && goalMinutes > 0) {
             val r = asleep / goalMinutes
             out += ScoreContributor(
-                "Total sleep",
+                tr("Total sleep"),
                 Readiness.curve(r, listOf(0.0 to 0.0, 0.5 to 30.0, 0.7 to 60.0, 0.85 to 80.0, 1.0 to 100.0)),
-                "${SleepFormat.duration(asleep.roundToInt())} of ${SleepFormat.duration(goalMinutes)} goal",
-                "How long you were asleep, compared with your sleep goal. Most adults need 7 to 9 hours.",
+                trf("{0} of {1} goal", SleepFormat.duration(asleep.roundToInt()), SleepFormat.duration(goalMinutes)),
+                tr("How long you were asleep, compared with your sleep goal. Most adults need 7 to 9 hours."),
                 0.35,
             )
         }
         if (asleep > 0 && span > 0 && hasAwakeSignal) {
             val eff = (asleep / span).coerceAtMost(1.0)
             out += ScoreContributor(
-                "Efficiency",
+                tr("Efficiency"),
                 Readiness.curve(eff, listOf(0.4 to 0.0, 0.6 to 40.0, 0.75 to 70.0, 0.85 to 90.0, 0.9 to 100.0)),
-                "${(eff * 100).roundToInt()}% of the night asleep",
-                "The share of your time in bed spent asleep. Around 85% or more is considered good.",
+                trf("{0}% of the night asleep", (eff * 100).roundToInt()),
+                tr("The share of your time in bed spent asleep. Around 85% or more is considered good."),
                 0.15,
             )
         }
         if (blocks.isNotEmpty()) {
             val deepMin = minutes(SleepStage.DEEP)
             out += ScoreContributor(
-                "Deep sleep",
+                tr("Deep sleep"),
                 Readiness.curve(deepMin.toDouble(), listOf(0.0 to 0.0, 30.0 to 50.0, 45.0 to 70.0, 60.0 to 85.0, 75.0 to 100.0)),
                 SleepFormat.duration(deepMin),
-                "Deep sleep is when the body does most of its physical recovery. Around 1 to 1.5 hours is typical for younger adults, and it tends to shrink with age.",
+                tr("Deep sleep is when the body does most of its physical recovery. Around 1 to 1.5 hours is typical for younger adults, and it tends to shrink with age."),
                 0.20,
             )
         }
         if (blocks.any { it.stageRaw == SleepStage.REM.name }) {
             val remMin = minutes(SleepStage.REM)
             out += ScoreContributor(
-                "REM sleep",
+                tr("REM sleep"),
                 Readiness.curve(remMin.toDouble(), listOf(0.0 to 0.0, 30.0 to 50.0, 60.0 to 80.0, 90.0 to 100.0)),
                 SleepFormat.duration(remMin),
-                "REM sleep supports memory and mood. It usually makes up 20 to 25% of a night, about 90 minutes or more.",
+                tr("REM sleep supports memory and mood. It usually makes up 20 to 25% of a night, about 90 minutes or more."),
                 0.10,
             )
         }
         if (hasAwakeSignal && blocks.isNotEmpty()) {
             val awakeMin = awakeMinutes(blocks)
             out += ScoreContributor(
-                "Restfulness",
+                tr("Restfulness"),
                 Readiness.curve(awakeMin.toDouble(), listOf(20.0 to 100.0, 40.0 to 80.0, 60.0 to 60.0, 120.0 to 20.0, 180.0 to 0.0)),
-                "${SleepFormat.duration(awakeMin)} awake during the night",
-                "How much you were awake once asleep. Some waking is normal; long or frequent wake-ups lower this.",
+                trf("{0} awake during the night", SleepFormat.duration(awakeMin)),
+                tr("How much you were awake once asleep. Some waking is normal; long or frequent wake-ups lower this."),
                 0.10,
             )
         }
@@ -157,10 +160,10 @@ object SleepScore {
             val minutes = mid.hour * 60 + mid.minute
             val m = (if (minutes >= 12 * 60) minutes - 24 * 60 else minutes).toDouble()
             out += ScoreContributor(
-                "Timing",
+                tr("Timing"),
                 Readiness.curve(m, listOf(-240.0 to 40.0, -60.0 to 100.0, 210.0 to 100.0, 300.0 to 70.0, 420.0 to 40.0)),
-                "Midpoint of sleep at %02d:%02d".format(mid.hour, mid.minute),
-                "Whether your sleep lines up with your body clock. A midpoint between midnight and about 3:30 am is ideal for most people.",
+                tr("Midpoint of sleep at %02d:%02d").format(mid.hour, mid.minute),
+                tr("Whether your sleep lines up with your body clock. A midpoint between midnight and about 3:30 am is ideal for most people."),
                 0.10,
             )
         }
@@ -510,41 +513,41 @@ object SleepInsights {
         val deepPct = score.deepPct
         val awakePct = score.awakePct
         val chips = mutableListOf<String>()
-        if (session.totalMinutes in 420..540) chips.add("Good duration")
-        if (deepPct in 13..23) chips.add("Deep sleep balanced")
-        else if (deepPct > 23) chips.add("Deep sleep strong")
-        if (awakePct != null && awakePct <= 10) chips.add("Awake time low")
+        if (session.totalMinutes in 420..540) chips.add(tr("Good duration"))
+        if (deepPct in 13..23) chips.add(tr("Deep sleep balanced"))
+        else if (deepPct > 23) chips.add(tr("Deep sleep strong"))
+        if (awakePct != null && awakePct <= 10) chips.add(tr("Awake time low"))
 
         if (score.score >= 85) {
             val body = if ((activitySteps ?: 0) > 5000)
-                "Looks like a strong night after a more active day. Your duration was solid and deep sleep made up a healthy part of the night, which kept the score high."
-            else "Your sleep duration and stage balance were strong. Deep sleep looked supportive, which helped keep the overall score high."
-            return SleepCoach("Strong recovery signal", body, chips.ifEmpty { listOf("Excellent") }.take(3))
+                tr("Looks like a strong night after a more active day. Your duration was solid and deep sleep made up a healthy part of the night, which kept the score high.")
+            else tr("Your sleep duration and stage balance were strong. Deep sleep looked supportive, which helped keep the overall score high.")
+            return SleepCoach(tr("Strong recovery signal"), body, chips.ifEmpty { listOf(tr("Excellent")) }.take(3))
         }
         if (awakePct != null && awakePct > 15) {
             return SleepCoach(
-                "Good sleep, with some restlessness",
-                "You slept long enough, but awake time was a bit elevated. If this repeats, look at late caffeine, alcohol, temperature, or stress near bedtime.",
-                (listOf("Awake time elevated") + chips).take(3),
+                tr("Good sleep, with some restlessness"),
+                tr("You slept long enough, but awake time was a bit elevated. If this repeats, look at late caffeine, alcohol, temperature, or stress near bedtime."),
+                (listOf(tr("Awake time elevated")) + chips).take(3),
             )
         }
         if (session.totalMinutes < 390) {
             return SleepCoach(
-                "Duration held the score back",
-                "The stage mix was useful, but total sleep time was short for a full recovery window. A slightly earlier wind-down would likely improve tomorrow's score.",
-                (listOf("Short duration") + chips).take(3),
+                tr("Duration held the score back"),
+                tr("The stage mix was useful, but total sleep time was short for a full recovery window. A slightly earlier wind-down would likely improve tomorrow's score."),
+                (listOf(tr("Short duration")) + chips).take(3),
             )
         }
         return SleepCoach(
-            "Solid night overall",
-            "Your sleep was in a workable range, with the score shaped mostly by duration and stage balance. Deep and light sleep were readable enough to give a useful recovery snapshot.",
-            chips.ifEmpty { listOf("Good") }.take(3),
+            tr("Solid night overall"),
+            tr("Your sleep was in a workable range, with the score shaped mostly by duration and stage balance. Deep and light sleep were readable enough to give a useful recovery snapshot."),
+            chips.ifEmpty { listOf(tr("Good")) }.take(3),
         )
     }
 
     val dayNoDataCoach = SleepCoach(
-        "No sleep tracked last night",
-        "I don't see sleep data for last night. Wear your ring overnight and sync in the morning so I can compare your sleep against your baseline.",
+        tr("No sleep tracked last night"),
+        tr("I don't see sleep data for last night. Wear your ring overnight and sync in the morning so I can compare your sleep against your baseline."),
         emptyList(),
     )
 
@@ -562,8 +565,8 @@ object SleepInsights {
         if (valid.size < minAggNights) {
             val nightWord = if (valid.size == 1) "night" else "nights"
             return SleepCoach(
-                "Not enough $periodWord data yet",
-                "I only have ${valid.size} tracked $nightWord for this $periodWord. Wear the ring overnight for a few more nights and I'll build a reliable ${periodWord}ly picture.",
+                trf("Not enough {0} data yet", periodWord),
+                trf("I only have {0} tracked {1} for this {2}. Wear the ring overnight for a few more nights and I'll build a reliable {3}ly picture.", valid.size, nightWord, periodWord, periodWord),
                 listOf(nightsTrackedChip(valid.size, expectedNights)),
             )
         }
@@ -573,7 +576,7 @@ object SleepInsights {
         durationConsistency(valid)?.let { consistencyChip(it) }?.let { chips.add(it) }
 
         val avgText = SleepFormat.duration(avgMin)
-        val coveragePhrase = "${valid.size} of $expectedNights nights tracked"
+        val coveragePhrase = trf("{0} of {1} nights tracked", valid.size, expectedNights)
 
         return when (range) {
             SleepRangeKey.WEEK -> {
@@ -581,51 +584,51 @@ object SleepInsights {
                 val missing = expectedNights - valid.size
                 val missingWord = if (missing == 1) "night" else "nights"
                 val body = if (incomplete)
-                    "You averaged $avgText across ${valid.size} tracked nights this week. That's a useful read, but $missing missing $missingWord mean the trend is still incomplete."
-                else "You averaged $avgText across the full week. Your nights were tracked consistently, so this is a dependable picture of where your sleep sits right now."
-                SleepCoach("Your week at a glance", body, chips.take(3))
+                    trf("You averaged {0} across {1} tracked nights this week. That's a useful read, but {2} missing {3} mean the trend is still incomplete.", avgText, valid.size, missing, missingWord)
+                else trf("You averaged {0} across the full week. Your nights were tracked consistently, so this is a dependable picture of where your sleep sits right now.", avgText)
+                SleepCoach(tr("Your week at a glance"), body, chips.take(3))
             }
             SleepRangeKey.MONTH -> {
                 val sparse = valid.size.toDouble() < expectedNights.toDouble() * 0.5
                 val body = if (sparse)
-                    "Your monthly average is $avgText, but coverage is low ($coveragePhrase), so I'd treat that number cautiously. More nights tracked will sharpen the trend."
-                else "Your monthly average is $avgText across $coveragePhrase. The biggest lever is consistency — a few short nights move this number more than any single great one."
-                SleepCoach("Your month in sleep", body, chips.take(3))
+                    trf("Your monthly average is {0}, but coverage is low ({1}), so I'd treat that number cautiously. More nights tracked will sharpen the trend.", avgText, coveragePhrase)
+                else trf("Your monthly average is {0} across {1}. The biggest lever is consistency — a few short nights move this number more than any single great one.", avgText, coveragePhrase)
+                SleepCoach(tr("Your month in sleep"), body, chips.take(3))
             }
             else -> SleepCoach(
-                "Your long-term sleep trend",
-                "Across the year your tracked average is $avgText over ${valid.size} nights. The long-term trend is still forming — as more months fill in, I'll be able to compare seasonal changes and consistency.",
+                tr("Your long-term sleep trend"),
+                trf("Across the year your tracked average is {0} over {1} nights. The long-term trend is still forming — as more months fill in, I'll be able to compare seasonal changes and consistency.", avgText, valid.size),
                 chips.take(3),
             )
         }
     }
 
-    private fun nightsTrackedChip(valid: Int, expected: Int) = "$valid of $expected tracked"
+    private fun nightsTrackedChip(valid: Int, expected: Int) = trf("{0} of {1} tracked", valid, expected)
 
     private fun goalDeltaChip(avgMin: Int, goalMin: Int?): String? {
         if (goalMin == null) return null
         val delta = avgMin - goalMin
         if (abs(delta) <= 20) return "On target"
-        return if (delta < 0) "Below goal" else "Above goal"
+        return if (delta < 0) tr("Below goal") else tr("Above goal")
     }
 
     private fun consistencyChip(sd: Double): String? = when {
-        sd <= 40 -> "Consistent"
-        sd >= 80 -> "Variable nights"
+        sd <= 40 -> tr("Consistent")
+        sd >= 80 -> tr("Variable nights")
         else -> null
     }
 
     // ── No-data states ───────────────────────────────────────────────────
 
     fun noDataState(range: SleepRangeKey): SleepNoDataState = when (range) {
-        SleepRangeKey.DAY -> SleepNoDataState("Last Sleep", "No sleep captured last night",
-            "Wear your ring overnight so PulseLoop can track your next night.")
-        SleepRangeKey.WEEK -> SleepNoDataState("Weekly Sleep", "Not enough weekly data",
-            "Wear your ring overnight for a few nights to build a weekly view.")
-        SleepRangeKey.MONTH -> SleepNoDataState("Monthly Sleep", "Not enough monthly data",
-            "Track more nights this month to see a monthly average.")
-        SleepRangeKey.YEAR -> SleepNoDataState("Yearly Sleep", "Not enough yearly data",
-            "Long-term insights appear as more nights are tracked.")
+        SleepRangeKey.DAY -> SleepNoDataState(tr("Last Sleep"), tr("No sleep captured last night"),
+            tr("Wear your ring overnight so PulseLoop can track your next night."))
+        SleepRangeKey.WEEK -> SleepNoDataState(tr("Weekly Sleep"), tr("Not enough weekly data"),
+            tr("Wear your ring overnight for a few nights to build a weekly view."))
+        SleepRangeKey.MONTH -> SleepNoDataState(tr("Monthly Sleep"), tr("Not enough monthly data"),
+            tr("Track more nights this month to see a monthly average."))
+        SleepRangeKey.YEAR -> SleepNoDataState(tr("Yearly Sleep"), tr("Not enough yearly data"),
+            tr("Long-term insights appear as more nights are tracked."))
     }
 
     // ── Histogram builders ───────────────────────────────────────────────

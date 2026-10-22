@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -101,7 +103,7 @@ private fun SummaryCard(
         Divider()
         UsageRow(tr("Output tokens"), formatTokens(totalOutputTokens), mono = true)
         Divider()
-        UsageRow("Estimated cost", totalCost?.let { "$" + "%.4f".format(it) } ?: "—", mono = true)
+        UsageRow(tr("Estimated cost"), totalCost?.let { "$" + "%.4f".format(it) } ?: "—", mono = true)
     }
 }
 
@@ -155,7 +157,7 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
 @Composable
 private fun MessageBreakdownRow(message: CoachMessageEntity) {
     val preview = message.body.replace("\n", " ").take(30)
-    val tokens = "${message.inputTokens ?: 0} in · ${message.outputTokens ?: 0} out"
+    val tokens = trf("{0} in · {1} out", message.inputTokens ?: 0, message.outputTokens ?: 0)
     val cost = message.costUSD?.let { "$" + "%.4f".format(it) } ?: "—"
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Text(preview.ifEmpty { "(no text)" }, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1)

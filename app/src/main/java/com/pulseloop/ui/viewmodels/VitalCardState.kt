@@ -1,5 +1,7 @@
 package com.pulseloop.ui.viewmodels
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.service.BaselineStats
@@ -89,7 +91,7 @@ data class TrendSummary(
             // Sub-unit deltas keep one decimal (truncated, matching iOS Int-cast); larger deltas round.
             val rounded = if (abs(delta) < 1 && delta != 0.0) (delta * 10).toInt() / 10.0 else roundAwayFromZero(delta)
             if (abs(rounded) < 0.5) {
-                return TrendSummary(TrendDirection.STABLE, "Stable $suffix", "→")
+                return TrendSummary(TrendDirection.STABLE, trf("Stable {0}", suffix), "→")
             }
             val unit = if (unitLabel.isEmpty()) "" else " $unitLabel"
             val sign = if (rounded > 0) "+" else "−"
@@ -209,8 +211,8 @@ object VitalsCardFactory {
         val interp = latest?.let { VitalsThresholdEngine.interpret(it, MetricKind.HEART_RATE, profile) }
 
         val valueText = rangeLabel(samples, latest)
-        val resting = inputs.restingHr?.let { "Resting ${it.toInt()}" } ?: "Resting calibrating"
-        val peak = inputs.peakHr?.let { "Peak ${it.toInt()}" } ?: "Peak —"
+        val resting = inputs.restingHr?.let { trf("Resting {0}", it.toInt()) } ?: tr("Resting calibrating")
+        val peak = inputs.peakHr?.let { trf("Peak {0}", it.toInt()) } ?: tr("Peak —")
         val domain = clampedDomain(samples, 40.0..140.0, pad = 8.0, hardLower = 40.0, hardUpper = 220.0)
         return VitalCardState(
             metric = MetricKind.HEART_RATE, title = MetricKind.HEART_RATE.title,
@@ -237,7 +239,7 @@ object VitalsCardFactory {
         val quality = quality(MetricKind.SPO2, samples.lastOrNull()?.timestampMs, inputs)
         val interp = latest?.let { VitalsThresholdEngine.interpret(it, MetricKind.SPO2, profile) }
         val lowest = samples.map { it.value }.filter { it > 0 }.minOrNull()
-        val subtitle = lowest?.let { "Lowest ${it.toInt()} · ${samples.size} readings" }
+        val subtitle = lowest?.let { trf("Lowest {0} · {1} readings", it.toInt(), samples.size) }
         return VitalCardState(
             metric = MetricKind.SPO2, title = MetricKind.SPO2.title,
             valueText = averageLabel(samples, latest), latestValue = latest,
@@ -273,7 +275,7 @@ object VitalsCardFactory {
             )
         }
         val subtitle = if (baseline != null && baseline.isEstablished) {
-            "Baseline ${baseline.mean.toInt()} ms"
+            trf("Baseline {0} ms", baseline.mean.toInt())
         } else {
             tr("Building baseline")
         }

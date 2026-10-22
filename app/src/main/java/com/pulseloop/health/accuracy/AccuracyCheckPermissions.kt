@@ -1,5 +1,7 @@
 package com.pulseloop.health.accuracy
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ActiveCaloriesBurnedRecord
 import androidx.health.connect.client.records.DistanceRecord
@@ -16,7 +18,7 @@ import kotlin.reflect.KClass
  * What the accuracy check can compare, one entry per Health Connect record type it reads
  * (docs/accuracy-check-plan.md, "Per metric"). Display order.
  */
-enum class ReferenceMetric(val label: String, val recordType: KClass<out Record>) {
+enum class ReferenceMetric(private val labelEn: String, val recordType: KClass<out Record>) {
     STEPS("Steps", StepsRecord::class),
     DISTANCE("Distance", DistanceRecord::class),
     ACTIVE_CALORIES("Active calories", ActiveCaloriesBurnedRecord::class),
@@ -24,7 +26,8 @@ enum class ReferenceMetric(val label: String, val recordType: KClass<out Record>
     RESTING_HEART_RATE("Resting heart rate", RestingHeartRateRecord::class),
     SLEEP("Sleep", SleepSessionRecord::class),
     OXYGEN_SATURATION("Blood oxygen", OxygenSaturationRecord::class),
-    HRV("HRV", HeartRateVariabilityRmssdRecord::class),
+    HRV("HRV", HeartRateVariabilityRmssdRecord::class);
+    val label: String get() = tr(labelEn)
 }
 
 /**

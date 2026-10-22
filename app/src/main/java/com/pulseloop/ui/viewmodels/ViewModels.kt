@@ -1,5 +1,7 @@
 package com.pulseloop.ui.viewmodels
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.lifecycle.ViewModel
@@ -1126,7 +1128,7 @@ class CoachViewModel(
                 if (currentConversation.id == conversationId) currentConversation = touched
             } catch (e: Exception) {
                 _state.update { it.copy(
-                    messages = it.messages + ChatMessage("assistant", "Sorry, something went wrong: ${e.message}"),
+                    messages = it.messages + ChatMessage("assistant", trf("Sorry, something went wrong: {0}", e.message)),
                     isThinking = false, error = e.message,
                 ) }
             }

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import android.content.ClipData
@@ -132,7 +134,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                 Text(tr("Compare your ring with another device"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
                     tr("Wear the ring and a watch or band you trust for a few days. PulseLoop reads that device's data from " +
-                        "Health Connect and shows where the ring agrees and where it falls short."),
+                        tr("Health Connect and shows where the ring agrees and where it falls short.")),
                     fontSize = 13.sp, color = PulseColors.textSecondary,
                 )
                 Text(
@@ -150,7 +152,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                             }
                         }
                         if (readable.isNotEmpty()) {
-                            OutlinedButton(onClick = { scan() }, enabled = !scanning) { Text("Scan last ${ReferenceSourceScanner.LOOKBACK_DAYS} days") }
+                            OutlinedButton(onClick = { scan() }, enabled = !scanning) { Text(trf("Scan last {0} days", ReferenceSourceScanner.LOOKBACK_DAYS)) }
                         }
                         if (scanning) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                     }
@@ -163,7 +165,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
             if (r != null) {
                 if (r.sources.isEmpty()) {
                     AccuracyCard {
-                        Text("No other app wrote readable data in the last ${ReferenceSourceScanner.LOOKBACK_DAYS} days.", fontSize = 13.sp, color = PulseColors.textSecondary)
+                        Text(trf("No other app wrote readable data in the last {0} days.", ReferenceSourceScanner.LOOKBACK_DAYS), fontSize = 13.sp, color = PulseColors.textSecondary)
                         Text(
                             tr("If your watch syncs through an app like Health Sync, check that it's set to write to Health Connect."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
@@ -267,9 +269,9 @@ private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Co
     var confirmEnd by remember { mutableStateOf(false) }
     val (day, total) = AccuracyUiText.dayOf(check)
     AccuracyCard {
-        Text("Accuracy check · day $day of $total", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        Text("${check.deviceLabel} vs ${check.referenceLabel}, until ${AccuracyUiText.date(check.plannedEndAt)}.", fontSize = 13.sp, color = PulseColors.textSecondary)
-        Text("Wear both as usual. Health Connect export paused for: ${AccuracyUiText.units(units)}.", fontSize = 12.sp, color = PulseColors.warning)
+        Text(trf("Accuracy check · day {0} of {1}", day, total), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(trf("{0} vs {1}, until {2}.", check.deviceLabel, check.referenceLabel, AccuracyUiText.date(check.plannedEndAt)), fontSize = 13.sp, color = PulseColors.textSecondary)
+        Text(trf("Wear both as usual. Health Connect export paused for: {0}.", AccuracyUiText.units(units)), fontSize = 12.sp, color = PulseColors.warning)
         OutlinedButton(onClick = { confirmEnd = true }) { Text(tr("End now")) }
     }
     if (confirmEnd) {
@@ -296,8 +298,7 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
         Text(tr("Check finished: resume Health Connect export"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(AccuracyUiText.endReason(check) + " ${AccuracyUiText.span(check)}.", fontSize = 13.sp, color = PulseColors.textSecondary)
         Text(
-            "During the check, ${check.referenceLabel} wrote the same types to Health Connect. Exporting the ring's copy " +
-                "of those days now would count them twice.",
+            trf("During the check, {0} wrote the same types to Health Connect. Exporting the ring's copy of those days now would count them twice.", check.referenceLabel),
             fontSize = 12.sp, color = PulseColors.textMuted,
         )
         Button(onClick = {
@@ -345,12 +346,11 @@ private fun StartDialog(
                 Text(tr("How long"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AccuracyCheckController.DURATIONS_DAYS.forEach { d ->
-                        FilterChip(selected = days == d, onClick = { days = d }, label = { Text("$d days") })
+                        FilterChip(selected = days == d, onClick = { days = d }, label = { Text(trf("{0} days", d)) })
                     }
                 }
                 Text(
-                    "Compared: ${AccuracyUiText.units(units)}. These stop exporting to Health Connect until the check ends " +
-                        "and you choose what to do with those days.",
+                    trf("Compared: {0}. These stop exporting to Health Connect until the check ends and you choose what to do with those days.", AccuracyUiText.units(units)),
                     fontSize = 12.sp,
                 )
                 Text(tr("Wear both devices as you normally would, including at night."), fontSize = 12.sp)
@@ -379,8 +379,7 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
         )
         s.echo?.takeIf { it.looksLikeEcho }?.let {
             Text(
-                "${it.matching} of ${it.compared} heart-rate samples match your ring exactly. This looks like PulseLoop's own " +
-                    "data coming back — check that the app syncs from your watch only, not from Health Connect.",
+                trf("{0} of {1} heart-rate samples match your ring exactly. This looks like PulseLoop's own data coming back — check that the app syncs from your watch only, not from Health Connect.", it.matching, it.compared),
                 fontSize = 12.sp, color = PulseColors.danger,
             )
         }
@@ -395,8 +394,7 @@ private fun MetricRow(m: MetricSurvey) {
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(m.metric.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Text(
-            "${m.sampleCount} samples, ${ReferenceSurveyText.cadence(m)} · latest $last · " +
-                "arrives ~${ReferenceSurveyText.duration(m.medianDeliveryDelayMs)} late",
+            trf("{0} samples, {1} · latest {2} · arrives ~{3} late", m.sampleCount, ReferenceSurveyText.cadence(m), last, ReferenceSurveyText.duration(m.medianDeliveryDelayMs)),
             fontSize = 12.sp, color = PulseColors.textSecondary,
         )
         if (m.metric == ReferenceMetric.SLEEP) {
@@ -424,7 +422,7 @@ internal fun AccuracyCard(content: @Composable () -> Unit) {
 @Composable
 internal fun AdjustedCaption(note: String) {
     Text(
-        "Adjusted by your accuracy check: $note. Settings → Accuracy check to change.",
+        trf("Adjusted by your accuracy check: {0}. Settings → Accuracy check to change.", note),
         fontSize = 11.sp, color = PulseColors.textMuted,
     )
 }
@@ -446,7 +444,7 @@ internal fun rememberAccuracyCorrections(): com.pulseloop.health.accuracy.Correc
 internal fun AccuracyCheckBanner(c: AccuracyCheckEntity, onOpen: () -> Unit) {
     val text = if (c.state == AccuracyCheckEntity.STATE_RUNNING) {
         val (day, total) = AccuracyUiText.dayOf(c)
-        "Accuracy check · day $day of $total · Health Connect export paused"
+        trf("Accuracy check · day {0} of {1} · Health Connect export paused", day, total)
     } else tr("Accuracy report ready · choose what to do with the paused export")
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).clickable(onClick = onOpen).padding(12.dp),

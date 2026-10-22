@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.math.abs
@@ -62,7 +64,9 @@ data class SleepNeed(val minutes: Int, val isLearned: Boolean) {
  * Needs five nights in the window, like Oura's.
  */
 data class SleepDebt(val minutes: Int, val needMinutes: Int, val nights: Int) {
-    enum class Level(val label: String) { NONE("None"), LOW("Low"), MODERATE("Moderate"), HIGH("High") }
+    enum class Level(private val labelEn: String) { NONE("None"), LOW("Low"), MODERATE("Moderate"), HIGH("High");
+        val label: String get() = tr(labelEn)
+    }
 
     val level: Level get() = when {
         minutes < 15 -> Level.NONE
@@ -100,19 +104,22 @@ data class SleepDebt(val minutes: Int, val needMinutes: Int, val nights: Int) {
  * It is never a diagnosis, and the copy says so.
  */
 object SymptomRadar {
-    enum class Level(val label: String, val summary: String) {
+    enum class Level(private val labelEn: String, private val summaryEn: String) {
         NONE("No signs", "No obvious signs in your biometrics of something straining your body."),
         MINOR("Minor signs", "Small signs in your biometrics of something straining your body."),
-        MAJOR("Major signs", "Stronger signs in your biometrics of something straining your body."),
+        MAJOR("Major signs", "Stronger signs in your biometrics of something straining your body.");
+        val label: String get() = tr(labelEn)
+        val summary: String get() = tr(summaryEn)
     }
 
-    enum class Metric(val title: String, val weight: Double, val strainUp: Boolean, val minSd: Double, val unit: String) {
+    enum class Metric(private val titleEn: String, val weight: Double, val strainUp: Boolean, val minSd: Double, val unit: String) {
         TEMPERATURE("Body temperature", 1.0, true, 0.15, "°C"),
         TEMPERATURE_TREND("Temperature trend", 1.0, true, 0.12, "°C"),
         RESTING_HR("Resting heart rate", 0.8, true, 1.5, "bpm"),
         HRV("Heart rate variability", 1.0, false, 3.0, "ms"),
         RESPIRATORY_RATE("Respiratory rate", 0.8, true, 0.5, "/min"),
-        INACTIVE("Inactivity", 0.5, false, 800.0, "steps"),
+        INACTIVE("Inactivity", 0.5, false, 800.0, "steps");
+        val title: String get() = tr(titleEn)
     }
 
     data class Signal(val metric: Metric, val value: Double, val usual: Double, val z: Double) {
@@ -196,7 +203,9 @@ object SymptomRadar {
 
 /** The day's stress readings in Oura's four zones (the ring logs 1–100). */
 data class DaytimeStress(val restoredMin: Int, val relaxedMin: Int, val engagedMin: Int, val stressedMin: Int) {
-    enum class Summary(val label: String) { RESTORED("Restored"), NORMAL("Normal"), STRESSFUL("Stressful") }
+    enum class Summary(private val labelEn: String) { RESTORED("Restored"), NORMAL("Normal"), STRESSFUL("Stressful");
+        val label: String get() = tr(labelEn)
+    }
 
     val totalMin: Int get() = restoredMin + relaxedMin + engagedMin + stressedMin
     val summary: Summary get() = when {
@@ -222,7 +231,9 @@ data class DaytimeStress(val restoredMin: Int, val relaxedMin: Int, val engagedM
  * recovery and the nights' restoration (HRV relative to normal). Oura's five levels.
  */
 data class Resilience(val level: Level, val daysUsed: Int) {
-    enum class Level(val label: String) { LIMITED("Limited"), ADEQUATE("Adequate"), SOLID("Solid"), STRONG("Strong"), EXCEPTIONAL("Exceptional") }
+    enum class Level(private val labelEn: String) { LIMITED("Limited"), ADEQUATE("Adequate"), SOLID("Solid"), STRONG("Strong"), EXCEPTIONAL("Exceptional");
+        val label: String get() = tr(labelEn)
+    }
 
     data class Day(val stressedMin: Int, val restoredMin: Int, val hrvRatio: Double?)
 
@@ -250,8 +261,12 @@ data class Resilience(val level: Level, val daysUsed: Int) {
 
 /** Chronotype from the usual sleep midpoint, and whether recent nights keep to it. */
 data class BodyClock(val chronotype: Chronotype, val usualMidpointMin: Int, val recentShiftMin: Int, val alignment: Alignment) {
-    enum class Chronotype(val label: String) { EARLY("Early bird"), MORNING("Morning type"), INTERMEDIATE("In between"), EVENING("Evening type"), LATE("Night owl") }
-    enum class Alignment(val label: String) { ALIGNED("In sync"), SLIGHTLY_OFF("Slightly off"), MISALIGNED("Out of sync") }
+    enum class Chronotype(private val labelEn: String) { EARLY("Early bird"), MORNING("Morning type"), INTERMEDIATE("In between"), EVENING("Evening type"), LATE("Night owl");
+        val label: String get() = tr(labelEn)
+    }
+    enum class Alignment(private val labelEn: String) { ALIGNED("In sync"), SLIGHTLY_OFF("Slightly off"), MISALIGNED("Out of sync");
+        val label: String get() = tr(labelEn)
+    }
 
     /** "3:15" for a midpoint in minutes past midnight. */
     fun midpointLabel(): String {
@@ -293,7 +308,9 @@ data class BodyClock(val chronotype: Chronotype, val usualMidpointMin: Int, val 
  * waveform this ring doesn't share — and are labelled so. A ring's own VO₂max wins when present.
  */
 data class CardioCapacity(val vo2max: Double, val level: Level, val fromRing: Boolean, val cardioAge: Int?) {
-    enum class Level(val label: String) { LOW("Below average"), AVERAGE("Average"), GOOD("Good"), EXCELLENT("Excellent") }
+    enum class Level(private val labelEn: String) { LOW("Below average"), AVERAGE("Average"), GOOD("Good"), EXCELLENT("Excellent");
+        val label: String get() = tr(labelEn)
+    }
 
     companion object {
         fun expectedVo2(age: Int, female: Boolean): Double = (if (female) 42.0 else 48.0) - 0.32 * (age - 25).coerceAtLeast(0)
@@ -327,7 +344,9 @@ data class CardioCapacity(val vo2max: Double, val level: Level, val fromRing: Bo
 
 /** A long-term area rated on Oura's scale, from a 0–100 score over the last 90 days. */
 data class HealthArea(val title: String, val rating: Rating, val score: Int, val trend: List<Double>, val detail: String) {
-    enum class Rating(val label: String) { THRIVING("Thriving"), GOOD("Good"), FAIR("Fair"), NEEDS_CARE("Needs care") }
+    enum class Rating(private val labelEn: String) { THRIVING("Thriving"), GOOD("Good"), FAIR("Fair"), NEEDS_CARE("Needs care");
+        val label: String get() = tr(labelEn)
+    }
 
     companion object {
         fun rate(score: Int): Rating = when {
@@ -346,7 +365,9 @@ data class HealthArea(val title: String, val rating: Rating, val score: Int, val
 
 /** Averages a daily series by week, month or year for the Trends view. */
 object Trends {
-    enum class Period(val label: String, val days: Long) { DAY("Day", 30), WEEK("Week", 7 * 26), MONTH("Month", 365), YEAR("Year", 365 * 3) }
+    enum class Period(private val labelEn: String, val days: Long) { DAY("Day", 30), WEEK("Week", 7 * 26), MONTH("Month", 365), YEAR("Year", 365 * 3);
+        val label: String get() = tr(labelEn)
+    }
 
     data class Point(val start: LocalDate, val value: Double)
 

@@ -1,5 +1,7 @@
 package com.pulseloop.notifications
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.coach.context.EnvironmentContext
 import com.pulseloop.ring.MeasurementKind
 import com.pulseloop.data.PulseLoopDatabase
@@ -71,16 +73,16 @@ object NotificationContextBuilder {
         val warnings = mutableListOf<String>()
         val profileComplete = profile != null && profile.name != null && profile.age != null && profile.heightCm != null && profile.weightKg != null
         if (!profileComplete) {
-            warnings.add("User profile is incomplete — insights may be less personalized.")
+            warnings.add(tr("User profile is incomplete — insights may be less personalized."))
         }
         // lastFullSyncAt (not lastSyncAt, which the ring re-stamps on every bare CONNECT before
         // any data streams) — iOS #61c's freshness-gate fix.
         val lastFullSync = device?.lastFullSyncAt
         if (lastFullSync != null && (now - lastFullSync) > 12 * 3600_000L) {
-            warnings.add("Ring hasn't synced in >12h — today's data may be stale.")
+            warnings.add(tr("Ring hasn't synced in >12h — today's data may be stale."))
         }
         if (hrRows.size < 10) {
-            warnings.add("Limited HR data available for today.")
+            warnings.add(tr("Limited HR data available for today."))
         }
 
         return NotificationContextPacket(

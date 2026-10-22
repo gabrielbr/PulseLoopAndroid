@@ -1,5 +1,7 @@
 package com.pulseloop.ui.onboarding
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -168,7 +170,7 @@ fun ProfileEditor(
             Column {
                 PickerRow(
                     title = tr("Age"),
-                    value = draft.age?.let { "$it years" },
+                    value = draft.age?.let { trf("{0} years", it) },
                     onClick = { activePicker = ProfilePickerKind.AGE },
                 )
                 HorizontalDivider(color = PulseColors.borderSubtle)
@@ -193,7 +195,7 @@ fun ProfileEditor(
             values = (13..100).toList(),
             initialValue = draft.age,
             fallback = 30,
-            label = { "$it years" },
+            label = { trf("{0} years", it) },
             onSave = { onDraftChange(draft.copy(age = it)) },
             onDismiss = { activePicker = null },
         )
@@ -229,7 +231,7 @@ private fun heightLabel(draft: ProfileDraft): String? {
 
 private fun weightLabel(draft: ProfileDraft): String? {
     val value = draft.weightDisplayValue ?: return null
-    return "${LocalizedDecimalInput.format(value)} ${if (draft.units == UnitSystem.METRIC) "kg" else "lb"}"
+    return "${LocalizedDecimalInput.format(value)} ${if (draft.units == UnitSystem.METRIC) tr("kg") else tr("lb")}"
 }
 
 @Composable
@@ -449,7 +451,7 @@ private fun DecimalValueSheet(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
-                    "Enter your weight in $unit",
+                    trf("Enter your weight in {0}", unit),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PulseColors.textPrimary,
@@ -495,7 +497,7 @@ private fun DecimalValueSheet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
-                            .semantics { contentDescription = "Weight in $unit" },
+                            .semantics { contentDescription = trf("Weight in {0}", unit) },
                     )
                 }
 
@@ -507,7 +509,7 @@ private fun DecimalValueSheet(
 
                 if (text.isNotEmpty() && parsedValue == null) {
                     Text(
-                        "Enter a weight between ${validRange.start.toInt()} and ${validRange.endInclusive.toInt()} $unit.",
+                        trf("Enter a weight between {0} and {1} {2}.", validRange.start.toInt(), validRange.endInclusive.toInt(), unit),
                         fontSize = 12.sp,
                         color = PulseColors.danger,
                     )
@@ -561,7 +563,7 @@ fun GoalEditor(
             value = draft.calories.toFloat(),
             range = 100f..2_000f,
             step = 50f,
-            label = "${draft.calories.toInt()} cal",
+            label = trf("{0} cal", draft.calories.toInt()),
             onValueChange = { onDraftChange(draft.copy(calories = it)) },
         )
         GoalSliderCard(
@@ -594,7 +596,7 @@ fun GoalEditor(
                 value = draft.workouts.toFloat(),
                 range = 1f..7f,
                 step = 1f,
-                label = "${draft.workouts.toInt()} / week",
+                label = trf("{0} / week", draft.workouts.toInt()),
                 onValueChange = { onDraftChange(draft.copy(workouts = it)) },
             )
         }

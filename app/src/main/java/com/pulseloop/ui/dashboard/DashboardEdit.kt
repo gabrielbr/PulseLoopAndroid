@@ -1,5 +1,7 @@
 package com.pulseloop.ui.dashboard
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.clickable
@@ -152,17 +154,17 @@ fun EditableCard(
             // pointerInput rather than clickable: a clickable scrim was a TalkBack stop that did nothing.
             Box(Modifier.matchParentSize().pointerInput(Unit) { detectTapGestures { } })
             EditBadge(
-                Icons.Filled.Remove, "Hide ${card.displayName}",
+                Icons.Filled.Remove, trf("Hide {0}", card.displayName),
                 container = MaterialTheme.colorScheme.errorContainer,
                 content = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.align(Alignment.TopStart),
             ) { editState.setHidden(card, true) }
             Row(Modifier.align(Alignment.TopEnd)) {
                 if (editState.canMoveUp(card)) {
-                    EditBadge(Icons.Filled.KeyboardArrowUp, "Move ${card.displayName} up") { editState.moveUp(card) }
+                    EditBadge(Icons.Filled.KeyboardArrowUp, trf("Move {0} up", card.displayName)) { editState.moveUp(card) }
                 }
                 if (editState.canMoveDown(card)) {
-                    EditBadge(Icons.Filled.KeyboardArrowDown, "Move ${card.displayName} down") { editState.moveDown(card) }
+                    EditBadge(Icons.Filled.KeyboardArrowDown, trf("Move {0} down", card.displayName)) { editState.moveDown(card) }
                 }
             }
         }
@@ -211,7 +213,7 @@ fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) ->
             ) {
                 Text(card.displayName, style = MaterialTheme.typography.bodyMedium)
                 IconButton(onClick = { onRestore(card) }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Show ${card.displayName}")
+                    Icon(Icons.Filled.Add, contentDescription = trf("Show {0}", card.displayName))
                 }
             }
         }

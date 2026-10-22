@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -268,7 +270,7 @@ private fun OnboardingTopBar(
                 }
             }
             Text(
-                "Step ${step.index + 1} of $total",
+                trf("Step {0} of {1}", step.index + 1, total),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = com.pulseloop.ui.theme.UbuntuMono,
@@ -337,7 +339,7 @@ private fun WelcomeStep(
                 if (permissionDenied) {
                     Text(
                         tr("PulseLoop needs Bluetooth permission to find and connect to your ring. " +
-                            "Allow it in Settings, or continue without a ring and pair one later."),
+                            tr("Allow it in Settings, or continue without a ring and pair one later.")),
                         fontSize = 13.sp,
                         color = PulseColors.textSecondary,
                         textAlign = TextAlign.Center,

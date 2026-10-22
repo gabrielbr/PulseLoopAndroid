@@ -1,14 +1,17 @@
 package com.pulseloop.settings
 
+import com.pulseloop.ui.i18n.tr
+
 import java.util.Locale
 
 /**
  * Unit system conversion utilities.
  * Auto-detects from device locale, supports manual toggle.
  */
-enum class UnitSystem(val label: String) {
+enum class UnitSystem(private val labelEn: String) {
     METRIC("Metric (km, kg, °C)"),
     IMPERIAL("Imperial (mi, lbs, °F)");
+    val label: String get() = tr(labelEn)
 
     companion object {
         fun fromLocale(locale: Locale = Locale.getDefault()): UnitSystem {

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -297,9 +299,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
             label = SleepInsights.rangeHeroLabel[state.range] ?: tr("Sleep"),
             value = if (enough) SleepFormat.duration(state.avgMinutes ?: 0) else noData.value,
             support = if (state.range == SleepRangeKey.YEAR)
-                "Tracked ${valid.size} ${if (valid.size == 1) "night" else "nights"} this year"
+                trf("Tracked {0} {1} this year", valid.size, if (valid.size == 1) tr("night") else tr("nights"))
             else
-                "${valid.size} of ${state.expectedNights} nights tracked",
+                trf("{0} of {1} nights tracked", valid.size, state.expectedNights),
             score = if (enough) state.avgScore else null,
             scoreLabel = if (enough) state.avgScore?.let { qualityText(com.pulseloop.service.SleepScore.qualityLabel(it)) } else null,
             noData = !enough,
@@ -557,7 +559,7 @@ private fun SleepHypnogram(
         val parts = lanes.reversed().mapNotNull { stage ->
             perStage[stage]?.let { "${if (stage == "REM") "REM" else stage.lowercase()} ${SleepFormat.duration(it)}" }
         }
-        "Sleep stages from ${clockTime(startTs)} to ${clockTime(startTs + safeTotal * 60_000L)}" +
+        trf("Sleep stages from {0} to {1}", clockTime(startTs), clockTime(startTs + safeTotal * 60_000L)) +
             if (parts.isEmpty()) ": no stage data" else ": " + parts.joinToString(", ")
     }
 
@@ -810,10 +812,8 @@ private fun SleepDurationHistogram(
     val summary = remember(bars, goalMin) {
         val tracked = bars.filter { it.present }.mapNotNull { it.durationMin }
         if (tracked.isEmpty()) tr("Nightly sleep: no nights tracked in this range")
-        else "Nightly sleep: latest ${SleepFormat.duration(tracked.last())}, " +
-            "range ${SleepFormat.duration(tracked.min())}–${SleepFormat.duration(tracked.max())}, " +
-            "${tracked.size} of ${bars.size} nights tracked" +
-            (goalMin?.takeIf { it > 0 }?.let { ", goal ${SleepFormat.duration(it)}" } ?: "")
+        else trf("Nightly sleep: latest {0}, range {1}–{2}, {3} of {4} nights tracked", SleepFormat.duration(tracked.last()), SleepFormat.duration(tracked.min()), SleepFormat.duration(tracked.max()), tracked.size, bars.size) +
+            (goalMin?.takeIf { it > 0 }?.let { trf(", goal {0}", SleepFormat.duration(it)) } ?: "")
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1057,7 +1057,7 @@ private fun SleepRecordsCard(
         eyebrow = tr("Records"),
         // One run only happens on a carousel page, which may be a nap rather than a night.
         title = if (runs.size == 1) tr("The ring recorded this as one record")
-            else "The ring recorded this night in ${runs.size} parts",
+            else trf("The ring recorded this night in {0} parts", runs.size),
         legend = false,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1076,7 +1076,7 @@ private fun SleepRecordsCard(
                             color = PulseColors.textPrimary,
                         )
                         Text(
-                            "Asleep ${SleepFormat.duration(run.asleepMinutes)}",
+                            trf("Asleep {0}", SleepFormat.duration(run.asleepMinutes)),
                             fontSize = 12.sp,
                             color = PulseColors.textMuted,
                         )
@@ -1109,7 +1109,7 @@ private fun SleepRecordsCard(
                 } else 0
                 if (gapMinutes > 0) {
                     Text(
-                        "Awake ${SleepFormat.duration(gapMinutes)} between",
+                        trf("Awake {0} between", SleepFormat.duration(gapMinutes)),
                         fontSize = 12.sp,
                         color = PulseColors.textMuted,
                         modifier = Modifier.padding(start = 18.dp),
@@ -1143,8 +1143,7 @@ private fun SleepRecordsCard(
             title = { Text(tr("Delete this record?")) },
             text = {
                 Text(
-                    "${SleepFormat.clockTime(run.startAt)} – ${SleepFormat.clockTime(run.endAt)} " +
-                        "leaves tonight's totals and the hypnogram, and it won't come back on re-sync.",
+                    trf("{0} – {1} leaves tonight's totals and the hypnogram, and it won't come back on re-sync.", SleepFormat.clockTime(run.startAt), SleepFormat.clockTime(run.endAt)),
                 )
             },
             confirmButton = {
@@ -1200,19 +1199,18 @@ private fun SleepRecordEditDialog(
                         onClick = { pickingTime = "start" },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("Start: ${SleepFormat.clockTime(currentStart)}")
+                        Text(trf("Start: {0}", SleepFormat.clockTime(currentStart)))
                     }
                     OutlinedButton(
                         onClick = { pickingTime = "end" },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text("End: ${SleepFormat.clockTime(currentEnd)}")
+                        Text(trf("End: {0}", SleepFormat.clockTime(currentEnd)))
                     }
                 }
                 if (pickedOutside) {
                     Text(
-                        "This record runs ${SleepFormat.clockTime(run.startAt)} – " +
-                            "${SleepFormat.clockTime(run.endAt)}. You can only shorten it.",
+                        trf("This record runs {0} – {1}. You can only shorten it.", SleepFormat.clockTime(run.startAt), SleepFormat.clockTime(run.endAt)),
                         color = PulseColors.danger,
                         fontSize = 12.sp,
                     )

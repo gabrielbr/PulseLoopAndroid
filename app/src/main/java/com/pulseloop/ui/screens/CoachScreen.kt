@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -139,7 +141,7 @@ fun CoachScreen(
             if (state.error != null) {
                 item {
                     Text(
-                        "Error: ${state.error}", fontSize = 12.sp, color = PulseColors.danger,
+                        trf("Error: {0}", state.error), fontSize = 12.sp, color = PulseColors.danger,
                         modifier = Modifier.padding(start = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }

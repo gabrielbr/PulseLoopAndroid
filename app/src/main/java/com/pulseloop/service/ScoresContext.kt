@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.data.PulseLoopDatabase
 import kotlinx.serialization.Serializable
 
@@ -35,7 +37,7 @@ data class ScoresContext(
     val cardioLoadBand: String? = null,
     /** Today's scheduled medications and supplements with their state ("Vitamin D 08:00: taken"). */
     val medsToday: List<String> = emptyList(),
-    val note: String = "Scores are PulseLoop estimates from ring data compared with the user's own baseline, not medical measurements.",
+    val note: String = tr("Scores are PulseLoop estimates from ring data compared with the user's own baseline, not medical measurements."),
 ) {
     /** Short stable string for coach-summary regeneration signatures. */
     fun signature(): String = listOf(readinessStatus, readiness, activityScore, baselineNightsCollected).joinToString("|") +

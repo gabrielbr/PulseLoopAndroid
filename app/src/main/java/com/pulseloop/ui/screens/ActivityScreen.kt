@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.components.switchRow
@@ -276,7 +278,7 @@ fun ActivityScreen(
             text = {
                 Text(
                     tr("Recording a workout needs the Physical activity permission. " +
-                        "You can allow it in Android Settings › Apps › PulseLoop › Permissions."),
+                        tr("You can allow it in Android Settings › Apps › PulseLoop › Permissions.")),
                 )
             },
             confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text("OK") } },
@@ -505,7 +507,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
                     )
                 }
                 session.avgHeartRate?.let {
-                    Text("${corrections.heartRate(it).toInt()} bpm avg", fontSize = 12.sp, color = PulseColors.textSecondary)
+                    Text(trf("{0} bpm avg", corrections.heartRate(it).toInt()), fontSize = 12.sp, color = PulseColors.textSecondary)
                 }
                 Spacer(Modifier.weight(1f))
                 if (session.useGps && session.gpsPointCount > 1) {
@@ -554,7 +556,7 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
                     fontSize = 11.sp, fontWeight = FontWeight.Medium,
                     letterSpacing = 1.4.sp, color = PulseColors.textMuted,
                 )
-                Text("$activeDayCount of 7 active days", fontSize = 16.sp, color = PulseColors.textPrimary)
+                Text(trf("{0} of 7 active days", activeDayCount), fontSize = 16.sp, color = PulseColors.textPrimary)
             }
         }
         WeeklyPillCalendar(days)
@@ -769,7 +771,7 @@ private fun GoalEditorDialog(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 GoalSlider(tr("Steps"), Formats.count((steps / 500).toInt() * 500), steps, 2000f..20000f) { steps = it }
                 GoalSlider(tr("Active minutes"), "${active.toInt()} min", active, 10f..180f) { active = it }
-                GoalSlider("Sleep", "%.1f h".format((sleepH * 2).toInt() / 2f), sleepH, 5f..10f) { sleepH = it }
+                GoalSlider(tr("Sleep"), "%.1f h".format((sleepH * 2).toInt() / 2f), sleepH, 5f..10f) { sleepH = it }
                 GoalSlider(tr("Workouts / week"), "${workouts.toInt()}", workouts, 1f..7f) { workouts = it }
             }
         },
@@ -866,7 +868,7 @@ private fun ActivityRecordsCard(
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
                 )
                 rows.isEmpty() -> Text(
-                    "No activity records synced for $dayLabel yet.",
+                    trf("No activity records synced for {0} yet.", dayLabel),
                     fontSize = 13.sp, color = PulseColors.textMuted,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 )
@@ -883,12 +885,12 @@ private fun ActivityRecordsCard(
                                 modifier = Modifier.weight(1f),
                             )
                             Text(
-                                "${Formats.count(bucket.steps)} steps",
+                                trf("{0} steps", Formats.count(bucket.steps)),
                                 fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
                             )
                             if (bucket.distanceMeters > 0) {
                                 Text(
-                                    " · %.2f %s".format(UnitConverter.distance(bucket.distanceMeters, units), UnitConverter.distanceUnit(units)),
+                                    tr(" · %.2f %s").format(UnitConverter.distance(bucket.distanceMeters, units), UnitConverter.distanceUnit(units)),
                                     fontSize = 11.sp, color = PulseColors.textMuted,
                                 )
                             }
@@ -907,7 +909,7 @@ private fun ActivityRecordsCard(
                             onClick = { visibleCount += ACTIVITY_RECORDS_PAGE_SIZE },
                             modifier = Modifier.padding(start = 8.dp),
                         ) {
-                            Text("Show ${minOf(ACTIVITY_RECORDS_PAGE_SIZE, rows.size - visibleCount)} more", fontSize = 13.sp)
+                            Text(trf("Show {0} more", minOf(ACTIVITY_RECORDS_PAGE_SIZE, rows.size - visibleCount)), fontSize = 13.sp)
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -922,7 +924,7 @@ private fun ActivityRecordsCard(
             title = { Text(tr("Delete this activity record?")) },
             text = {
                 Text(
-                    "${Formats.count(bucket.steps)} steps at ${timeOf(bucket.startEpoch)}." +
+                    trf("{0} steps at {1}.", Formats.count(bucket.steps), timeOf(bucket.startEpoch)) +
                         tr("\n\nThe day's total drops by that much. This can't be undone, and the record " +
                         "stays deleted the next time this day syncs."),
                 )
@@ -976,7 +978,7 @@ private fun DetectedActivityCard() {
             val isNap = p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
-                    (if (isNap) tr("Possible nap") else "Possible ${ActivityMeta.label(type).lowercase()}") + " · ${p.minutes} min",
+                    (if (isNap) tr("Possible nap") else trf("Possible {0}", ActivityMeta.label(type).lowercase())) + " · ${p.minutes} min",
                     fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 )
                 Text(

@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -62,8 +65,8 @@ object Findings {
             val m = median(now)!!; val b = median(base)!!
             val delta = m - b
             if (delta >= 3 && delta >= 2 * mad(base, 1.0)) {
-                out += Finding(day, Finding.Kind.RESTING_HR_UP, "Resting heart rate up",
-                    "${m.roundToInt()} bpm over the last 3 nights against your usual ${b.roundToInt()}. Illness, alcohol, stress, heat or hard training can all raise it.")
+                out += Finding(day, Finding.Kind.RESTING_HR_UP, tr("Resting heart rate up"),
+                    trf("{0} bpm over the last 3 nights against your usual {1}. Illness, alcohol, stress, heat or hard training can all raise it.", m.roundToInt(), b.roundToInt()))
             }
         }
         // Resting heart rate trending down over two weeks: usually fitness or recovery.
@@ -73,8 +76,8 @@ object Findings {
             if (now.size < 10 || base.size < MIN_BASELINE) return@run
             val delta = median(now)!! - median(base)!!
             if (delta <= -3) {
-                out += Finding(day, Finding.Kind.RESTING_HR_DOWN, "Resting heart rate trending down",
-                    "${abs(delta).roundToInt()} bpm lower over two weeks than the four before. Often a sign of improving fitness or recovery.")
+                out += Finding(day, Finding.Kind.RESTING_HR_DOWN, tr("Resting heart rate trending down"),
+                    trf("{0} bpm lower over two weeks than the four before. Often a sign of improving fitness or recovery.", abs(delta).roundToInt()))
             }
         }
         // HRV: the last 3 nights against the 28 before.
@@ -85,8 +88,8 @@ object Findings {
             val m = median(now)!!; val b = median(base)!!
             if (b <= 0) return@run
             if (m <= b * 0.85 && b - m >= 2 * mad(base, 2.0)) {
-                out += Finding(day, Finding.Kind.HRV_DOWN, "HRV lower than usual",
-                    "${m.roundToInt()} ms over the last 3 nights against your usual ${b.roundToInt()} (${((m - b) / b * 100).roundToInt()}%). Your body may be under extra load.")
+                out += Finding(day, Finding.Kind.HRV_DOWN, tr("HRV lower than usual"),
+                    trf("{0} ms over the last 3 nights against your usual {1} ({2}%). Your body may be under extra load.", m.roundToInt(), b.roundToInt(), ((m - b) / b * 100).roundToInt()))
             }
         }
         run {
@@ -95,8 +98,8 @@ object Findings {
             if (now.size < 10 || base.size < MIN_BASELINE) return@run
             val m = median(now)!!; val b = median(base)!!
             if (b > 0 && m >= b * 1.10) {
-                out += Finding(day, Finding.Kind.HRV_UP, "HRV trending up",
-                    "${((m - b) / b * 100).roundToInt()}% higher over two weeks than the four before.")
+                out += Finding(day, Finding.Kind.HRV_UP, tr("HRV trending up"),
+                    trf("{0}% higher over two weeks than the four before.", ((m - b) / b * 100).roundToInt()))
             }
         }
         // Skin temperature: last night against the 28 before.
@@ -107,8 +110,8 @@ object Findings {
             val b = median(base)!!
             val delta = t - b
             if (delta >= 0.5 && delta >= 2 * mad(base, 0.1)) {
-                out += Finding(day, Finding.Kind.TEMPERATURE_UP, "Skin temperature up",
-                    "+%.1f °C last night against your usual. Can come with illness, a late workout, alcohol or the menstrual cycle.".format(delta))
+                out += Finding(day, Finding.Kind.TEMPERATURE_UP, tr("Skin temperature up"),
+                    tr("+%.1f °C last night against your usual. Can come with illness, a late workout, alcohol or the menstrual cycle.").format(delta))
             }
         }
         // Sleep: the last 7 nights against the 28 before.
@@ -118,15 +121,15 @@ object Findings {
             if (now.size < 5 || base.size < MIN_BASELINE) return@run
             val delta = now.average() - median(base)!!
             if (delta <= -45) {
-                out += Finding(day, Finding.Kind.SLEEP_SHORT, "Sleeping less this week",
-                    "${abs(delta).roundToInt()} min a night less than your usual over the last 7 nights.")
+                out += Finding(day, Finding.Kind.SLEEP_SHORT, tr("Sleeping less this week"),
+                    trf("{0} min a night less than your usual over the last 7 nights.", abs(delta).roundToInt()))
             } else if (delta >= 45) {
-                out += Finding(day, Finding.Kind.SLEEP_LONGER, "Sleeping more this week",
-                    "${delta.roundToInt()} min a night more than your usual over the last 7 nights.")
+                out += Finding(day, Finding.Kind.SLEEP_LONGER, tr("Sleeping more this week"),
+                    trf("{0} min a night more than your usual over the last 7 nights.", delta.roundToInt()))
             }
         }
         if (radar != null && radar != SymptomRadar.Level.NONE) {
-            out += Finding(day, Finding.Kind.RADAR, "Symptom Radar: ${radar.label.lowercase()}", radar.summary)
+            out += Finding(day, Finding.Kind.RADAR, trf("Symptom Radar: {0}", radar.label.lowercase()), radar.summary)
         }
         return out
     }

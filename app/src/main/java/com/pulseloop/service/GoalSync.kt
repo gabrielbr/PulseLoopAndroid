@@ -1,5 +1,9 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
+import com.pulseloop.ui.i18n.trf
+
 import android.content.Context
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.UserGoalEntity
@@ -16,14 +20,15 @@ import kotlin.math.roundToInt
  */
 object GoalSync {
 
-    enum class Field(val key: String, val label: String) {
+    enum class Field(val key: String, private val labelEn: String) {
         CALORIES("intakeCalories", "daily calories"),
         PROTEIN("intakeProteinG", "protein"),
         CARBS("intakeCarbsG", "carbs"),
         FAT("intakeFatG", "fat"),
         SLEEP("sleepMinutes", "sleep"),
         STEPS("steps", "steps"),
-        WORKOUTS("workoutsPerWeek", "workouts a week"),
+        WORKOUTS("workoutsPerWeek", "workouts a week");
+        val label: String get() = tr(labelEn)
     }
 
     val NUTRITION_FIELDS = setOf(Field.CALORIES, Field.PROTEIN, Field.CARBS, Field.FAT)
@@ -184,11 +189,11 @@ object GoalSync {
     /** "daily calories 1,850 kcal, protein 132 g" — for the coach to tell the user. */
     fun describe(changed: Map<Field, Double>): String = changed.entries.joinToString(", ") { (f, v) ->
         when (f) {
-            Field.CALORIES -> "daily calories ${"%,d".format(v.roundToInt())} kcal"
+            Field.CALORIES -> trf("daily calories {0} kcal", "%,d".format(v.roundToInt()))
             Field.PROTEIN, Field.CARBS, Field.FAT -> "${f.label} ${v.roundToInt()} g"
-            Field.SLEEP -> "sleep ${"%.1f".format(v / 60)} h"
-            Field.STEPS -> "steps ${"%,d".format(v.roundToInt())} a day"
-            Field.WORKOUTS -> "${v.roundToInt()} workouts a week"
+            Field.SLEEP -> trf("sleep {0} h", "%.1f".format(v / 60))
+            Field.STEPS -> trf("steps {0} a day", "%,d".format(v.roundToInt()))
+            Field.WORKOUTS -> trf("{0} workouts a week", v.roundToInt())
         }
     }
 }

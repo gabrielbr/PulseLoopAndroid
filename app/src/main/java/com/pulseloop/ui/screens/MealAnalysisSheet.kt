@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -434,7 +436,7 @@ fun MealAnalysisDialog(
                                 // iOS confidence caption (:174-178).
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "${confidence.replaceFirstChar { it.uppercase() }} confidence",
+                                    trf("{0} confidence", confidence.replaceFirstChar { it.uppercase() }),
                                     fontSize = 12.sp,
                                     color = PulseColors.textMuted,
                                 )
@@ -724,7 +726,7 @@ object MealEstimator {
             if (!keyStore.coachEnabled || resolution.key == null) {
                 return@withContext Result.Failure(
                     tr("AI analysis needs the coach enabled with a configured provider (Settings → AI Coach). " +
-                        "You can still search the database or enter the meal manually."),
+                        tr("You can still search the database or enter the meal manually.")),
                 )
             }
             val model = CoachClientResolver.activeModel(providerStore.snapshot(), keyStore.model)
@@ -767,7 +769,7 @@ object MealEstimator {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Result.Failure("Analysis failed: ${e.message ?: e.javaClass.simpleName}")
+                Result.Failure(trf("Analysis failed: {0}", e.message ?: e.javaClass.simpleName))
             }
         }
 }

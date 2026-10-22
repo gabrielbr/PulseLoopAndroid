@@ -1054,3 +1054,23 @@ English up in `assets/i18n/pt-BR.json`, falling back to the English when there i
   value, or leave it English. Many still are; templates and service-layer text (insights,
   notifications) are the known gaps.
 - The coach answers in the app's language through `L10n.coachInstruction()`, appended to its prompts.
+
+## A voice is a catalog layered on a language — and it stops at anything serious
+
+**F*cking Health** (Settings → Language) is English with attitude: `AppLanguage.FUCKING_HEALTH_EN`
+reads `assets/i18n/en-FH.json` first and falls back to the plain English key, and `Voice.FUNNY`
+gives the coach and its notifications the persona through `L10n.coachInstruction()`.
+
+- **A voice rewrites only some strings, on purpose.** A missing entry shows plain English, which is
+  right for settings, units, metric names and anything technical.
+- **Safety text is never rewritten.** Crisis lines, clinician/pharmacist advice, warnings,
+  disclaimers, pregnancy/postpartum, medication and alcohol-support text keep their plain wording;
+  `FuckingHealthCatalogTest` fails if one appears in the catalog. The coach drops the act for the
+  same topics (`FUNNY_VOICE`).
+- **The joke wraps the content.** Same facts, same values (`{0}` placeholders), same advice.
+  Roast habits, never the person. Swearing is censored (`f*cking`), and the test checks that too.
+- **Adding the Portuguese version** is one enum entry and one file: `FUCKING_HEALTH_PT` with
+  `localeTag = "pt-BR"` and `catalogs = listOf("i18n/pt-BR-FH.json", "i18n/pt-BR.json")`, so a
+  string the Portuguese voice doesn't rewrite reads as plain Portuguese. Write the catalog in
+  Brazilian Portuguese (Brazilian censored swearing: p*rra, c*ralho, m*rda), not as a translation
+  of the English jokes, and extend `FuckingHealthCatalogTest` to cover it.

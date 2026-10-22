@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.components.switchRow
@@ -231,7 +233,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                 val activeModel = if (isLocal) providerStore.localModel.ifBlank { "local server" }
                     else selectedModel
                 Text(
-                    if (coachEnabled && ready) "Active — $activeModel"
+                    if (coachEnabled && ready) trf("Active — {0}", activeModel)
                     else if (coachEnabled && isLocal) tr("Server address needed")
                     else if (coachEnabled) tr("API key needed")
                     else tr("Disabled"),
@@ -505,7 +507,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             Text(
                                 urlProblem?.let { LocalEndpoint.message(it) }
                                     ?: tr("Default ports — Ollama 11434 · LM Studio 1234 · llama.cpp 8080 · vLLM 8000 · SGLang 30000. " +
-                                       "The /v1 path is added for you."),
+                                       tr("The /v1 path is added for you.")),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (urlProblem != null) MaterialTheme.colorScheme.error
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -823,7 +825,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(tr("Coach Memory"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                         TextButton(onClick = { showMemory = !showMemory }) {
-                            Text(if (showMemory) tr("Hide") else "Show (${memories.size})")
+                            Text(if (showMemory) tr("Hide") else trf("Show ({0})", memories.size))
                         }
                     }
                     if (showMemory) {
@@ -839,7 +841,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                         Text(memory.value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                                     }
                                     IconButton(onClick = { memoryToDelete = memory.key }) {
-                                        Icon(Icons.Filled.Delete, "Delete ${memory.key}", tint = MaterialTheme.colorScheme.error)
+                                        Icon(Icons.Filled.Delete, trf("Delete {0}", memory.key), tint = MaterialTheme.colorScheme.error)
                                     }
                                 }
                             }
@@ -854,7 +856,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { memoryToDelete = null },
             title = { Text(tr("Delete memory?")) },
-            text = { Text("The coach will forget \"$key\". This can't be undone.") },
+            text = { Text(trf("The coach will forget \"{0}\". This can't be undone.", key)) },
             confirmButton = {
                 TextButton(onClick = {
                     memoryToDelete = null
@@ -1189,7 +1191,7 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit)
     SettingsSubScreen(title = tr("User Profile"), onBack = onBack) {
         Text(
             tr("Your age, sex, height and weight let the ring compute accurate calories (and, on " +
-                "56ff/Jring rings, blood sugar). Blood pressure is measured directly by the sensor."),
+                tr("56ff/Jring rings, blood sugar). Blood pressure is measured directly by the sensor.")),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1285,7 +1287,7 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
     SettingsSubScreen(title = tr("Physiology"), onBack = onBack) {
         Text(
             tr("Optional refinements to how your vitals are interpreted. Leave anything unset and " +
-                "PulseLoop uses sensible defaults."),
+                tr("PulseLoop uses sensible defaults.")),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1474,7 +1476,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                 Text(tr("Blood sugar calibration"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     tr("Optional. The ring estimates glucose from your profile, not a real sensor. " +
-                        "Enter a recent lab/meter reading (mg/dL) to offset the displayed value to match."),
+                        tr("Enter a recent lab/meter reading (mg/dL) to offset the displayed value to match.")),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1504,7 +1506,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                                 keyStore.glucoseOffsetMgdl = ref - latestRaw
                                 keyStore.glucoseRefMgdl = ref
                                 glucoseOffset = keyStore.glucoseOffsetMgdl
-                                glucoseMsg = "Calibrated ✓ (offset %+.0f mg/dL)".format(glucoseOffset)
+                                glucoseMsg = tr("Calibrated ✓ (offset %+.0f mg/dL)").format(glucoseOffset)
                             }
                         },
                         modifier = Modifier.weight(1f),
@@ -1512,7 +1514,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        if (glucoseOffset != 0.0) "Current offset: %+.0f mg/dL".format(glucoseOffset) else "No calibration set",
+                        if (glucoseOffset != 0.0) tr("Current offset: %+.0f mg/dL").format(glucoseOffset) else tr("No calibration set"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.weight(1f),
@@ -1679,7 +1681,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                     VitalToggle(tr("All-day heart rate"), cfgHrEnabled) { cfgHrEnabled = it }
                     if (cfgHrEnabled) {
                         Text(
-                            "Every $cfgHrInterval min",
+                            trf("Every {0} min", cfgHrInterval),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -1700,7 +1702,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         // running both monitors hourly that is most of the battery (issue #66).
                         if (cfgSpo2 && supportsSpo2Interval) {
                             Text(
-                                if (cfgSpo2Interval <= 0) tr("Same as heart rate") else "Every $cfgSpo2Interval min",
+                                if (cfgSpo2Interval <= 0) tr("Same as heart rate") else trf("Every {0} min", cfgSpo2Interval),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1870,10 +1872,10 @@ private fun QuietHoursCard() {
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.weight(1f)) {
-                        Text("From ${formatMinutesOfDay(start)}")
+                        Text(trf("From {0}", formatMinutesOfDay(start)))
                     }
                     OutlinedButton(onClick = { picking = "end" }, modifier = Modifier.weight(1f)) {
-                        Text("Until ${formatMinutesOfDay(end)}")
+                        Text(trf("Until {0}", formatMinutesOfDay(end)))
                     }
                 }
             }
@@ -1889,8 +1891,7 @@ private fun QuietHoursCard() {
                     tr("To log when Bedtime or Do Not Disturb turns on and off while PulseLoop is " +
                         "in the background, Android requires Notification access. PulseLoop only " +
                         "listens for Mode changes and does not read your notifications.\n\n" +
-                        "If the switch is greyed out, open PulseLoop's App info, tap ⋮ → " +
-                        "Allow restricted settings, then come back here."),
+                        tr("If the switch is greyed out, open PulseLoop's App info, tap ⋮ → Allow restricted settings, then come back here.")),
                 )
             },
             confirmButton = {
@@ -1999,8 +2000,8 @@ fun WearableSettingsScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (isConnected) "Connected — $wearableDisplayName · ${battery ?: 0}%"
-                        else device?.let { "Last seen: $wearableDisplayName" } ?: tr("No ring paired"),
+                        if (isConnected) trf("Connected — {0} · {1}%", wearableDisplayName, battery ?: 0)
+                        else device?.let { trf("Last seen: {0}", wearableDisplayName) } ?: tr("No ring paired"),
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -2009,12 +2010,12 @@ fun WearableSettingsScreen(
                 if (device?.firmwareVersion != null) {
                     val rawFw = device!!.firmwareVersion!!
                     val fwDisplay = if (rawFw.contains("V")) "V" + rawFw.substringAfterLast("V") else rawFw
-                    Text("Firmware: $fwDisplay", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                    Text(trf("Firmware: {0}", fwDisplay), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
                 } else if (device != null) {
                     Text(tr("Firmware: reading… (connect ring to read)"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
                 }
                 if (device != null) {
-                    Text("Last synced: $lastSyncedLabel", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                    Text(trf("Last synced: {0}", lastSyncedLabel), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
                 }
 
                 if (device == null) {
@@ -2734,7 +2735,7 @@ fun PrivacyDataSettingsScreen(
             text = {
                 Text(
                     tr("Removes all demo measurements, activity, sleep, and the demo device. " +
-                    "Synced ring data is not affected."),
+                    tr("Synced ring data is not affected.")),
                 )
             },
             confirmButton = {
@@ -2812,7 +2813,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
             showToast(tr("You are now a developer!"))
             onOpenDebug()
         } else if (remaining <= 3) {
-            showToast("You're $remaining step${if (remaining == 1) "" else "s"} away from Developer options.")
+            showToast(trf("You're {0} step{1} away from Developer options.", remaining, if (remaining == 1) "" else "s"))
         }
     }
 
@@ -2855,7 +2856,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
                 Text(tr("Version"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "PulseLoop v${com.pulseloop.BuildConfig.VERSION_NAME} (${com.pulseloop.BuildConfig.VERSION_CODE})",
+                    trf("PulseLoop v{0} ({1})", com.pulseloop.BuildConfig.VERSION_NAME, com.pulseloop.BuildConfig.VERSION_CODE),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -3064,7 +3065,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                 Text(tr("Strava Integration"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    if (isConnected) "Connected as $athleteName. Workouts sync automatically when finished."
+                    if (isConnected) trf("Connected as {0}. Workouts sync automatically when finished.", athleteName)
                     else "Connect your Strava account to automatically upload workouts with GPS routes and heart rate data.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -3084,10 +3085,10 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                                             ?: when (count) {
                                                 0 -> tr("Nothing new to upload")
                                                 1 -> tr("Uploaded 1 workout")
-                                                else -> "Uploaded $count workouts"
+                                                else -> trf("Uploaded {0} workouts", count)
                                             }
                                     } catch (e: Exception) {
-                                        statusMessage = "Upload failed: ${e.message ?: "unknown error"}"
+                                        statusMessage = trf("Upload failed: {0}", e.message ?: tr("unknown error"))
                                     }
                                     isUploading = false
                                 }
@@ -3257,7 +3258,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         statusMessage = if (got.isEmpty()) {
             tr("No Health Connect permissions granted — nothing to export.")
         } else {
-            "Connected. ${got.size} of ${HealthConnectPermissions.all.size} permission types granted."
+            trf("Connected. {0} of {1} permission types granted.", got.size, HealthConnectPermissions.all.size)
         }
         // First-enable backfill dialog: the derived showBackfillDialog above now turns true from
         // the persisted state (enabled + connected + NOT_ASKED) this callback just set, so there
@@ -3498,7 +3499,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                     if (syncedAt != null) {
                         // The label promises a time, so show one (review pass 5): the summary
                         // alone read as "Last sync: skipped: …" with no indication of when.
-                        "Last sync ${DeviceHeroStatus.relativeShort(syncedAt, System.currentTimeMillis())} — " +
+                        trf("Last sync {0} — ", DeviceHeroStatus.relativeShort(syncedAt, System.currentTimeMillis())) +
                             (prefs.lastSyncSummary ?: "unknown")
                     } else {
                         tr("No export has run yet. With the master switch on and a backfill choice made, PulseLoop exports automatically.")
@@ -3701,12 +3702,12 @@ private fun BatteryRuntimeEstimate(samples: List<VitalSample>) {
     }
     Column {
         Text(
-            "About ${estimate.label} left",
+            trf("About {0} left", estimate.label),
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
         )
         Text(
-            "Estimated from the current discharge at %.1f %%/h.".format(estimate.percentPerHour),
+            tr("Estimated from the current discharge at %.1f %%/h.").format(estimate.percentPerHour),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -3740,7 +3741,7 @@ private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, 
                         }
                     }), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Coach goal: ${g.description}", fontWeight = FontWeight.Medium)
+                    Text(trf("Coach goal: {0}", g.description), fontWeight = FontWeight.Medium)
                     Text(
                         if (managed.isEmpty()) tr("Your goal doesn't set any of these.")
                         else tr("Set by your goal: ") + managed.joinToString(", ") { it.label } + ". Change one here and it stops following.",
@@ -3794,7 +3795,7 @@ private fun AutoBackupCard() {
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Folder: ${folderName ?: "not chosen"}",
+                    trf("Folder: {0}", folderName ?: tr("not chosen")),
                     style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
                 )
                 TextButton(onClick = { picker.launch(null) }) { Text(if (folderName == null) tr("Choose") else tr("Change")) }

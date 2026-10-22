@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import java.time.DayOfWeek
 import java.time.LocalDate
 import kotlin.math.roundToInt
@@ -12,7 +15,7 @@ import kotlin.math.roundToInt
 
 /** A drink as logged, with typical Brazilian and international sizes. */
 /** [carbsG] per drink, rough label values, so a drink logged from the Drinks card fills the meal log's macros too. */
-enum class DrinkType(val key: String, val label: String, val volumeMl: Double, val abvPct: Double, val kcal: Double, val carbsG: Double = 0.0) {
+enum class DrinkType(val key: String, private val labelEn: String, val volumeMl: Double, val abvPct: Double, val kcal: Double, val carbsG: Double = 0.0) {
     BEER("beer", "Beer (can)", 350.0, 5.0, 150.0, 12.0),
     BEER_600("beer_600", "Beer (600 ml)", 600.0, 5.0, 255.0, 21.0),
     DRAFT("draft", "Chopp", 300.0, 5.0, 130.0, 11.0),
@@ -21,6 +24,7 @@ enum class DrinkType(val key: String, val label: String, val volumeMl: Double, v
     CAIPIRINHA("caipirinha", "Caipirinha", 50.0, 40.0, 240.0, 25.0),
     COCKTAIL("cocktail", "Cocktail", 50.0, 40.0, 200.0, 15.0),
     OTHER("other", "Cider / other", 330.0, 4.5, 140.0, 12.0);
+    val label: String get() = tr(labelEn)
 
     val grams: Double get() = DrinkInsights.grams(volumeMl, abvPct)
 
@@ -116,21 +120,21 @@ object DrinkInsights {
     fun headline(week: Week, limit: Double, dryTarget: Int, today: LocalDate): Pair<String, String> {
         val total = week.standardDrinks
         val title = when {
-            limit <= 0 -> if (total <= 0) "No drinks this week" else "${fmt(total)} drinks this week"
-            total > limit -> "${fmt(total - limit)} over your limit"
-            total <= 0 -> "No drinks yet this week"
-            limit - total < 0.05 -> "Right at your limit"
-            else -> "${fmt(limit - total)} left this week"
+            limit <= 0 -> if (total <= 0) tr("No drinks this week") else trf("{0} drinks this week", fmt(total))
+            total > limit -> trf("{0} over your limit", fmt(total - limit))
+            total <= 0 -> tr("No drinks yet this week")
+            limit - total < 0.05 -> tr("Right at your limit")
+            else -> trf("{0} left this week", fmt(limit - total))
         }
         // Days still to come this week, today included, while today is still dry.
         val daysLeft = 7 - (today.dayOfWeek.value - 1)
         val canStillBeDry = if (week.drankToday) daysLeft - 1 else daysLeft
         val needed = (dryTarget - week.dryDays).coerceAtLeast(0)
         val sub = when {
-            dryTarget <= 0 -> "${week.dryDays} dry day${if (week.dryDays == 1) "" else "s"} so far"
-            needed == 0 -> "Dry-day goal reached: ${week.dryDays} of $dryTarget"
-            needed <= canStillBeDry -> "$needed more dry day${if (needed == 1) "" else "s"} to reach $dryTarget"
-            else -> "${week.dryDays} of $dryTarget dry days; a fresh week starts Monday"
+            dryTarget <= 0 -> trf("{0} dry day{1} so far", week.dryDays, if (week.dryDays == 1) "" else "s")
+            needed == 0 -> trf("Dry-day goal reached: {0} of {1}", week.dryDays, dryTarget)
+            needed <= canStillBeDry -> trf("{0} more dry day{1} to reach {2}", needed, if (needed == 1) "" else "s", dryTarget)
+            else -> trf("{0} of {1} dry days; a fresh week starts Monday", week.dryDays, dryTarget)
         }
         return title to sub
     }
@@ -278,17 +282,19 @@ object DrinkInsights {
 object AuditC {
     val QUESTIONS = listOf(
         "How often do you have a drink containing alcohol?" to listOf(
-            "Never", "Monthly or less", "2–4 times a month", "2–3 times a week", "4 or more times a week",
+            tr("Never"), tr("Monthly or less"), tr("2–4 times a month"), tr("2–3 times a week"), tr("4 or more times a week"),
         ),
         "How many standard drinks do you have on a typical day when you are drinking?" to listOf(
-            "1 or 2", "3 or 4", "5 or 6", "7 to 9", "10 or more",
+            tr("1 or 2"), tr("3 or 4"), tr("5 or 6"), tr("7 to 9"), tr("10 or more"),
         ),
         "How often do you have six or more drinks on one occasion?" to listOf(
-            "Never", "Less than monthly", "Monthly", "Weekly", "Daily or almost daily",
+            tr("Never"), tr("Less than monthly"), tr("Monthly"), tr("Weekly"), tr("Daily or almost daily"),
         ),
     )
 
-    enum class Level(val label: String) { LOW("Lower risk"), INCREASING("Increasing risk"), HIGHER("Higher risk") }
+    enum class Level(private val labelEn: String) { LOW("Lower risk"), INCREASING("Increasing risk"), HIGHER("Higher risk");
+        val label: String get() = tr(labelEn)
+    }
 
     /** Retake after this many days. */
     const val RETAKE_DAYS = 90L
@@ -306,8 +312,8 @@ object AuditC {
     }
 
     fun advice(level: Level): String = when (level) {
-        Level.LOW -> "Your answers suggest lower-risk drinking. Keeping some dry days each week helps keep it that way."
-        Level.INCREASING -> "Your answers suggest drinking at a level that raises health risks. Cutting down gradually, with a weekly limit and dry days, is the usual first step."
-        Level.HIGHER -> "Your answers suggest drinking at a level that is likely affecting your health. Please talk to a doctor. If you drink most days, don't stop all at once: stopping suddenly can be dangerous, and a doctor can help you cut down safely."
+        Level.LOW -> tr("Your answers suggest lower-risk drinking. Keeping some dry days each week helps keep it that way.")
+        Level.INCREASING -> tr("Your answers suggest drinking at a level that raises health risks. Cutting down gradually, with a weekly limit and dry days, is the usual first step.")
+        Level.HIGHER -> tr("Your answers suggest drinking at a level that is likely affecting your health. Please talk to a doctor. If you drink most days, don't stop all at once: stopping suddenly can be dangerous, and a doctor can help you cut down safely.")
     }
 }

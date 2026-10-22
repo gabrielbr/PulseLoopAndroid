@@ -1,5 +1,8 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -86,8 +89,7 @@ fun ZoneLineChart(
     val summary = remember(samples, label) {
         val values = samples.map { it.value }
         val fmt = if (values.all { it % 1.0 == 0.0 }) "%.0f" else "%.1f"
-        "${label ?: "Trend"}: latest ${fmt.format(values.last())}, " +
-            "range ${fmt.format(values.min())}–${fmt.format(values.max())}, ${values.size} readings"
+        trf("{0}: latest {1}, range {2}–{3}, {4} readings", label ?: tr("Trend"), fmt.format(values.last()), fmt.format(values.min()), fmt.format(values.max()), values.size)
     }
 
     Column(modifier.fillMaxWidth().semantics { contentDescription = summary }) {

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -83,7 +85,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
             }
             Text(
                 tr("Each night is compared with your own previous four weeks once there are two weeks to compare with. ") +
-                    "Findings carry the formula version that made them (now v${Algorithms.VERSION}). Patterns, not diagnoses.",
+                    trf("Findings carry the formula version that made them (now v{0}). Patterns, not diagnoses.", Algorithms.VERSION),
                 fontSize = 11.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))

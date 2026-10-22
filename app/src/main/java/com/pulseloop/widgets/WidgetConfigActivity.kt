@@ -1,5 +1,7 @@
 package com.pulseloop.widgets
 
+import com.pulseloop.ui.i18n.tr
+
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.os.Bundle
@@ -116,30 +118,30 @@ private fun ConfigScreen(
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            if (isDual) "Choose Metrics" else "Choose Metric",
+            if (isDual) tr("Choose Metrics") else tr("Choose Metric"),
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
         )
         Text(
-            if (isDual) "Pick the left and right PulseLoop metrics."
-            else "Pick which PulseLoop metric this widget shows.",
+            if (isDual) tr("Pick the left and right PulseLoop metrics.")
+            else tr("Pick which PulseLoop metric this widget shows."),
             fontSize = 14.sp,
             color = PulseColors.textSecondary,
         )
         Spacer(Modifier.height(8.dp))
 
         if (isDual) {
-            MetricPicker("LEFT METRIC", left) { left = it }
+            MetricPicker(tr("LEFT METRIC"), left) { left = it }
             Spacer(Modifier.height(12.dp))
-            MetricPicker("RIGHT METRIC", right) { right = it }
+            MetricPicker(tr("RIGHT METRIC"), right) { right = it }
         } else {
             MetricPicker(null, single) { single = it }
         }
 
         Spacer(Modifier.height(16.dp))
         Button(onClick = { onDone(single, left, right) }, modifier = Modifier.fillMaxWidth()) {
-            Text("Add Widget")
+            Text(tr("Add Widget"))
         }
     }
 }

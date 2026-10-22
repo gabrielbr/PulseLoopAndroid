@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ring.MeasurementKind
 import kotlin.math.sqrt
 
@@ -47,14 +49,14 @@ enum class MetricKind {
 
     val title: String
         get() = when (this) {
-            HEART_RATE -> "Heart rate"
-            SPO2 -> "Blood oxygen"
+            HEART_RATE -> tr("Heart rate")
+            SPO2 -> tr("Blood oxygen")
             HRV -> "HRV"
-            BLOOD_PRESSURE -> "Blood pressure"
-            STRESS -> "Stress"
-            FATIGUE -> "Fatigue"
-            GLUCOSE -> "Blood sugar"
-            TEMPERATURE -> "Skin temperature"
+            BLOOD_PRESSURE -> tr("Blood pressure")
+            STRESS -> tr("Stress")
+            FATIGUE -> tr("Fatigue")
+            GLUCOSE -> tr("Blood sugar")
+            TEMPERATURE -> tr("Skin temperature")
         }
 
     /** Display unit shown after the big value. Empty for unit-less device scores. */

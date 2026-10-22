@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.trackBrush
@@ -57,8 +59,8 @@ fun ActivityRings(
 ) {
     // Drawn arcs say nothing to TalkBack; speak each ring's share of its goal instead.
     val description = tr("Goal progress: ") + rings.mapIndexed { i, ring ->
-        val name = labels.getOrNull(i) ?: "ring ${i + 1}"
-        if (ring.value == null) "$name unavailable" else "$name ${(ring.progress * 100).toInt()}%"
+        val name = labels.getOrNull(i) ?: trf("ring {0}", i + 1)
+        if (ring.value == null) trf("{0} unavailable", name) else "$name ${(ring.progress * 100).toInt()}%"
     }.joinToString(", ")
     Canvas(modifier.size(size).clearAndSetSemantics { contentDescription = description }) {
         val strokePx = strokeWidth.toPx()

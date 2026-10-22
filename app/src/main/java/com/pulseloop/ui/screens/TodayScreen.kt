@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -591,9 +593,9 @@ private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.S
     val hrStr = state.heartRate?.let { "$it bpm" } ?: "—"
     val night = sleep.lastNight
     val summary = if (night == null) {
-        "You're at %,d steps. Sync after waking to add recovery context.".format(steps)
+        tr("You're at %,d steps. Sync after waking to add recovery context.").format(steps)
     } else {
-        "You're at %,d steps, %dh %02dm of sleep, and your latest reading is %s.".format(
+        tr("You're at %,d steps, %dh %02dm of sleep, and your latest reading is %s.").format(
             steps, night.totalMinutes / 60, night.totalMinutes % 60, hrStr,
         )
     }
@@ -609,7 +611,7 @@ private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.S
         summary = summary,
         chips = listOf(
             ToneChip(
-                if (series.size > 1) "Steps ${if (stepsDelta >= 0) "+" else ""}$stepsDelta%" else "Steps collected",
+                if (series.size > 1) trf("Steps {0}{1}%", if (stepsDelta >= 0) "+" else "", stepsDelta) else tr("Steps collected"),
                 stepsTone,
             ),
             ToneChip(if (state.heartRate == null) tr("HR pending") else tr("HR collected"), hrTone),

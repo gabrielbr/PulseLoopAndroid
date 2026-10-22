@@ -1,5 +1,7 @@
 package com.pulseloop.notifications
 
+import com.pulseloop.ui.i18n.tr
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -31,7 +33,7 @@ object BatteryNotifications {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Ring Battery", NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Alerts when your ring's battery runs low"
+                description = tr("Alerts when your ring's battery runs low")
             }
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(channel)

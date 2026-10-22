@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import android.app.*
 import android.content.Context
 import android.content.Intent
@@ -38,7 +41,7 @@ class WorkoutForegroundService : Service() {
     private var elapsedSec = 0
     private var distanceM = 0.0
     private var heartRate: Int? = null
-    private var activityName = "Workout"
+    private var activityName = tr("Workout")
 
     override fun onCreate() {
         super.onCreate()
@@ -138,11 +141,11 @@ class WorkoutForegroundService : Service() {
         val hr = heartRate?.let { "$it bpm" } ?: "--"
 
         val pauseResumeAction = if (status == "paused") {
-            NotificationCompat.Action.Builder(android.R.drawable.ic_media_play, "Resume",
+            NotificationCompat.Action.Builder(android.R.drawable.ic_media_play, tr("Resume"),
                 PendingIntent.getService(this, 3, Intent(this, WorkoutForegroundService::class.java).apply { action = ACTION_RESUME },
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)).build()
         } else {
-            NotificationCompat.Action.Builder(android.R.drawable.ic_media_pause, "Pause",
+            NotificationCompat.Action.Builder(android.R.drawable.ic_media_pause, tr("Pause"),
                 PendingIntent.getService(this, 2, Intent(this, WorkoutForegroundService::class.java).apply { action = ACTION_PAUSE },
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)).build()
         }
@@ -155,7 +158,7 @@ class WorkoutForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setContentIntent(contentIntent(sessionId = null))
             .addAction(pauseResumeAction)
-            .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_media_play, "Finish",
+            .addAction(NotificationCompat.Action.Builder(android.R.drawable.ic_media_play, tr("Finish"),
                 PendingIntent.getService(this, 1, Intent(this, WorkoutForegroundService::class.java).apply { action = ACTION_STOP },
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)).build())
             .build()
@@ -172,11 +175,11 @@ class WorkoutForegroundService : Service() {
         val units = com.pulseloop.settings.ApiKeyStore(this).resolvedUnitSystem
         val parts = mutableListOf(formatElapsed(elapsedSeconds))
         formatDistance(distanceMeters, units)?.let { parts += it }
-        calories?.let { parts += "${it.toInt()} cal" }
-        avgHeartRate?.let { parts += "avg ${it.toInt()} bpm" }
+        calories?.let { parts += trf("{0} cal", it.toInt()) }
+        avgHeartRate?.let { parts += trf("avg {0} bpm", it.toInt()) }
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("$name complete")
+            .setContentTitle(trf("{0} complete", name))
             .setContentText(parts.joinToString(" · "))
             .setSmallIcon(android.R.drawable.ic_dialog_map)
             .setOngoing(false)
@@ -216,7 +219,7 @@ class WorkoutForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Workout Live", NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Live workout tracking" }
+            ).apply { description = tr("Live workout tracking") }
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             nm.createNotificationChannel(channel)
         }

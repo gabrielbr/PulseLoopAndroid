@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -410,7 +412,7 @@ fun VitalsScreen(
                                     onClick = {
                                         runMeasurement(
                                             coordinator.remainingLegsMeasureSeconds, remainingLegsLabel,
-                                            caption = "Keep still — measuring $remainingLegsLabel…",
+                                            caption = trf("Keep still — measuring {0}…", remainingLegsLabel),
                                             failed = {
                                                 (coordinator.canMeasureBloodPressure &&
                                                     coordinator.bloodPressureState == failedState) ||
@@ -438,7 +440,7 @@ fun VitalsScreen(
                                         onClick = {
                                             runMeasurement(
                                                 coordinator.spotVitalMeasureSeconds, label,
-                                                caption = "Keep still — measuring ${vital.description}…",
+                                                caption = trf("Keep still — measuring {0}…", vital.description),
                                                 failed = { coordinator.vitalState(vital) == failedState },
                                             ) { coordinator.measureVitalOnly(vital) }
                                         },
@@ -472,7 +474,7 @@ fun VitalsScreen(
                         },
                     ) {
                         Text(
-                            if (measuring) "Measuring… ${remaining}s" else tr("Measure"),
+                            if (measuring) trf("Measuring… {0}s", remaining) else tr("Measure"),
                             color = androidx.compose.ui.graphics.Color.Unspecified,
                         )
                     }
@@ -1052,7 +1054,7 @@ private fun ReadingsCard(
                     onClick = { visibleCount += READINGS_PAGE_SIZE },
                     modifier = Modifier.padding(start = 8.dp),
                 ) {
-                    Text("Show ${minOf(READINGS_PAGE_SIZE, readings.size - visibleCount)} more", fontSize = 13.sp)
+                    Text(trf("Show {0} more", minOf(READINGS_PAGE_SIZE, readings.size - visibleCount)), fontSize = 13.sp)
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -1202,11 +1204,10 @@ private fun zoneRangeText(
 private fun metricDisclaimer(metric: String, isDerived: Boolean): String? = when {
     metric == "stress" && isDerived ->
         tr("Estimated from HRV — your ring doesn't measure stress. Scored against your own recent " +
-        "HRV readings, so it says how this reading compares with your normal, not how you compare " +
-        "with anyone else.")
+        tr("HRV readings, so it says how this reading compares with your normal, not how you compare with anyone else."))
     metric == "glucose" ->
         tr("Estimated wellness metric — not for dosing or diabetes decisions. No smart ring or watch is " +
-        "FDA-authorized to measure or estimate glucose on its own.")
+        tr("FDA-authorized to measure or estimate glucose on its own."))
     metric == "bp" ->
         tr("Ring blood pressure is an estimate. Calibrate against a validated cuff in Settings → Calibration, " +
         "and talk to a clinician about persistent high or low readings.")
@@ -1235,15 +1236,15 @@ private fun metricExplainer(metric: String): String = when (metric) {
     "hrv" -> tr("Heart-rate variability is the variation between beats. It's highly individual, so we track it " +
         "against your personal baseline rather than a universal cutoff.")
     "bp" -> tr("Blood pressure is systolic over diastolic (mmHg). The category is the worse of the two. " +
-        "A ring estimate is not a substitute for a cuff.")
+        tr("A ring estimate is not a substitute for a cuff."))
     "stress" -> tr("A device wellness score from 0–100 based on heart-rate patterns. Lower is calmer. " +
-        "It's an estimate, not a medical stress measure.")
+        tr("It's an estimate, not a medical stress measure."))
     "fatigue" -> tr("A device wellness score from 0–100 estimating tiredness. Higher means more fatigue. " +
-        "It's a ring estimate, not a clinical scale.")
+        tr("It's a ring estimate, not a clinical scale."))
     "glucose" -> tr("An estimated glucose value. No smart ring is cleared to measure glucose, so treat this " +
         "as a wellness estimate only.")
     "temp" -> tr("Skin temperature from the ring runs cooler than core body temperature. " +
-        "Trends over time matter more than any single reading.")
+        tr("Trends over time matter more than any single reading."))
     else -> ""
 }
 

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.animation.core.RepeatMode
@@ -116,11 +118,11 @@ fun ConnectionStatusPill(
     }
     val label = sourceLabel ?: when (state) {
         RingConnectionState.CONNECTED ->
-            if (batteryPercent != null && batteryPercent > 0) "Connected · $batteryPercent%" else "Connected"
+            if (batteryPercent != null && batteryPercent > 0) trf("Connected · {0}%", batteryPercent) else tr("Connected")
         RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> tr("Connecting…")
         RingConnectionState.FAILED -> tr("Sync failed")
         else -> if (idleNow) {
-            if (batteryPercent != null && batteryPercent > 0) "Idle · $batteryPercent%" else "Idle"
+            if (batteryPercent != null && batteryPercent > 0) trf("Idle · {0}%", batteryPercent) else tr("Idle")
         } else tr("Disconnected")
     }
     // Only run the transition while pulsing: an infinite 1f→1f animation still ticks every frame.

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -98,7 +100,7 @@ fun WorkoutMapView(
 
             // Info overlay
             val accuracy = points.last().horizontalAccuracy
-            val infoText = if (accuracy != null) "±${accuracy.toInt()}m · ${points.size} pts" else "${points.size} pts"
+            val infoText = if (accuracy != null) trf("±{0}m · {1} pts", accuracy.toInt(), points.size) else trf("{0} pts", points.size)
             Text(
                 infoText,
                 modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),

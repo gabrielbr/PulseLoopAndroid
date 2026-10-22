@@ -1,5 +1,8 @@
 package com.pulseloop.notifications
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import android.content.Context
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -525,7 +528,7 @@ private class CoachSlotProductionEngine(
         val input = JsonArray(listOf(
             JsonObject(mapOf(
                 "role" to JsonPrimitive("system"),
-                "content" to JsonPrimitive(NotificationPromptBuilder.systemPrompt(slot)),
+                "content" to JsonPrimitive(NotificationPromptBuilder.systemPrompt(slot) + com.pulseloop.ui.i18n.L10n.coachInstruction()),
             )),
             JsonObject(mapOf(
                 "role" to JsonPrimitive("developer"),
@@ -574,13 +577,13 @@ private class CoachSlotProductionEngine(
                     val h = sleep.totalMin / 60
                     val m = sleep.totalMin % 60
                     CoachNotificationContent(
-                        title = "Good morning$name",
-                        body = "You logged ${h}h ${m}m of sleep. Here's to a strong day — get moving when you can.",
+                        title = trf("Good morning{0}", name),
+                        body = trf("You logged {0}h {1}m of sleep. Here's to a strong day — get moving when you can.", h, m),
                     )
                 } else {
                     CoachNotificationContent(
-                        title = "Good morning$name",
-                        body = "Ready to start the day? Take a measurement and I'll help you plan it.",
+                        title = trf("Good morning{0}", name),
+                        body = tr("Ready to start the day? Take a measurement and I'll help you plan it."),
                     )
                 }
             }
@@ -588,15 +591,15 @@ private class CoachSlotProductionEngine(
                 val steps = packet.today.steps
                 if (steps != null) {
                     val goal = packet.goals.stepsDaily
-                    val hit = if (steps >= goal) "You hit your $goal step goal — nice work." else "${goal - steps} steps to your goal."
+                    val hit = if (steps >= goal) trf("You hit your {0} step goal — nice work.", goal) else trf("{0} steps to your goal.", goal - steps)
                     CoachNotificationContent(
-                        title = "Evening check-in",
-                        body = "$steps steps today. $hit Time to start winding down.",
+                        title = tr("Evening check-in"),
+                        body = trf("{0} steps today. {1} Time to start winding down.", steps, hit),
                     )
                 } else {
                     CoachNotificationContent(
-                        title = "Evening check-in",
-                        body = "How did today feel? Sync your ring and I'll recap your day.",
+                        title = tr("Evening check-in"),
+                        body = tr("How did today feel? Sync your ring and I'll recap your day."),
                     )
                 }
             }

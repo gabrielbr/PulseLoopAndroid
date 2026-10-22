@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.layout.*
@@ -72,7 +74,7 @@ fun SettingsScreen(
     val accuracyTrailing = openCheck?.let { c ->
         if (c.state == com.pulseloop.data.entity.AccuracyCheckEntity.STATE_RUNNING) {
             val (day, total) = AccuracyUiText.dayOf(c)
-            "Day $day of $total"
+            trf("Day {0} of {1}", day, total)
         } else tr("Report ready")
     }
 

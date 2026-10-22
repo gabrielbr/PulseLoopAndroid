@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.data.PulseLoopDatabase
 import java.time.Instant
 import java.time.ZoneId
@@ -61,10 +64,10 @@ object ActivityScore {
         if (i.stepGoal <= 0) return null
         val r = steps.toDouble() / i.stepGoal
         return ScoreContributor(
-            "Daily goal",
+            tr("Daily goal"),
             Readiness.curve(r, listOf(0.0 to 0.0, 0.5 to 50.0, 0.8 to 80.0, 1.0 to 100.0)),
-            "%,d of %,d steps".format(steps, i.stepGoal),
-            "Today's steps against your step goal. It fills up as the day goes on.",
+            tr("%,d of %,d steps").format(steps, i.stepGoal),
+            tr("Today's steps against your step goal. It fills up as the day goes on."),
             0.25,
         )
     }
@@ -74,10 +77,10 @@ object ActivityScore {
         if (week.size < 3 || i.stepGoal <= 0) return null
         val met = week.count { it >= i.stepGoal }
         return ScoreContributor(
-            "Meet daily goals",
+            tr("Meet daily goals"),
             Readiness.curve(met.toDouble(), listOf(0.0 to 20.0, 1.0 to 40.0, 2.0 to 55.0, 3.0 to 70.0, 5.0 to 100.0)),
-            "Goal met on $met of the last ${week.size} days",
-            "How many recent days you reached your step goal. Aim for at least 3 days a week, ideally 5 or more.",
+            trf("Goal met on {0} of the last {1} days", met, week.size),
+            tr("How many recent days you reached your step goal. Aim for at least 3 days a week, ideally 5 or more."),
             0.20,
         )
     }
@@ -92,10 +95,10 @@ object ActivityScore {
             .mapValues { (_, b) -> b.sumOf { it.second } }
         val inactive = hours.count { (byHour[it] ?: 0) < ACTIVE_HOUR_STEPS }
         return ScoreContributor(
-            "Move every hour",
+            tr("Move every hour"),
             Readiness.curve(inactive.toDouble(), listOf(0.0 to 100.0, 1.0 to 90.0, 3.0 to 70.0, 5.0 to 45.0, 8.0 to 10.0)),
-            if (inactive == 0) "Active every hour since ${DAY_START_HOUR}:00" else "$inactive inactive ${if (inactive == 1) "hour" else "hours"} since ${DAY_START_HOUR}:00",
-            "Long stretches without moving are linked to poorer health, even on days you exercise. A short walk every hour helps.",
+            if (inactive == 0) trf("Active every hour since {0}:00", DAY_START_HOUR) else trf("{0} inactive {1} since {2}:00", inactive, if (inactive == 1) tr("hour") else tr("hours"), DAY_START_HOUR),
+            tr("Long stretches without moving are linked to poorer health, even on days you exercise. A short walk every hour helps."),
             0.15,
         )
     }
@@ -105,10 +108,10 @@ object ActivityScore {
     internal fun trainingFrequency(i: Inputs): ScoreContributor {
         val n = recentWorkouts(i).size
         return ScoreContributor(
-            "Training frequency",
+            tr("Training frequency"),
             Readiness.curve(n.toDouble(), listOf(0.0 to 30.0, 1.0 to 55.0, 2.0 to 75.0, 3.0 to 100.0)),
-            "$n ${if (n == 1) "workout" else "workouts"} in the last 7 days",
-            "How often you exercised this week. Three or more sessions a week is a good target.",
+            trf("{0} {1} in the last 7 days", n, if (n == 1) tr("workout") else tr("workouts")),
+            tr("How often you exercised this week. Three or more sessions a week is a good target."),
             0.15,
         )
     }
@@ -116,10 +119,10 @@ object ActivityScore {
     internal fun trainingVolume(i: Inputs): ScoreContributor {
         val minutes = recentWorkouts(i).sumOf { it.minutes }
         return ScoreContributor(
-            "Training volume",
+            tr("Training volume"),
             Readiness.curve(minutes.toDouble(), listOf(0.0 to 30.0, 60.0 to 60.0, 150.0 to 100.0)),
-            "${SleepFormat.duration(minutes)} of exercise in the last 7 days",
-            "Total workout time this week. Health guidelines suggest at least 150 minutes of moderate activity a week.",
+            trf("{0} of exercise in the last 7 days", SleepFormat.duration(minutes)),
+            tr("Total workout time this week. Health guidelines suggest at least 150 minutes of moderate activity a week."),
             0.15,
         )
     }
@@ -128,10 +131,10 @@ object ActivityScore {
         val days = recentWorkouts(i).map { Instant.ofEpochMilli(it.startAt).atZone(i.zone).toLocalDate() }.toSet().size
         val rest = 7 - days
         return ScoreContributor(
-            "Recovery time",
+            tr("Recovery time"),
             Readiness.curve(rest.toDouble(), listOf(0.0 to 50.0, 1.0 to 80.0, 2.0 to 100.0)),
-            "$rest rest ${if (rest == 1) "day" else "days"} in the last 7",
-            "Rest days let your body adapt to training. One or two easier days a week is enough for most people.",
+            trf("{0} rest {1} in the last 7", rest, if (rest == 1) tr("day") else tr("days")),
+            tr("Rest days let your body adapt to training. One or two easier days a week is enough for most people."),
             0.10,
         )
     }

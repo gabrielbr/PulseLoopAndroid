@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import android.content.Context
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.ring.MeasurementKind
@@ -36,7 +39,7 @@ object ActivityDetection {
             val s = runStart ?: return
             if (count >= 2) {
                 val kind = if (fast * 2 > count) Proposal.Kind.RUN else Proposal.Kind.WALK
-                out += Proposal(kind, s, last + WINDOW, "%,d steps".format(total))
+                out += Proposal(kind, s, last + WINDOW, tr("%,d steps").format(total))
             }
             runStart = null; total = 0; fast = 0; count = 0
         }
@@ -63,7 +66,7 @@ object ActivityDetection {
         var start: Long? = null; var last = 0L; var peak = 0.0
         fun close() {
             val s = start ?: return
-            if (last - s >= 20 * 60_000L) out += Proposal(Proposal.Kind.CARDIO, s, last, "Heart rate up to ${peak.toInt()} bpm")
+            if (last - s >= 20 * 60_000L) out += Proposal(Proposal.Kind.CARDIO, s, last, trf("Heart rate up to {0} bpm", peak.toInt()))
             start = null; peak = 0.0
         }
         for ((t, bpm) in hr.sortedBy { it.first }) {
@@ -88,7 +91,7 @@ object ActivityDetection {
         fun close() {
             val s = start ?: return
             if (last - s >= 25 * 60_000L && n >= 4 && stepsBetween(s, last) < 60) {
-                out += Proposal(Proposal.Kind.NAP, s, last, "Heart rate stayed at your quiet level with no steps")
+                out += Proposal(Proposal.Kind.NAP, s, last, tr("Heart rate stayed at your quiet level with no steps"))
             }
             start = null; n = 0
         }
@@ -160,7 +163,7 @@ suspend fun ActivityDetection.accept(c: Context, db: PulseLoopDatabase, p: Activ
         val tag = JournalInsights.Tag.NAP.key
         db.journalDao().upsert(com.pulseloop.data.entity.JournalEntryEntity(com.pulseloop.data.entity.JournalEntryEntity.idFor(day, tag), day, tag))
     } else {
-        ManualActivityService.create(db, type, p.startAt, p.minutes.toDouble(), notes = "Detected by PulseLoop and confirmed")
+        ManualActivityService.create(db, type, p.startAt, p.minutes.toDouble(), notes = tr("Detected by PulseLoop and confirmed"))
     }
     answer(c, p)
 }

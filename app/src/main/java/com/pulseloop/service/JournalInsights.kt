@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import java.time.LocalDate
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -17,7 +20,7 @@ object JournalInsights {
 
     const val MIN_NIGHTS = 3
 
-    enum class Tag(val key: String, val label: String) {
+    enum class Tag(val key: String, private val labelEn: String) {
         ALCOHOL("alcohol", "Alcohol"),
         LATE_CAFFEINE("late_caffeine", "Caffeine after 2 pm"),
         LATE_MEAL("late_meal", "Late meal"),
@@ -28,6 +31,7 @@ object JournalInsights {
         TRAVEL("travel", "Travel"),
         RELAXATION("relaxation", "Meditation or relaxing"),
         NAP("nap", "Daytime nap");
+        val label: String get() = tr(labelEn)
 
         companion object {
             fun of(key: String) = entries.firstOrNull { it.key == key }
@@ -50,9 +54,9 @@ object JournalInsights {
         /** e.g. "HRV 18% lower, resting heart rate 4 bpm higher on the night after (5 nights)". */
         fun summary(): String {
             val parts = buildList {
-                hrvPct?.let { add("HRV ${abs(it)}% ${if (it < 0) "lower" else "higher"}") }
-                restingHr?.let { add("resting heart rate ${abs(it)} bpm ${if (it > 0) "higher" else "lower"}") }
-                sleepMinutes?.let { add("${abs(it)} min ${if (it < 0) "less" else "more"} sleep") }
+                hrvPct?.let { add("HRV ${abs(it)}% ${if (it < 0) tr("lower") else tr("higher")}") }
+                restingHr?.let { add(trf("resting heart rate {0} bpm {1}", abs(it), if (it > 0) tr("higher") else tr("lower"))) }
+                sleepMinutes?.let { add(trf("{0} min {1} sleep", abs(it), if (it < 0) tr("less") else tr("more"))) }
             }
             val what = if (parts.isEmpty()) "no clear effect yet" else parts.joinToString(", ")
             return "$what on the night after ($nightsWith nights)"

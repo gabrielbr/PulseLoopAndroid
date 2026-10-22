@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.ui.graphics.Color
@@ -85,7 +87,7 @@ data class DeviceHeroStatus(
 
             val batteryText = batteryPercent?.let { "${it.coerceIn(0, 100)}%" }
 
-            val syncText = lastSyncAt?.let { "Synced ${relativeShort(it, now)}" }
+            val syncText = lastSyncAt?.let { trf("Synced {0}", relativeShort(it, now)) }
 
             val action = when (state) {
                 RingConnectionState.CONNECTED -> Action.DISCONNECT
@@ -108,9 +110,9 @@ data class DeviceHeroStatus(
             val seconds = ((nowMillis - fromMillis) / 1000).coerceAtLeast(0)
             return when {
                 seconds < 60 -> "just now"
-                seconds < 3_600 -> "${seconds / 60}m ago"
-                seconds < 86_400 -> "${seconds / 3_600}h ago"
-                else -> "${seconds / 86_400}d ago"
+                seconds < 3_600 -> trf("{0}m ago", seconds / 60)
+                seconds < 86_400 -> trf("{0}h ago", seconds / 3_600)
+                else -> trf("{0}d ago", seconds / 86_400)
             }
         }
     }

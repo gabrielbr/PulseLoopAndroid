@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -30,21 +32,21 @@ object WeeklyRecap {
     fun rows(thisWeek: WeeklyReport.Week, lastWeek: WeeklyReport.Week?, workouts: Int): List<Row> = buildList {
         thisWeek.avgAsleepMinutes?.let { m ->
             val d = lastWeek?.avgAsleepMinutes?.let { m - it }
-            add(Row("Sleep a night", SleepFormat.duration(m), d?.let { if (kotlin.math.abs(it) < 5) "same as last week" else "${if (it > 0) "+" else "−"}${SleepFormat.duration(kotlin.math.abs(it))}" }))
+            add(Row(tr("Sleep a night"), SleepFormat.duration(m), d?.let { if (kotlin.math.abs(it) < 5) "same as last week" else "${if (it > 0) "+" else "−"}${SleepFormat.duration(kotlin.math.abs(it))}" }))
         }
         thisWeek.avgSteps?.let { s ->
             val d = lastWeek?.avgSteps?.takeIf { it > 0 }?.let { ((s - it) * 100.0 / it).roundToInt() }
-            add(Row("Steps a day", "%,d".format(s), d?.let { if (kotlin.math.abs(it) < 3) "same as last week" else "${if (it > 0) "+" else "−"}${kotlin.math.abs(it)}%" }))
+            add(Row(tr("Steps a day"), "%,d".format(s), d?.let { if (kotlin.math.abs(it) < 3) "same as last week" else "${if (it > 0) "+" else "−"}${kotlin.math.abs(it)}%" }))
         }
         thisWeek.avgRestingHr?.let { r ->
             val d = lastWeek?.avgRestingHr?.let { (r - it).roundToInt() }
-            add(Row("Resting heart rate", "${r.roundToInt()} bpm", d?.let { if (it == 0) "same as last week" else "${if (it > 0) "+" else "−"}${kotlin.math.abs(it)} bpm" }))
+            add(Row(tr("Resting heart rate"), "${r.roundToInt()} bpm", d?.let { if (it == 0) "same as last week" else "${if (it > 0) "+" else "−"}${kotlin.math.abs(it)} bpm" }))
         }
         thisWeek.avgHrv?.let { h ->
             val d = lastWeek?.avgHrv?.takeIf { it > 0 }?.let { ((h - it) / it * 100).roundToInt() }
             add(Row("HRV", "${h.roundToInt()} ms", d?.let { if (kotlin.math.abs(it) < 3) "same as last week" else "${if (it > 0) "+" else "−"}${kotlin.math.abs(it)}%" }))
         }
-        add(Row("Workouts", "$workouts", null))
+        add(Row(tr("Workouts"), "$workouts", null))
     }
 
     suspend fun load(db: PulseLoopDatabase, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Recap {
@@ -77,7 +79,7 @@ object WeeklyRecap {
             this.color = color.toInt(); textSize = size; typeface = Typeface.create(mono, if (bold) Typeface.BOLD else Typeface.NORMAL)
         }
         val mint = 0xFF43F3B7; val text = 0xFFF2F2F2; val muted = 0xFF7C7B82; val card = 0xFF1C1B1F
-        c.drawText("MY WEEK", 80f, 150f, paint(mint, 44f, bold = true))
+        c.drawText(tr("MY WEEK"), 80f, 150f, paint(mint, 44f, bold = true))
         c.drawText(recap.title, 80f, 220f, paint(text, 64f, bold = true))
         var y = 300f
         val cardPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = card.toInt() }
@@ -91,7 +93,7 @@ object WeeklyRecap {
             }
             y += 190f
         }
-        c.drawText("PulseLoop · from my ring, compared with last week", 80f, h - 70f, paint(muted, 28f))
+        c.drawText(tr("PulseLoop · from my ring, compared with last week"), 80f, h - 70f, paint(muted, 28f))
         val file = File(context.cacheDir, "pulseloop-week.png")
         file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bmp.recycle()
