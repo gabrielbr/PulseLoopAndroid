@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.layout.*
@@ -90,7 +92,7 @@ fun CoachModelPicker(
 
             if (others.isNotEmpty()) {
                 HorizontalDivider()
-                MenuHeader("All models from $providerName (${others.size})")
+                MenuHeader(trf("All models from {0} ({1})", providerName, others.size))
                 // OpenRouter lists hundreds; a filter beats scrolling, and the cap keeps the
                 // (non-lazy) menu from composing every row.
                 if (others.size > FILTER_THRESHOLD) {
@@ -110,12 +112,12 @@ fun CoachModelPicker(
                 matches.take(MAX_ROWS).forEach { e ->
                     val detail = listOfNotNull(
                         e.name?.takeIf { it != e.id },
-                        e.expiresOn?.let { "retiring $it" },
+                        e.expiresOn?.let { trf("retiring {0}", it) },
                     ).joinToString(" · ")
                     Item(e.id, detail)
                 }
                 if (matches.size > MAX_ROWS) {
-                    MenuHeader("${matches.size - MAX_ROWS} more — type to narrow")
+                    MenuHeader(trf("{0} more — type to narrow", matches.size - MAX_ROWS))
                 }
             }
         }
@@ -141,13 +143,13 @@ fun CoachModelPicker(
     }
     if (unlisted) {
         Text(
-            "$providerName doesn't list “$selected” any more — it may have been retired. Pick another model.",
+            trf("{0} doesn't list “{1}” any more — it may have been retired. Pick another model.", providerName, selected),
             style = MaterialTheme.typography.bodySmall,
             color = PulseColors.danger,
         )
     } else if (expiry != null) {
         Text(
-            "$providerName is retiring this model on $expiry.",
+            trf("{0} is retiring this model on {1}.", providerName, expiry),
             style = MaterialTheme.typography.bodySmall,
             color = PulseColors.warning,
         )

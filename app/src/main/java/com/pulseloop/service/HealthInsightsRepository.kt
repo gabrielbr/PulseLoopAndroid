@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import android.content.Context
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.BodyMeasurementEntity
@@ -193,9 +196,9 @@ object HealthInsightsRepository {
                 val spread = kotlin.math.sqrt(mids.sumOf { (it - m) * (it - m) } / mids.size)
                 val regularity = Readiness.curve(spread, listOf(30.0 to 100.0, 60.0 to 75.0, 120.0 to 25.0))
                 val score = (0.7 * HealthArea.scoreOf(ratio) + 0.3 * regularity).roundToInt()
-                add(HealthArea("Sleep health", HealthArea.rate(score), score,
+                add(HealthArea(tr("Sleep health"), HealthArea.rate(score), score,
                     weekly { n -> n.asleepMinutes.takeIf { it > 0 }?.div(60.0) },
-                    "Averaging ${SleepFormat.duration(asleep.map { it.asleepMinutes }.average().roundToInt())} against a need of ${SleepFormat.duration(need.minutes)}"))
+                    trf("Averaging {0} against a need of {1}", SleepFormat.duration(asleep.map { it.asleepMinutes }.average().roundToInt()), SleepFormat.duration(need.minutes))))
             }
             resilience?.let { r ->
                 val score = when (r.level) {
@@ -204,13 +207,13 @@ object HealthInsightsRepository {
                 }
                 val trend = stressRows.groupBy { Instant.ofEpochMilli(it.timestamp).atZone(zone).toLocalDate() }
                     .toSortedMap().values.map { d -> d.map { it.value }.average() }
-                add(HealthArea("Stress management", HealthArea.rate(score), score, trend, "Resilience ${r.level.label.lowercase()} over ${r.daysUsed} days"))
+                add(HealthArea(tr("Stress management"), HealthArea.rate(score), score, trend, trf("Resilience {0} over {1} days", r.level.label.lowercase(), r.daysUsed)))
             }
             cardio?.let { c ->
                 val expected = profile?.age?.let { CardioCapacity.expectedVo2(it, profile?.sex?.lowercase() == "female") }
                 val score = expected?.let { HealthArea.scoreOf(c.vo2max / it * 0.85) } ?: 60
-                add(HealthArea("Heart health", HealthArea.rate(score), score, weekly { it.restingHr },
-                    "Cardio capacity ${c.level.label.lowercase()}, estimated from resting heart rate and age"))
+                add(HealthArea(tr("Heart health"), HealthArea.rate(score), score, weekly { it.restingHr },
+                    trf("Cardio capacity {0}, estimated from resting heart rate and age", c.level.label.lowercase())))
             }
         }
 
@@ -255,9 +258,10 @@ object HealthInsightsRepository {
 
     // ── Trends ───────────────────────────────────────────────────────────────
 
-    enum class TrendMetric(val label: String, val unit: String) {
+    enum class TrendMetric(private val labelEn: String, val unit: String) {
         SLEEP("Sleep", "h"), STEPS("Steps", ""), ACTIVE("Active minutes", "min"), RESTING_HR("Resting HR", "bpm"),
-        HRV("HRV", "ms"), STRESS("Stress", ""), SPO2("Blood oxygen", "%"), TEMPERATURE("Temperature", "°C"), WEIGHT("Weight", "kg"),
+        HRV("HRV", "ms"), STRESS("Stress", ""), SPO2("Blood oxygen", "%"), TEMPERATURE("Temperature", "°C"), WEIGHT("Weight", "kg");
+        val label: String get() = tr(labelEn)
     }
 
     /** One value per day for [metric] over the last [days]. */

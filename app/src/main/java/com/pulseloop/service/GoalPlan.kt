@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import androidx.room.withTransaction
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.BodyMeasurementEntity
@@ -153,7 +156,7 @@ object GoalPlan {
         var pct: Double? = null
         var pace: String? = null
         if (kgToGo != null && current != null && daysLeft != null) {
-            if (daysLeft <= 0) notes += "The target date has passed; agree a new one."
+            if (daysLeft <= 0) notes += tr("The target date has passed; agree a new one.")
             else {
                 required = kgToGo / (daysLeft / 7.0)
                 pct = abs(required) / current * 100
@@ -165,7 +168,7 @@ object GoalPlan {
                 }
                 if (pct > 1.0) {
                     val safeDays = (abs(kgToGo) / (current * 0.01) * 7).roundToInt()
-                    notes += "At 1% of body weight a week this takes about $safeDays days."
+                    notes += trf("At 1% of body weight a week this takes about {0} days.", safeDays)
                 }
             }
         }
@@ -178,7 +181,7 @@ object GoalPlan {
                 else -> actual >= required * 0.8
             }
         } else null
-        if (actual == null && weightGoal) notes += "Not enough recent weigh-ins for a trend yet (needs 3 across a week)."
+        if (actual == null && weightGoal) notes += tr("Not enough recent weigh-ins for a trend yet (needs 3 across a week).")
 
         val floor = maxOf(i.bmrKcal ?: 0.0, if (i.sex?.lowercase() == "female") 1200.0 else 1500.0)
         var suggested: Double? = null
@@ -193,11 +196,11 @@ object GoalPlan {
             }
             suggested = i.avgBurnKcal + dailyDelta
             if (suggested < floor) {
-                notes += "The date needs more of a deficit than is safe; the suggestion is held at the floor."
+                notes += tr("The date needs more of a deficit than is safe; the suggestion is held at the floor.")
                 suggested = floor
             }
         }
-        if (i.loggedDays in 1..3) notes += "Only ${i.loggedDays} day(s) of food logged this week; intake may be incomplete."
+        if (i.loggedDays in 1..3) notes += trf("Only {0} day(s) of food logged this week; intake may be incomplete.", i.loggedDays)
 
         val protein = when {
             !weightGoal && g.kind != "eat_better" -> null
@@ -259,24 +262,24 @@ object GoalPlan {
 
         val sleepTargetH = (if (g.kind == "sleep_better") g.targetValue else null) ?: (i.sleepGoalMin / 60.0)
         val sleep = higher("sleep", i.avgSleepMin?.div(60), sleepTargetH, "h/night")
-        val regularity = lower("bedtime_regularity", i.bedtimeSpreadMin, 30.0, "min spread", "Bedtimes within about 30 minutes help sleep quality")
+        val regularity = lower("bedtime_regularity", i.bedtimeSpreadMin, 30.0, "min spread", tr("Bedtimes within about 30 minutes help sleep quality"))
         val workoutsTarget = (if (g.kind in setOf("get_fitter", "build_muscle")) g.targetValue else null) ?: i.workoutsGoal.toDouble()
         val workouts = higher("workouts", i.workoutsPerWeek, workoutsTarget, "per week")
         val stepsTarget = (if (g.kind == "move_more") g.targetValue else null) ?: i.stepsGoal.toDouble()
         val steps = higher("steps", i.avgSteps, stepsTarget, "per day")
         val active = higher("active_minutes", i.avgActiveMin, i.activeMinGoal.toDouble(), "min/day")
-        val protein = higher("protein", i.avgProteinG, proteinTarget, "g/day", if (i.loggedDays == 0) "No meals logged this week" else null)
+        val protein = higher("protein", i.avgProteinG, proteinTarget, "g/day", if (i.loggedDays == 0) tr("No meals logged this week") else null)
         val eaten = i.avgIntakeKcal
         val intake = when {
             suggestedIntake == null || eaten == null -> Lever("calories_eaten", eaten?.let(::round1), suggestedIntake?.let(::round1), "kcal/day", "unknown",
-                if (i.loggedDays == 0) "Log meals to compare intake with the plan" else null)
+                if (i.loggedDays == 0) tr("Log meals to compare intake with the plan") else null)
             g.kind == "build_muscle" || g.kind == "gain_weight" -> higher("calories_eaten", eaten, suggestedIntake, "kcal/day", slack = 0.95)
             g.kind == "maintain_weight" -> Lever("calories_eaten", round1(eaten), round1(suggestedIntake), "kcal/day",
                 if (abs(eaten - suggestedIntake) <= 200) "on_target" else "short")
             else -> lower("calories_eaten", eaten, suggestedIntake, "kcal/day")
         }
-        val rhr = trend("resting_hr", i.restingHr7, i.restingHrBase, "bpm", wantDown = true, note = "Last 7 nights against the 3 weeks before; falling means fitter or better recovered")
-        val hrv = trend("hrv", i.hrv7, i.hrvBase, "ms", wantDown = false, note = "Last 7 nights against the 3 weeks before; rising means better recovery")
+        val rhr = trend("resting_hr", i.restingHr7, i.restingHrBase, "bpm", wantDown = true, note = tr("Last 7 nights against the 3 weeks before; falling means fitter or better recovered"))
+        val hrv = trend("hrv", i.hrv7, i.hrvBase, "ms", wantDown = false, note = tr("Last 7 nights against the 3 weeks before; rising means better recovery"))
         val leanD = i.leanChange30d
         val fatD = i.fatPctChange30d
         val lean = Lever("lean_mass_change_30d", leanD?.let(::round1), null, "kg",
@@ -332,8 +335,8 @@ object GoalPlan {
     /** Short line for the coach screen's banner and check-ins, e.g. "Lose 5 kg by 18 Dec · 2.1 kg down · 38 days left". */
     fun headline(p: Plan): String = buildList {
         add(p.description.replaceFirstChar { it.uppercase() })
-        p.kgDone?.takeIf { abs(it) >= 0.1 }?.let { add("${abs(it)} kg ${if (it < 0) "down" else "up"}") }
-        p.daysLeft?.takeIf { it >= 0 }?.let { add("$it days left") }
+        p.kgDone?.takeIf { abs(it) >= 0.1 }?.let { add("${abs(it)} kg ${if (it < 0) tr("down") else tr("up")}") }
+        p.daysLeft?.takeIf { it >= 0 }?.let { add(trf("{0} days left", it)) }
     }.joinToString(" · ")
 
     private val LEVER_LABELS = mapOf(
@@ -353,7 +356,7 @@ object GoalPlan {
             val nums = if (short.value != null && short.target != null) " (${fmt(short.value)} of ${fmt(short.target)} ${short.unit})" else ""
             return "Focus: $label$nums"
         }
-        return if (p.levers.any { it.status == "on_target" }) "On track" else "Building a picture from your data"
+        return if (p.levers.any { it.status == "on_target" }) tr("On track") else tr("Building a picture from your data")
     }
 
     private fun fmt(v: Double) = if (v >= 100 || v == v.roundToInt().toDouble()) v.roundToInt().toString() else v.toString()

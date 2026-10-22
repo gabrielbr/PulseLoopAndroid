@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -82,7 +84,7 @@ fun ScoreRing(
     Box(
         Modifier.size(size).clearAndSetSemantics {
             // One spoken value instead of a bare number; an empty ring says so.
-            contentDescription = value?.let { "Score $it out of 100" } ?: tr("No score")
+            contentDescription = value?.let { trf("Score {0} out of 100", it) } ?: tr("No score")
             if (value != null) progressBarRangeInfo = ProgressBarRangeInfo(value.coerceIn(0, 100).toFloat(), 0f..100f)
         },
         contentAlignment = Alignment.Center,
@@ -384,7 +386,7 @@ fun activityHeadline(result: com.pulseloop.service.ActivityScore.Result?): Strin
         Readiness.Band.OPTIMAL -> tr("Great balance of movement and recovery. Keep it up.")
         Readiness.Band.GOOD -> tr("A solid active day so far.")
         Readiness.Band.FAIR, Readiness.Band.PAY_ATTENTION ->
-            if (weakest != null) "There's room to move more. Start with your $weakest." else "There's room to move more today."
+            if (weakest != null) trf("There's room to move more. Start with your {0}.", weakest) else tr("There's room to move more today.")
     }
 }
 
@@ -428,7 +430,7 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
                     Text(v, fontSize = 13.sp, color = PulseColors.textPrimary)
                 }
             }
-            night?.withheld?.values?.forEach { Text("Withheld: $it.", fontSize = 12.sp, color = PulseColors.warning) }
+            night?.withheld?.values?.forEach { Text(trf("Withheld: {0}.", it), fontSize = 12.sp, color = PulseColors.warning) }
         }
     }
 }

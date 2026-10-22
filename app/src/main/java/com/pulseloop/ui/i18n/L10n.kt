@@ -95,3 +95,14 @@ object L10n {
 
 /** The current language's text for an English UI string. */
 fun tr(en: String): String = L10n.translate(en)
+
+/**
+ * A string with values in it: the key holds `{0}`, `{1}`… where the values go, so the translation
+ * can move them (`"{0} steps today"` → `"{0} passos hoje"`). Each value is written as a template
+ * would write it (`toString()`), so the English result is exactly what the template produced.
+ */
+fun trf(en: String, vararg args: Any?): String {
+    var s = L10n.translate(en)
+    args.forEachIndexed { i, a -> s = s.replace("{$i}", a.toString()) }
+    return s
+}

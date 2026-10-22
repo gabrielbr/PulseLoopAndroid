@@ -1,5 +1,7 @@
 package com.pulseloop.notifications
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.coach.context.EnvironmentContext
 
 /**
@@ -10,9 +12,10 @@ import com.pulseloop.coach.context.EnvironmentContext
 /**
  * Notification slot types — ported from CoachNotificationSlot.swift.
  */
-enum class CoachNotificationSlot(val label: String) {
+enum class CoachNotificationSlot(private val labelEn: String) {
     MORNING("Morning"),
     EVENING("Evening");
+    val label: String get() = tr(labelEn)
 
     companion object {
         fun current(

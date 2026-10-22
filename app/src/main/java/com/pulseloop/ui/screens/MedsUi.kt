@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -113,7 +115,7 @@ fun MedsScreen(onBack: () -> Unit) {
                         val adherence = Meds.adherence(m, answers, today)
                         Text(
                             (if (m.kind == "supplement") tr("Supplement") else tr("Medication")) + " · " + Meds.times(m).joinToString(", ") +
-                                (adherence?.let { " · $it% taken this week" } ?: "") + if (!m.active) tr(" · paused") else "",
+                                (adherence?.let { trf(" · {0}% taken this week", it) } ?: "") + if (!m.active) tr(" · paused") else "",
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
                     }

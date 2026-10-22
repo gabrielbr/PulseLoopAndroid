@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.components.switchRow
@@ -69,7 +71,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             // ── Ring Event Log ──────────────────────────────────────────
             item {
-                DebugCard(tr("Ring Events"), trailing = "${events.size} recent") {
+                DebugCard(tr("Ring Events"), trailing = trf("{0} recent", events.size)) {
                     Text(
                         tr("Connection, command and reply events, stored as they happen. Times are local."),
                         style = MaterialTheme.typography.labelSmall,
@@ -112,7 +114,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
             // ── Raw Packets ─────────────────────────────────────────────
             item {
                 DebugCard(tr("Raw Packets")) {
-                    Text("$packetCount packets captured", style = MaterialTheme.typography.bodyMedium)
+                    Text(trf("{0} packets captured", packetCount), style = MaterialTheme.typography.bodyMedium)
                     Text("↓ = ring → app (response)   ↑ = app → ring (command)",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = { showPackets = !showPackets }) {
@@ -126,7 +128,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
             item {
                 DebugCard(tr("Database")) {
                     Text(tr("Row counts include demo and real rows. Tap a table to see its newest rows. " +
-                        "Stored health rows are never included in a diagnostics export."),
+                        tr("Stored health rows are never included in a diagnostics export.")),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     counts.forEach { count ->
                         Row(
@@ -140,7 +142,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                             }) {
                                 Text(count.name, style = MaterialTheme.typography.bodyMedium)
                             }
-                            Text("${count.count} rows", style = MaterialTheme.typography.bodyMedium,
+                            Text(trf("{0} rows", count.count), style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
                         }
                         if (expandedTable == count.name) {
@@ -212,7 +214,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
             // ── App Info ────────────────────────────────────────────────
             item {
                 DebugCard(tr("App Info")) {
-                    Text("PulseLoop ${BuildConfig.VERSION_NAME} (Android)", style = MaterialTheme.typography.bodyMedium)
+                    Text(trf("PulseLoop {0} (Android)", BuildConfig.VERSION_NAME), style = MaterialTheme.typography.bodyMedium)
                     Text(tr("Port from iOS · Open Source"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -79,7 +81,7 @@ internal fun AccuracyReportSection(
                 if (force) AccuracyScorer.score(context, check) else AccuracyScorer.scoreIfStale(context, check)
             }.getOrNull()
             status = when (r) {
-                AccuracyScorer.Result.Unavailable, null -> "Couldn't read ${check.referenceLabel} from Health Connect just now."
+                AccuracyScorer.Result.Unavailable, null -> trf("Couldn't read {0} from Health Connect just now.", check.referenceLabel)
                 else -> null
             }
             scoring = false
@@ -122,13 +124,13 @@ internal fun AccuracyReportSection(
             }) { Text(tr("Share")) }
         }
         Text(
-            "How your ring compares with ${check.referenceLabel}, the device you chose to trust. This is agreement between two " +
+            trf("How your ring compares with {0}, the device you chose to trust. This is agreement between two ", check.referenceLabel) +
                 "consumer devices, not a lab measurement.",
             fontSize = 12.sp, color = PulseColors.textMuted,
         )
         if (echo?.looksLikeEcho == true) {
             Text(
-                "${echo.matching} of ${echo.compared} heart-rate readings from ${check.referenceLabel} match your ring exactly. " +
+                trf("{0} of {1} heart-rate readings from {2} match your ring exactly. ", echo.matching, echo.compared, check.referenceLabel) +
                     tr("That looks like PulseLoop's own data coming back through a sync app, so this report would compare the ring " +
                     "with itself. Check the sync direction in that app."),
                 fontSize = 12.sp, color = PulseColors.danger,
@@ -136,7 +138,7 @@ internal fun AccuracyReportSection(
         }
         if (waitingDays > 0) {
             Text(
-                "Waiting for ${check.referenceLabel} to deliver $waitingDays day${if (waitingDays == 1) "" else "s"}. Open the app " +
+                trf("Waiting for {0} to deliver {1} day{2}. Open the app ", check.referenceLabel, waitingDays, if (waitingDays == 1) "" else "s") +
                     "that syncs it to send it sooner; otherwise those days are scored 24 hours after they end.",
                 fontSize = 12.sp, color = PulseColors.warning,
             )
@@ -219,16 +221,16 @@ private fun MetricCard(
         if (m.kind != ComparisonMetric.Kind.STAGES && summary.validDays > 0) {
             val (lo, hi) = summary.limits
             Text(
-                "Average difference ${AccuracyReportText.signed(m, summary.bias)}; 95 % of differences between " +
-                    "${AccuracyReportText.signed(m, lo)} and ${AccuracyReportText.signed(m, hi)}" +
-                    if (m.kind == ComparisonMetric.Kind.PAIRED) " (${summary.pairs} matched readings)." else ".",
+                trf("Average difference {0}; 95 % of differences between ", AccuracyReportText.signed(m, summary.bias)) +
+                    trf("{0} and {1}", AccuracyReportText.signed(m, lo), AccuracyReportText.signed(m, hi)) +
+                    if (m.kind == ComparisonMetric.Kind.PAIRED) trf(" ({0} matched readings).", summary.pairs) else ".",
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }
         if (m.kind == ComparisonMetric.Kind.STAGES) StageConfusion(days, check.referenceLabel)
         days.forEach { DayRow(m, it, check.referenceLabel) }
         if (m.kind != ComparisonMetric.Kind.STAGES) {
-            Text("Agreement band: ±${AccuracyReportText.magnitude(m, summary.band)}", fontSize = 12.sp, color = PulseColors.textPrimary)
+            Text(trf("Agreement band: ±{0}", AccuracyReportText.magnitude(m, summary.band)), fontSize = 12.sp, color = PulseColors.textPrimary)
             var draft by remember(summary.band) { mutableStateOf(summary.band.toFloat()) }
             val range = bandRange(m)
             Slider(
@@ -258,13 +260,13 @@ private fun DayRow(m: ComparisonMetric, d: AccuracyCheckDayEntity, ref: String) 
     val text = when (m.kind) {
         ComparisonMetric.Kind.DAILY -> {
             val diff = AccuracyComparison.diff(m, d.ringValue, d.refValue)
-            "$date · ring ${AccuracyReportText.value(m, d.ringValue)} · $ref ${AccuracyReportText.value(m, d.refValue)}" +
+            trf("{0} · ring {1} · {2} {3}", date, AccuracyReportText.value(m, d.ringValue), ref, AccuracyReportText.value(m, d.refValue)) +
                 (diff?.let { " (${AccuracyReportText.signed(m, it)})" } ?: "")
         }
         ComparisonMetric.Kind.PAIRED ->
-            "$date · ${d.pairs} readings · ${if (d.pairs > 0) AccuracyReportText.signed(m, d.sumDiff / d.pairs) else "—"} on average"
+            trf("{0} · {1} readings · {2} on average", date, d.pairs, if (d.pairs > 0) AccuracyReportText.signed(m, d.sumDiff / d.pairs) else "—")
         ComparisonMetric.Kind.STAGES ->
-            "$date · ${if (d.pairs > 0) "${(d.inBand * 100.0 / d.pairs).roundToInt()} % of ${d.pairs} min on the same stage" else "no overlap"}"
+            "$date · ${if (d.pairs > 0) trf("{0} % of {1} min on the same stage", (d.inBand * 100.0 / d.pairs).roundToInt(), d.pairs) else tr("no overlap")}"
     }
     Text(text + (note?.let { " — $it" } ?: ""), fontSize = 12.sp, color = if (d.valid) PulseColors.textSecondary else PulseColors.textMuted)
 }
@@ -277,7 +279,7 @@ private fun StageConfusion(days: List<AccuracyCheckDayEntity>, ref: String) {
     }
     if (totals.isEmpty()) return
     val stages = listOf(Stage.AWAKE, Stage.LIGHT, Stage.DEEP, Stage.REM)
-    Text("When the ring says… what $ref says (minutes)", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+    Text(trf("When the ring says… what {0} says (minutes)", ref), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
     stages.forEach { ringStage ->
         val row = stages.map { totals[ringStage to it] ?: 0 }
         if (row.sum() == 0) return@forEach
@@ -307,23 +309,23 @@ internal fun AccuracyCorrectionControl(check: AccuracyCheckEntity, summary: Accu
     val paired = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID && RingIdentity.keyOf(it) == check.deviceKey } == true
 
     if (!paired) {
-        Text("This check was run on ${check.deviceLabel}. Pair that ring to apply a correction from it.", fontSize = 12.sp, color = PulseColors.textMuted)
+        Text(trf("This check was run on {0}. Pair that ring to apply a correction from it.", check.deviceLabel), fontSize = 12.sp, color = PulseColors.textMuted)
         return
     }
     when {
         existing != null && existing.enabled -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Correction on: ${AccuracyCorrections.formatValue(metric, existing.value)}", fontSize = 12.sp,
+            Text(trf("Correction on: {0}", AccuracyCorrections.formatValue(metric, existing.value)), fontSize = 12.sp,
                 color = PulseColors.success, modifier = Modifier.weight(1f))
             TextButton(onClick = { editing = true }) { Text(tr("Change")) }
             TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, false) } }) { Text(tr("Turn off")) }
         }
         existing != null -> Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Correction off (${AccuracyCorrections.formatValue(metric, existing.value)})", fontSize = 12.sp,
+            Text(trf("Correction off ({0})", AccuracyCorrections.formatValue(metric, existing.value)), fontSize = 12.sp,
                 color = PulseColors.textMuted, modifier = Modifier.weight(1f))
             TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, true) } }) { Text(tr("Turn on")) }
         }
         else -> Button(onClick = { editing = true }, modifier = Modifier.fillMaxWidth()) {
-            Text("Apply correction (${AccuracyCorrections.formatValue(metric, fitted)})")
+            Text(trf("Apply correction ({0})", AccuracyCorrections.formatValue(metric, fitted)))
         }
     }
     if (editing) {
@@ -347,13 +349,13 @@ private fun CorrectionDialog(
     var value by remember { mutableStateOf(start.coerceIn(range.start.toDouble(), range.endInclusive.toDouble())) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Correct ${metric.label.lowercase()}") },
+        title = { Text(trf("Correct {0}", metric.label.lowercase())) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "Fitted from this check so your ring matches $ref: ${AccuracyCorrections.formatValue(metric, fitted)}. " +
+                    trf("Fitted from this check so your ring matches {0}: {1}. ", ref, AccuracyCorrections.formatValue(metric, fitted)) +
                         tr("It changes what PulseLoop shows and what it works out from it (zones, resting baseline, calorie estimate). " +
-                        "Your ring's stored readings and what goes to Health Connect stay as measured."),
+                        tr("Your ring's stored readings and what goes to Health Connect stay as measured.")),
                     fontSize = 12.sp,
                 )
                 Text(AccuracyCorrections.formatValue(metric, value), fontSize = 20.sp, fontWeight = FontWeight.Bold)
@@ -396,7 +398,7 @@ internal fun AccuracyCorrectionsCard() {
     val key = RingIdentity.keyOf(r)
     val mine = all.filter { it.deviceKey == key }.sortedBy { ComparisonMetric.byName(it.metric)?.ordinal ?: 99 }
     AccuracyCard {
-        Text("Corrections for ${RingIdentity.labelOf(r)}", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(trf("Corrections for {0}", RingIdentity.labelOf(r)), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         if (mine.isEmpty()) {
             Text(
                 if (all.isNotEmpty()) tr("No accuracy check for this ring yet. Corrections from another ring don't carry over.")
@@ -411,7 +413,7 @@ internal fun AccuracyCorrectionsCard() {
                 Column(Modifier.weight(1f)) {
                     Text("${m.label}: ${AccuracyCorrections.formatValue(m, c.value)}", fontSize = 13.sp, color = PulseColors.textPrimary)
                     if (AccuracyCorrections.isStale(c, r)) {
-                        Text("Fitted ${AccuracyUiText.date(c.createdAt)}${if (c.firmware != null && c.firmware != r.firmwareVersion) " on other firmware" else ""}: worth a fresh check.",
+                        Text(trf("Fitted {0}{1}: worth a fresh check.", AccuracyUiText.date(c.createdAt), if (c.firmware != null && c.firmware != r.firmwareVersion) " on other firmware" else ""),
                             fontSize = 11.sp, color = PulseColors.warning)
                     }
                 }

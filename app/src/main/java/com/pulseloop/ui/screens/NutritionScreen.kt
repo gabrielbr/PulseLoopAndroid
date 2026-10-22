@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.layout.*
@@ -188,9 +190,9 @@ fun NutritionScreen(
                         onDiscuss = onDiscuss?.let { discuss ->
                             {
                                 discuss(
-                                    "For my next meal (${idea.slot}) you suggested: " +
+                                    trf("For my next meal ({0}) you suggested: ", idea.slot) +
                                         idea.items.joinToString(", ") { "${it.name} (${it.portion})" } +
-                                        ", about ${idea.totalKcal} kcal. Can we look at alternatives?"
+                                        trf(", about {0} kcal. Can we look at alternatives?", idea.totalKcal)
                                 )
                             }
                         },
@@ -214,7 +216,7 @@ fun NutritionScreen(
                                     Text("${meal.calories.roundToInt()} kcal · P${meal.proteinG.roundToInt()} C${meal.carbsG.roundToInt()} F${meal.fatG.roundToInt()}", fontSize = 12.sp, color = PulseColors.textMuted)
                                 }
                                 IconButton(onClick = { mealToDelete = meal }) {
-                                    Icon(Icons.Filled.Delete, "Delete ${meal.name}", tint = PulseColors.danger, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Filled.Delete, trf("Delete {0}", meal.name), tint = PulseColors.danger, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -265,7 +267,7 @@ fun NutritionScreen(
         AlertDialog(
             onDismissRequest = { mealToDelete = null },
             title = { Text(tr("Delete meal?")) },
-            text = { Text("\"${meal.name}\" will be removed from this day's log.") },
+            text = { Text(trf("\"{0}\" will be removed from this day's log.", meal.name)) },
             confirmButton = {
                 TextButton(onClick = {
                     mealToDelete = null
@@ -567,7 +569,7 @@ private fun NextMealCard(
         border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors.accent),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("NEXT MEAL IDEA · ${idea.slot.uppercase()}", fontSize = 11.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+            Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), fontSize = 11.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
             if (idea.items.isEmpty()) {
                 Text(idea.note ?: "", fontSize = 14.sp, color = PulseColors.textPrimary)
             } else {
@@ -581,7 +583,7 @@ private fun NextMealCard(
                     }
                 }
                 Text(
-                    "≈ ${idea.totalKcal} kcal · ${idea.totalProteinG} g protein · leaves ${idea.leavesKcal} kcal",
+                    trf("≈ {0} kcal · {1} g protein · leaves {2} kcal", idea.totalKcal, idea.totalProteinG, idea.leavesKcal),
                     fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
                 )
                 if (idea.fromPreferences.isNotEmpty()) {

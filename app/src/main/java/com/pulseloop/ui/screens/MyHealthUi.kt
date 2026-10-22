@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.components.rememberReduceMotion
@@ -195,7 +197,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(cycle?.let { "Cycle · day ${it.cycleDay} · ${it.phase.label}" } ?: "Cycle", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(cycle?.let { trf("Cycle · day {0} · {1}", it.cycleDay, it.phase.label) } ?: tr("Cycle"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         Text(cycle?.phase?.note ?: tr("Log your period to see its phase beside your sleep and recovery"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
@@ -248,7 +250,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
 private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate?, onRest: (Int?) -> Unit) {
     Section(tr("Symptom Radar")) {
         if (r == null || r.baselineNights < SymptomRadar.MIN_BASELINE) {
-            Text("Learning your normal: ${r?.baselineNights ?: 0} of ${SymptomRadar.MIN_BASELINE} nights.", fontSize = 13.sp, color = PulseColors.textSecondary)
+            Text(trf("Learning your normal: {0} of {1} nights.", r?.baselineNights ?: 0, SymptomRadar.MIN_BASELINE), fontSize = 13.sp, color = PulseColors.textSecondary)
         } else {
             val color = when (r.level) {
                 SymptomRadar.Level.NONE -> PulseColors.success
@@ -269,7 +271,7 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
             Column(Modifier.weight(1f)) {
                 Text(tr("Rest Mode"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
-                    restUntil?.let { "On until ${it.dayOfMonth}/${it.monthValue}: activity nudges paused, the coach eases off." }
+                    restUntil?.let { trf("On until {0}/{1}: activity nudges paused, the coach eases off.", it.dayOfMonth, it.monthValue) }
                         ?: tr("Feeling unwell? Pause activity nudges for 3 days."),
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
@@ -289,10 +291,10 @@ private fun SleepSection(s: HealthInsightsRepository.Snapshot) {
                 SleepDebt.Level.NONE -> PulseColors.success; SleepDebt.Level.LOW -> PulseColors.info
                 SleepDebt.Level.MODERATE -> PulseColors.warning; SleepDebt.Level.HIGH -> PulseColors.danger
             }
-            Fact(tr("Sleep debt"), "${d.level.label} · ${SleepFormat.duration(d.minutes)}", "Last 14 nights, recent nights weigh more", color)
+            Fact(tr("Sleep debt"), "${d.level.label} · ${SleepFormat.duration(d.minutes)}", tr("Last 14 nights, recent nights weigh more"), color)
         } ?: Fact(tr("Sleep debt"), "—", tr("Needs 5 nights in the last 2 weeks"))
         s.bodyClock?.let { c ->
-            Fact(tr("Body clock"), c.chronotype.label, "Usual sleep midpoint ${c.midpointLabel()} · this week ${c.alignment.label.lowercase()}" +
+            Fact(tr("Body clock"), c.chronotype.label, trf("Usual sleep midpoint {0} · this week {1}", c.midpointLabel(), c.alignment.label.lowercase()) +
                 if (c.alignment != BodyClock.Alignment.ALIGNED) " (${if (c.recentShiftMin > 0) "+" else ""}${c.recentShiftMin} min)" else "")
         }
     }
@@ -306,7 +308,7 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
         if (z == null) {
             Text(tr("No daytime stress readings today yet."), fontSize = 13.sp, color = PulseColors.textMuted)
         } else {
-            Text("Today: ${z.summary.label}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(trf("Today: {0}", z.summary.label), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             val total = z.totalMin.coerceAtLeast(1).toFloat()
             Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(2.dp))) {
                 listOf(z.restoredMin to PulseColors.success, z.relaxedMin to PulseColors.info,
@@ -314,10 +316,10 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
                     if (m > 0) Box(Modifier.weight(m / total).fillMaxHeight().background(c))
                 }
             }
-            Text("Restored ${SleepFormat.duration(z.restoredMin)} · relaxed ${SleepFormat.duration(z.relaxedMin)} · engaged ${SleepFormat.duration(z.engagedMin)} · stressed ${SleepFormat.duration(z.stressedMin)}",
+            Text(trf("Restored {0} · relaxed {1} · engaged {2} · stressed {3}", SleepFormat.duration(z.restoredMin), SleepFormat.duration(z.relaxedMin), SleepFormat.duration(z.engagedMin), SleepFormat.duration(z.stressedMin)),
                 fontSize = 12.sp, color = PulseColors.textMuted)
         }
-        s.resilience?.let { Fact(tr("Resilience"), it.level.label, "Daytime recovery against stress, and how well nights restore you (${it.daysUsed} days)") }
+        s.resilience?.let { Fact(tr("Resilience"), it.level.label, trf("Daytime recovery against stress, and how well nights restore you ({0} days)", it.daysUsed)) }
         val sessions = remember { MindfulSessions.all(context) }
         val week = sessions.filter { it.startAt >= System.currentTimeMillis() - 7 * 86_400_000L }
         Fact(tr("Breathing sessions this week"), "${week.size} · ${week.sumOf { it.minutes }} min")
@@ -326,7 +328,7 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
         effect?.let { e ->
             Fact(
                 tr("After a session"), "HRV ${if (e.hrvChangePct >= 0) "+" else ""}${e.hrvChangePct}%",
-                "Two hours after against two hours before, over ${e.sessions} sessions. Readings during a session aren't counted: slow breathing raises HRV while it lasts.",
+                trf("Two hours after against two hours before, over {0} sessions. Readings during a session aren't counted: slow breathing raises HRV while it lasts.", e.sessions),
             )
         }
         OutlinedButton(onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text(tr("Start a breathing session")) }
@@ -346,12 +348,12 @@ private fun HeartSection(s: HealthInsightsRepository.Snapshot) {
         s.cardioLoad?.let { l ->
             Fact(
                 tr("Cardio load today"), "${l.load}" + (l.band?.let { " · ${it.label}" } ?: ""),
-                "Heart rate above your quiet waking ${l.quietHr} bpm, ${l.elevatedMinutes} min well above it" +
-                    (l.usual?.let { ". Your usual day: $it" } ?: ""),
+                trf("Heart rate above your quiet waking {0} bpm, {1} min well above it", l.quietHr, l.elevatedMinutes) +
+                    (l.usual?.let { trf(". Your usual day: {0}", it) } ?: ""),
             )
         }
         s.cardio?.let { c ->
-            Fact("Cardio capacity (VO₂max)", "%.0f · %s".format(c.vo2max, c.level.label),
+            Fact(tr("Cardio capacity (VO₂max)"), "%.0f · %s".format(c.vo2max, c.level.label),
                 if (c.fromRing) tr("Measured by your ring") else tr("Estimated from resting heart rate and age"))
             // No "cardiovascular age": from a ring it would only restate resting heart rate and age
             // as a number of years, which reads as far more than it is (OpenStrap Edge dropped its
@@ -374,8 +376,8 @@ private fun Legend(color: Color, label: String) {
 fun HeartRateContextChart(samples: List<VitalSample>, sleep: List<LongRange>, workouts: List<LongRange>) {
     val sorted = remember(samples) { samples.sortedBy { it.timestampMs } }
     val summary = remember(sorted) {
-        "Heart rate since last night: latest ${sorted.last().value.roundToInt()} bpm, " +
-            "range ${sorted.minOf { it.value }.roundToInt()}–${sorted.maxOf { it.value }.roundToInt()} bpm, ${sorted.size} readings"
+        trf("Heart rate since last night: latest {0} bpm, ", sorted.last().value.roundToInt()) +
+            trf("range {0}–{1} bpm, {2} readings", sorted.minOf { it.value }.roundToInt(), sorted.maxOf { it.value }.roundToInt(), sorted.size)
     }
     Canvas(Modifier.fillMaxWidth().height(90.dp).semantics { contentDescription = summary }) {
         val t0 = sorted.first().timestampMs; val t1 = sorted.last().timestampMs.coerceAtLeast(t0 + 1)
@@ -401,7 +403,7 @@ private fun HabitsSection(h: HealthInsightsRepository.Habits) {
         h.bedtime?.let { Fact(tr("Bedtime"), it) }
         h.wake?.let { Fact(tr("Wake-up"), it) }
         h.sleepMin?.let { Fact(tr("Sleep"), SleepFormat.duration(it)) }
-        h.steps?.let { Fact("Steps", "%,d".format(it)) }
+        h.steps?.let { Fact(tr("Steps"), "%,d".format(it)) }
         h.activeMin?.let { Fact(tr("Active minutes"), "$it min") }
         h.restingHr?.let { Fact(tr("Resting heart rate"), "${it.roundToInt()} bpm") }
         if (listOf(h.bedtime, h.steps, h.restingHr).all { it == null }) {
@@ -445,14 +447,14 @@ private fun TrendsSection(db: PulseLoopDatabase) {
         }
         val pts = points
         when {
-            pts == null && trendFailed -> Text("Couldn't load ${metric.label.lowercase()} trends.", fontSize = 12.sp, color = PulseColors.warning)
+            pts == null && trendFailed -> Text(trf("Couldn't load {0} trends.", metric.label.lowercase()), fontSize = 12.sp, color = PulseColors.warning)
             pts == null -> Text(tr("Loading…"), fontSize = 12.sp, color = PulseColors.textMuted)
-            pts.size < 2 -> Text("Not enough ${metric.label.lowercase()} data for this view yet.", fontSize = 12.sp, color = PulseColors.textMuted)
+            pts.size < 2 -> Text(trf("Not enough {0} data for this view yet.", metric.label.lowercase()), fontSize = 12.sp, color = PulseColors.textMuted)
             else -> {
                 val shown = pts.takeLast(if (period == Trends.Period.DAY) 30 else 26)
                 val fmt = if (metric == TrendMetric.TEMPERATURE || metric == TrendMetric.SLEEP || metric == TrendMetric.WEIGHT) "%.1f" else "%.0f"
-                val summary = "${metric.label} by ${period.label.lowercase()}: latest ${fmt.format(shown.last().value)} ${metric.unit}, " +
-                    "range ${fmt.format(shown.minOf { it.value })}–${fmt.format(shown.maxOf { it.value })} ${metric.unit}, ${shown.size} points"
+                val summary = trf("{0} by {1}: latest {2} {3}, ", metric.label, period.label.lowercase(), fmt.format(shown.last().value), metric.unit) +
+                    trf("range {0}–{1} {2}, {3} points", fmt.format(shown.minOf { it.value }), fmt.format(shown.maxOf { it.value }), metric.unit, shown.size)
                 Canvas(Modifier.fillMaxWidth().height(120.dp).semantics { contentDescription = summary }) {
                     val max = shown.maxOf { it.value }; val min = minOf(0.0, shown.minOf { it.value })
                     val lo = if (metric in setOf(TrendMetric.RESTING_HR, TrendMetric.HRV, TrendMetric.SPO2, TrendMetric.TEMPERATURE, TrendMetric.WEIGHT))
@@ -465,7 +467,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
                     }
                 }
                 val last = shown.last()
-                Text("Latest ${period.label.lowercase()}: ${fmt.format(last.value)} ${metric.unit} · average ${fmt.format(shown.map { it.value }.average())} ${metric.unit}",
+                Text(trf("Latest {0}: {1} {2} · average {3} {4}", period.label.lowercase(), fmt.format(last.value), metric.unit, fmt.format(shown.map { it.value }.average()), metric.unit),
                     fontSize = 12.sp, color = PulseColors.textSecondary)
             }
         }
@@ -549,9 +551,9 @@ fun BreatheScreen(onBack: () -> Unit) {
             }
             r != null -> {
                 Text(tr("Session saved"), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("${r.minutes} min" + (r.avgHr?.let { " · average $it bpm" } ?: ""), fontSize = 15.sp, color = PulseColors.textSecondary)
+                Text("${r.minutes} min" + (r.avgHr?.let { trf(" · average {0} bpm", it) } ?: ""), fontSize = 15.sp, color = PulseColors.textSecondary)
                 if (r.startHr != null && r.endHr != null) {
-                    Text("Heart rate ${r.startHr} → ${r.endHr} bpm", fontSize = 15.sp, color = PulseColors.textSecondary)
+                    Text(trf("Heart rate {0} → {1} bpm", r.startHr, r.endHr), fontSize = 15.sp, color = PulseColors.textSecondary)
                 } else {
                     Text(tr("Your ring logs heart rate every few minutes, so short sessions may show none."), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
@@ -595,7 +597,7 @@ fun MyHealthEntryCard(onClick: () -> Unit) {
         Column(Modifier.weight(1f)) {
             Text(tr("My Health & Trends"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(
-                if (restUntil != null) "Rest Mode on until ${restUntil.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())}"
+                if (restUntil != null) trf("Rest Mode on until {0}", restUntil.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()))
                 else tr("Symptom radar, sleep debt, stress, body clock, cardio capacity"),
                 fontSize = 12.sp, color = if (restUntil != null) PulseColors.accent else PulseColors.textMuted,
             )
@@ -634,7 +636,7 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
                 }, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare with my phone")) }
             }
             result == null -> Text(
-                "Collecting: needs ${com.pulseloop.service.StepCalibration.MIN_DAYS} days with at least ${com.pulseloop.service.StepCalibration.MIN_STEPS} steps on both. Carry your phone as usual.",
+                trf("Collecting: needs {0} days with at least {1} steps on both. Carry your phone as usual.", com.pulseloop.service.StepCalibration.MIN_DAYS, com.pulseloop.service.StepCalibration.MIN_STEPS),
                 fontSize = 13.sp, color = PulseColors.textMuted,
             )
             else -> {
@@ -642,9 +644,9 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
                 val pct = ((r.factor - 1) * 100).roundToInt()
                 Text(
                     when {
-                        kotlin.math.abs(pct) < 5 -> "Your ring and phone agree within 5% (${r.days} days)."
-                        pct > 0 -> "Your ring counts about $pct% fewer steps than your phone (${r.days} days)."
-                        else -> "Your ring counts about ${-pct}% more steps than your phone (${r.days} days)."
+                        kotlin.math.abs(pct) < 5 -> trf("Your ring and phone agree within 5% ({0} days).", r.days)
+                        pct > 0 -> trf("Your ring counts about {0}% fewer steps than your phone ({1} days).", pct, r.days)
+                        else -> trf("Your ring counts about {0}% more steps than your phone ({1} days).", -pct, r.days)
                     },
                     fontSize = 14.sp, color = PulseColors.textPrimary,
                 )

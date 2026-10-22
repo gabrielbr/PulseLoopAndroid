@@ -1,5 +1,7 @@
 package com.pulseloop.widgets
 
+import com.pulseloop.ui.i18n.tr
+
 import android.graphics.Bitmap
 import android.graphics.BlurMaskFilter
 import android.graphics.Canvas
@@ -107,7 +109,7 @@ class WidgetTileRenderer(private val density: Float) {
         if (payload == null || rolledOver) {
             drawEmptyMessage(
                 canvas, rect,
-                if (rolledOver) "No data yet today" else "Open PulseLoop to sync",
+                if (rolledOver) tr("No data yet today") else tr("Open PulseLoop to sync"),
                 PulseColors.steps.toArgb(),
             )
         } else {
@@ -172,7 +174,7 @@ class WidgetTileRenderer(private val density: Float) {
                 if (payload == null) {
                     drawEmptyMessage(
                         canvas, content,
-                        if (snapshot == null) "Open PulseLoop to sync" else "No data",
+                        if (snapshot == null) tr("Open PulseLoop to sync") else tr("No data"),
                         accent,
                     )
                 } else {
@@ -265,7 +267,7 @@ class WidgetTileRenderer(private val density: Float) {
         if (values.isEmpty()) {
             drawEmptyMessage(
                 canvas, rect,
-                if (rolledOver) "No data yet today" else "Open PulseLoop to sync",
+                if (rolledOver) tr("No data yet today") else tr("Open PulseLoop to sync"),
                 PulseColors.steps.toArgb(),
             )
             return
@@ -323,14 +325,14 @@ class WidgetTileRenderer(private val density: Float) {
         val rowH = textHeight(textPaint(15f, 0)) + dp(5f) + textHeight(textPaint(32f, 0))
         val totalH = rowH * 2 + dp(14f)
         val top = rect.top + ((rect.height() - totalH) / 2f).coerceAtLeast(0f)
-        metricBlock(rect.left, top, "Steps", payload.stepsText, null, PulseColors.steps.toArgb(), colW - dp(6f))
+        metricBlock(rect.left, top, tr("Steps"), payload.stepsText, null, PulseColors.steps.toArgb(), colW - dp(6f))
         metricBlock(
-            rect.left + colW, top, "Distance", payload.distanceText,
+            rect.left + colW, top, tr("Distance"), payload.distanceText,
             if (payload.distanceText != null) payload.distanceUnitLabel.lowercase() else null,
             PulseColors.distance.toArgb(), colW - dp(6f),
         )
         metricBlock(
-            rect.left, top + rowH + dp(14f), "Calories", payload.caloriesText,
+            rect.left, top + rowH + dp(14f), tr("Calories"), payload.caloriesText,
             if (payload.caloriesText != null) "cal" else null,
             PulseColors.calories.toArgb(), colW - dp(6f),
         )
@@ -340,7 +342,7 @@ class WidgetTileRenderer(private val density: Float) {
 
     private fun drawSleepContent(canvas: Canvas, rect: RectF, payload: WidgetSleepPayload?, rolledOver: Boolean) {
         if (payload == null || rolledOver) {
-            drawEmptyMessage(canvas, rect, "No sleep recorded", PulseColors.sleep.toArgb())
+            drawEmptyMessage(canvas, rect, tr("No sleep recorded"), PulseColors.sleep.toArgb())
             return
         }
         var y = rect.top

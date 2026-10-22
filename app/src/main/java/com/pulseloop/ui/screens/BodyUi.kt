@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.components.switchRow
@@ -131,13 +133,13 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
                 Text("$unit · $whenText", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 5.dp))
             }
             val facts = buildList {
-                s.bodyFatPct?.let { add("Body fat ${"%.1f".format(it)}%") }
-                s.leanMassKg?.let { add("Lean ${"%.1f".format(UnitConverter.weight(it, units))} $unit") }
-                s.heightCm?.takeIf { it > 0 }?.let { h -> add("BMI ${"%.1f".format(w.value / ((h / 100) * (h / 100)))}") }
+                s.bodyFatPct?.let { add(trf("Body fat {0}%", "%.1f".format(it))) }
+                s.leanMassKg?.let { add(trf("Lean {0} {1}", "%.1f".format(UnitConverter.weight(it, units)), unit)) }
+                s.heightCm?.takeIf { it > 0 }?.let { h -> add(trf("BMI {0}", "%.1f".format(w.value / ((h / 100) * (h / 100))))) }
             }
             if (facts.isNotEmpty()) Text(facts.joinToString(" · "), fontSize = 13.sp, color = PulseColors.textSecondary)
             if (s.trend.size >= 2) WeightLine(s.trend, units)
-            Text("From ${w.source}", fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(trf("From {0}", w.source), fontSize = 11.sp, color = PulseColors.textMuted)
         }
         note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         if (enabled) {
@@ -155,8 +157,8 @@ private fun WeightLine(points: List<BodyMeasurementEntity>, units: UnitSystem) {
     val t1 = points.last().measuredAt
     val unit = UnitConverter.weightUnit(units)
     fun shown(kg: Double) = "%.1f".format(UnitConverter.weight(kg, units))
-    val summary = "Weight, last 90 days: latest ${shown(points.last().value)} $unit, " +
-        "range ${shown(min)}–${shown(max)} $unit, ${points.size} weigh-ins"
+    val summary = trf("Weight, last 90 days: latest {0} {1}, ", shown(points.last().value), unit) +
+        trf("range {0}–{1} {2}, {3} weigh-ins", shown(min), shown(max), unit, points.size)
     Canvas(Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = summary }) {
         val range = (max - min).takeIf { it > 0.2 } ?: 0.2
         fun x(t: Long) = if (t1 == t0) size.width else (t - t0).toFloat() / (t1 - t0) * size.width
@@ -172,7 +174,7 @@ private fun WeightLine(points: List<BodyMeasurementEntity>, units: UnitSystem) {
         Text(shown(points.first().value), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
         val delta = UnitConverter.weight(points.last().value - points.first().value, units)
         Text(
-            "${if (delta >= 0) "+" else ""}${(delta * 10).roundToInt() / 10.0} $unit in 90 days",
+            trf("{0}{1} {2} in 90 days", if (delta >= 0) "+" else "", (delta * 10).roundToInt() / 10.0, unit),
             fontSize = 11.sp, color = PulseColors.textMuted,
         )
     }

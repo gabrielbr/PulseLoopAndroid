@@ -1,5 +1,7 @@
 package com.pulseloop.widgets
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.ui.graphics.Color
 import com.pulseloop.service.MetricKind
 import com.pulseloop.ui.components.ZonePalette
@@ -51,8 +53,8 @@ enum class WidgetMetric(val key: String, val displayName: String) {
     /** Header eyebrow label, matching the in-app tile chrome. */
     val headerLabel: String
         get() = when (this) {
-            ACTIVITY -> "Activity"
-            SLEEP -> "Sleep"
+            ACTIVITY -> tr("Activity")
+            SLEEP -> tr("Sleep")
             else -> metricKind?.title ?: key
         }
 

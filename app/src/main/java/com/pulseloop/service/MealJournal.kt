@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.JournalEntryEntity
 import com.pulseloop.data.entity.MealEntryEntity
@@ -134,7 +136,7 @@ data class NutritionContext(
     /** Whether yesterday evening had a meal at or after 21:00. */
     val lateMealLastNight: Boolean = false,
     val alcoholLastNight: Boolean = false,
-    val note: String = "Food the user logged themselves; totals are only as complete as the log.",
+    val note: String = tr("Food the user logged themselves; totals are only as complete as the log."),
 ) {
     companion object {
         suspend fun build(db: PulseLoopDatabase, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): NutritionContext? =

@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -18,7 +20,9 @@ object CardioLoad {
     const val MIN_QUIET_DAYS = 3
     private const val MAX_GAP_MIN = 30.0
 
-    enum class Band(val label: String) { LIGHT("Light"), USUAL("Usual"), HIGH("High"), VERY_HIGH("Very high") }
+    enum class Band(private val labelEn: String) { LIGHT("Light"), USUAL("Usual"), HIGH("High"), VERY_HIGH("Very high");
+        val label: String get() = tr(labelEn)
+    }
 
     data class Result(val load: Int, val quietHr: Int, val usual: Int?, val band: Band?, val elevatedMinutes: Int)
 

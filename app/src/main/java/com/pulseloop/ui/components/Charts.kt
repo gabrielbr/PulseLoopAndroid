@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.PulseColors
@@ -311,8 +313,8 @@ fun TrendChart(
     // TalkBack can't scrub; give it the shape of the data in one sentence instead.
     val summary = remember(points, secondary, title) {
         fun v(i: Int) = valueFormatter(points[i]) + (secondary.getOrNull(i)?.let { "/" + valueFormatter(it) } ?: "")
-        "${title ?: tr("Chart")}: latest ${v(points.lastIndex)}, " +
-            "range ${valueFormatter(points.min())}–${valueFormatter(points.max())}, ${points.size} readings"
+        trf("{0}: latest {1}, ", title ?: tr("Chart"), v(points.lastIndex)) +
+            trf("range {0}–{1}, {2} readings", valueFormatter(points.min()), valueFormatter(points.max()), points.size)
     }
 
     Column(modifier = modifier) {

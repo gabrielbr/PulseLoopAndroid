@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.ui.graphics.Color
 import com.pulseloop.ring.MeasurementKind
 import com.pulseloop.ui.theme.MetricColors
@@ -68,10 +70,10 @@ object MetricThresholdTable {
         higherIsBetter = false,
         unitLabel = "bpm",
         zones = listOf(
-            ThresholdZone("Low",      40.0,  50.0, MetricColors.ZoneLow),
-            ThresholdZone("Good",     50.0,  90.0, MetricColors.ZoneGood),
-            ThresholdZone("Elevated", 90.0, 120.0, MetricColors.ZoneBorderline),
-            ThresholdZone("High",    120.0, 140.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Low"),      40.0,  50.0, MetricColors.ZoneLow),
+            ThresholdZone(tr("Good"),     50.0,  90.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Elevated"), 90.0, 120.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("High"),    120.0, 140.0, MetricColors.ZoneConcern),
         ),
     )
 
@@ -80,9 +82,9 @@ object MetricThresholdTable {
         higherIsBetter = true,
         unitLabel = "%",
         zones = listOf(
-            ThresholdZone("Concerning", 85.0, 90.0, MetricColors.ZoneConcern),
-            ThresholdZone("Low",        90.0, 95.0, MetricColors.ZoneBorderline),
-            ThresholdZone("Good",       95.0, 100.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Concerning"), 85.0, 90.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Low"),        90.0, 95.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("Good"),       95.0, 100.0, MetricColors.ZoneGood),
         ),
     )
 
@@ -91,10 +93,10 @@ object MetricThresholdTable {
         higherIsBetter = false,
         unitLabel = "",
         zones = listOf(
-            ThresholdZone("Relaxed",   0.0, 30.0, MetricColors.ZoneGood),
-            ThresholdZone("Normal",   30.0, 60.0, MetricColors.ZoneNormal),
-            ThresholdZone("Moderate", 60.0, 80.0, MetricColors.ZoneBorderline),
-            ThresholdZone("High",     80.0, 100.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Relaxed"),   0.0, 30.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Normal"),   30.0, 60.0, MetricColors.ZoneNormal),
+            ThresholdZone(tr("Moderate"), 60.0, 80.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("High"),     80.0, 100.0, MetricColors.ZoneConcern),
         ),
     )
 
@@ -103,10 +105,10 @@ object MetricThresholdTable {
         higherIsBetter = false,
         unitLabel = "",
         zones = listOf(
-            ThresholdZone("Relaxed",   0.0, 30.0, MetricColors.ZoneGood),
-            ThresholdZone("Normal",   30.0, 60.0, MetricColors.ZoneNormal),
-            ThresholdZone("Moderate", 60.0, 80.0, MetricColors.ZoneBorderline),
-            ThresholdZone("High",     80.0, 100.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Relaxed"),   0.0, 30.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Normal"),   30.0, 60.0, MetricColors.ZoneNormal),
+            ThresholdZone(tr("Moderate"), 60.0, 80.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("High"),     80.0, 100.0, MetricColors.ZoneConcern),
         ),
     )
 
@@ -115,9 +117,9 @@ object MetricThresholdTable {
         higherIsBetter = true,
         unitLabel = "ms",
         zones = listOf(
-            ThresholdZone("Low",         0.0, 20.0, MetricColors.ZoneConcern),
-            ThresholdZone("Below avg",  20.0, 50.0, MetricColors.ZoneBorderline),
-            ThresholdZone("Good",       50.0, 120.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Low"),         0.0, 20.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Below avg"),  20.0, 50.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("Good"),       50.0, 120.0, MetricColors.ZoneGood),
         ),
     )
 
@@ -126,9 +128,9 @@ object MetricThresholdTable {
         higherIsBetter = null,  // personal / relative
         unitLabel = "°C",
         zones = listOf(
-            ThresholdZone("Low",      28.0, 31.0, MetricColors.ZoneLow),
-            ThresholdZone("Normal",   31.0, 36.0, MetricColors.ZoneGood),
-            ThresholdZone("Elevated", 36.0, 38.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("Low"),      28.0, 31.0, MetricColors.ZoneLow),
+            ThresholdZone(tr("Normal"),   31.0, 36.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Elevated"), 36.0, 38.0, MetricColors.ZoneBorderline),
         ),
     )
 
@@ -137,10 +139,10 @@ object MetricThresholdTable {
         higherIsBetter = false,
         unitLabel = "mmHg",
         zones = listOf(
-            ThresholdZone("Normal",     80.0, 120.0, MetricColors.ZoneGood),
-            ThresholdZone("Elevated",  120.0, 130.0, MetricColors.ZoneBorderline),
-            ThresholdZone("Stage 1",   130.0, 140.0, MetricColors.ZoneElevated),
-            ThresholdZone("High",      140.0, 180.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Normal"),     80.0, 120.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Elevated"),  120.0, 130.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("Stage 1"),   130.0, 140.0, MetricColors.ZoneElevated),
+            ThresholdZone(tr("High"),      140.0, 180.0, MetricColors.ZoneConcern),
         ),
     )
 
@@ -149,10 +151,10 @@ object MetricThresholdTable {
         higherIsBetter = false,
         unitLabel = "mg/dL",
         zones = listOf(
-            ThresholdZone("Low",       50.0,  70.0, MetricColors.ZoneLow),
-            ThresholdZone("Normal",    70.0, 100.0, MetricColors.ZoneGood),
-            ThresholdZone("Elevated", 100.0, 126.0, MetricColors.ZoneBorderline),
-            ThresholdZone("High",     126.0, 200.0, MetricColors.ZoneConcern),
+            ThresholdZone(tr("Low"),       50.0,  70.0, MetricColors.ZoneLow),
+            ThresholdZone(tr("Normal"),    70.0, 100.0, MetricColors.ZoneGood),
+            ThresholdZone(tr("Elevated"), 100.0, 126.0, MetricColors.ZoneBorderline),
+            ThresholdZone(tr("High"),     126.0, 200.0, MetricColors.ZoneConcern),
         ),
     )
 }
@@ -169,28 +171,28 @@ fun bpZone(sys: Double?, dia: Double?): ThresholdZone? {
     // Diastolic category
     val diaZone = when {
         dia == null -> null
-        dia < 80.0  -> "Normal"
-        dia < 90.0  -> "Stage1"
-        else        -> "High"
+        dia < 80.0  -> tr("Normal")
+        dia < 90.0  -> tr("Stage1")
+        else        -> tr("High")
     }
 
     // Systolic category
     val sysZone = when {
         sys == null -> null
-        sys < 120.0  -> "Normal"
-        sys < 130.0  -> "Elevated"
-        sys < 140.0  -> "Stage1"
-        else         -> "High"
+        sys < 120.0  -> tr("Normal")
+        sys < 130.0  -> tr("Elevated")
+        sys < 140.0  -> tr("Stage1")
+        else         -> tr("High")
     }
 
     // Pick the worse category (ordered Normal < Elevated < Stage1 < High)
     val worst = when {
-        sysZone == "High"   || diaZone == "High"   -> "High"
-        sysZone == "Stage1" || diaZone == "Stage1" -> "Stage1"
-        sysZone == "Elevated"                      -> "Elevated"
-        sysZone == "Normal"  && diaZone == "Normal"-> "Normal"
-        diaZone == "Normal"  && sysZone == null    -> "Normal"
-        sysZone == "Normal"  && diaZone == null    -> "Normal"
+        sysZone == "High"   || diaZone == "High"   -> tr("High")
+        sysZone == "Stage1" || diaZone == "Stage1" -> tr("Stage1")
+        sysZone == "Elevated"                      -> tr("Elevated")
+        sysZone == "Normal"  && diaZone == "Normal"-> tr("Normal")
+        diaZone == "Normal"  && sysZone == null    -> tr("Normal")
+        sysZone == "Normal"  && diaZone == null    -> tr("Normal")
         else                                        -> null
     }
 

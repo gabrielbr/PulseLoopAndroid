@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import android.Manifest
@@ -524,8 +526,8 @@ private fun ScanningCard(
                 color = PulseColors.accent,
             )
             Text(
-                if (connecting) "Connecting to ${selectedModel.displayName}…"
-                else "Scanning for ${selectedModel.displayName}…",
+                if (connecting) trf("Connecting to {0}…", selectedModel.displayName)
+                else trf("Scanning for {0}…", selectedModel.displayName),
                 fontSize = 12.sp,
                 color = PulseColors.textMuted,
             )
@@ -661,7 +663,7 @@ private fun ConnectedCard(
                 tint = PulseColors.success,
             )
             Text(
-                "Connected to $deviceName",
+                trf("Connected to {0}", deviceName),
                 fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary,
@@ -741,12 +743,12 @@ private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () ->
         Text(
             if (permanentlyDenied) {
                 tr("PulseLoop uses Bluetooth to find and connect your ring. " +
-                    "Allow ") +
+                    tr("Allow ")) +
                     (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) tr("\"Nearby devices\"") else tr("Location")) +
                     " for PulseLoop in Settings."
             } else {
                 tr("PulseLoop uses Bluetooth to find and connect your ring. " +
-                    "Nothing is shared off your phone.")
+                    tr("Nothing is shared off your phone."))
             },
             fontSize = 14.sp,
             color = PulseColors.textSecondary,

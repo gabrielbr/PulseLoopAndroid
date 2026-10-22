@@ -1,5 +1,8 @@
 package com.pulseloop.notifications
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -141,8 +144,8 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 // Drinks, for users who track them: the week that is ending, in one line.
                 val drinks = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching {
                     val d = com.pulseloop.service.DrinksRepository.load(db, now, zone)
-                    " Drinks: ${com.pulseloop.service.DrinkInsights.fmt(d.week.standardDrinks)} of ${com.pulseloop.service.DrinkInsights.fmt(d.weeklyLimit)}, " +
-                        "${d.week.dryDays} dry day${if (d.week.dryDays == 1) "" else "s"}."
+                    trf(" Drinks: {0} of {1}, ", com.pulseloop.service.DrinkInsights.fmt(d.week.standardDrinks), com.pulseloop.service.DrinkInsights.fmt(d.weeklyLimit)) +
+                        trf("{0} dry day{1}.", d.week.dryDays, if (d.week.dryDays == 1) "" else "s")
                 }.getOrNull().orEmpty() else ""
                 val body = report + drinks
                 notify(ctx, ID_WEEKLY, title, body)
@@ -156,8 +159,8 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 val minsToBed = minutesUntil(local.toLocalTime(), g.bedtime)
                 if (minsToBed in 15..45) {
                     notify(
-                        ctx, ID_BEDTIME, "Time to wind down",
-                        "Aim to be in bed by ${BedtimeGuidance.fmt(g.bedtime)} to get your ${inputs.sleepGoalMinutes / 60} hours before your usual ${BedtimeGuidance.fmt(g.usualWake)} wake-up.",
+                        ctx, ID_BEDTIME, tr("Time to wind down"),
+                        trf("Aim to be in bed by {0} to get your {1} hours before your usual {2} wake-up.", BedtimeGuidance.fmt(g.bedtime), inputs.sleepGoalMinutes / 60, BedtimeGuidance.fmt(g.usualWake)),
                     )
                     prefs.lastBedtimeReminderDay = today.toString()
                 }
@@ -169,7 +172,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val battery = db.deviceDao().currentReal()?.batteryPercent
             val minsToBed = bedtime?.let { minutesUntil(local.toLocalTime(), it) }
             if (Nudges.chargeBeforeBed(battery, minsToBed)) {
-                notify(ctx, ID_BATTERY, "Charge your ring before bed", "It's at $battery%. A short charge now keeps tonight's sleep tracked.")
+                notify(ctx, ID_BATTERY, tr("Charge your ring before bed"), trf("It's at {0}%. A short charge now keeps tonight's sleep tracked.", battery))
                 prefs.lastBatteryReminderDay = today.toString()
             }
         }
@@ -183,7 +186,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
             val fresh = device?.lastSyncAt?.let { now - it <= 40 * 60_000L } == true && buckets.isNotEmpty()
             val lastHour = buckets.filter { it.startEpoch >= now - 3_600_000L }.sumOf { it.steps }
             if (Nudges.inactive(local.hour, lastHour, fresh)) {
-                notify(ctx, ID_INACTIVE, "Time to move", "Under 100 steps in the last hour. A few minutes on your feet helps your energy and your sleep.")
+                notify(ctx, ID_INACTIVE, tr("Time to move"), tr("Under 100 steps in the last hour. A few minutes on your feet helps your energy and your sleep."))
                 prefs.lastInactivityAt = now
             }
         }
@@ -206,8 +209,8 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 val fresh = due.filter { it.id !in prefs.remindedDoses }
                 if (fresh.isNotEmpty()) {
                     val names = fresh.joinToString(", ") { it.med.name + (it.med.dose?.let { d -> " $d" } ?: "") }
-                    notify(ctx, ID_MEDS, "Time for ${fresh.first().med.name}" + if (fresh.size > 1) " and more" else "",
-                        "$names. Open PulseLoop to mark it taken or skipped.")
+                    notify(ctx, ID_MEDS, trf("Time for {0}", fresh.first().med.name) + if (fresh.size > 1) " and more" else "",
+                        trf("{0}. Open PulseLoop to mark it taken or skipped.", names))
                     prefs.remindedDoses = (prefs.remindedDoses + fresh.map { it.id }).toList().takeLast(50).toSet()
                 }
             }
@@ -256,7 +259,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         private fun createChannel(context: Context) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 val channel = NotificationChannel(CHANNEL_ID, "Daily guidance", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "Unusual-signal alerts, your weekly report and wind-down reminders"
+                    description = tr("Unusual-signal alerts, your weekly report and wind-down reminders")
                 }
                 (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
             }
@@ -266,7 +269,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
             Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-        @android.annotation.SuppressLint("MissingPermission") // checked by canNotify before every call
+        @android.annotation.SuppressLint(tr("MissingPermission")) // checked by canNotify before every call
         private fun notify(context: Context, id: Int, title: String, body: String, openMealLog: Boolean = false) {
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -302,7 +305,7 @@ object Nudges {
         val left = goal - steps
         val minutes = (left / 100.0).let { kotlin.math.ceil(it).toInt() }
         return "${"%,d".format(left)} steps to your goal" to
-            "You're at ${"%,d".format(steps)} of ${"%,d".format(goal)}. About $minutes minutes of walking closes it."
+            trf("You're at {0} of {1}. About {2} minutes of walking closes it.", "%,d".format(steps), "%,d".format(goal), minutes)
     }
 }
 

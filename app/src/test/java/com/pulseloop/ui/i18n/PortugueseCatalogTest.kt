@@ -43,6 +43,20 @@ class PortugueseCatalogTest {
     }
 
     @Test
+    fun `value placeholders survive translation`() {
+        val ph = Regex("\\{\\d+\\}")
+        catalog.forEach { (en, pt) ->
+            assertEquals("placeholders: $en", ph.findAll(en).map { it.value }.sorted().toList(), ph.findAll(pt).map { it.value }.sorted().toList())
+        }
+    }
+
+    @Test
+    fun `a string with values reads exactly as its template did in English`() {
+        assertEquals("7 of 10 dry days", trf("{0} of {1} dry days", 7, 10))
+        assertEquals("HRV usually takes 2 nights to come back.", trf("HRV usually takes {0} night{1} to come back.", 2, "s"))
+    }
+
+    @Test
     fun `an untranslated string falls back to English`() {
         assertEquals("Not in any catalog 123", tr("Not in any catalog 123"))
     }

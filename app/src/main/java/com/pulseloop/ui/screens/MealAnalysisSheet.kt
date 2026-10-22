@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -434,7 +436,7 @@ fun MealAnalysisDialog(
                                 // iOS confidence caption (:174-178).
                                 Spacer(Modifier.width(8.dp))
                                 Text(
-                                    "${confidence.replaceFirstChar { it.uppercase() }} confidence",
+                                    trf("{0} confidence", confidence.replaceFirstChar { it.uppercase() }),
                                     fontSize = 12.sp,
                                     color = PulseColors.textMuted,
                                 )
@@ -655,11 +657,11 @@ object MealAnalysisLogic {
 
     /** Verbatim system prompt (MealAnalysisSheet.swift:338-342). */
     val systemPrompt: String =
-        "You are a nutrition estimator. Given a meal description and/or photo, " +
+        tr("You are a nutrition estimator. Given a meal description and/or photo, " +
             "identify the food and estimate total calories and macros for the portion shown or described. " +
-            "Be realistic about portion sizes; state your assumptions (portion sizes, preparation) briefly. " +
+            tr("Be realistic about portion sizes; state your assumptions (portion sizes, preparation) briefly. " +
             "Use confidence \"high\" only for clearly identifiable, standard portions. " +
-            "Return only JSON matching the schema."
+            "Return only JSON matching the schema."))
 
     /**
      * The verbatim strict meal_estimate json_schema (MealAnalysisSheet.swift:344-362), built
@@ -669,12 +671,12 @@ object MealAnalysisLogic {
         fun described(value: String) = JsonObject(mapOf("type" to JsonPrimitive("string"), "description" to JsonPrimitive(value)))
         fun number() = JsonObject(mapOf("type" to JsonPrimitive("number")))
         val props = JsonObject(mapOf(
-            "name" to described("Short display name for the meal"),
+            "name" to described(tr("Short display name for the meal")),
             "calories" to number(),
             "protein_g" to number(),
             "carbs_g" to number(),
             "fat_g" to number(),
-            "assumptions" to described("Portion/preparation assumptions, one short sentence, or empty string"),
+            "assumptions" to described(tr("Portion/preparation assumptions, one short sentence, or empty string")),
             "confidence" to JsonObject(mapOf(
                 "type" to JsonPrimitive("string"),
                 "enum" to JsonArray(listOf(JsonPrimitive("low"), JsonPrimitive("medium"), JsonPrimitive("high"))),
@@ -724,7 +726,7 @@ object MealEstimator {
             if (!keyStore.coachEnabled || resolution.key == null) {
                 return@withContext Result.Failure(
                     tr("AI analysis needs the coach enabled with a configured provider (Settings → AI Coach). " +
-                        "You can still search the database or enter the meal manually."),
+                        tr("You can still search the database or enter the meal manually.")),
                 )
             }
             val model = CoachClientResolver.activeModel(providerStore.snapshot(), keyStore.model)
@@ -744,7 +746,7 @@ object MealEstimator {
             }
 
             // iOS :392 — the description, or the photo-only prompt.
-            val prompt = description.trim().ifEmpty { "Estimate the nutrition of the meal in the photo." }
+            val prompt = description.trim().ifEmpty { tr("Estimate the nutrition of the meal in the photo.") }
             val input = JsonArray(listOf(
                 OpenAIRequestBuilder.message("system", MealAnalysisLogic.systemPrompt),
                 OpenAIRequestBuilder.message("user", prompt, images),
@@ -767,7 +769,7 @@ object MealEstimator {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Result.Failure("Analysis failed: ${e.message ?: e.javaClass.simpleName}")
+                Result.Failure(trf("Analysis failed: {0}", e.message ?: e.javaClass.simpleName))
             }
         }
 }

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import android.content.res.Configuration
@@ -241,7 +243,7 @@ private fun EditWorkoutSheet(
         endedAt > System.currentTimeMillis() -> tr("End time can't be in the future.")
         endedAt - startedAt <= pauseMs ->
             if (session.totalPauseSeconds > 0)
-                "The window must be longer than the ${maxOf(1, (session.totalPauseSeconds / 60).toInt())} min of pauses in this workout."
+                trf("The window must be longer than the {0} min of pauses in this workout.", maxOf(1, (session.totalPauseSeconds / 60).toInt()))
             else tr("End must be after the start.")
         else -> null
     }

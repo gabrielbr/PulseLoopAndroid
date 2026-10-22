@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -192,7 +194,7 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
             when {
                 list == null -> Unit
                 list.isEmpty() -> Text(
-                    "Tag your days for a couple of weeks. Once a tag has at least ${JournalInsights.MIN_NIGHTS} nights after it, PulseLoop compares those nights with your others.",
+                    trf("Tag your days for a couple of weeks. Once a tag has at least {0} nights after it, PulseLoop compares those nights with your others.", JournalInsights.MIN_NIGHTS),
                     fontSize = 13.sp, color = PulseColors.textSecondary,
                 )
                 else -> Column(
@@ -204,7 +206,7 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
                             val enough = e.nightsWith >= JournalInsights.MIN_NIGHTS && e.nightsWithout >= JournalInsights.MIN_NIGHTS
                             Text(
                                 if (enough) e.summary().replaceFirstChar { it.uppercase() }
-                                else "Tag ${maxOf(0, JournalInsights.MIN_NIGHTS - e.nightsWith)} more ${if (JournalInsights.MIN_NIGHTS - e.nightsWith == 1) "day" else "days"} to see an effect",
+                                else trf("Tag {0} more {1} to see an effect", maxOf(0, JournalInsights.MIN_NIGHTS - e.nightsWith), if (JournalInsights.MIN_NIGHTS - e.nightsWith == 1) tr("day") else tr("days")),
                                 fontSize = 13.sp,
                                 color = if (enough && e.hasEffect) PulseColors.textSecondary else PulseColors.textMuted,
                             )

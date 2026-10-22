@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -126,7 +129,7 @@ object VitalsThresholdEngine {
         val worse = ZoneSeverity.worst(sysZone.severity, diaZone.severity)
         // Pick whichever axis produced the worse severity for the label/explanation.
         val primary = if (worse == sysZone.severity) sysZone else diaZone
-        val confidence = if (hasCuffReference) "Estimated" else "Estimated · calibrate with a cuff"
+        val confidence = if (hasCuffReference) tr("Estimated") else tr("Estimated · calibrate with a cuff")
         return MetricInterpretation(
             primaryZone = primary,
             allZones = systolicZones(),
@@ -182,40 +185,40 @@ object VitalsThresholdEngine {
         val lowColor: VitalColorToken
         when {
             athlete -> {
-                lowLabel = "Athletic"
+                lowLabel = tr("Athletic")
                 lowSeverity = ZoneSeverity.OPTIMAL
                 lowColor = VitalColorToken.MetricAccent(MetricKind.HEART_RATE)
-                lowExplanation = "A low resting heart rate is common with high fitness."
+                lowExplanation = tr("A low resting heart rate is common with high fitness.")
             }
             profile.usesBetaBlockers -> {
-                lowLabel = "Low (medication)"
+                lowLabel = tr("Low (medication)")
                 lowSeverity = ZoneSeverity.NORMAL
                 lowColor = VitalColorToken.Blue
-                lowExplanation = "Beta-blockers lower heart rate; this is expected on that medication."
+                lowExplanation = tr("Beta-blockers lower heart rate; this is expected on that medication.")
             }
             else -> {
-                lowLabel = "Low"
+                lowLabel = tr("Low")
                 lowSeverity = ZoneSeverity.WATCH
                 lowColor = VitalColorToken.Blue
-                lowExplanation = "Below the typical resting range. Often fine, but worth noting if you feel faint."
+                lowExplanation = tr("Below the typical resting range. Often fine, but worth noting if you feel faint.")
             }
         }
 
         val zones = mutableListOf<MetricZone>()
         zones.add(MetricZone("hr.low", lowLabel, null, lowUpper, lowSeverity, lowColor, lowExplanation))
         if (athlete && athleticUpper != null) {
-            zones.add(MetricZone("hr.athletic", "Athletic", lowUpper, athleticUpper, ZoneSeverity.OPTIMAL, VitalColorToken.Mint, "Athletic resting range."))
+            zones.add(MetricZone("hr.athletic", tr("Athletic"), lowUpper, athleticUpper, ZoneSeverity.OPTIMAL, VitalColorToken.Mint, tr("Athletic resting range.")))
         }
         val normalLow = if (athlete && athleticUpper != null) athleticUpper else lowUpper
-        zones.add(MetricZone("hr.normal", "Normal", normalLow, elevatedStart,
+        zones.add(MetricZone("hr.normal", tr("Normal"), normalLow, elevatedStart,
             ZoneSeverity.NORMAL, VitalColorToken.MetricAccent(MetricKind.HEART_RATE),
-            "A typical resting heart rate for adults."))
-        zones.add(MetricZone("hr.elevated", "Elevated", elevatedStart, highStart,
+            tr("A typical resting heart rate for adults.")))
+        zones.add(MetricZone("hr.elevated", tr("Elevated"), elevatedStart, highStart,
             ZoneSeverity.WATCH, VitalColorToken.Amber,
-            "Above the typical resting range. Activity, caffeine, or stress can raise it."))
-        zones.add(MetricZone("hr.high", "High", highStart, null,
+            tr("Above the typical resting range. Activity, caffeine, or stress can raise it.")))
+        zones.add(MetricZone("hr.high", tr("High"), highStart, null,
             ZoneSeverity.HIGH, VitalColorToken.BrightRed,
-            "A high resting heart rate. Talk to a clinician if it persists at rest."))
+            tr("A high resting heart rate. Talk to a clinician if it persists at rest.")))
         return zones
     }
 
@@ -229,27 +232,27 @@ object VitalsThresholdEngine {
         // and note it, rather than alarming on a normal-for-altitude reading.
         val highAltitude = (profile.altitudeMeters ?: 0.0) > 2000
         val watchUpper = if (highAltitude || profile.hasKnownLungCondition) 93.0 else 95.0
-        val altitudeNote = if (highAltitude) " Expected values are lower at altitude." else ""
+        val altitudeNote = if (highAltitude) tr(" Expected values are lower at altitude.") else ""
         return listOf(
             MetricZone(
-                "spo2.critical", "Very low", null, 89.0,
+                "spo2.critical", tr("Very low"), null, 89.0,
                 ZoneSeverity.CRITICAL, VitalColorToken.Red,
-                "An urgently low oxygen reading. Seek care if you also feel unwell.$altitudeNote",
+                trf("An urgently low oxygen reading. Seek care if you also feel unwell.{0}", altitudeNote),
             ),
             MetricZone(
-                "spo2.high", "Low", 89.0, 93.0,
+                "spo2.high", tr("Low"), 89.0, 93.0,
                 ZoneSeverity.HIGH, VitalColorToken.Orange,
-                "Low blood oxygen. Re-measure when still; talk to a clinician if persistent.$altitudeNote",
+                trf("Low blood oxygen. Re-measure when still; talk to a clinician if persistent.{0}", altitudeNote),
             ),
             MetricZone(
-                "spo2.watch", "Slightly low", 93.0, watchUpper,
+                "spo2.watch", tr("Slightly low"), 93.0, watchUpper,
                 ZoneSeverity.WATCH, VitalColorToken.Amber,
-                "Slightly below the typical range.$altitudeNote",
+                trf("Slightly below the typical range.{0}", altitudeNote),
             ),
             MetricZone(
-                "spo2.normal", "Normal", watchUpper, null,
+                "spo2.normal", tr("Normal"), watchUpper, null,
                 ZoneSeverity.NORMAL, VitalColorToken.Cyan,
-                "A normal blood-oxygen level is 95–100%.$altitudeNote",
+                trf("A normal blood-oxygen level is 95–100%.{0}", altitudeNote),
             ),
         )
     }
@@ -261,9 +264,9 @@ object VitalsThresholdEngine {
             // No baseline yet → show the metric's own purple accent (not a gray "unknown" color).
             return listOf(
                 MetricZone(
-                    "hrv.building", "Building baseline", null, null,
+                    "hrv.building", tr("Building baseline"), null, null,
                     ZoneSeverity.UNKNOWN, VitalColorToken.MetricAccent(MetricKind.HRV),
-                    "HRV is personal. Wear your ring for about a week to learn your baseline.",
+                    tr("HRV is personal. Wear your ring for about a week to learn your baseline."),
                 ),
             )
         }
@@ -271,24 +274,24 @@ object VitalsThresholdEngine {
         val sd = baseline.standardDeviation
         return listOf(
             MetricZone(
-                "hrv.below", "Below baseline", null, mean - sd,
+                "hrv.below", tr("Below baseline"), null, mean - sd,
                 ZoneSeverity.HIGH, VitalColorToken.Amber,
-                "Notably below your typical HRV — often linked to stress, poor sleep, or strain.",
+                tr("Notably below your typical HRV — often linked to stress, poor sleep, or strain."),
             ),
             MetricZone(
-                "hrv.slightlyBelow", "Slightly below", mean - sd, mean - 0.5 * sd,
+                "hrv.slightlyBelow", tr("Slightly below"), mean - sd, mean - 0.5 * sd,
                 ZoneSeverity.WATCH, VitalColorToken.SoftAmber,
-                "A little below your usual range.",
+                tr("A little below your usual range."),
             ),
             MetricZone(
-                "hrv.near", "Near baseline", mean - 0.5 * sd, mean + 0.5 * sd,
+                "hrv.near", tr("Near baseline"), mean - 0.5 * sd, mean + 0.5 * sd,
                 ZoneSeverity.NORMAL, VitalColorToken.MetricAccent(MetricKind.HRV),
-                "Around your personal baseline.",
+                tr("Around your personal baseline."),
             ),
             MetricZone(
-                "hrv.above", "Above baseline", mean + 0.5 * sd, null,
+                "hrv.above", tr("Above baseline"), mean + 0.5 * sd, null,
                 ZoneSeverity.OPTIMAL, VitalColorToken.Mint,
-                "Above your typical HRV — often a sign of good recovery.",
+                tr("Above your typical HRV — often a sign of good recovery."),
             ),
         )
     }
@@ -300,7 +303,7 @@ object VitalsThresholdEngine {
             val zone = zones[0]
             return MetricInterpretation(
                 primaryZone = zone, allZones = zones, displayLabel = zone.label,
-                explanation = zone.explanation, confidenceLabel = "Building baseline", isEstimated = false,
+                explanation = zone.explanation, confidenceLabel = tr("Building baseline"), isEstimated = false,
             )
         }
         val zone = zoneContaining(value, zones)
@@ -310,7 +313,7 @@ object VitalsThresholdEngine {
         return MetricInterpretation(
             primaryZone = zone, allZones = zones, displayLabel = zone.label,
             explanation = zone.explanation,
-            confidenceLabel = if (delta == 0) "At baseline" else "$delta% $direction baseline",
+            confidenceLabel = if (delta == 0) tr("At baseline") else trf("{0}% {1} baseline", delta, direction),
             isEstimated = false,
         )
     }
@@ -319,39 +322,39 @@ object VitalsThresholdEngine {
 
     private fun stressZones(): List<MetricZone> = listOf(
         MetricZone(
-            "stress.calm", "Calm", null, 26.0,
-            ZoneSeverity.OPTIMAL, VitalColorToken.Mint, "Low stress score — relaxed.",
+            "stress.calm", tr("Calm"), null, 26.0,
+            ZoneSeverity.OPTIMAL, VitalColorToken.Mint, tr("Low stress score — relaxed."),
         ),
         MetricZone(
-            "stress.normal", "Normal", 26.0, 51.0,
-            ZoneSeverity.NORMAL, VitalColorToken.Cyan, "A typical daytime stress score.",
+            "stress.normal", tr("Normal"), 26.0, 51.0,
+            ZoneSeverity.NORMAL, VitalColorToken.Cyan, tr("A typical daytime stress score."),
         ),
         MetricZone(
-            "stress.elevated", "Elevated", 51.0, 76.0,
-            ZoneSeverity.WATCH, VitalColorToken.Amber, "Elevated stress — consider a short break.",
+            "stress.elevated", tr("Elevated"), 51.0, 76.0,
+            ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Elevated stress — consider a short break."),
         ),
         MetricZone(
-            "stress.high", "High", 76.0, null,
-            ZoneSeverity.HIGH, VitalColorToken.Red, "High stress score. Wellness estimate, not a diagnosis.",
+            "stress.high", tr("High"), 76.0, null,
+            ZoneSeverity.HIGH, VitalColorToken.Red, tr("High stress score. Wellness estimate, not a diagnosis."),
         ),
     )
 
     private fun fatigueZones(): List<MetricZone> = listOf(
         MetricZone(
-            "fatigue.fresh", "Fresh", null, 25.0,
-            ZoneSeverity.OPTIMAL, VitalColorToken.Mint, "Low fatigue — well recovered.",
+            "fatigue.fresh", tr("Fresh"), null, 25.0,
+            ZoneSeverity.OPTIMAL, VitalColorToken.Mint, tr("Low fatigue — well recovered."),
         ),
         MetricZone(
-            "fatigue.mild", "Mild", 25.0, 50.0,
-            ZoneSeverity.NORMAL, VitalColorToken.Cyan, "Mild fatigue.",
+            "fatigue.mild", tr("Mild"), 25.0, 50.0,
+            ZoneSeverity.NORMAL, VitalColorToken.Cyan, tr("Mild fatigue."),
         ),
         MetricZone(
-            "fatigue.tired", "Tired", 50.0, 75.0,
-            ZoneSeverity.WATCH, VitalColorToken.Amber, "Tired — consider lighter activity and good sleep.",
+            "fatigue.tired", tr("Tired"), 50.0, 75.0,
+            ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Tired — consider lighter activity and good sleep."),
         ),
         MetricZone(
-            "fatigue.high", "High fatigue", 75.0, null,
-            ZoneSeverity.HIGH, VitalColorToken.Red, "High fatigue score. Wellness estimate from the ring.",
+            "fatigue.high", tr("High fatigue"), 75.0, null,
+            ZoneSeverity.HIGH, VitalColorToken.Red, tr("High fatigue score. Wellness estimate from the ring."),
         ),
     )
 
@@ -365,52 +368,52 @@ object VitalsThresholdEngine {
 
     private fun systolicZones(): List<MetricZone> = listOf(
         MetricZone(
-            "bp.sys.low", "Low", null, 90.0,
-            ZoneSeverity.WATCH, VitalColorToken.Blue, "Low systolic pressure (below 90).",
+            "bp.sys.low", tr("Low"), null, 90.0,
+            ZoneSeverity.WATCH, VitalColorToken.Blue, tr("Low systolic pressure (below 90)."),
         ),
         MetricZone(
-            "bp.sys.normal", "Normal", 90.0, 120.0,
-            ZoneSeverity.NORMAL, VitalColorToken.Mint, "Normal blood pressure is below 120/80.",
+            "bp.sys.normal", tr("Normal"), 90.0, 120.0,
+            ZoneSeverity.NORMAL, VitalColorToken.Mint, tr("Normal blood pressure is below 120/80."),
         ),
         MetricZone(
-            "bp.sys.elevated", "Elevated", 120.0, 130.0,
-            ZoneSeverity.WATCH, VitalColorToken.Amber, "Elevated systolic (120–129).",
+            "bp.sys.elevated", tr("Elevated"), 120.0, 130.0,
+            ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Elevated systolic (120–129)."),
         ),
         MetricZone(
-            "bp.sys.stage1", "Stage 1", 130.0, 140.0,
-            ZoneSeverity.HIGH, VitalColorToken.Orange, "Stage 1 hypertension range (systolic 130–139).",
+            "bp.sys.stage1", tr("Stage 1"), 130.0, 140.0,
+            ZoneSeverity.HIGH, VitalColorToken.Orange, tr("Stage 1 hypertension range (systolic 130–139)."),
         ),
         MetricZone(
-            "bp.sys.stage2", "Stage 2", 140.0, 180.0,
-            ZoneSeverity.HIGH, VitalColorToken.Red, "Stage 2 hypertension range (systolic ≥140).",
+            "bp.sys.stage2", tr("Stage 2"), 140.0, 180.0,
+            ZoneSeverity.HIGH, VitalColorToken.Red, tr("Stage 2 hypertension range (systolic ≥140)."),
         ),
         MetricZone(
-            "bp.sys.crisis", "Severe", 180.0, null,
-            ZoneSeverity.CRITICAL, VitalColorToken.Red, "Severe range (systolic >180). Seek care if confirmed.",
+            "bp.sys.crisis", tr("Severe"), 180.0, null,
+            ZoneSeverity.CRITICAL, VitalColorToken.Red, tr("Severe range (systolic >180). Seek care if confirmed."),
         ),
     )
 
     private fun diastolicZones(): List<MetricZone> = listOf(
         MetricZone(
-            "bp.dia.low", "Low", null, 60.0,
-            ZoneSeverity.WATCH, VitalColorToken.Blue, "Low diastolic pressure (below 60).",
+            "bp.dia.low", tr("Low"), null, 60.0,
+            ZoneSeverity.WATCH, VitalColorToken.Blue, tr("Low diastolic pressure (below 60)."),
         ),
         MetricZone(
-            "bp.dia.normal", "Normal", 60.0, 80.0,
-            ZoneSeverity.NORMAL, VitalColorToken.Mint, "Normal diastolic is below 80.",
+            "bp.dia.normal", tr("Normal"), 60.0, 80.0,
+            ZoneSeverity.NORMAL, VitalColorToken.Mint, tr("Normal diastolic is below 80."),
         ),
         // Note: there is no diastolic "Elevated" category — 80–89 is already Stage 1 by AHA.
         MetricZone(
-            "bp.dia.stage1", "Stage 1", 80.0, 90.0,
-            ZoneSeverity.HIGH, VitalColorToken.Orange, "Stage 1 hypertension range (diastolic 80–89).",
+            "bp.dia.stage1", tr("Stage 1"), 80.0, 90.0,
+            ZoneSeverity.HIGH, VitalColorToken.Orange, tr("Stage 1 hypertension range (diastolic 80–89)."),
         ),
         MetricZone(
-            "bp.dia.stage2", "Stage 2", 90.0, 120.0,
-            ZoneSeverity.HIGH, VitalColorToken.Red, "Stage 2 hypertension range (diastolic ≥90).",
+            "bp.dia.stage2", tr("Stage 2"), 90.0, 120.0,
+            ZoneSeverity.HIGH, VitalColorToken.Red, tr("Stage 2 hypertension range (diastolic ≥90)."),
         ),
         MetricZone(
-            "bp.dia.crisis", "Severe", 120.0, null,
-            ZoneSeverity.CRITICAL, VitalColorToken.Red, "Severe range (diastolic >120). Seek care if confirmed.",
+            "bp.dia.crisis", tr("Severe"), 120.0, null,
+            ZoneSeverity.CRITICAL, VitalColorToken.Red, tr("Severe range (diastolic >120). Seek care if confirmed."),
         ),
     )
 
@@ -419,58 +422,58 @@ object VitalsThresholdEngine {
     private fun glucoseZones(context: MeasurementContext): List<MetricZone> = when (context) {
         MeasurementContext.FASTING -> listOf(
             MetricZone(
-                "glucose.low", "Low", null, 70.0,
-                ZoneSeverity.HIGH, VitalColorToken.Red, "Below 70 mg/dL is low.",
+                "glucose.low", tr("Low"), null, 70.0,
+                ZoneSeverity.HIGH, VitalColorToken.Red, tr("Below 70 mg/dL is low."),
             ),
             MetricZone(
-                "glucose.normal", "Normal", 70.0, 100.0,
-                ZoneSeverity.NORMAL, VitalColorToken.Mint, "Fasting normal is up to 99 mg/dL.",
+                "glucose.normal", tr("Normal"), 70.0, 100.0,
+                ZoneSeverity.NORMAL, VitalColorToken.Mint, tr("Fasting normal is up to 99 mg/dL."),
             ),
             MetricZone(
-                "glucose.elevated", "Elevated", 100.0, 126.0,
-                ZoneSeverity.WATCH, VitalColorToken.Amber, "Fasting 100–125 is above the typical range.",
+                "glucose.elevated", tr("Elevated"), 100.0, 126.0,
+                ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Fasting 100–125 is above the typical range."),
             ),
             MetricZone(
-                "glucose.high", "High", 126.0, null,
-                ZoneSeverity.HIGH, VitalColorToken.Red, "Fasting ≥126. Talk to a clinician if confirmed by a meter.",
+                "glucose.high", tr("High"), 126.0, null,
+                ZoneSeverity.HIGH, VitalColorToken.Red, tr("Fasting ≥126. Talk to a clinician if confirmed by a meter."),
             ),
         )
         MeasurementContext.POST_MEAL -> listOf(
             MetricZone(
-                "glucose.low", "Low", null, 70.0,
-                ZoneSeverity.HIGH, VitalColorToken.Red, "Below 70 mg/dL is low.",
+                "glucose.low", tr("Low"), null, 70.0,
+                ZoneSeverity.HIGH, VitalColorToken.Red, tr("Below 70 mg/dL is low."),
             ),
             MetricZone(
-                "glucose.normal", "Normal", 70.0, 140.0,
-                ZoneSeverity.NORMAL, VitalColorToken.Mint, "Two-hour post-meal normal is up to 140 mg/dL.",
+                "glucose.normal", tr("Normal"), 70.0, 140.0,
+                ZoneSeverity.NORMAL, VitalColorToken.Mint, tr("Two-hour post-meal normal is up to 140 mg/dL."),
             ),
             MetricZone(
-                "glucose.elevated", "Elevated", 140.0, 200.0,
-                ZoneSeverity.WATCH, VitalColorToken.Amber, "Two-hour 140–199 is above the typical range.",
+                "glucose.elevated", tr("Elevated"), 140.0, 200.0,
+                ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Two-hour 140–199 is above the typical range."),
             ),
             MetricZone(
-                "glucose.high", "High", 200.0, null,
-                ZoneSeverity.HIGH, VitalColorToken.Red, "Two-hour ≥200. Confirm with a meter and a clinician.",
+                "glucose.high", tr("High"), 200.0, null,
+                ZoneSeverity.HIGH, VitalColorToken.Red, tr("Two-hour ≥200. Confirm with a meter and a clinician."),
             ),
         )
         else ->
             // Unknown / random context: conservative labels, NO "prediabetes"/"diabetes" wording.
             listOf(
                 MetricZone(
-                    "glucose.low", "Low", null, 70.0,
-                    ZoneSeverity.HIGH, VitalColorToken.Red, "Below 70 mg/dL is low.",
+                    "glucose.low", tr("Low"), null, 70.0,
+                    ZoneSeverity.HIGH, VitalColorToken.Red, tr("Below 70 mg/dL is low."),
                 ),
                 MetricZone(
-                    "glucose.typical", "Typical", 70.0, 140.0,
-                    ZoneSeverity.NORMAL, VitalColorToken.Mint, "Within a typical range for a non-fasting reading.",
+                    "glucose.typical", tr("Typical"), 70.0, 140.0,
+                    ZoneSeverity.NORMAL, VitalColorToken.Mint, tr("Within a typical range for a non-fasting reading."),
                 ),
                 MetricZone(
-                    "glucose.elevated", "Elevated", 140.0, 200.0,
-                    ZoneSeverity.WATCH, VitalColorToken.Amber, "Above the typical range. Context (meals) affects this.",
+                    "glucose.elevated", tr("Elevated"), 140.0, 200.0,
+                    ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Above the typical range. Context (meals) affects this."),
                 ),
                 MetricZone(
-                    "glucose.veryHigh", "Very high", 200.0, null,
-                    ZoneSeverity.HIGH, VitalColorToken.Red, "A high reading regardless of context. Confirm with a meter.",
+                    "glucose.veryHigh", tr("Very high"), 200.0, null,
+                    ZoneSeverity.HIGH, VitalColorToken.Red, tr("A high reading regardless of context. Confirm with a meter."),
                 ),
             )
     }
@@ -481,7 +484,7 @@ object VitalsThresholdEngine {
         return MetricInterpretation(
             primaryZone = zone, allZones = zones, displayLabel = zone.label,
             explanation = zone.explanation,
-            confidenceLabel = "Estimated — not for dosing or diagnosis",
+            confidenceLabel = tr("Estimated — not for dosing or diagnosis"),
             isEstimated = true,
         )
     }
@@ -493,17 +496,17 @@ object VitalsThresholdEngine {
         // absolute, so we keep a single soft "typical" band and flag extremes only.
         listOf(
             MetricZone(
-                "temp.low", "Cool", null, 31.0,
-                ZoneSeverity.WATCH, VitalColorToken.Blue, "Cooler than typical skin temperature.",
+                "temp.low", tr("Cool"), null, 31.0,
+                ZoneSeverity.WATCH, VitalColorToken.Blue, tr("Cooler than typical skin temperature."),
             ),
             MetricZone(
-                "temp.normal", "Typical", 31.0, 36.0,
+                "temp.normal", tr("Typical"), 31.0, 36.0,
                 ZoneSeverity.NORMAL, VitalColorToken.MetricAccent(MetricKind.TEMPERATURE),
-                "A typical skin-temperature range from the ring.",
+                tr("A typical skin-temperature range from the ring."),
             ),
             MetricZone(
-                "temp.high", "Warm", 36.0, null,
-                ZoneSeverity.WATCH, VitalColorToken.Amber, "Warmer than typical. Trends matter more than a single reading.",
+                "temp.high", tr("Warm"), 36.0, null,
+                ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Warmer than typical. Trends matter more than a single reading."),
             ),
         )
 

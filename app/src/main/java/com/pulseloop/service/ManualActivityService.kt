@@ -1,14 +1,16 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.ActivitySessionEntity
 import com.pulseloop.ui.components.ActivityMeta
 
 /** Ported from `ManualActivityCreationError` in ManualActivityService.swift (iOS #57d). */
 sealed class ManualActivityError(message: String) : Exception(message) {
-    object InvalidActivityType : ManualActivityError("Choose a valid activity type.")
-    object InvalidDuration : ManualActivityError("Duration must be greater than zero.")
-    object EndsInFuture : ManualActivityError("The activity must end in the past.")
+    object InvalidActivityType : ManualActivityError(tr("Choose a valid activity type."))
+    object InvalidDuration : ManualActivityError(tr("Duration must be greater than zero."))
+    object EndsInFuture : ManualActivityError(tr("The activity must end in the past."))
 }
 
 /**

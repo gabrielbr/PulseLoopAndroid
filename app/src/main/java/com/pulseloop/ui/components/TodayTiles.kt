@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -286,7 +288,7 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
         modifier = modifier
             .fillMaxWidth()
             .onSizeChanged { barWidthPx = it.width }
-            .clearAndSetSemantics { contentDescription = "Sleep stages: $spoken" },
+            .clearAndSetSemantics { contentDescription = trf("Sleep stages: {0}", spoken) },
         verticalArrangement = Arrangement.spacedBy(3.dp),
     ) {
         Row(Modifier.fillMaxWidth().height(12.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {

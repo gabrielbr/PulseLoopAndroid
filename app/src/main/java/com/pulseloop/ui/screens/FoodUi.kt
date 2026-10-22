@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import android.content.Context
@@ -104,9 +106,9 @@ fun FoodCard(
                 Text(" kcal eaten", fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
             }
             val parts = buildList {
-                burned?.takeIf { it > 0 }?.let { add("${fmt.format(it.roundToInt())} burned") }
-                f.calorieGoal?.takeIf { it > 0 }?.let { add("goal ${fmt.format(it.roundToInt())}") }
-                if (f.proteinG > 0) add("${f.proteinG.roundToInt()} g protein")
+                burned?.takeIf { it > 0 }?.let { add(trf("{0} burned", fmt.format(it.roundToInt()))) }
+                f.calorieGoal?.takeIf { it > 0 }?.let { add(trf("goal {0}", fmt.format(it.roundToInt()))) }
+                if (f.proteinG > 0) add(trf("{0} g protein", f.proteinG.roundToInt()))
                 if (f.meals == 0) add("nothing logged yet")
             }
             if (parts.isNotEmpty()) {

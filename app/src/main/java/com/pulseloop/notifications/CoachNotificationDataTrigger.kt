@@ -1,5 +1,7 @@
 package com.pulseloop.notifications
 
+import com.pulseloop.ui.i18n.tr
+
 import android.content.Context
 import com.pulseloop.ring.PulseEvent
 import com.pulseloop.ring.PulseEventBus
@@ -40,7 +42,7 @@ class CoachNotificationDataTrigger(
     private val slotRun: suspend () -> CoachNotificationOutcome =
         runDueSlot ?: {
             val c = requireNotNull(context) {
-                "CoachNotificationDataTrigger needs a Context when the production runner is used"
+                tr("CoachNotificationDataTrigger needs a Context when the production runner is used")
             }
             CoachNotificationSlotRunner.forContext(c).runDueSlot()
         }

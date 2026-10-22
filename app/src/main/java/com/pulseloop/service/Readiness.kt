@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -194,8 +197,9 @@ object Readiness {
     const val MIN_REGULARITY_NIGHTS = 5
     const val MIN_ACTIVITY_DAYS = 7
 
-    enum class Band(val label: String) {
+    enum class Band(private val labelEn: String) {
         OPTIMAL("Optimal"), GOOD("Good"), FAIR("Fair"), PAY_ATTENTION("Pay attention");
+        val label: String get() = tr(labelEn)
 
         companion object {
             /** Oura's published bands: 85+ optimal, 70–84 good, 60–69 fair, below 60 pay attention. */
@@ -213,7 +217,7 @@ object Readiness {
      * dense night heart rate; when a ring never provides them they are left out (not "missing")
      * and the rest are renormalised.
      */
-    enum class ContributorKind(val title: String, val weight: Double, val optionalSensor: Boolean = false) {
+    enum class ContributorKind(private val titleEn: String, val weight: Double, val optionalSensor: Boolean = false) {
         // The original seven keep their proportions (×0.8), so a ring without the optional
         // sensors scores exactly as it did before they existed.
         RESTING_HR("Resting heart rate", 0.16),
@@ -224,7 +228,8 @@ object Readiness {
         SLEEP_BALANCE("Sleep balance", 0.12),
         SLEEP_REGULARITY("Sleep regularity", 0.04),
         PREVIOUS_DAY_ACTIVITY("Previous day activity", 0.08),
-        ACTIVITY_BALANCE("Activity balance", 0.08),
+        ACTIVITY_BALANCE("Activity balance", 0.08);
+        val title: String get() = tr(titleEn)
     }
 
     data class Contributor(
@@ -302,7 +307,7 @@ object Readiness {
             contributors.size < MIN_CONTRIBUTORS || weightSum < applicableWeight * MIN_WEIGHT_SHARE
         ) {
             val reasons = night.withheld.values.toList().ifEmpty {
-                listOf("Last night's heart rate and HRV readings weren't enough to score recovery")
+                listOf(tr("Last night's heart rate and HRV readings weren't enough to score recovery"))
             }
             return Result.Withheld(reasons, night.coverage)
         }
@@ -341,9 +346,9 @@ object Readiness {
         val score = curve(delta, listOf(-15.0 to 60.0, -10.0 to 100.0, 1.0 to 100.0, 3.0 to 85.0, 5.0 to 65.0, 8.0 to 40.0, 12.0 to 15.0))
         val d = delta.roundToInt()
         val detail = when {
-            d == 0 -> "Right at your usual ${base.roundToInt()} bpm"
-            d > 0 -> "$d bpm above your usual ${base.roundToInt()}"
-            else -> "${-d} bpm below your usual ${base.roundToInt()}"
+            d == 0 -> trf("Right at your usual {0} bpm", base.roundToInt())
+            d > 0 -> trf("{0} bpm above your usual {1}", d, base.roundToInt())
+            else -> trf("{0} bpm below your usual {1}", -d, base.roundToInt())
         }
         return Contributor(ContributorKind.RESTING_HR, score, detail)
     }
@@ -362,9 +367,9 @@ object Readiness {
         val score = curve(ratio, listOf(0.6 to 20.0, 0.75 to 50.0, 0.85 to 70.0, 0.95 to 90.0, 1.0 to 100.0))
         val pct = ((ratio - 1) * 100).roundToInt()
         val detail = when {
-            abs(pct) < 3 -> "In line with your usual ${base.roundToInt()} ms"
-            pct > 0 -> "$pct% above your usual ${base.roundToInt()} ms"
-            else -> "${-pct}% below your usual ${base.roundToInt()} ms"
+            abs(pct) < 3 -> trf("In line with your usual {0} ms", base.roundToInt())
+            pct > 0 -> trf("{0}% above your usual {1} ms", pct, base.roundToInt())
+            else -> trf("{0}% below your usual {1} ms", -pct, base.roundToInt())
         }
         return Contributor(ContributorKind.HRV_BALANCE, score, detail)
     }
@@ -376,9 +381,9 @@ object Readiness {
         val delta = t - base
         val score = curve(abs(delta), listOf(0.3 to 100.0, 0.5 to 80.0, 1.0 to 45.0, 1.5 to 15.0))
         val detail = when {
-            abs(delta) < 0.1 -> "At your usual"
-            delta > 0 -> "+%.1f °C from your usual".format(delta)
-            else -> "−%.1f °C from your usual".format(-delta)
+            abs(delta) < 0.1 -> tr("At your usual")
+            delta > 0 -> tr("+%.1f °C from your usual").format(delta)
+            else -> tr("−%.1f °C from your usual").format(-delta)
         }
         return Contributor(ContributorKind.BODY_TEMPERATURE, score, detail)
     }
@@ -394,13 +399,13 @@ object Readiness {
         val fraction = ((at - night.startAt).toDouble() / span).coerceIn(0.0, 1.0)
         val score = curve(fraction, listOf(0.5 to 100.0, 0.7 to 75.0, 0.85 to 55.0, 1.0 to 35.0))
         val beforeWake = ((night.endAt - at) / 60_000L).toInt()
-        return Contributor(ContributorKind.RECOVERY_INDEX, score, "Lowest heart rate ${SleepFormat.duration(beforeWake)} before waking")
+        return Contributor(ContributorKind.RECOVERY_INDEX, score, trf("Lowest heart rate {0} before waking", SleepFormat.duration(beforeWake)))
     }
 
     internal fun sleep(night: NightSummary, goalMinutes: Int): Contributor? {
         if (goalMinutes <= 0 || night.asleepMinutes <= 0) return null
         val score = sleepCurve(night.asleepMinutes.toDouble() / goalMinutes)
-        return Contributor(ContributorKind.SLEEP, score, "${SleepFormat.duration(night.asleepMinutes)} of ${SleepFormat.duration(goalMinutes)} goal")
+        return Contributor(ContributorKind.SLEEP, score, trf("{0} of {1} goal", SleepFormat.duration(night.asleepMinutes), SleepFormat.duration(goalMinutes)))
     }
 
     internal fun sleepBalance(night: NightSummary, history: List<NightSummary>, goalMinutes: Int): Contributor? {
@@ -409,7 +414,7 @@ object Readiness {
         if (nights.size < MIN_BASELINE_NIGHTS) return null
         val avg = nights.map { it.asleepMinutes }.average()
         val score = sleepCurve(avg / goalMinutes)
-        return Contributor(ContributorKind.SLEEP_BALANCE, score, "Averaging ${SleepFormat.duration(avg.roundToInt())} over ${nights.size} nights")
+        return Contributor(ContributorKind.SLEEP_BALANCE, score, trf("Averaging {0} over {1} nights", SleepFormat.duration(avg.roundToInt()), nights.size))
     }
 
     internal fun sleepRegularity(night: NightSummary, history: List<NightSummary>, zone: ZoneId): Contributor? {
@@ -419,7 +424,7 @@ object Readiness {
         val mean = mids.average()
         val sd = sqrt(mids.sumOf { (it - mean) * (it - mean) } / mids.size)
         val score = curve(sd, listOf(30.0 to 100.0, 60.0 to 75.0, 90.0 to 50.0, 120.0 to 25.0, 180.0 to 0.0))
-        return Contributor(ContributorKind.SLEEP_REGULARITY, score, "Sleep midpoint varies by about ${sd.roundToInt()} min")
+        return Contributor(ContributorKind.SLEEP_REGULARITY, score, trf("Sleep midpoint varies by about {0} min", sd.roundToInt()))
     }
 
     internal fun previousDayActivity(dailySteps: List<Int>): Contributor? {
@@ -430,7 +435,7 @@ object Readiness {
         val ratio = yesterday / usual
         // Both ends cost points: a sedentary day, and a very heavy one that calls for recovery.
         val score = curve(ratio, listOf(0.0 to 30.0, 0.3 to 50.0, 0.7 to 100.0, 1.5 to 100.0, 2.5 to 60.0))
-        return Contributor(ContributorKind.PREVIOUS_DAY_ACTIVITY, score, "%,d steps yesterday vs your usual %,d".format(yesterday, usual.roundToInt()))
+        return Contributor(ContributorKind.PREVIOUS_DAY_ACTIVITY, score, tr("%,d steps yesterday vs your usual %,d").format(yesterday, usual.roundToInt()))
     }
 
     internal fun activityBalance(dailySteps: List<Int>): Contributor? {
@@ -442,9 +447,9 @@ object Readiness {
         val score = curve(ratio, listOf(0.3 to 30.0, 0.5 to 60.0, 0.8 to 100.0, 1.3 to 100.0, 2.0 to 60.0))
         val pct = ((ratio - 1) * 100).roundToInt()
         val detail = when {
-            abs(pct) < 5 -> "This week matches your monthly rhythm"
-            pct > 0 -> "This week is $pct% more active than your monthly average"
-            else -> "This week is ${-pct}% less active than your monthly average"
+            abs(pct) < 5 -> tr("This week matches your monthly rhythm")
+            pct > 0 -> trf("This week is {0}% more active than your monthly average", pct)
+            else -> trf("This week is {0}% less active than your monthly average", -pct)
         }
         return Contributor(ContributorKind.ACTIVITY_BALANCE, score, detail)
     }
@@ -483,21 +488,21 @@ object ReadinessCopy {
             val weakest = result.contributors.minByOrNull { it.score }
                 ?.takeIf { it.score < 70 }?.kind?.title?.lowercase()
             when (result.band) {
-                Readiness.Band.OPTIMAL -> "You're well recovered. A good day to take on something demanding."
-                Readiness.Band.GOOD -> "You're in good shape today. Your usual plans should feel fine."
+                Readiness.Band.OPTIMAL -> tr("You're well recovered. A good day to take on something demanding.")
+                Readiness.Band.GOOD -> tr("You're in good shape today. Your usual plans should feel fine.")
                 Readiness.Band.FAIR -> if (weakest != null)
-                    "Your body is still recovering. Go a little easier today and watch your $weakest."
-                else "Your body is still recovering. Go a little easier today."
+                    trf("Your body is still recovering. Go a little easier today and watch your {0}.", weakest)
+                else tr("Your body is still recovering. Go a little easier today.")
                 Readiness.Band.PAY_ATTENTION -> if (weakest != null)
-                    "Your body is asking for rest. Make recovery today's priority: your $weakest is furthest from your usual."
-                else "Your body is asking for rest. Make recovery today's priority."
+                    trf("Your body is asking for rest. Make recovery today's priority: your {0} is furthest from your usual.", weakest)
+                else tr("Your body is asking for rest. Make recovery today's priority.")
             }
         }
         is Readiness.Result.Learning ->
-            "Learning your baseline: ${result.nightsCollected} of ${result.nightsNeeded} nights. Keep wearing your ring to bed."
-        Readiness.Result.NoSleep -> "No sleep recorded for last night yet. Sync your ring after you wake up."
+            trf("Learning your baseline: {0} of {1} nights. Keep wearing your ring to bed.", result.nightsCollected, result.nightsNeeded)
+        Readiness.Result.NoSleep -> tr("No sleep recorded for last night yet. Sync your ring after you wake up.")
         is Readiness.Result.Withheld ->
-            "No readiness today: ${result.reasons.first().replaceFirstChar { it.lowercase() }}. Wear the ring snugly tonight."
+            trf("No readiness today: {0}. Wear the ring snugly tonight.", result.reasons.first().replaceFirstChar { it.lowercase() })
     }
 
     /** A visible caution when the ring missed much of the night, or null when coverage is fine. */
@@ -510,27 +515,27 @@ object ReadinessCopy {
     const val LOW_COVERAGE = 0.6
 
     const val DERIVED_FOOTER =
-        "Readiness is estimated by PulseLoop from your ring's sleep, heart rate, HRV and activity, compared with your own recent nights. It is not a medical measurement."
+        tr("Readiness is estimated by PulseLoop from your ring's sleep, heart rate, HRV and activity, compared with your own recent nights. It is not a medical measurement.")
 
     /** What each contributor measures, for its detail sheet. */
     fun explanation(kind: Readiness.ContributorKind): String = when (kind) {
         Readiness.ContributorKind.RESTING_HR ->
-            "Your lowest sustained heart rate last night, compared with your usual over recent nights. A resting heart rate a few beats above normal can mean your body is working on recovery, stress, or an oncoming illness."
+            tr("Your lowest sustained heart rate last night, compared with your usual over recent nights. A resting heart rate a few beats above normal can mean your body is working on recovery, stress, or an oncoming illness.")
         Readiness.ContributorKind.HRV_BALANCE ->
-            "Your heart rate variability over the last few nights, weighted toward last night, compared with your usual. Higher than usual generally means you're well recovered; a drop suggests strain."
+            tr("Your heart rate variability over the last few nights, weighted toward last night, compared with your usual. Higher than usual generally means you're well recovered; a drop suggests strain.")
         Readiness.ContributorKind.BODY_TEMPERATURE ->
-            "Your skin temperature last night compared with your usual. A rise of half a degree or more can come with illness, a hard training load, alcohol or the menstrual cycle."
+            tr("Your skin temperature last night compared with your usual. A rise of half a degree or more can come with illness, a hard training load, alcohol or the menstrual cycle.")
         Readiness.ContributorKind.RECOVERY_INDEX ->
-            "How early in the night your heart rate reached its lowest. An early low means your body had time to recover; a low just before waking means it was still working, often after a late meal, alcohol or an evening workout."
+            tr("How early in the night your heart rate reached its lowest. An early low means your body had time to recover; a low just before waking means it was still working, often after a late meal, alcohol or an evening workout.")
         Readiness.ContributorKind.SLEEP ->
-            "How much you slept last night compared with your sleep need, learned from the nights you woke up recovered (your sleep goal until then)."
+            tr("How much you slept last night compared with your sleep need, learned from the nights you woke up recovered (your sleep goal until then).")
         Readiness.ContributorKind.SLEEP_BALANCE ->
-            "Your average sleep over the last two weeks compared with your goal. It shows whether sleep debt is building up."
+            tr("Your average sleep over the last two weeks compared with your goal. It shows whether sleep debt is building up.")
         Readiness.ContributorKind.SLEEP_REGULARITY ->
-            "How consistent the timing of your sleep has been over the last two weeks. A steady rhythm helps recovery."
+            tr("How consistent the timing of your sleep has been over the last two weeks. A steady rhythm helps recovery.")
         Readiness.ContributorKind.PREVIOUS_DAY_ACTIVITY ->
-            "Yesterday's steps compared with your usual. Both a very inactive day and an unusually heavy one lower this."
+            tr("Yesterday's steps compared with your usual. Both a very inactive day and an unusually heavy one lower this.")
         Readiness.ContributorKind.ACTIVITY_BALANCE ->
-            "This week's activity compared with your monthly average. It flags both overdoing it and a drop in activity."
+            tr("This week's activity compared with your monthly average. It flags both overdoing it and a drop in activity.")
     }
 }

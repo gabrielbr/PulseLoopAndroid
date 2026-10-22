@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import java.time.Instant
 import java.time.LocalTime
 import java.time.ZoneId
@@ -40,15 +43,15 @@ object VitalsCheck {
             val usual = percentile(sorted, 0.5)
             val fmt = { v: Double -> if (unit == "h") SleepFormat.duration((v * 60).roundToInt()) else "${v.roundToInt()}$unit" }
             when {
-                value > hi && higherIsWorse -> out += OffSignal(title, "${fmt(value)}, higher than your usual ${fmt(usual)}")
-                value < lo && !higherIsWorse -> out += OffSignal(title, "${fmt(value)}, lower than your usual ${fmt(usual)}")
+                value > hi && higherIsWorse -> out += OffSignal(title, trf("{0}, higher than your usual {1}", fmt(value), fmt(usual)))
+                value < lo && !higherIsWorse -> out += OffSignal(title, trf("{0}, lower than your usual {1}", fmt(value), fmt(usual)))
             }
         }
-        check("Resting heart rate", lastNight.restingHr, history.mapNotNull { it.restingHr }, " bpm", higherIsWorse = true, minDelta = 2.0)
+        check(tr("Resting heart rate"), lastNight.restingHr, history.mapNotNull { it.restingHr }, " bpm", higherIsWorse = true, minDelta = 2.0)
         check("HRV", lastNight.hrv, history.mapNotNull { it.hrv }, " ms", higherIsWorse = false, minDelta = 3.0)
-        check("Blood oxygen", lastNight.spo2, history.mapNotNull { it.spo2 }, "%", higherIsWorse = false, minDelta = 1.0)
+        check(tr("Blood oxygen"), lastNight.spo2, history.mapNotNull { it.spo2 }, "%", higherIsWorse = false, minDelta = 1.0)
         check(
-            "Sleep", lastNight.asleepMinutes.takeIf { it > 0 }?.let { it / 60.0 },
+            tr("Sleep"), lastNight.asleepMinutes.takeIf { it > 0 }?.let { it / 60.0 },
             history.filter { it.asleepMinutes > 0 }.map { it.asleepMinutes / 60.0 }, "h", higherIsWorse = false, minDelta = 0.5,
         )
         return out
@@ -57,7 +60,7 @@ object VitalsCheck {
     fun shouldAlert(signals: List<OffSignal>) = signals.size >= ALERT_THRESHOLD
 
     fun alertText(signals: List<OffSignal>): Pair<String, String> =
-        "Some of your signals look unusual" to
+        tr("Some of your signals look unusual") to
             signals.joinToString("; ") { "${it.title}: ${it.detail}" } +
             ". This can happen with illness, stress, alcohol or a hard day. Consider taking it easy."
 }
@@ -134,36 +137,36 @@ object WeeklyReport {
 
         thisWeek.avgAsleepMinutes?.let { now ->
             val prev = lastWeek?.avgAsleepMinutes
-            lines += "Sleep ${SleepFormat.duration(now)} a night" + (prev?.let { " (${signed(now - it)} min vs last week)" } ?: "")
+            lines += trf("Sleep {0} a night", SleepFormat.duration(now)) + (prev?.let { trf(" ({0} min vs last week)", signed(now - it)) } ?: "")
             val short = (sleepGoalMinutes - now).toDouble() / sleepGoalMinutes
-            if (short > 0.1 && short > worst) { worst = short; focus = "Aim for an earlier bedtime: you averaged ${SleepFormat.duration(now)} against a ${SleepFormat.duration(sleepGoalMinutes)} goal." }
+            if (short > 0.1 && short > worst) { worst = short; focus = trf("Aim for an earlier bedtime: you averaged {0} against a {1} goal.", SleepFormat.duration(now), SleepFormat.duration(sleepGoalMinutes)) }
         }
         thisWeek.avgRestingHr?.let { now ->
             val prev = lastWeek?.avgRestingHr
-            lines += "Resting heart rate ${now.roundToInt()} bpm" + (prev?.let { " (${signed((now - it).roundToInt())} vs last week)" } ?: "")
+            lines += trf("Resting heart rate {0} bpm", now.roundToInt()) + (prev?.let { trf(" ({0} vs last week)", signed((now - it).roundToInt())) } ?: "")
             if (prev != null) {
                 val rise = (now - prev) / prev
-                if (rise > 0.05 && rise > worst) { worst = rise; focus = "Your resting heart rate is up on last week. Prioritise recovery and sleep." }
+                if (rise > 0.05 && rise > worst) { worst = rise; focus = tr("Your resting heart rate is up on last week. Prioritise recovery and sleep.") }
             }
         }
         thisWeek.avgHrv?.let { now ->
             val prev = lastWeek?.avgHrv
-            lines += "HRV ${now.roundToInt()} ms" + (prev?.let { " (${signed((now - it).roundToInt())} vs last week)" } ?: "")
+            lines += "HRV ${now.roundToInt()} ms" + (prev?.let { trf(" ({0} vs last week)", signed((now - it).roundToInt())) } ?: "")
             if (prev != null && prev > 0) {
                 val drop = (prev - now) / prev
-                if (drop > 0.1 && drop > worst) { worst = drop; focus = "Your HRV dipped this week. Lighter days and consistent sleep help it recover." }
+                if (drop > 0.1 && drop > worst) { worst = drop; focus = tr("Your HRV dipped this week. Lighter days and consistent sleep help it recover.") }
             }
         }
         thisWeek.avgSteps?.let { now ->
             val prev = lastWeek?.avgSteps
-            lines += "%,d steps a day".format(now) + (prev?.let { " (${signed(now - it)} vs last week)" } ?: "")
+            lines += tr("%,d steps a day").format(now) + (prev?.let { trf(" ({0} vs last week)", signed(now - it)) } ?: "")
             if (prev != null && prev > 0) {
                 val drop = (prev - now).toDouble() / prev
-                if (drop > 0.15 && drop > worst) { worst = drop; focus = "You moved less than last week. A daily walk is an easy way back." }
+                if (drop > 0.15 && drop > worst) { worst = drop; focus = tr("You moved less than last week. A daily walk is an easy way back.") }
             }
         }
         if (lines.isEmpty()) return null
-        val body = lines.joinToString(". ") + ". " + (focus ?: "A steady week. Keep it up.")
+        val body = lines.joinToString(". ") + ". " + (focus ?: tr("A steady week. Keep it up."))
         return "Your week in review" to body
     }
 

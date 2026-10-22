@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.FoodPreferenceEntity
 import kotlinx.serialization.Serializable
@@ -40,32 +43,32 @@ object MealSuggester {
     /** Typical portions, TACO-style values, rounded. */
     val CATALOG: List<Food> = listOf(
         // Fruit
-        Food("banana", "Banana", "banana", "1 medium", 105.0, 1.3, 27.0, 0.4, Role.FRUIT, setOf(B, S, D)),
-        Food("maca", "Maçã", "apple", "1 medium", 95.0, 0.5, 25.0, 0.3, Role.FRUIT, setOf(B, S, D)),
-        Food("mamao", "Mamão papaia", "papaya", "½ fruit", 60.0, 1.0, 15.0, 0.2, Role.FRUIT, setOf(B, S)),
-        Food("laranja", "Laranja", "orange", "1 medium", 62.0, 1.2, 15.0, 0.2, Role.FRUIT, setOf(B, S)),
-        Food("melancia", "Melancia", "watermelon", "2 slices", 60.0, 1.2, 15.0, 0.3, Role.FRUIT, setOf(S)),
+        Food("banana", tr("Banana"), "banana", tr("1 medium"), 105.0, 1.3, 27.0, 0.4, Role.FRUIT, setOf(B, S, D)),
+        Food("maca", tr("Maçã"), "apple", tr("1 medium"), 95.0, 0.5, 25.0, 0.3, Role.FRUIT, setOf(B, S, D)),
+        Food("mamao", tr("Mamão papaia"), "papaya", "½ fruit", 60.0, 1.0, 15.0, 0.2, Role.FRUIT, setOf(B, S)),
+        Food("laranja", tr("Laranja"), "orange", tr("1 medium"), 62.0, 1.2, 15.0, 0.2, Role.FRUIT, setOf(B, S)),
+        Food("melancia", tr("Melancia"), "watermelon", tr("2 slices"), 60.0, 1.2, 15.0, 0.3, Role.FRUIT, setOf(S)),
         // Breakfast and snacks
-        Food("pao_queijo_minas", "Pão francês com queijo minas", "bread roll with fresh cheese", "1 roll + 30 g", 220.0, 9.0, 30.0, 6.0, Role.CARB, setOf(B, S)),
-        Food("tapioca_ovo", "Tapioca com ovo", "tapioca with egg", "1 medium", 230.0, 8.0, 32.0, 6.0, Role.CARB, setOf(B, S, D)),
-        Food("cuscuz_ovo", "Cuscuz com ovo", "corn couscous with egg", "1 plate", 250.0, 9.0, 35.0, 7.0, Role.CARB, setOf(B, D)),
-        Food("ovos_mexidos", "Ovos mexidos", "scrambled eggs", "2 eggs", 180.0, 12.0, 2.0, 14.0, Role.PROTEIN, setOf(B, D)),
-        Food("iogurte", "Iogurte natural", "plain yogurt", "1 pot (170 g)", 100.0, 6.0, 8.0, 5.0, Role.DAIRY, setOf(B, S, D)),
-        Food("cafe_leite", "Café com leite", "coffee with milk", "1 cup", 90.0, 6.0, 9.0, 3.0, Role.DAIRY, setOf(B, S)),
-        Food("castanhas", "Castanhas", "brazil or cashew nuts", "30 g", 180.0, 4.0, 6.0, 16.0, Role.EXTRA, setOf(S)),
-        Food("pao_de_queijo", "Pão de queijo", "cheese bread", "2 small", 180.0, 3.0, 18.0, 10.0, Role.EXTRA, setOf(B, S)),
+        Food("pao_queijo_minas", tr("Pão francês com queijo minas"), "bread roll with fresh cheese", tr("1 roll + 30 g"), 220.0, 9.0, 30.0, 6.0, Role.CARB, setOf(B, S)),
+        Food("tapioca_ovo", tr("Tapioca com ovo"), "tapioca with egg", tr("1 medium"), 230.0, 8.0, 32.0, 6.0, Role.CARB, setOf(B, S, D)),
+        Food("cuscuz_ovo", tr("Cuscuz com ovo"), "corn couscous with egg", tr("1 plate"), 250.0, 9.0, 35.0, 7.0, Role.CARB, setOf(B, D)),
+        Food("ovos_mexidos", tr("Ovos mexidos"), "scrambled eggs", tr("2 eggs"), 180.0, 12.0, 2.0, 14.0, Role.PROTEIN, setOf(B, D)),
+        Food("iogurte", tr("Iogurte natural"), "plain yogurt", tr("1 pot (170 g)"), 100.0, 6.0, 8.0, 5.0, Role.DAIRY, setOf(B, S, D)),
+        Food("cafe_leite", tr("Café com leite"), "coffee with milk", tr("1 cup"), 90.0, 6.0, 9.0, 3.0, Role.DAIRY, setOf(B, S)),
+        Food("castanhas", tr("Castanhas"), "brazil or cashew nuts", tr("30 g"), 180.0, 4.0, 6.0, 16.0, Role.EXTRA, setOf(S)),
+        Food("pao_de_queijo", tr("Pão de queijo"), "cheese bread", tr("2 small"), 180.0, 3.0, 18.0, 10.0, Role.EXTRA, setOf(B, S)),
         // Lunch and dinner
-        Food("arroz", "Arroz branco", "white rice", "4 tbsp (100 g)", 130.0, 2.5, 28.0, 0.3, Role.CARB, setOf(L, D)),
-        Food("feijao", "Feijão", "beans", "1 ladle (100 g)", 76.0, 4.8, 14.0, 0.5, Role.LEGUME, setOf(L, D)),
-        Food("batata_doce", "Batata-doce", "sweet potato", "150 g", 130.0, 2.0, 30.0, 0.2, Role.CARB, setOf(L, D)),
-        Food("mandioca", "Mandioca cozida", "boiled cassava", "100 g", 125.0, 1.0, 30.0, 0.3, Role.CARB, setOf(L, D)),
-        Food("frango", "Frango grelhado", "grilled chicken", "120 g", 195.0, 37.0, 0.0, 4.0, Role.PROTEIN, setOf(L, D)),
-        Food("tilapia", "Tilápia grelhada", "grilled tilapia", "120 g", 155.0, 31.0, 0.0, 3.0, Role.PROTEIN, setOf(L, D)),
-        Food("patinho", "Patinho moído", "lean ground beef", "100 g", 220.0, 27.0, 0.0, 12.0, Role.PROTEIN, setOf(L, D)),
-        Food("omelete", "Omelete de 2 ovos com queijo", "2-egg cheese omelette", "1", 250.0, 17.0, 2.0, 19.0, Role.PROTEIN, setOf(D)),
-        Food("salada", "Salada verde com tomate", "green salad with tomato", "1 plate, 1 tsp olive oil", 60.0, 1.0, 5.0, 4.0, Role.VEG, setOf(L, D)),
-        Food("legumes", "Legumes cozidos", "steamed vegetables (zucchini, carrot, broccoli)", "150 g", 60.0, 3.0, 10.0, 0.5, Role.VEG, setOf(L, D)),
-        Food("sopa_legumes", "Sopa de legumes com frango", "vegetable and chicken soup", "1 bowl", 220.0, 18.0, 22.0, 6.0, Role.PROTEIN, setOf(D)),
+        Food("arroz", tr("Arroz branco"), "white rice", tr("4 tbsp (100 g)"), 130.0, 2.5, 28.0, 0.3, Role.CARB, setOf(L, D)),
+        Food("feijao", tr("Feijão"), "beans", tr("1 ladle (100 g)"), 76.0, 4.8, 14.0, 0.5, Role.LEGUME, setOf(L, D)),
+        Food("batata_doce", tr("Batata-doce"), "sweet potato", tr("150 g"), 130.0, 2.0, 30.0, 0.2, Role.CARB, setOf(L, D)),
+        Food("mandioca", tr("Mandioca cozida"), "boiled cassava", tr("100 g"), 125.0, 1.0, 30.0, 0.3, Role.CARB, setOf(L, D)),
+        Food("frango", tr("Frango grelhado"), "grilled chicken", tr("120 g"), 195.0, 37.0, 0.0, 4.0, Role.PROTEIN, setOf(L, D)),
+        Food("tilapia", tr("Tilápia grelhada"), "grilled tilapia", tr("120 g"), 155.0, 31.0, 0.0, 3.0, Role.PROTEIN, setOf(L, D)),
+        Food("patinho", tr("Patinho moído"), "lean ground beef", tr("100 g"), 220.0, 27.0, 0.0, 12.0, Role.PROTEIN, setOf(L, D)),
+        Food("omelete", tr("Omelete de 2 ovos com queijo"), tr("2-egg cheese omelette"), "1", 250.0, 17.0, 2.0, 19.0, Role.PROTEIN, setOf(D)),
+        Food("salada", tr("Salada verde com tomate"), "green salad with tomato", tr("1 plate, 1 tsp olive oil"), 60.0, 1.0, 5.0, 4.0, Role.VEG, setOf(L, D)),
+        Food("legumes", tr("Legumes cozidos"), "steamed vegetables (zucchini, carrot, broccoli)", tr("150 g"), 60.0, 3.0, 10.0, 0.5, Role.VEG, setOf(L, D)),
+        Food("sopa_legumes", tr("Sopa de legumes com frango"), "vegetable and chicken soup", tr("1 bowl"), 220.0, 18.0, 22.0, 6.0, Role.PROTEIN, setOf(D)),
     )
 
     /** The meal slot for a local time of day. */
@@ -126,7 +129,7 @@ object MealSuggester {
     private fun foodFor(p: FoodPreferenceEntity): Food? =
         CATALOG.firstOrNull { matches(it, p.item) }
             ?: if (p.kcal != null) Food("pref:${p.item}", p.item.replaceFirstChar { it.uppercase() }, p.item,
-                p.portion ?: "1 portion", p.kcal, p.proteinG ?: 0.0, 0.0, 0.0, Role.EXTRA, setOf(B, L, S, D)) else null
+                p.portion ?: tr("1 portion"), p.kcal, p.proteinG ?: 0.0, 0.0, 0.0, Role.EXTRA, setOf(B, L, S, D)) else null
 
     fun suggest(i: Inputs): Suggestion {
         val remaining = i.targetKcal - i.eatenKcal
@@ -144,9 +147,9 @@ object MealSuggester {
             val fruit = pool(Role.FRUIT).firstOrNull()
             return Suggestion(
                 slot = slot, items = emptyList(), totalKcal = 0, totalProteinG = 0, leavesKcal = remaining.roundToInt(),
-                note = if (remaining <= 0) "You've reached today's target. Water or tea if you're hungry" +
-                    (fruit?.let { ", or a ${it.english} if you need something (${it.kcal.roundToInt()} kcal)." } ?: ".")
-                else "Only ${remaining.roundToInt()} kcal left: " + (fruit?.let { "a ${it.english} fits." } ?: "keep it light."),
+                note = if (remaining <= 0) tr("You've reached today's target. Water or tea if you're hungry") +
+                    (fruit?.let { trf(", or a {0} if you need something ({1} kcal).", it.english, it.kcal.roundToInt()) } ?: ".")
+                else trf("Only {0} kcal left: ", remaining.roundToInt()) + (fruit?.let { trf("a {0} fits.", it.english) } ?: "keep it light."),
             )
         }
 
@@ -171,7 +174,7 @@ object MealSuggester {
             replaces?.let { template.remove(it) }
             template.remove(food.role)
             plate += food
-            used += "${p.item} at ${if (p.slot == "any") "any meal" else p.slot}" + (p.insteadOf?.let { " instead of $it" } ?: "")
+            used += "${p.item} at ${if (p.slot == "any") tr("any meal") else p.slot}" + (p.insteadOf?.let { trf(" instead of {0}", it) } ?: "")
         }
         // Then fill the template, protein first when there's a gap, each within what's left.
         val order = if (proteinGap > 15) template.sortedBy { if (it == Role.PROTEIN || it == Role.DAIRY) 0 else 1 } else template
@@ -190,7 +193,7 @@ object MealSuggester {
             totalProteinG = plate.sumOf { it.proteinG }.roundToInt(),
             leavesKcal = (remaining - total).roundToInt(),
             fromPreferences = used,
-            note = if (proteinGap > 30) "You're ${proteinGap.roundToInt()} g short of today's protein, so this leans on protein." else null,
+            note = if (proteinGap > 30) trf("You're {0} g short of today's protein, so this leans on protein.", proteinGap.roundToInt()) else null,
         )
     }
 

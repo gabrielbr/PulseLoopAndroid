@@ -1,5 +1,8 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+
 import android.content.Context
 import android.content.SharedPreferences
 import com.pulseloop.data.PulseLoopDatabase
@@ -276,16 +279,16 @@ object DrinksRepository {
 
     /** One line for a morning-after card or notification, null when there's nothing honest to say. */
     fun morningAfterLine(m: DrinkInsights.MorningAfter): String {
-        val drinks = "${DrinkInsights.fmt(m.standardDrinks)} drink${if (m.standardDrinks == 1.0) "" else "s"}"
+        val drinks = trf("{0} drink{1}", DrinkInsights.fmt(m.standardDrinks), if (m.standardDrinks == 1.0) "" else "s")
         val parts = buildList {
-            m.impact.hrvPct?.let { add("HRV ${kotlin.math.abs(it)}% ${if (it < 0) "below" else "above"} your dry nights") }
-            m.impact.restingHr?.let { if (it != 0) add("resting heart rate ${if (it > 0) "+" else ""}$it bpm") }
-            m.impact.asleepMinutes?.let { if (kotlin.math.abs(it) >= 10) add("${kotlin.math.abs(it)} min ${if (it < 0) "less" else "more"} sleep") }
+            m.impact.hrvPct?.let { add(trf("HRV {0}% {1} your dry nights", kotlin.math.abs(it), if (it < 0) tr("below") else tr("above"))) }
+            m.impact.restingHr?.let { if (it != 0) add(trf("resting heart rate {0}{1} bpm", if (it > 0) "+" else "", it)) }
+            m.impact.asleepMinutes?.let { if (kotlin.math.abs(it) >= 10) add(trf("{0} min {1} sleep", kotlin.math.abs(it), if (it < 0) tr("less") else tr("more"))) }
         }
         return if (parts.isEmpty()) {
-            if (m.dryNights < DrinkInsights.MIN_NIGHTS) "Last night: $drinks. A few dry nights will show what it does to you."
-            else "Last night: $drinks. Your night looked close to your dry ones."
-        } else "Last night: $drinks. ${parts.joinToString(", ").replaceFirstChar { it.uppercase() }}."
+            if (m.dryNights < DrinkInsights.MIN_NIGHTS) trf("Last night: {0}. A few dry nights will show what it does to you.", drinks)
+            else trf("Last night: {0}. Your night looked close to your dry ones.", drinks)
+        } else trf("Last night: {0}. {1}.", drinks, parts.joinToString(", ").replaceFirstChar { it.uppercase() })
     }
 }
 
@@ -302,7 +305,7 @@ data class DrinksContext(
     val lastNightStandardDrinks: Double? = null,
     val lastNightEffect: String? = null,
     val standardDrinkGrams: Double,
-    val note: String = "Drinks the user logged themselves, in standard drinks of the given grams. Effects compare the user's own nights after drinking with their dry nights; a pattern, not proof.",
+    val note: String = tr("Drinks the user logged themselves, in standard drinks of the given grams. Effects compare the user's own nights after drinking with their dry nights; a pattern, not proof."),
 ) {
     companion object {
         suspend fun build(db: PulseLoopDatabase, now: Long = System.currentTimeMillis()): DrinksContext? {

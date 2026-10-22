@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import com.pulseloop.ui.theme.dither
@@ -77,7 +79,7 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
                 fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
             )
             Text(
-                "For ${sleepGoalMinutes / 60}h asleep before your usual ${BedtimeGuidance.fmt(g.usualWake)}",
+                trf("For {0}h asleep before your usual {1}", sleepGoalMinutes / 60, BedtimeGuidance.fmt(g.usualWake)),
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }

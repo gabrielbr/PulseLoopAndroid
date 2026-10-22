@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 /**
  * Ported from the HR zone calculation logic in the iOS app.
  * Max HR estimated via 220 - age formula; zones are percentage-based.
@@ -7,12 +9,13 @@ package com.pulseloop.service
 object HeartRateZones {
     fun maxHR(age: Int = 30): Int = 220 - age
 
-    enum class Zone(val label: String, val range: IntRange) {
+    enum class Zone(private val labelEn: String, val range: IntRange) {
         REST("Rest", 0..59),
         FAT_BURN("Fat Burn", 60..69),
         CARDIO("Cardio", 70..79),
         PEAK("Peak", 80..89),
-        MAX("Max", 90..220),
+        MAX("Max", 90..220);
+        val label: String get() = tr(labelEn)
     }
 
     fun zoneFor(bpm: Int, age: Int = 30): Zone {

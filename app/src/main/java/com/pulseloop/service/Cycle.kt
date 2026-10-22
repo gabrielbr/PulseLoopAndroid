@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -10,12 +12,14 @@ import java.time.temporal.ChronoUnit
  * screen would be read as a measurement.
  */
 object Cycle {
-    enum class Phase(val label: String, val note: String) {
+    enum class Phase(private val labelEn: String, private val noteEn: String) {
         MENSTRUAL("Period", "Energy and sleep can dip; resting heart rate is often at its lowest."),
         FOLLICULAR("Follicular", "After the period, until about two weeks before the next one."),
         LUTEAL("Luteal", "The two weeks before a period: skin temperature and resting heart rate often run a little higher."),
         LATE("Period later than usual", "Later than your usual cycle length. Log it when it starts."),
-        UNKNOWN("Cycle", "Log two periods to see phases and an estimate of the next one."),
+        UNKNOWN("Cycle", "Log two periods to see phases and an estimate of the next one.");
+        val label: String get() = tr(labelEn)
+        val note: String get() = tr(noteEn)
     }
 
     data class Period(val start: LocalDate, val end: LocalDate?)

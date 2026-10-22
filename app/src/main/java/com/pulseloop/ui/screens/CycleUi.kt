@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -72,13 +74,13 @@ fun CycleScreen(onBack: () -> Unit) {
                     Text(tr("Log your period to start"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(tr("PulseLoop shows the day of your cycle and its phase from the dates you log, next to your sleep and recovery."), fontSize = 13.sp, color = PulseColors.textSecondary)
                 } else {
-                    Text("Day ${status.cycleDay} · ${status.phase.label}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(trf("Day {0} · {1}", status.cycleDay, status.phase.label), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(status.phase.note, fontSize = 13.sp, color = PulseColors.textSecondary)
                     status.nextStart?.let { next ->
                         val d = status.daysToNext ?: 0
                         Text(
-                            if (d >= 0) "Next period around ${next.format(fmt)} (in $d day${if (d == 1) "" else "s"}), from your usual ${status.usualLength}-day cycle."
-                            else "Your usual ${status.usualLength}-day cycle would have ended ${-d} day${if (d == -1) "" else "s"} ago.",
+                            if (d >= 0) trf("Next period around {0} (in {1} day{2}), from your usual {3}-day cycle.", next.format(fmt), d, if (d == 1) "" else "s", status.usualLength)
+                            else trf("Your usual {0}-day cycle would have ended {1} day{2} ago.", status.usualLength, -d, if (d == -1) "" else "s"),
                             fontSize = 13.sp, color = PulseColors.textPrimary,
                         )
                     }
@@ -111,7 +113,7 @@ fun CycleScreen(onBack: () -> Unit) {
                                 start.format(fmt) + (p.endDay?.let { " – " + LocalDate.ofEpochDay(it).format(fmt) } ?: ""),
                                 fontSize = 14.sp, color = PulseColors.textPrimary,
                             )
-                            next?.let { Text("Cycle of ${it - p.startDay} days", fontSize = 12.sp, color = PulseColors.textMuted) }
+                            next?.let { Text(trf("Cycle of {0} days", it - p.startDay), fontSize = 12.sp, color = PulseColors.textMuted) }
                         }
                         IconButton(onClick = { scope.launch { db.periodDao().delete(p.id) } }) {
                             Icon(Icons.Filled.Delete, tr("Delete"), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))

@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.data.entity.MedDoseEntity
 import com.pulseloop.data.entity.MedEntity
 import java.time.LocalDate
@@ -13,7 +15,9 @@ import java.time.LocalTime
  * belongs with a pharmacist, not an app that can't see the whole picture.
  */
 object Meds {
-    enum class State(val label: String) { TAKEN("Taken"), SKIPPED("Skipped"), DUE("Due"), MISSED("Missed"), LATER("Later") }
+    enum class State(private val labelEn: String) { TAKEN("Taken"), SKIPPED("Skipped"), DUE("Due"), MISSED("Missed"), LATER("Later");
+        val label: String get() = tr(labelEn)
+    }
 
     data class Dose(val med: MedEntity, val day: LocalDate, val time: String, val state: State) {
         val id: String get() = MedDoseEntity.idFor(med.id, day.toEpochDay(), time)

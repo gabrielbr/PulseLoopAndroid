@@ -1,5 +1,7 @@
 package com.pulseloop.service
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.BodyMeasurementEntity
 import kotlinx.serialization.Serializable
@@ -16,7 +18,7 @@ data class BodyContext(
     val weightChange30dKg: Double,
     val weighIns30d: Int,
     val bodyFatPct: Double? = null,
-    val note: String = "From the user's smart scale via Health Connect. Day-to-day weight swings are mostly water; talk about the trend only.",
+    val note: String = tr("From the user's smart scale via Health Connect. Day-to-day weight swings are mostly water; talk about the trend only."),
 ) {
     companion object {
         suspend fun build(db: PulseLoopDatabase, now: Long = System.currentTimeMillis()): BodyContext? = runCatching {

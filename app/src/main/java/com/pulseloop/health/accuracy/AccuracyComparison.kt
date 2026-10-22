@@ -1,5 +1,7 @@
 package com.pulseloop.health.accuracy
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.data.entity.AccuracyCheckDayEntity
 import java.time.Instant
 import java.time.ZoneId
@@ -14,7 +16,7 @@ import kotlin.math.sqrt
  * are computed differently by every vendor; sleep timing and stages are described, not adjusted).
  */
 enum class ComparisonMetric(
-    val label: String,
+    private val labelEn: String,
     val unit: String,
     val kind: Kind,
     val source: ReferenceMetric,
@@ -39,6 +41,7 @@ enum class ComparisonMetric(
     SPO2("Blood oxygen", "%", Kind.PAIRED, ReferenceMetric.OXYGEN_SATURATION, 2.0, false, CorrectionKind.OFFSET, 3, 30),
     HRV("HRV", "ms", Kind.DAILY, ReferenceMetric.HRV, 10.0, false, null, 3),
     ;
+    val label: String get() = tr(labelEn)
 
     enum class Kind { DAILY, PAIRED, STAGES }
 

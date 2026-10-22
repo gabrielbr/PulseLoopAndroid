@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.trf
+
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
@@ -174,7 +176,7 @@ fun LastNightCard(
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(durationText, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             score?.let {
-                Text("score $it", fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(trf("score {0}", it), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
             }
         }
         window?.let { Text(it, fontSize = 13.sp, color = PulseColors.textMuted) }
