@@ -657,11 +657,11 @@ object MealAnalysisLogic {
 
     /** Verbatim system prompt (MealAnalysisSheet.swift:338-342). */
     val systemPrompt: String =
-        tr("You are a nutrition estimator. Given a meal description and/or photo, " +
+        "You are a nutrition estimator. Given a meal description and/or photo, " +
             "identify the food and estimate total calories and macros for the portion shown or described. " +
             tr("Be realistic about portion sizes; state your assumptions (portion sizes, preparation) briefly. " +
             "Use confidence \"high\" only for clearly identifiable, standard portions. " +
-            "Return only JSON matching the schema."))
+            "Return only JSON matching the schema.")
 
     /**
      * The verbatim strict meal_estimate json_schema (MealAnalysisSheet.swift:344-362), built
@@ -671,12 +671,12 @@ object MealAnalysisLogic {
         fun described(value: String) = JsonObject(mapOf("type" to JsonPrimitive("string"), "description" to JsonPrimitive(value)))
         fun number() = JsonObject(mapOf("type" to JsonPrimitive("number")))
         val props = JsonObject(mapOf(
-            "name" to described(tr("Short display name for the meal")),
+            "name" to described("Short display name for the meal"),
             "calories" to number(),
             "protein_g" to number(),
             "carbs_g" to number(),
             "fat_g" to number(),
-            "assumptions" to described(tr("Portion/preparation assumptions, one short sentence, or empty string")),
+            "assumptions" to described("Portion/preparation assumptions, one short sentence, or empty string"),
             "confidence" to JsonObject(mapOf(
                 "type" to JsonPrimitive("string"),
                 "enum" to JsonArray(listOf(JsonPrimitive("low"), JsonPrimitive("medium"), JsonPrimitive("high"))),
@@ -746,7 +746,7 @@ object MealEstimator {
             }
 
             // iOS :392 — the description, or the photo-only prompt.
-            val prompt = description.trim().ifEmpty { tr("Estimate the nutrition of the meal in the photo.") }
+            val prompt = description.trim().ifEmpty { "Estimate the nutrition of the meal in the photo." }
             val input = JsonArray(listOf(
                 OpenAIRequestBuilder.message("system", MealAnalysisLogic.systemPrompt),
                 OpenAIRequestBuilder.message("user", prompt, images),

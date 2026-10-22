@@ -42,7 +42,7 @@ class CoachNotificationDataTrigger(
     private val slotRun: suspend () -> CoachNotificationOutcome =
         runDueSlot ?: {
             val c = requireNotNull(context) {
-                tr("CoachNotificationDataTrigger needs a Context when the production runner is used")
+                "CoachNotificationDataTrigger needs a Context when the production runner is used"
             }
             CoachNotificationSlotRunner.forContext(c).runDueSlot()
         }
