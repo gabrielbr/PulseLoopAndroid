@@ -84,7 +84,10 @@ fun SettingsScreen(
     ) {
         Text("Settings", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
 
-        DeviceHeroCard(
+        val hcSource by remember { com.pulseloop.health.source.HealthConnectSource.activeSource(context) }.collectAsState()
+        if (hcSource != null) {
+            HealthConnectSourceHeroCard(onOpen = { navigate("settings/hc-source") })
+        } else DeviceHeroCard(
             bleState = bleState,
             storedDevice = storedDevice,
             lastSyncAt = coordinator?.lastSyncAt ?: storedDevice?.lastSyncAt,
@@ -176,6 +179,9 @@ fun SettingsScreen(
                 })
                 add(SettingsRowItem(Icons.Filled.Sync, PulseColors.success, "Health Connect") {
                     navigate("settings/health-connect")
+                })
+                add(SettingsRowItem(Icons.Filled.Watch, PulseColors.info, "Use without a ring") {
+                    navigate("settings/hc-source")
                 })
                 add(SettingsRowItem(Icons.Filled.Verified, PulseColors.info, "Accuracy check", accuracyTrailing) {
                     navigate("settings/accuracy-check")

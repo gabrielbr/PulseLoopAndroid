@@ -111,6 +111,8 @@ class WorkoutExporter(private val db: PulseLoopDatabase) {
     ): PendingWorkouts {
         val wm = watermark ?: 0L
         val sessions = db.activitySessionDao().finishedUpdatedSince(wm)
+            // A workout imported from Health Connect is already there, under its own app.
+            .filterNot { com.pulseloop.health.source.HealthConnectSource.isImportedWorkout(it.id) }
         if (sessions.isEmpty()) return PendingWorkouts(emptyList(), emptyList())
 
         // All GPS fixes for the pending sessions in one query — a first-enable backfill can

@@ -43,6 +43,8 @@ fun AppHeader(
     onOpenSettings: () -> Unit,
     /** The ring hung up between syncs on its own (see `IdleLinkPolicy`), not a fault. */
     idle: Boolean = false,
+    /** Set while Health Connect stands in for a ring ("Oura · Health Connect"); replaces the BLE state. */
+    sourceLabel: String? = null,
 ) {
     Row(
         modifier = Modifier
@@ -74,6 +76,7 @@ fun AppHeader(
             state = state,
             batteryPercent = batteryPercent,
             idle = idle,
+            sourceLabel = sourceLabel,
             modifier = Modifier.clickable(
                 onClickLabel = "Open ring settings",
                 role = Role.Button,
@@ -98,17 +101,18 @@ fun ConnectionStatusPill(
     modifier: Modifier = Modifier,
     /** Disconnected because the ring idled out after a sync — shown neutral, not as an error. */
     idle: Boolean = false,
+    sourceLabel: String? = null,
 ) {
     val idleNow = idle && state == RingConnectionState.DISCONNECTED
     // Holds still under "Remove animations"; the label already says "Connecting…".
-    val isPulsing = (state == RingConnectionState.CONNECTING || state == RingConnectionState.RECONNECTING) &&
+    val isPulsing = sourceLabel == null && (state == RingConnectionState.CONNECTING || state == RingConnectionState.RECONNECTING) &&
         !rememberReduceMotion()
-    val dotColor = when (state) {
+    val dotColor = if (sourceLabel != null) PulseColors.success else when (state) {
         RingConnectionState.CONNECTED -> PulseColors.success
         RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> PulseColors.accent
         else -> if (idleNow) PulseColors.textMuted else PulseColors.danger  // scanning/failed/idle/disconnected all read "not connected"
     }
-    val label = when (state) {
+    val label = sourceLabel ?: when (state) {
         RingConnectionState.CONNECTED ->
             if (batteryPercent != null && batteryPercent > 0) "Connected · $batteryPercent%" else "Connected"
         RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> "Connecting…"

@@ -49,6 +49,7 @@ class HealthConnectExportWorker(
                 client = client,
                 db = PulseLoopDatabase.getInstance(applicationContext),
                 store = store,
+                extraExclusions = com.pulseloop.health.source.HealthConnectSource.exportExclusions(applicationContext),
             )
             // The pass and "Remove PulseLoop data" must never interleave (review pass 5): a pass
             // still inserting while the removal deletes would re-write records the user asked to

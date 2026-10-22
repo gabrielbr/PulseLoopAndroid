@@ -728,7 +728,9 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         val now = System.currentTimeMillis()
         val twentyFourHoursAgo = now - 24 * 3600_000L
         val device = db.deviceDao().current()
-        val caps = device?.capabilities ?: setOf(
+        val caps = device?.capabilities
+            ?: com.pulseloop.health.source.HealthConnectSource.CAPABILITIES.takeIf { com.pulseloop.health.source.HealthConnectSource.enabledNow }
+            ?: setOf(
             com.pulseloop.ring.WearableCapability.HEART_RATE,
             com.pulseloop.ring.WearableCapability.SPO2,
             com.pulseloop.ring.WearableCapability.STEPS,

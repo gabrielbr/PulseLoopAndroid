@@ -1012,3 +1012,24 @@ because breaking it fails silently:
 - **A running check ends the moment a different ring is paired** (`AccuracyRingWatcher`, started
   from `PulseLoopApplication`). Ring rows carry no device id, so a later sweep could not split
   the two rings' data.
+
+## Health Connect as the data source: one app, no ring, nothing back
+
+**Read this before touching `health/source/` or the export's exclusions.** Full design:
+`docs/health-connect-source.md`.
+
+A user without a PulseLoop ring can pick another device's app (Oura, Samsung Health, Fitbit) and
+PulseLoop imports it from Health Connect into the ring's own tables. Three rules hold it together,
+and each one fails silently if broken:
+
+- **Every read carries a `DataOrigin` filter for the chosen package.** Unfiltered, PulseLoop's own
+  earlier exports come straight back in as "new" data, and two apps' steps sum into the same slot.
+- **It goes through `EventPersistenceSubscriber.ingest`, not around it.** That path is what gives an
+  import deterministic ids, the user's deletions, and the waking-day sleep reconcile. Writing rows
+  directly would re-create every duplicate and resurrection bug the ring path already fixed.
+- **While it is on, the export holds back every type, for all time** (`exportExclusions`, through
+  `ExportPause`). Exporting would write the source app's own data back to Health Connect under
+  PulseLoop's name. Don't narrow it to "the types the source writes": a type the source starts
+  writing next month would then echo.
+
+It is exclusive with a paired ring: a `DeviceIdentified` turns it off.

@@ -564,7 +564,9 @@ private data class Hero(val title: String, val summary: String, val chips: List<
 private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.SleepState): Hero {
     val steps = state.steps ?: return Hero(
         title = "Waiting for first sync",
-        summary = "Sync your ring to start collecting movement, heart rate, blood oxygen, and recovery context.",
+        summary = if (com.pulseloop.health.source.HealthConnectSource.enabledNow)
+            "Importing from Health Connect. Your steps, sleep and heart rate appear once your device's app has synced."
+        else "Sync your ring to start collecting movement, heart rate, blood oxygen, and recovery context.",
         chips = listOf(
             ToneChip("Baseline pending", ChipTone.WARN),
             ToneChip(if (state.heartRate == null) "HR pending" else "HR collected", ChipTone.NEUTRAL),

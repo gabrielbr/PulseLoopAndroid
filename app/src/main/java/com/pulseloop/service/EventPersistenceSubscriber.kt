@@ -9,6 +9,7 @@ import com.pulseloop.health.HealthConnectExportWorker
 import com.pulseloop.settings.QuietHoursPrefs
 import com.pulseloop.ring.*
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Ported from [EventPersistenceSubscriber] in PulseEventBus.swift.
@@ -61,15 +62,34 @@ class EventPersistenceSubscriber(
 
     fun stop() { job?.cancel(); job = null }
 
-    private suspend fun persist(event: PulseEvent) {
+    /**
+     * Serialises the bus collector with [ingest]: the spot-reading cache and the gate set above are
+     * only safe from one writer at a time.
+     */
+    private val writeLock = kotlinx.coroutines.sync.Mutex()
+
+    private suspend fun persist(event: PulseEvent) = writeLock.withLock { persistOne(event, notify = true) }
+
+    private suspend fun persistOne(event: PulseEvent, notify: Boolean) {
         try {
             persistUnsafe(event)
-            if (isDataEvent(event)) onDataPersisted?.invoke()
+            if (notify && isDataEvent(event)) onDataPersisted?.invoke()
         } catch (e: Exception) {
             // Swallow individual persistence failures so one bad event
             // (malformed ring packet, DB constraint, etc.) never crashes the app.
             android.util.Log.e("EventPersistence", "Failed to persist event", e)
         }
+    }
+
+    /**
+     * Persist a batch of history events directly, without the bus: the Health Connect source
+     * import (health/source) hands over a month of readings at once, which a replay-less bus
+     * could drop under load. Same handlers, same rules; the data-changed callback fires once.
+     */
+    suspend fun ingest(events: List<PulseEvent>) {
+        if (events.isEmpty()) return
+        writeLock.withLock { events.forEach { persistOne(it, notify = false) } }
+        if (events.any(::isDataEvent)) onDataPersisted?.invoke()
     }
 
     /** Events that change what the Today tiles (and therefore the widgets) show. */
@@ -242,6 +262,11 @@ class EventPersistenceSubscriber(
                 ))
             }
             is PulseEvent.DeviceIdentified -> {
+                // A real ring takes over from Health Connect: the two would write the same
+                // activity slots and nights (health/source/HealthConnectSource.kt).
+                if (com.pulseloop.health.source.HealthConnectSource.isEnabled(context)) {
+                    com.pulseloop.health.source.HealthConnectSource.disable(context)
+                }
                 val device = db.deviceDao().currentReal() ?: DeviceEntity()
                 db.deviceDao().upsert(device.copy(
                     deviceTypeRaw = event.deviceType.name,
