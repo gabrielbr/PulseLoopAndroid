@@ -78,9 +78,9 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
     var note by remember { mutableStateOf<String?>(null) }
     var starting by remember { mutableStateOf<ReferenceSourceSurvey?>(null) }
     var viewing by remember { mutableStateOf<String?>(null) }
-    val open by db.accuracyDao().openFlow().collectAsState(initial = null)
-    val history by db.accuracyDao().allFlow().collectAsState(initial = emptyList())
-    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val open by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
+    val history by remember(db) { db.accuracyDao().allFlow() }.collectAsState(initial = emptyList())
+    val ring by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
     val hasRing = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID } == true
 
     fun scan() {
@@ -264,7 +264,7 @@ internal object AccuracyUiText {
 private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.CoroutineScope) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val paused by db.accuracyDao().allPausedUnitsFlow().collectAsState(initial = emptyList())
+    val paused by remember(db) { db.accuracyDao().allPausedUnitsFlow() }.collectAsState(initial = emptyList())
     val units = paused.filter { it.checkId == check.id }.mapNotNull { ExportUnit.byName(it.unit) }
     var confirmEnd by remember { mutableStateOf(false) }
     val (day, total) = AccuracyUiText.dayOf(check)

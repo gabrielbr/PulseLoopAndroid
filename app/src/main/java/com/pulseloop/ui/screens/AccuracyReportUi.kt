@@ -68,7 +68,7 @@ internal fun AccuracyReportSection(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val days by db.accuracyDao().daysFlow(check.id).collectAsState(initial = emptyList())
+    val days by remember(db, check.id) { db.accuracyDao().daysFlow(check.id) }.collectAsState(initial = emptyList())
     var scoring by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
     var expanded by remember { mutableStateOf<ComparisonMetric?>(null) }
@@ -299,8 +299,8 @@ internal fun AccuracyCorrectionControl(check: AccuracyCheckEntity, summary: Accu
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val all by db.accuracyDao().allCorrectionsFlow().collectAsState(initial = emptyList())
-    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val all by remember(db) { db.accuracyDao().allCorrectionsFlow() }.collectAsState(initial = emptyList())
+    val ring by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
     val existing = all.firstOrNull { it.deviceKey == check.deviceKey && it.metric == metric.name }
     var editing by remember { mutableStateOf(false) }
     val paired = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID && RingIdentity.keyOf(it) == check.deviceKey } == true
@@ -389,8 +389,8 @@ internal fun AccuracyCorrectionsCard() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val all by db.accuracyDao().allCorrectionsFlow().collectAsState(initial = emptyList())
-    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val all by remember(db) { db.accuracyDao().allCorrectionsFlow() }.collectAsState(initial = emptyList())
+    val ring by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
     val r = ring?.takeIf { it.id != RingIdentity.DEMO_DEVICE_ID } ?: return
     val key = RingIdentity.keyOf(r)
     val mine = all.filter { it.deviceKey == key }.sortedBy { ComparisonMetric.byName(it.metric)?.ordinal ?: 99 }

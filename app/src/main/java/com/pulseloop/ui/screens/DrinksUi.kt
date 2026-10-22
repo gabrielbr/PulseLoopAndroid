@@ -65,6 +65,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -577,7 +578,10 @@ private fun PlanChip(s: DrinksRepository.Snapshot, onClick: () -> Unit) {
         label,
         fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
         color = if (planned == null) PulseColors.accent else PulseColors.textPrimary,
-        modifier = Modifier.clip(shape)
+        // Bounded, so a long translation or voice line wraps inside the chip instead of
+        // starving the "tonight" text beside it down to one letter per line.
+        maxLines = 2, overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.widthIn(max = 150.dp).clip(shape)
             .border(1.dp, if (planned == null) PulseColors.accent else PulseColors.borderSubtle, shape)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),

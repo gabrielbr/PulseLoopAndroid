@@ -44,7 +44,7 @@ fun SettingsScreen(
 
     val bleState = bleClient?.state?.collectAsState()?.value
         ?: com.pulseloop.ring.RingBLEClient.BLEState()
-    val storedDevice by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val storedDevice by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
 
     // Capabilities of the live device (preferred) or the last stored device, used to decide
     // whether device-specific rows appear (iOS MetricsService.activeCapabilities).
@@ -70,7 +70,7 @@ fun SettingsScreen(
         else -> keyStore.model
     }
     val notificationsTrailing = if (keyStore.notificationsEnabled) tr("On") else tr("Off")
-    val openCheck by db.accuracyDao().openFlow().collectAsState(initial = null)
+    val openCheck by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
     val accuracyTrailing = openCheck?.let { c ->
         if (c.state == com.pulseloop.data.entity.AccuracyCheckEntity.STATE_RUNNING) {
             val (day, total) = AccuracyUiText.dayOf(c)

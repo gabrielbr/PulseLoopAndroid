@@ -1610,7 +1610,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
-    val device = db.deviceDao().currentFlow().collectAsState(initial = null).value
+    val device = remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null).value
     val capabilities = device?.capabilities.orEmpty()
     val minimumInterval = if (device?.deviceType == RingDeviceType.YCBT) 30 else 5
     val intervalSteps = ((60 - minimumInterval) / 5 - 1).coerceAtLeast(0)
@@ -1971,7 +1971,7 @@ fun WearableSettingsScreen(
     val bleState = bleClient?.state?.collectAsState()?.value ?: RingBLEClient.BLEState()
     // Observe the device row reactively so the connection status reflects live BLE state
     // changes (connect / disconnect / reconnect) in real time.
-    val device by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val device by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
     val isConnected = bleState.connectionState == RingConnectionState.CONNECTED
     val supportsFactoryReset = bleState.activeCapabilities
         .contains(com.pulseloop.ring.WearableCapability.FACTORY_RESET)
@@ -2302,7 +2302,7 @@ private val batteryZones = listOf(
 private fun BatteryHistorySection(db: PulseLoopDatabase) {
     var range by remember { mutableStateOf(BatteryHistoryRange.DAY) }
     // Reactive on the device row so a fresh battery reading refetches the window without a manual pull.
-    val device by db.deviceDao().currentFlow().collectAsState(initial = null)
+    val device by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
     var samples by remember { mutableStateOf<List<VitalSample>>(emptyList()) }
 
     LaunchedEffect(range, device?.batteryPercent, device?.updatedAt) {

@@ -67,7 +67,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
     val scope = rememberCoroutineScope()
     val services = remember { AppServices.get(context) }
     val available = remember { HealthConnectSdk.availability(context) == HealthConnectAvailability.AVAILABLE }
-    val ring by services.db.deviceDao().currentFlow().collectAsState(initial = null)
+    val ring by remember(services.db) { services.db.deviceDao().currentFlow() }.collectAsState(initial = null)
     val hasRing = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID } == true || services.bleClient.hasLastKnownRing
     var enabled by remember { mutableStateOf(HealthConnectSource.isEnabled(context)) }
     var source by remember { mutableStateOf(HealthConnectSource.sourcePackage(context)) }
