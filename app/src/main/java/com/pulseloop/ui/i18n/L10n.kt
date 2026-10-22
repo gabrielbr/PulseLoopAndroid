@@ -9,17 +9,38 @@ import androidx.compose.runtime.setValue
 import org.json.JSONObject
 import java.util.Locale
 
-/** The languages PulseLoop speaks. [SYSTEM] follows the phone. */
-enum class AppLanguage(val key: String, val label: String) {
-    SYSTEM("system", "System default"),
-    ENGLISH("en", "English"),
-    PORTUGUESE("pt-BR", "Português (Brasil)"),
+/** How the app talks: plainly, or like F*cking Health (sarcastic, grumbling, censored swearing). */
+enum class Voice { PLAIN, FUNNY }
+
+/**
+ * The languages PulseLoop speaks, each a locale, a stack of catalogs and a [Voice]. A lookup takes
+ * the first catalog that has the English key, then falls back to the English itself, so a voice
+ * layers on top of its language: F*cking Health in Portuguese would be
+ * `listOf("i18n/pt-BR-FH.json", "i18n/pt-BR.json")`, and any string it doesn't rewrite reads as
+ * plain Portuguese. [SYSTEM] follows the phone.
+ */
+enum class AppLanguage(
+    val key: String,
+    val label: String,
+    val localeTag: String?,
+    val catalogs: List<String>,
+    val voice: Voice = Voice.PLAIN,
+    /** Shown under the option in the picker. */
+    val caption: String? = null,
+) {
+    SYSTEM("system", "System default", null, emptyList()),
+    ENGLISH("en", "English", "en", emptyList()),
+    PORTUGUESE("pt-BR", "Português (Brasil)", "pt-BR", listOf("i18n/pt-BR.json")),
+    FUCKING_HEALTH_EN(
+        "fh-en", "F*cking Health", "en", listOf("i18n/en-FH.json"), Voice.FUNNY,
+        caption = "English, with attitude. Strong language.",
+    ),
 }
 
 /**
  * The app's language (Settings → Language). The UI is written in English, and every displayed
- * literal goes through [tr], which looks the English text up in the language's catalog
- * (`assets/i18n/pt-BR.json`) and falls back to the English when a string has no entry yet. The
+ * literal goes through [tr], which looks the English text up in the language's catalogs
+ * (`assets/i18n/*.json`) and falls back to the English when a string has no entry yet. The
  * English text *is* the key, so a reworded string simply shows in English until it is translated
  * again.
  *
@@ -31,7 +52,7 @@ object L10n {
     var language by mutableStateOf(AppLanguage.SYSTEM)
         private set
 
-    @Volatile private var catalog: Map<String, String> = emptyMap()
+    @Volatile private var catalogs: List<Map<String, String>> = emptyList()
     private var appContext: Context? = null
     private var systemLocale: Locale = Locale.getDefault()
 
@@ -53,16 +74,20 @@ object L10n {
     /** Whether the UI is currently in Portuguese (chosen, or the phone's language under [AppLanguage.SYSTEM]). */
     val isPortuguese: Boolean get() = locale().language == "pt"
 
-    fun locale(): Locale = when (language) {
-        AppLanguage.ENGLISH -> Locale.ENGLISH
-        AppLanguage.PORTUGUESE -> Locale("pt", "BR")
-        AppLanguage.SYSTEM -> systemLocale
+    val voice: Voice get() = language.voice
+
+    fun locale(): Locale = language.localeTag?.let { Locale.forLanguageTag(it) } ?: systemLocale
+
+    /** The catalogs in force: the language's own, or under [AppLanguage.SYSTEM] the phone's language's. */
+    private fun catalogPaths(): List<String> = when {
+        language != AppLanguage.SYSTEM -> language.catalogs
+        systemLocale.language == "pt" -> AppLanguage.PORTUGUESE.catalogs
+        else -> emptyList()
     }
 
     private fun apply() {
-        val locale = locale()
-        Locale.setDefault(locale)
-        catalog = if (locale.language == "pt") load("i18n/pt-BR.json") else emptyMap()
+        Locale.setDefault(locale())
+        catalogs = catalogPaths().map(::load)
     }
 
     private fun load(asset: String): Map<String, String> = runCatching {
@@ -73,14 +98,34 @@ object L10n {
 
     fun translate(en: String): String {
         @Suppress("UNUSED_VARIABLE") val l = language // read, so composition follows a change
-        return catalog[en] ?: en
+        for (c in catalogs) c[en]?.let { return it }
+        return en
     }
 
     /** Appended to the coach's prompts: the coach answers in the app's language. */
-    fun coachInstruction(): String =
-        if (isPortuguese) "\n\nThe user's app is in Brazilian Portuguese. Always reply in Brazilian Portuguese (pt-BR), " +
-            "naturally and warmly, keeping metric names the app shows (HRV, SpO2) as they are."
-        else ""
+    fun coachInstruction(): String = buildString {
+        if (isPortuguese) append(
+            "\n\nThe user's app is in Brazilian Portuguese. Always reply in Brazilian Portuguese (pt-BR), " +
+                "naturally and warmly, keeping metric names the app shows (HRV, SpO2) as they are.",
+        )
+        if (voice == Voice.FUNNY) append(FUNNY_VOICE)
+    }
+
+    /**
+     * The F*cking Health voice for the coach and its notifications. The joke rides on top of the
+     * data; it never replaces it, and it stops at anything that could hurt someone.
+     */
+    private const val FUNNY_VOICE =
+        "\n\nVOICE: The user picked \"F*cking Health\", the app's sarcastic, foul-mouthed persona. Talk like a " +
+            "grumpy best friend who happens to know physiology: blunt, funny, a bit theatrical, complaining about " +
+            "the numbers even when they're good. Swear, but censor it with asterisks the way the app does " +
+            "(f*cking, sh*t, WTF, damn). Short punchy sentences, rhetorical questions, the odd exclamation. " +
+            "The facts, numbers and advice must stay exactly as accurate and useful as in plain mode; the " +
+            "attitude is the wrapping, not the content. Roast the habits, never the person: no jokes about " +
+            "weight, body shape, age, gender, illness or appearance. Drop the act completely and be calm, kind " +
+            "and clear for anything serious: chest pain, fainting, shortness of breath, very high or low " +
+            "readings, pregnancy or postpartum health, medications, mental health or self-harm, eating " +
+            "disorders, alcohol dependence. If the user seems upset, stressed or asks you to stop, go plain."
 
     /** The Activity's context in the chosen language, so Android resources and system UI follow it. */
     fun wrap(base: Context): Context {
