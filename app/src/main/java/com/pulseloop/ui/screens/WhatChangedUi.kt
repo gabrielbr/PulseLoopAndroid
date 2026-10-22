@@ -44,7 +44,9 @@ fun WhatChangedScreen(onBack: () -> Unit) {
     val today = remember { LocalDate.now() }
     val from = remember { FindingsRepository.dayKey(today.minusDays(90), zone) }
     LaunchedEffect(Unit) { runCatching { FindingsRepository.refresh(db) } }
-    val rows by remember { db.findingDao().sinceFlow(from) }.collectAsState(initial = emptyList())
+    // null until Room answers: read as empty, the card claimed "Nothing stood out" for a frame.
+    val rowsLoaded by remember { db.findingDao().sinceFlow(from) }.collectAsState(initial = null)
+    val rows = rowsLoaded.orEmpty()
     val fmt = remember { DateTimeFormatter.ofPattern("EEE d MMM") }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
@@ -63,7 +65,9 @@ fun WhatChangedScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Text(tr("LAST 3 DAYS"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-                if (recent.isEmpty()) {
+                if (rowsLoaded == null) {
+                    Spacer(Modifier.height(48.dp))
+                } else if (recent.isEmpty()) {
                     Text(tr("Nothing stood out"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(tr("Your nights look like your usual. That's an answer too."), fontSize = 13.sp, color = PulseColors.textSecondary)
                 } else {

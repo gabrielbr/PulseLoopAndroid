@@ -22,6 +22,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -195,6 +197,11 @@ fun VitalRingGauge(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp,
                     color = valueColor,
+                    // A translated zone label can outgrow the ring's hole: wrap it centred, never
+                    // more than two lines, instead of spilling over the arc.
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (subtitle != null) {
@@ -202,6 +209,9 @@ fun VitalRingGauge(
                     subtitle,
                     fontSize = (size.value * 0.065f).sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

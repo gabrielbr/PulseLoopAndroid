@@ -424,6 +424,7 @@ private fun ChipTone.border() = when (this) {
 }
 
 /** Full-width gradient hero card at the top of Today (HeroInsightCardView in Swift). */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modifier: Modifier = Modifier) {
     val shape = RoundedCornerShape(8.dp)
@@ -445,7 +446,12 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
             modifier = Modifier.padding(top = 8.dp),
         )
         if (chips.isNotEmpty()) {
-            Row(Modifier.padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Wraps: three translated chips ("Linha de base pendente", …) overflow one line.
+            FlowRow(
+                Modifier.padding(top = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 chips.forEach { chip ->
                     Text(
                         chip.label,
@@ -453,6 +459,7 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
                         fontWeight = FontWeight.Medium,
                         color = chip.tone.foreground(),
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
                             .clip(CircleShape)
                             .dither(chip.tone.ditherColor(), if (chip.tone == ChipTone.NEUTRAL) 0.10f else 0.15f)
@@ -466,6 +473,7 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
 }
 
 /** Full-width coach card (COACH eyebrow, headline, body, chips) — CoachMessageCard in Swift. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CoachMessageCard(
     headline: String,
@@ -515,7 +523,12 @@ fun CoachMessageCard(
             modifier = Modifier.padding(top = 6.dp),
         )
         if (chips.isNotEmpty()) {
-            Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Wraps rather than ellipsising the third chip to nothing on a narrow phone.
+            FlowRow(
+                Modifier.padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
                 chips.take(3).forEach { chip ->
                     Text(
                         chip,

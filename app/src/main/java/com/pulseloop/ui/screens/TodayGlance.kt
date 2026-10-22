@@ -83,6 +83,11 @@ fun TodayGlance(
     insight: String?,
     onAlert: () -> Unit,
     onInsight: (() -> Unit)?,
+    /**
+     * The insight is still loading: hold two lines of space for it instead of showing nothing
+     * (or a "sync your ring" fallback) and then pushing everything below it down.
+     */
+    insightPending: Boolean = false,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (!alert.isNullOrEmpty()) {
@@ -103,12 +108,13 @@ fun TodayGlance(
                     tr("Unusual last night: ") + alert.joinToString(", ") { it.title.lowercase() },
                     fontSize = 13.sp, color = PulseColors.textPrimary,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
-        insight?.let {
+        if (insight != null) {
             Text(
-                it,
+                insight,
                 fontSize = 15.sp,
                 lineHeight = 21.sp,
                 color = PulseColors.textSecondary,
@@ -119,6 +125,8 @@ fun TodayGlance(
                     .then(if (onInsight != null) Modifier.clickable(onClick = onInsight) else Modifier)
                     .padding(horizontal = 4.dp),
             )
+        } else if (insightPending) {
+            Text("", fontSize = 15.sp, lineHeight = 21.sp, minLines = 2, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -148,7 +156,13 @@ private fun QuickChip(label: String, icon: ImageVector, tint: Color, modifier: M
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Icon(icon, null, Modifier.size(20.dp), tint = tint)
-        Text(label, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1)
+        Text(
+            label, fontSize = 12.sp, color = PulseColors.textPrimary,
+            // Four equal chips: a long translated label ("Refeição", a voice's rewrite) ellipsises
+            // inside its quarter rather than clipping mid-letter.
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 4.dp),
+        )
     }
 }
 
@@ -289,6 +303,7 @@ fun CoachBriefSheet(
                     chips.take(3).forEach {
                         Text(
                             it, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(PulseColors.card)

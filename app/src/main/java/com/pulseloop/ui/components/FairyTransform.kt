@@ -9,6 +9,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,6 +27,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.ui.theme.FairyMode
 import kotlin.math.PI
@@ -87,7 +89,8 @@ fun FairyTransformOverlay() {
         }
         val textIn = ((p - 0.42f) / 0.18f).coerceIn(0f, 1f)
         Column(
-            Modifier.alpha(textIn * veil).scale(0.7f + 0.3f * textIn),
+            // Side margin so a longer translation wraps short of the screen edge.
+            Modifier.padding(horizontal = 24.dp).alpha(textIn * veil).scale(0.7f + 0.3f * textIn),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(

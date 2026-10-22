@@ -136,8 +136,12 @@ fun CoachModelPicker(
         }
         Text(status, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(1f))
         if (savedKey.isNotBlank() && !loading) {
-            TextButton(onClick = { load(force = true) }) {
-                Text(if (listing is CoachModelCatalog.Result.Failure) tr("Retry") else tr("Refresh"))
+            // Bounded so a long translated label can't squeeze the weighted status text.
+            TextButton(onClick = { load(force = true) }, modifier = Modifier.widthIn(max = 140.dp)) {
+                Text(
+                    if (listing is CoachModelCatalog.Result.Failure) tr("Retry") else tr("Refresh"),
+                    maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                )
             }
         }
     }

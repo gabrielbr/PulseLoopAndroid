@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,14 +63,25 @@ fun bandColor(band: Readiness.Band): Color = when (band) {
     Readiness.Band.PAY_ATTENTION -> PulseColors.danger
 }
 
+/**
+ * A score loaded off the composition path. [loaded] tells "still loading" apart from "no score",
+ * so a screen can hold its space instead of flashing an empty state before the first load ends.
+ * A reload keeps the previous value (produceState doesn't reset on a key change).
+ */
+data class ScoreLoad<T>(val loaded: Boolean, val value: T?)
+
 /** Loads today's readiness, recomputing whenever [key] changes (new data, a new day). */
 @Composable
-fun rememberReadiness(db: PulseLoopDatabase, key: Any?): Readiness.Result? {
-    val result by produceState<Readiness.Result?>(initialValue = null, db, key) {
-        value = runCatching { ReadinessRepository.compute(db) }.getOrNull()
+fun rememberReadinessLoad(db: PulseLoopDatabase, key: Any?): ScoreLoad<Readiness.Result> {
+    val result by produceState(initialValue = ScoreLoad<Readiness.Result>(false, null), db, key) {
+        value = ScoreLoad(true, runCatching { ReadinessRepository.compute(db) }.getOrNull())
     }
     return result
 }
+
+/** Loads today's readiness, recomputing whenever [key] changes (new data, a new day). */
+@Composable
+fun rememberReadiness(db: PulseLoopDatabase, key: Any?): Readiness.Result? = rememberReadinessLoad(db, key).value
 
 /** A score arc: track, coloured progress, the number centred. [value] null draws an empty ring. */
 @Composable
@@ -128,8 +140,10 @@ private fun HeaderRing(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         ScoreRing(value = value, color = color, size = 84.dp, stroke = 7.dp, centerText = centerText)
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-        Text(caption, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
+        // One line each, ellipsised: three rings share the row, and a voice's caption
+        // ("Ainda sem sono. Óbvio.") is wider than a third of a phone.
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(caption, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -144,6 +158,9 @@ fun ScoreHeader(
     onReadiness: () -> Unit,
     onSleep: () -> Unit,
     onActivity: () -> Unit,
+    /** False until the sleep / activity score has loaded: a blank caption, not "No data", until then. */
+    sleepLoaded: Boolean = true,
+    activityLoaded: Boolean = true,
 ) {
     val score = readiness as? Readiness.Result.Score
     Column(
@@ -164,22 +181,26 @@ fun ScoreHeader(
                 color = score?.let { bandColor(it.band) } ?: PulseColors.readiness,
                 onTap = onReadiness,
                 modifier = Modifier.weight(1f),
+                // null is still loading (as the blank caption above): no "no score" dash yet.
+                centerText = score?.value?.toString() ?: if (readiness == null) "" else "—",
             )
             HeaderRing(
                 label = tr("Sleep"),
                 value = sleepScore,
-                caption = sleepScore?.let { Readiness.Band.of(it).label } ?: tr("No data"),
+                caption = sleepScore?.let { Readiness.Band.of(it).label } ?: if (sleepLoaded) tr("No data") else " ",
                 color = PulseColors.sleep,
                 onTap = onSleep,
                 modifier = Modifier.weight(1f),
+                centerText = sleepScore?.toString() ?: if (sleepLoaded) "—" else "",
             )
             HeaderRing(
                 label = tr("Activity"),
                 value = activity?.value,
-                caption = activity?.band?.label ?: tr("No data"),
+                caption = activity?.band?.label ?: if (activityLoaded) tr("No data") else " ",
                 color = PulseColors.steps,
                 onTap = onActivity,
                 modifier = Modifier.weight(1f),
+                centerText = activity?.value?.toString() ?: if (activityLoaded) "—" else "",
             )
         }
         if (readiness != null) {
@@ -196,6 +217,10 @@ fun ScoreHeader(
                     modifier = Modifier.padding(horizontal = 24.dp),
                 )
             }
+        } else {
+            // Still loading (null is otherwise only a failed compute): keep the headline's line
+            // so the sentence arriving doesn't push the rest of Today down.
+            Text(" ", fontSize = 14.sp, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -210,7 +235,8 @@ private fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modi
 /** Readiness detail: score, sentence, coverage caution, contributors, and what's missing. */
 @Composable
 fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
-    val result = rememberReadiness(db, Unit)
+    val load = rememberReadinessLoad(db, Unit)
+    val result = load.value
 
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -233,6 +259,8 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                     value = score?.value,
                     color = score?.let { bandColor(it.band) } ?: PulseColors.readiness,
                     size = 168.dp, stroke = 12.dp, centerSize = 48,
+                    // An empty ring while loading, not the "no score" dash.
+                    centerText = score?.value?.toString() ?: if (load.loaded) "—" else "",
                 )
                 score?.let {
                     Text(it.band.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = bandColor(it.band))
@@ -329,19 +357,25 @@ private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> 
     }
 }
 
-/** Loads today's activity score, recomputing whenever [key] changes. */
+/** Loads today's activity score, recomputing whenever [key] changes; see [ScoreLoad]. */
 @Composable
-fun rememberActivityScore(db: PulseLoopDatabase, key: Any?): com.pulseloop.service.ActivityScore.Result? {
-    val result by produceState<com.pulseloop.service.ActivityScore.Result?>(initialValue = null, db, key) {
-        value = runCatching { com.pulseloop.service.ActivityScore.load(db) }.getOrNull()
+fun rememberActivityScoreLoad(db: PulseLoopDatabase, key: Any?): ScoreLoad<com.pulseloop.service.ActivityScore.Result> {
+    val result by produceState(initialValue = ScoreLoad<com.pulseloop.service.ActivityScore.Result>(false, null), db, key) {
+        value = ScoreLoad(true, runCatching { com.pulseloop.service.ActivityScore.load(db) }.getOrNull())
     }
     return result
 }
 
+/** Loads today's activity score, recomputing whenever [key] changes. */
+@Composable
+fun rememberActivityScore(db: PulseLoopDatabase, key: Any?): com.pulseloop.service.ActivityScore.Result? =
+    rememberActivityScoreLoad(db, key).value
+
 /** Activity score detail: score, band, contributors, and the estimate footer. */
 @Composable
 fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivity: () -> Unit) {
-    val result = rememberActivityScore(db, Unit)
+    val load = rememberActivityScoreLoad(db, Unit)
+    val result = load.value
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
@@ -361,12 +395,16 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
                     value = result?.value,
                     color = result?.let { bandColor(it.band) } ?: PulseColors.steps,
                     size = 168.dp, stroke = 12.dp, centerSize = 48,
+                    centerText = result?.value?.toString() ?: if (load.loaded) "—" else "",
                 )
                 result?.let {
                     Text(it.band.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = bandColor(it.band))
                 }
                 Text(
-                    activityHeadline(result), fontSize = 15.sp, color = PulseColors.textSecondary,
+                    // Blank while loading: activityHeadline(null) is the "no activity yet" copy,
+                    // which flashed before every real score.
+                    if (load.loaded) activityHeadline(result) else " ",
+                    fontSize = 15.sp, color = PulseColors.textSecondary,
                     textAlign = TextAlign.Center,
                 )
             }
