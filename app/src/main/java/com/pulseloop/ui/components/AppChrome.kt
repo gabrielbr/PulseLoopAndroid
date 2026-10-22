@@ -81,7 +81,9 @@ fun AppHeader(
             batteryPercent = batteryPercent,
             idle = idle,
             sourceLabel = sourceLabel,
-            modifier = Modifier.clickable(
+            // Bounded: the pill is measured before the weighted greeting, so an unbounded
+            // "Falha na sincronização" or "Oura · Health Connect" squeezed the greeting to nothing.
+            modifier = Modifier.widthIn(max = 168.dp).clickable(
                 onClickLabel = tr("Open ring settings"),
                 role = Role.Button,
                 onClick = onOpenSettings,
@@ -157,6 +159,7 @@ fun ConnectionStatusPill(
             fontWeight = FontWeight.Medium,
             color = PulseColors.textSecondary,
             maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -192,15 +195,19 @@ fun CardEyebrow(
                 .clip(CircleShape)
                 .background(dotColor),
         )
+        // The label takes the free width (instead of a Spacer) so a long translated label wraps
+        // rather than pushing the trailing slot off the card; the slot is bounded for the same reason.
         Text(
             label.uppercase(),
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = 1.sp,
             color = PulseColors.textSecondary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
-        trailing?.invoke()
+        trailing?.let { Box(Modifier.widthIn(max = 180.dp)) { it() } }
     }
 }
 
@@ -214,8 +221,9 @@ fun SectionHeaderCaps(title: String, modifier: Modifier = Modifier, action: (@Co
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.8.sp,
             color = PulseColors.textSecondary,
+            // Takes the free width (instead of a Spacer) so a long title wraps beside the action.
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
         action?.invoke()
     }
 }

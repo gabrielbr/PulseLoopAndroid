@@ -8,10 +8,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -93,14 +93,18 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
                 .clip(CircleShape)
                 .background(accent),
         )
+        // The title takes the free width (instead of a Spacer) and the footer is bounded: both
+        // used to be unweighted, so a long translated title could squeeze the footer to nothing.
         Text(
             state.title.uppercase(),
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = 1.sp,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
         // "Updated …" lives top-right so it doesn't add a footer row and grow the card height.
         // Suppressed when the ESTIMATED chip is present so the two don't crowd the header.
         if (footerText != null && !compact && !state.isEstimated) {
@@ -110,6 +114,7 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 160.dp),
             )
         }
         if (state.isEstimated) EstimatedChip()
@@ -161,6 +166,8 @@ private fun ValueRow(state: VitalCardState) {
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.8.sp,
                 color = state.statusToken.toColor(),
+                // Wraps beside the trend instead of pushing it off the card.
+                modifier = Modifier.weight(1f, fill = false),
             )
             if (state.trend.deltaText != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {

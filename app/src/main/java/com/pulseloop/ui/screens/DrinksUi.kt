@@ -79,6 +79,7 @@ import com.pulseloop.service.DrinkType
 import com.pulseloop.service.DrinksRepository
 import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.theme.dither
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -162,7 +163,7 @@ private fun Pill(label: String, on: Boolean, color: Color = PulseColors.accent, 
         fontSize = 13.sp,
         fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
         color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-        maxLines = 1,
+        maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.clip(shape)
             .background(if (on) color else PulseColors.cardSoft)
             .border(1.dp, if (on) color else PulseColors.borderSubtle, shape)
@@ -192,7 +193,7 @@ private fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Un
                 fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                 color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
                 textAlign = TextAlign.Center,
-                maxLines = 1,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
                     .background(if (on) PulseColors.accent else PulseColors.cardSoft)
                     .selectable(selected = on, role = Role.Tab) { onSelect(i) }
@@ -223,7 +224,12 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Drinks"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            // Kept clear of the back and settings buttons whatever the voice calls this screen.
+            Text(
+                tr("Drinks"), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
+            )
             if (enabled) {
                 IconButton(onClick = { settingsOpen = true }, modifier = Modifier.align(Alignment.CenterEnd)) {
                     Icon(Icons.Filled.Settings, tr("Drinks settings"), tint = PulseColors.textSecondary)
@@ -240,7 +246,7 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
                 Segments(listOf(tr("This week"), tr("Trends"), tr("Support")), tab) { tab = it }
                 val s = snap
                 if (s == null) {
-                    Text(tr("Reading your drinks…"), color = PulseColors.textMuted, fontSize = 13.sp)
+                    DrinksLoading()
                 } else when (tab) {
                     0 -> {
                         WeekHero(s)
@@ -267,6 +273,23 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
                 onTurnedOff = { settingsOpen = false; enabled = false; refresh++ },
             )
         }
+    }
+}
+
+/**
+ * First load: a card the hero's size, so the content lands where the placeholder was instead of
+ * pushing a line of text away. The text only appears if the read is actually slow; on a quick
+ * read it would just flash.
+ */
+@Composable
+private fun DrinksLoading() {
+    var slow by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { delay(400); slow = true }
+    Box(
+        Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (slow) Text(tr("Reading your drinks…"), color = PulseColors.textMuted, fontSize = 13.sp)
     }
 }
 
@@ -418,7 +441,7 @@ private fun WeekStrip(s: DrinksRepository.Snapshot) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     day.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
-                    fontSize = 11.sp, color = if (isToday) PulseColors.textPrimary else PulseColors.textMuted,
+                    fontSize = 11.sp, maxLines = 1, color = if (isToday) PulseColors.textPrimary else PulseColors.textMuted,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                 )
                 Box(
@@ -437,7 +460,7 @@ private fun WeekStrip(s: DrinksRepository.Snapshot) {
                     contentAlignment = Alignment.Center,
                 ) {
                     when {
-                        drank -> Text(std(DrinkInsights.standardDrinks(grams, s.gramsPerStandard)), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PulseColors.onAccent)
+                        drank -> Text(std(DrinkInsights.standardDrinks(grams, s.gramsPerStandard)), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PulseColors.onAccent, maxLines = 1, softWrap = false)
                         !future && known && !isToday -> Icon(Icons.Filled.Check, tr("Dry"), tint = PulseColors.accent, modifier = Modifier.size(16.dp))
                     }
                 }
@@ -464,11 +487,13 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
             modifier = Modifier.clickable { more = true }.padding(4.dp),
         )
     }) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Equal-height buttons whose labels may take two lines: a translated or voice name
+        // ("Caipirinha", "Coquetel") doesn't fit a quarter of the card at one line.
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             s.topTypes.forEach { t ->
                 val shape = RoundedCornerShape(8.dp)
                 Column(
-                    Modifier.weight(1f).clip(shape)
+                    Modifier.weight(1f).fillMaxHeight().clip(shape)
                         .background(PulseColors.cardSoft)
                         .border(1.dp, PulseColors.borderSubtle, shape)
                         .clickable {
@@ -478,12 +503,12 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                                 onChange()
                             }
                         }
-                        .padding(vertical = 12.dp),
+                        .padding(horizontal = 4.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(t.icon, null, tint = PulseColors.drinks, modifier = Modifier.size(24.dp))
-                    Text(t.short, fontSize = 11.sp, color = PulseColors.textPrimary, maxLines = 1, softWrap = false)
+                    Text(t.short, fontSize = 11.sp, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -493,7 +518,8 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                 Text(
                     tr("Undo"),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
-                    modifier = Modifier.clickable {
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 120.dp).clickable {
                         scope.launch { ids.forEach { DrinksRepository.delete(db, it) }; lastLogged = null; onChange() }
                     }.padding(4.dp),
                 )
@@ -707,8 +733,8 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
         modifier.clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, maxLines = 1)
-        Text(label, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 2)
+        Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, maxLines = 1, softWrap = false)
+        Text(label, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -820,10 +846,18 @@ private fun AuditCard(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
     var taking by remember { mutableStateOf(false) }
     val context = LocalContext.current
     var sex by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(Unit) { sex = runCatching { PulseLoopDatabase.getInstance(context).userProfileDao().get()?.sex }.getOrNull() }
+    // The level's threshold depends on sex, so a level drawn before the profile is read can flash
+    // "increasing" (warning colour) and then settle on "low". Hold it until the read is done.
+    var sexLoaded by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        sex = runCatching { PulseLoopDatabase.getInstance(context).userProfileDao().get()?.sex }.getOrNull()
+        sexLoaded = true
+    }
     val score = DrinkPrefs.auditScore
     DrinkCard(tr("3-question check")) {
-        if (score != null) {
+        if (score != null && !sexLoaded) {
+            Spacer(Modifier.height(64.dp))
+        } else if (score != null) {
             val level = AuditC.level(score, sex)
             Text(level.label, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = if (level == AuditC.Level.LOW) PulseColors.accent else PulseColors.warning)
             Text(AuditC.advice(level), fontSize = 13.sp, color = PulseColors.textSecondary)
@@ -938,14 +972,14 @@ fun ColumnScope.DrinksTileContent(week: DrinkInsights.Week?, limit: Double, dryT
     val total = week?.standardDrinks ?: 0.0
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(std(total), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
-        Text(trf("of {0} this week", std(limit)), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp), maxLines = 1)
+        Text(trf("of {0} this week", std(limit)), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
     Bar(if (limit > 0) (total / limit).toFloat() else 0f, if (limit > 0 && total > limit) PulseColors.warning else PulseColors.drinks)
-    Text(trf("{0} of {1} dry days", week?.dryDays ?: 0, dryTarget), fontSize = 11.sp, color = PulseColors.textSecondary, maxLines = 1)
+    Text(trf("{0} of {1} dry days", week?.dryDays ?: 0, dryTarget), fontSize = 11.sp, color = PulseColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     Spacer(Modifier.weight(1f))
     Text(
         "+ ${DrinkPrefs.lastType.label}",
-        fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, maxLines = 1,
+        fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, maxLines = 1, overflow = TextOverflow.Ellipsis,
         modifier = Modifier.clickable(role = Role.Button, onClick = onAdd).padding(vertical = 2.dp),
     )
 }

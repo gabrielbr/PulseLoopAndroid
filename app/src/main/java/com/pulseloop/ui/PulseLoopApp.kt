@@ -23,7 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.ViewModel
@@ -529,7 +531,18 @@ fun PulseLoopApp() {
                                             contentDescription = null,
                                         )
                                     },
-                                    label = { Text(tab.label) },
+                                    // One line, a touch smaller than labelMedium: "Sinais vitais" wrapped to two
+                                    // lines and pushed its icon up out of line with the others. Items already
+                                    // share the width equally (NavigationBarItem weights itself 1f).
+                                    label = {
+                                        Text(
+                                            tab.label,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            softWrap = false,
+                                            overflow = TextOverflow.Ellipsis,
+                                        )
+                                    },
                                     selected = selected,
                                     onClick = { onTab(tab) },
                                     colors = NavigationBarItemDefaults.colors(

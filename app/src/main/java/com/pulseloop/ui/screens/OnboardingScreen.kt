@@ -278,13 +278,16 @@ private fun OnboardingTopBar(
                 textAlign = TextAlign.Center,
                 modifier = Modifier.weight(1f),
             )
-            Box(Modifier.size(width = 60.dp, height = 44.dp), contentAlignment = Alignment.CenterEnd) {
+            // widthIn, not a fixed 60dp: a longer translated "Skip" grows the slot instead of
+            // wrapping inside it and clipping at 44dp tall.
+            Box(Modifier.widthIn(min = 60.dp).height(44.dp), contentAlignment = Alignment.CenterEnd) {
                 if (showsSkip) {
                     Text(
                         tr("Skip"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textSecondary,
+                        maxLines = 1,
                         modifier = Modifier
                             .clip(RoundedCornerShape(4.dp))
                             .clickable(onClick = onSkip)
@@ -378,16 +381,19 @@ private fun WelcomeStep(
 
         // Two-column feature grid (rows of two, since we're inside a scroll column).
         features.chunked(2).forEach { pair ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Min height, not a fixed 118dp: two-line translated titles and subtitles overflowed it.
+            // IntrinsicSize.Min + fillMaxHeight keeps both tiles in a row the same height.
+            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 pair.forEach { feature ->
                     Column(
                         Modifier
                             .weight(1f)
-                            .height(118.dp)
+                            .fillMaxHeight()
+                            .heightIn(min = 118.dp)
                             .clip(RoundedCornerShape(8.dp))
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 13.dp),
+                            .padding(horizontal = 13.dp, vertical = 10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                     ) {

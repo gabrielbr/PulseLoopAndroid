@@ -22,10 +22,13 @@ import com.pulseloop.health.accuracy.ExportUnit
 import com.pulseloop.health.accuracy.RingIdentity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.health.connect.client.PermissionController
@@ -56,6 +60,7 @@ import com.pulseloop.health.accuracy.ReferenceSourceScanner
 import com.pulseloop.health.accuracy.ReferenceSourceSurvey
 import com.pulseloop.health.accuracy.ReferenceSurveyText
 import com.pulseloop.ui.theme.PulseColors
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -66,21 +71,28 @@ import java.time.format.DateTimeFormatter
  * scan Health Connect for which apps write what, how often and how late, and start a check
  * against one of them. With one open: its progress or the resume choice, and the report.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val available = remember { HealthConnectSdk.availability(context) == HealthConnectAvailability.AVAILABLE }
-    var granted by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // null until Health Connect has answered, so "Allow access" doesn't flash for someone who granted it.
+    var granted by remember { mutableStateOf<Set<String>?>(null) }
     var scanning by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<ReferenceSourceScanner.Result.Done?>(null) }
     var note by remember { mutableStateOf<String?>(null) }
     var starting by remember { mutableStateOf<ReferenceSourceSurvey?>(null) }
     var viewing by remember { mutableStateOf<String?>(null) }
-    val open by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
+    // Optional-wrapped so "not loaded yet" (null) differs from "no open check" / "no ring" (empty):
+    // reading null as "none" flashed the start-a-check card over a running check, and
+    // "Pair your ring first" over a paired one, until Room's first emission.
+    val openLoad by remember(db) { db.accuracyDao().openFlow().map { java.util.Optional.ofNullable(it) } }.collectAsState(initial = null)
+    val open: AccuracyCheckEntity? = openLoad?.orElse(null)
     val history by remember(db) { db.accuracyDao().allFlow() }.collectAsState(initial = emptyList())
-    val ring by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
+    val ringLoad by remember(db) { db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }.collectAsState(initial = null)
+    val ring: com.pulseloop.data.entity.DeviceEntity? = ringLoad?.orElse(null)
     val hasRing = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID } == true
 
     fun scan() {
@@ -103,7 +115,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
         runCatching { AccuracyCheckController.endIfDue(context) }
         runCatching { AccuracyCheckController.refreshPauseSet(context) }
     }
-    val readable = AccuracyCheckPermissions.readable(granted)
+    val readable = AccuracyCheckPermissions.readable(granted.orEmpty())
 
     val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { got ->
         granted = got
@@ -129,7 +141,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
         }
         if (current != null) AccuracyReportSection(current)
 
-        if (current == null) {
+        if (openLoad != null && current == null) {
             AccuracyCard {
                 Text(tr("Compare your ring with another device"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
@@ -144,8 +156,12 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                 )
                 if (!available) {
                     Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = PulseColors.danger)
-                } else {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                } else if (granted != null) {
+                    // FlowRow: "Allow more" + "Scan last N days" don't fit one line once translated.
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         if (readable.size < ReferenceMetric.entries.size) {
                             Button(onClick = { launcher.launch(AccuracyCheckPermissions.request) }, enabled = !scanning) {
                                 Text(if (readable.isEmpty()) tr("Allow access") else tr("Allow more"))
@@ -154,10 +170,10 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                         if (readable.isNotEmpty()) {
                             OutlinedButton(onClick = { scan() }, enabled = !scanning) { Text(trf("Scan last {0} days", ReferenceSourceScanner.LOOKBACK_DAYS)) }
                         }
-                        if (scanning) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        if (scanning) CircularProgressIndicator(Modifier.size(20.dp).align(Alignment.CenterVertically), strokeWidth = 2.dp)
                     }
                 }
-                if (!hasRing) Text(tr("Pair your ring first: a check compares it against the other device."), fontSize = 12.sp, color = PulseColors.textMuted)
+                if (ringLoad != null && !hasRing) Text(tr("Pair your ring first: a check compares it against the other device."), fontSize = 12.sp, color = PulseColors.textMuted)
                 note?.let { Text(it, fontSize = 12.sp, color = PulseColors.warning) }
             }
 
@@ -209,7 +225,11 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                             Text("${c.deviceLabel} vs ${c.referenceLabel}", fontSize = 13.sp, color = PulseColors.textPrimary)
                             Text(AccuracyUiText.span(c), fontSize = 12.sp, color = PulseColors.textMuted)
                         }
-                        Text(tr("View"), fontSize = 13.sp, color = PulseColors.accent)
+                        Text(
+                            tr("View"), fontSize = 13.sp, color = PulseColors.accent,
+                            maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.widthIn(max = 96.dp),
+                        )
                     }
                 }
             }
@@ -316,6 +336,7 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun StartDialog(
     context: Context,
@@ -344,7 +365,8 @@ private fun StartDialog(
                     } else null,
                 )
                 Text(tr("How long"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // Four translated "N days" chips are wider than a dialog: let them wrap.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AccuracyCheckController.DURATIONS_DAYS.forEach { d ->
                         FilterChip(selected = days == d, onClick = { days = d }, label = { Text(trf("{0} days", d)) })
                     }
@@ -432,7 +454,8 @@ internal fun AdjustedCaption(note: String) {
 internal fun rememberAccuracyCorrections(): com.pulseloop.health.accuracy.Corrections {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val tick by com.pulseloop.health.accuracy.AccuracyCorrections.flow(db).collectAsState(initial = com.pulseloop.health.accuracy.Corrections.NONE)
+    val tick by remember(db) { com.pulseloop.health.accuracy.AccuracyCorrections.flow(db) }
+        .collectAsState(initial = com.pulseloop.health.accuracy.Corrections.NONE)
     val loaded by androidx.compose.runtime.produceState(com.pulseloop.health.accuracy.Corrections.NONE, tick) {
         value = com.pulseloop.health.accuracy.AccuracyCorrections.load(db)
     }
@@ -451,6 +474,10 @@ internal fun AccuracyCheckBanner(c: AccuracyCheckEntity, onOpen: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, fontSize = 12.sp, color = PulseColors.warning, modifier = Modifier.weight(1f))
-        Text(tr("Open"), fontSize = 12.sp, color = PulseColors.accent)
+        Text(
+            tr("Open"), fontSize = 12.sp, color = PulseColors.accent,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 96.dp),
+        )
     }
 }

@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
@@ -44,6 +46,7 @@ import com.pulseloop.health.accuracy.RingIdentity
 import com.pulseloop.health.source.HealthConnectSource
 import com.pulseloop.health.source.HealthConnectSourceImporter
 import com.pulseloop.ui.theme.PulseColors
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -61,17 +64,24 @@ fun HealthConnectSourceScreen(onBack: () -> Unit) {
  * Pick the app whose data PulseLoop should use — Oura, Samsung Health, Fitbit — then import. Also
  * the onboarding step for people who don't have a PulseLoop ring ([onEnabled] moves it on).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val services = remember { AppServices.get(context) }
     val available = remember { HealthConnectSdk.availability(context) == HealthConnectAvailability.AVAILABLE }
-    val ring by remember(services.db) { services.db.deviceDao().currentFlow() }.collectAsState(initial = null)
+    // null until Room answers, so a paired ring isn't briefly read as "no ring" (which flashed the
+    // Allow-access / app-picker path before the "a ring is paired" warning replaced it).
+    val ringLoad by remember(services.db) { services.db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }
+        .collectAsState(initial = null)
+    val ring: com.pulseloop.data.entity.DeviceEntity? = ringLoad?.orElse(null)
     val hasRing = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID } == true || services.bleClient.hasLastKnownRing
     var enabled by remember { mutableStateOf(HealthConnectSource.isEnabled(context)) }
     var source by remember { mutableStateOf(HealthConnectSource.sourcePackage(context)) }
-    var granted by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // null until Health Connect has answered: an empty set would show "Allow access" for a moment
+    // to someone who already granted it.
+    var granted by remember { mutableStateOf<Set<String>?>(null) }
     var scanning by remember { mutableStateOf(false) }
     var importing by remember { mutableStateOf(false) }
     var scan by remember { mutableStateOf<ReferenceSourceScanner.Result.Done?>(null) }
@@ -108,8 +118,9 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
     }
 
     LaunchedEffect(Unit) {
-        granted = ReferenceSourceScanner.grantedPermissions(context)
-        if (granted.any { it in HealthConnectSource.readPermissions } && !enabled) doScan()
+        val got = ReferenceSourceScanner.grantedPermissions(context)
+        granted = got
+        if (got.any { it in HealthConnectSource.readPermissions } && !enabled) doScan()
     }
 
     val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { got ->
@@ -118,8 +129,9 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
             note = tr("No access granted. You can allow it in Health Connect's settings.")
         } else if (!enabled) doScan()
     }
-    val canRead = granted.any { it in HealthConnectSource.readPermissions }
-    val missing = HealthConnectSource.request - granted
+    val loaded = granted != null && ringLoad != null
+    val canRead = granted.orEmpty().any { it in HealthConnectSource.readPermissions }
+    val missing = HealthConnectSource.request - granted.orEmpty()
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AccuracyCard {
@@ -136,6 +148,8 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
             )
             if (!available) {
                 Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = PulseColors.danger)
+            } else if (!loaded) {
+                // Still reading the ring row and the grants: show neither the warning nor the button yet.
             } else if (hasRing && !enabled) {
                 Text(
                     tr("A ring is paired. Forget it in Settings → Wearable first: the two would count the same steps and nights."),
@@ -164,15 +178,19 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                         trf("{0} has synced it in the morning.", HealthConnectSource.label(context, pkg)),
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
-                if (canRead && !HealthConnectSource.canReadInBackground(granted)) {
+                if (canRead && !HealthConnectSource.canReadInBackground(granted.orEmpty())) {
                     Text(tr("Allow background access so imports also run while PulseLoop is closed."), fontSize = 12.sp, color = PulseColors.warning)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                // FlowRow: the two translated button labels plus the spinner overflow a phone's card width.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     Button(onClick = { importNow() }, enabled = !importing && canRead) { Text(tr("Import now")) }
                     if (missing.isNotEmpty()) {
                         OutlinedButton(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow more")) }
                     }
-                    if (importing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                    if (importing) CircularProgressIndicator(Modifier.size(20.dp).align(Alignment.CenterVertically), strokeWidth = 2.dp)
                 }
                 TextButton(onClick = {
                     HealthConnectSource.disable(context)
@@ -180,7 +198,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     doScan()
                 }) { Text(tr("Stop using Health Connect"), color = PulseColors.danger) }
             }
-        } else if (canRead && !hasRing) {
+        } else if (loaded && canRead && !hasRing) {
             val r = scan
             if (scanning) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {

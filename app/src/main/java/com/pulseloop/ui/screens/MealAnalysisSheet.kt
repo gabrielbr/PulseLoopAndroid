@@ -21,6 +21,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -71,6 +75,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -116,6 +121,7 @@ import java.util.UUID
  */
 private enum class AnalysisPhase { Input, Analyzing, Review, Failed }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MealAnalysisDialog(
     /** Start-of-day millis of the selected nutrition day (iOS MealAnalysisSheet.day). */
@@ -304,8 +310,9 @@ fun MealAnalysisDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // Meal-type picker — iOS segmented Picker (:51-54); Android uses the same
-                // FilterChip row MealLogDialog uses.
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // FilterChip row MealLogDialog uses. A FlowRow, as there: four chips overflow a
+                // narrow phone once the labels are translated.
+                FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("breakfast", "lunch", "dinner", "snack").forEach { t ->
                         FilterChip(
                             selected = mealType == t,
@@ -337,11 +344,12 @@ fun MealAnalysisDialog(
                                 }
                             }
                         } else {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedButton(onClick = { launchCamera() }, modifier = Modifier.weight(1f)) {
+                            // Equal heights if a translated label wraps to a second line.
+                            Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                OutlinedButton(onClick = { launchCamera() }, modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text(tr("Camera"))
+                                    Text(tr("Camera"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
                                 OutlinedButton(
                                     onClick = {
@@ -349,11 +357,11 @@ fun MealAnalysisDialog(
                                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                         )
                                     },
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
                                 ) {
                                     Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
-                                    Text(tr("Library"))
+                                    Text(tr("Library"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
                             }
                         }
@@ -540,7 +548,7 @@ private fun NumberField(label: String, unit: String, value: String, modifier: Mo
             val cleaned = raw.replace(',', '.').filter { it.isDigit() || it == '.' }
             if (cleaned.count { it == '.' } <= 1) onChange(cleaned)
         },
-        label = { Text(label, maxLines = 1) },
+        label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         suffix = { Text(unit, color = PulseColors.textMuted) },
         modifier = modifier,
         singleLine = true,

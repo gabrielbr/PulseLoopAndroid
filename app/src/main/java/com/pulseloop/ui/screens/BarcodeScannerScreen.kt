@@ -107,7 +107,18 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
     val hasCameraHardware = remember {
         context.packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)
     }
-    var availability by remember { mutableStateOf(ScanAvailability.Checking) }
+    // Settled up front when it can be, so an already-granted camera doesn't flash the
+    // "Checking" spinner for a frame before the preview; only a permission prompt starts there.
+    var availability by remember {
+        mutableStateOf(
+            when {
+                !hasCameraHardware -> ScanAvailability.Unavailable
+                ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) ==
+                    PackageManager.PERMISSION_GRANTED -> ScanAvailability.Granted
+                else -> ScanAvailability.Checking
+            },
+        )
+    }
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->

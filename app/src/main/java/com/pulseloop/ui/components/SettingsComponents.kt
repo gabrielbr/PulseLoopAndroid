@@ -10,9 +10,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -112,13 +112,14 @@ fun SettingsRow(item: SettingsRowItem) {
             Icon(item.icon, contentDescription = null, Modifier.size(18.dp), tint = item.tint)
         }
 
+        // The title takes the free width (it used to be unweighted beside a weighted Spacer, so a
+        // long translated title and a long trailing value — a model slug — fought for the row).
         Text(
             item.title,
             fontSize = 16.sp,
             color = PulseColors.textPrimary,
+            modifier = Modifier.weight(1f),
         )
-
-        Spacer(Modifier.weight(1f))
 
         item.trailingValue?.let { trailing ->
             Text(
@@ -127,6 +128,7 @@ fun SettingsRow(item: SettingsRowItem) {
                 color = PulseColors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.widthIn(max = 140.dp),
             )
         }
 

@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.coach.attachments.CoachAttachmentRef
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import com.pulseloop.coach.attachments.CoachAttachmentStore
 import com.pulseloop.ui.components.MarkdownLite
@@ -98,10 +99,20 @@ fun CoachScreen(
         if (state.messages.isNotEmpty()) listState.animateScrollToItem(state.messages.size)
     }
     val goalDb = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(ctx) }
-    val activeGoal by remember { goalDb.coachGoalDao().activeFlow() }.collectAsState(initial = null)
-    val goalPlan by produceState<com.pulseloop.service.GoalPlan.Plan?>(null, activeGoal, state.messages.size) {
-        value = runCatching { com.pulseloop.service.GoalPlan.load(goalDb) }.getOrNull()
+    // `initial = null` is also "no goal", so track the first emission separately: otherwise the
+    // banner flashes "What's your goal?" for a frame before an existing goal arrives.
+    var goalLoaded by remember { mutableStateOf(false) }
+    val activeGoal by remember {
+        goalDb.coachGoalDao().activeFlow().onEach { goalLoaded = true }
+    }.collectAsState(initial = null)
+    // Paired with the goal it was loaded for, so a plan still loading for a just-arrived goal reads
+    // as loading rather than as "no plan". A reload on a new message keeps the previous plan shown.
+    val goalPlanFor by produceState<Pair<com.pulseloop.data.entity.CoachGoalEntity?, com.pulseloop.service.GoalPlan.Plan?>?>(null, activeGoal, state.messages.size) {
+        val goal = activeGoal
+        value = goal to runCatching { com.pulseloop.service.GoalPlan.load(goalDb) }.getOrNull()
     }
+    val goalPlan = goalPlanFor?.second
+    val goalBannerLoading = !goalLoaded || (activeGoal != null && goalPlanFor?.first != activeGoal)
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         LazyColumn(
@@ -120,6 +131,7 @@ fun CoachScreen(
                 GoalBanner(
                     plan = goalPlan,
                     hasGoal = activeGoal != null,
+                    loading = goalBannerLoading,
                     enabled = !state.isThinking,
                     onSetGoal = { viewModel?.sendMessage(tr("I'd like to set a goal. Ask me what I want and help me make it realistic for my data."), emptyList()) },
                     onCheckIn = { viewModel?.sendMessage(tr("How am I doing on my goal? What should I focus on this week?"), emptyList()) },
@@ -303,7 +315,8 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
 
 // ─────────────────────────── Composer ───────────────────────────
 
-private val SUGGESTIONS = listOf(
+/** A getter, so the chips follow a language change without a restart. */
+private val SUGGESTIONS: List<String> get() = listOf(
     tr("How am I doing today?"),
     tr("Explain my heart rate trend"),
     tr("Summarize my week"),
@@ -503,11 +516,24 @@ private fun Composer(
 private fun GoalBanner(
     plan: com.pulseloop.service.GoalPlan.Plan?,
     hasGoal: Boolean,
+    loading: Boolean,
     enabled: Boolean,
     onSetGoal: () -> Unit,
     onCheckIn: () -> Unit,
 ) {
     val shape = RoundedCornerShape(8.dp)
+    if (loading) {
+        // Same card, empty, while the goal loads — keeps the chat below from jumping.
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .clip(shape)
+                .background(PulseColors.card)
+                .border(1.dp, PulseColors.borderSubtle, shape),
+        )
+        return
+    }
     Row(
         Modifier
             .fillMaxWidth()

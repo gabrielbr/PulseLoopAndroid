@@ -4,7 +4,10 @@ import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -12,6 +15,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -24,6 +28,7 @@ import com.pulseloop.ui.components.DeviceHeroCard
 import com.pulseloop.ui.components.SettingsRowItem
 import com.pulseloop.ui.components.SettingsSection
 import com.pulseloop.ui.theme.PulseColors
+import kotlinx.coroutines.flow.map
 
 /**
  * Ported from SettingsView.swift (iOS #49 rehaul).
@@ -44,7 +49,12 @@ fun SettingsScreen(
 
     val bleState = bleClient?.state?.collectAsState()?.value
         ?: com.pulseloop.ring.RingBLEClient.BLEState()
-    val storedDevice by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
+    // Wrapped so "not loaded yet" (null) differs from "no ring stored" (empty Optional): before
+    // Room's first emission the hero card used to read "No ring paired · Set up a ring" for a
+    // moment and then flip to the stored ring.
+    val storedDeviceLoad by remember(db) { db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }
+        .collectAsState(initial = null)
+    val storedDevice: com.pulseloop.data.entity.DeviceEntity? = storedDeviceLoad?.orElse(null)
 
     // Capabilities of the live device (preferred) or the last stored device, used to decide
     // whether device-specific rows appear (iOS MetricsService.activeCapabilities).
@@ -91,6 +101,17 @@ fun SettingsScreen(
         val hcSource by remember { com.pulseloop.health.source.HealthConnectSource.activeSource(context) }.collectAsState()
         if (hcSource != null) {
             HealthConnectSourceHeroCard(onOpen = { navigate("settings/hc-source") })
+        } else if (storedDeviceLoad == null && bleState.connectionState != com.pulseloop.ring.RingConnectionState.CONNECTED) {
+            // Same footprint as the hero card (18 dp padding, 72 dp art, 10 dp gap, 48 dp action)
+            // so the rows below don't jump when the stored ring arrives.
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(166.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(PulseColors.card)
+                    .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
+            )
         } else DeviceHeroCard(
             bleState = bleState,
             storedDevice = storedDevice,

@@ -49,6 +49,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.settings.UnitSystem
@@ -280,6 +281,9 @@ private fun SegmentedRow(
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (selected) PulseColors.onAccent else PulseColors.textSecondary,
                     maxLines = 1,
+                    // Four translated options share the width; ellipsize rather than clip mid-glyph.
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 2.dp),
                 )
             }
         }
@@ -296,17 +300,20 @@ private fun PickerRow(title: String, value: String?, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // The title takes the weight (not a Spacer) so it wraps instead of being squeezed by the value.
         Text(
             title,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             color = PulseColors.textPrimary,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
         Text(
             value ?: tr("Not set"),
             fontSize = 14.sp,
             color = if (value == null) PulseColors.textMuted else PulseColors.textSecondary,
+            maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.widthIn(max = 160.dp),
         )
         Icon(
             Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -633,13 +640,14 @@ private fun GoalSliderCard(
             ) {
                 Icon(icon, contentDescription = null, Modifier.size(16.dp), tint = tint)
             }
+            // Weighted title (not a Spacer): a long translated title wraps beside the value.
             Text(
                 title,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Medium,
                 color = PulseColors.textPrimary,
+                modifier = Modifier.weight(1f),
             )
-            Spacer(Modifier.weight(1f))
             Text(
                 label,
                 fontSize = 16.sp,

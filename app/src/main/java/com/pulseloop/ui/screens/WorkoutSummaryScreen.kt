@@ -322,9 +322,13 @@ internal fun EditFieldRow(title: String, content: @Composable () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
-        Spacer(Modifier.weight(1f))
-        content()
+        // The title takes the weight and the control is capped, so neither a long translated
+        // title nor a long activity/date label can squeeze the other to a sliver.
+        Text(
+            title, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
+            modifier = Modifier.weight(1f).padding(end = 8.dp),
+        )
+        Box(Modifier.widthIn(max = 200.dp)) { content() }
     }
 }
 

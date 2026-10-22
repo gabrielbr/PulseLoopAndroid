@@ -448,9 +448,11 @@ private fun SummaryMetric(label: String, value: String, unit: String?, color: Co
             letterSpacing = 0.6.sp, color = color, maxLines = 1,
         )
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // weight(fill = false): bounded so the unit beside it is never squeezed off.
             Text(
                 value, fontSize = 32.sp, fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
             )
             if (unit != null) {
                 Text(unit, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 5.dp))
@@ -489,11 +491,14 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
+                // The label takes the weight (not a Spacer) so a long translated type name
+                // ellipsizes instead of squeezing the start time.
                 Text(
                     ActivityMeta.label(session.type),
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
                 )
-                Spacer(Modifier.weight(1f))
                 Text(SleepFormat.clockTime(session.startedAt), fontSize = 11.sp, color = PulseColors.textMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -999,7 +1004,8 @@ private fun DetectedActivityCard() {
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                // FlowRow: the two translated actions wrap rather than overflow the card.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
                         if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
                         modifier = Modifier.clickable {

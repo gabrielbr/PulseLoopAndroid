@@ -62,7 +62,8 @@ fun PrimaryButton(
             Icon(icon, contentDescription = null, Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        // Centered: a long translated title wraps to two lines inside the full-width button.
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
     }
 }
 
@@ -92,7 +93,8 @@ fun SecondaryButton(
             Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = PulseColors.textSecondary)
             Spacer(Modifier.width(8.dp))
         }
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        // Centered: a long translated title wraps to two lines inside the full-width button.
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center)
     }
 }
 

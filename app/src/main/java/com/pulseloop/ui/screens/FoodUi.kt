@@ -24,6 +24,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -72,7 +74,12 @@ fun FoodCard(
             )
         }.getOrNull()
     }
-    val f = food ?: return
+    val f = food ?: run {
+        // Still reading. Unless the user hid the invitation the card will show either way, so
+        // hold its place on Today instead of popping it in and pushing everything below down.
+        if (!hidden) Box(Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(8.dp)).background(PulseColors.card))
+        return
+    }
     if (!f.enabled && hidden) return
 
     val fmt = remember { NumberFormat.getIntegerInstance() }
@@ -92,7 +99,8 @@ fun FoodCard(
             if (!f.enabled) {
                 Text(
                     tr("Hide"), fontSize = 12.sp, color = PulseColors.textMuted,
-                    modifier = Modifier.clickable(role = Role.Button) {
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 120.dp).clickable(role = Role.Button) {
                         hidden = true
                         hiddenPrefs(context).edit().putBoolean("hidden", true).apply()
                     }.heightIn(min = 48.dp).wrapContentHeight().padding(horizontal = 12.dp),
@@ -121,10 +129,12 @@ fun FoodCard(
             )
         }
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoodAction(tr("Photo"), Icons.Filled.CameraAlt, Modifier.weight(1f)) { onLog("photo") }
-            FoodAction(tr("Barcode"), Icons.Filled.QrCodeScanner, Modifier.weight(1f)) { onLog("barcode") }
-            FoodAction(tr("Add"), Icons.Filled.Add, Modifier.weight(1f)) { onLog("add") }
+        // Thirds of the card: a label like "Código de barras" needs two lines, and the three
+        // buttons keep one height when it takes them.
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FoodAction(tr("Photo"), Icons.Filled.CameraAlt, Modifier.weight(1f).fillMaxHeight()) { onLog("photo") }
+            FoodAction(tr("Barcode"), Icons.Filled.QrCodeScanner, Modifier.weight(1f).fillMaxHeight()) { onLog("barcode") }
+            FoodAction(tr("Add"), Icons.Filled.Add, Modifier.weight(1f).fillMaxHeight()) { onLog("add") }
         }
     }
 }
@@ -138,12 +148,16 @@ private fun FoodAction(label: String, icon: ImageVector, modifier: Modifier, onC
             .background(PulseColors.cardSoft)
             .border(1.dp, PulseColors.borderSubtle, shape)
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(horizontal = 4.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, Modifier.size(16.dp), tint = PulseColors.accent)
         Spacer(Modifier.width(6.dp))
-        Text(label, fontSize = 13.sp, color = PulseColors.textPrimary, maxLines = 1)
+        Text(
+            label, fontSize = 13.sp, color = PulseColors.textPrimary,
+            maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f, fill = false),
+        )
     }
 }
