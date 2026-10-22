@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -198,9 +199,23 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
     val today = remember { LocalDate.now() }
     val birth = Postpartum.birthDate?.takeIf { Postpartum.active(today) }
     var data by remember { mutableStateOf<PostpartumData?>(null) }
+    var loaded by remember { mutableStateOf(false) }
     var checkIn by remember { mutableStateOf(false) }
     var history by remember { mutableStateOf(Postpartum.epdsHistory()) }
-    LaunchedEffect(birth) { if (birth != null) data = loadPostpartum(db, birth, System.currentTimeMillis(), zone) }
+    LaunchedEffect(birth) {
+        if (birth != null) {
+            data = try {
+                loadPostpartum(db, birth, System.currentTimeMillis(), zone)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+        }
+        // Set even on a failed read: the cards below are gated on it, and the warning signs
+        // among them must never stay hidden.
+        loaded = true
+    }
 
     if (checkIn) {
         EpdsCheckIn(onDone = { result ->
@@ -243,6 +258,9 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 )
             }
 
+            // The data cards land between the hero and the mood check-in; drawn before the read
+            // finished, everything below jumped down as they arrived. Hold the rest until then.
+            if (!loaded) return@Column
             val d = data
             d?.alcoholClearAt?.let { clear ->
                 val time = DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(clear).atZone(zone))
@@ -357,7 +375,8 @@ private fun LamRow(label: String, holds: Boolean, detail: String?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(if (holds) "✓" else "✗", fontSize = 15.sp, color = if (holds) PulseColors.accent else PulseColors.warning, modifier = Modifier.width(24.dp))
         Text(label, fontSize = 13.sp, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
-        detail?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
+        // Bounded so a translated "days to go" can't squeeze the condition beside it.
+        detail?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 120.dp)) }
     }
 }
 
@@ -430,6 +449,7 @@ private data class EpdsAsset(val en: EpdsForm, val pt: EpdsForm, val citation_en
 private val epdsJson = Json { ignoreUnknownKeys = true }
 
 /** What a score means, and item 10 first: any thought of self-harm gets the crisis lines, whatever the total. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EpdsGuidance(score: Int, selfHarm: Int) {
     val context = LocalContext.current
@@ -440,7 +460,9 @@ private fun EpdsGuidance(score: Int, selfHarm: Int) {
         ) {
             Text(tr("You said thoughts of harming yourself have come up. Please talk to someone today."), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(tr("CVV listens 24 hours a day, free and anonymous. In danger now, call SAMU."), fontSize = 13.sp, color = PulseColors.textPrimary)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // FlowRow: the two translated labels don't fit side by side, and a crisis button
+            // pushed off the edge of the screen is the worst place for an overflow.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { dial(context, "188") }) { Text(tr("Call CVV 188")) }
                 OutlinedButton(onClick = { dial(context, "192") }) { Text(tr("Call SAMU 192")) }
             }

@@ -253,6 +253,11 @@ class SleepViewModel(
         val rangeSummary: CoachSummaryEntity? = null,
         /** Accuracy corrections applied to the time-asleep figures; null = none. */
         val adjustedNote: String? = null,
+        /**
+         * The first rebuild has finished. Until then `lastNight == null` means "not read yet", not
+         * "no sleep", so Today shows no "No sleep recorded" / "No data" before the night arrives.
+         */
+        val loaded: Boolean = false,
     )
 
     private val _state = MutableStateFlow(SleepState())
@@ -274,6 +279,8 @@ class SleepViewModel(
             db.sleepSessionDao().recentFlow(7).combine(AccuracyCorrections.flow(db)) { sessions, c -> sessions to c }.collect { (sessions, c) ->
                 _state.update { it.copy(recentSessions = sessions.map(c::sleep)) }
                 try { rebuild(_state.value.range) } catch (_: Exception) {}
+                // Also after a failed rebuild, so the screen falls back to its empty state.
+                if (!_state.value.loaded) _state.update { it.copy(loaded = true) }
             }
         }
     }
@@ -382,6 +389,7 @@ class SleepViewModel(
                 daySummary = daySummary,
                 rangeSummary = rangeSummary,
                 adjustedNote = corrections.describe(setOf(com.pulseloop.health.accuracy.ComparisonMetric.SLEEP_ASLEEP)),
+                loaded = true,
             )
         }
     }
@@ -455,6 +463,8 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         val recentDays: List<ActivityDailyEntity> = emptyList(),
         /** All finished sessions, newest first (drives Today + the history sheet). */
         val finishedWorkouts: List<ActivitySessionEntity> = emptyList(),
+        /** True once the sessions table has answered, so "no workouts" is only said when it's so. */
+        val workoutsLoaded: Boolean = false,
         val today: ActivityDailyEntity? = null,
         // ── Day navigation (issue #76 — mirrors SleepViewModel's, iOS #84) ──
         /** How many days back the shown day is: 0 = today, clamped to [0, maxDayOffset]. */
@@ -530,7 +540,7 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         }
         viewModelScope.launch {
             db.activitySessionDao().recentFlow(200).collect { sessions ->
-                _state.update { it.copy(finishedWorkouts = sessions.filter { s -> s.statusRaw == "finished" }) }
+                _state.update { it.copy(finishedWorkouts = sessions.filter { s -> s.statusRaw == "finished" }, workoutsLoaded = true) }
             }
         }
         viewModelScope.launch { refreshMaxDayOffset() }
@@ -687,6 +697,11 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         val supportsManualSpo2: Boolean = false,
         /** Accuracy corrections applied to heart rate and SpO₂ here; null = none. */
         val adjustedNote: String? = null,
+        /**
+         * The first [buildState] has landed. Until then every series is empty and every supports*
+         * flag false, which would render "No HR samples yet" and a short card list that then grows.
+         */
+        val loaded: Boolean = false,
     )
 
     private val _state = MutableStateFlow(VitalsState())
@@ -704,7 +719,8 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         // Poll every 5 seconds so data appears as the ring syncs history
         viewModelScope.launch {
             while (true) {
-                try { refresh(db) } catch (_: Exception) {}
+                // A failed build still ends "loading", so the screen falls back to its empty cards.
+                try { refresh(db) } catch (_: Exception) { if (!_state.value.loaded) _state.update { it.copy(loaded = true) } }
                 kotlinx.coroutines.delay(5000)
             }
         }
@@ -717,7 +733,7 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
     }
 
     private suspend fun refresh(db: PulseLoopDatabase) {
-        _state.value = buildState(db, apiKeyStore)
+        _state.value = buildState(db, apiKeyStore).copy(loaded = true)
     }
 
     companion object {

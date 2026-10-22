@@ -54,6 +54,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -104,7 +106,8 @@ private fun Fact(label: String, value: String, note: String? = null, color: Colo
             Text(label, fontSize = 14.sp, color = PulseColors.textSecondary)
             note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         }
-        Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = color)
+        // Bounded: a translated value ("Moderada · 3h 20m") must not squeeze the label column.
+        Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = color, textAlign = TextAlign.End, modifier = Modifier.widthIn(max = 160.dp))
     }
 }
 
@@ -143,6 +146,9 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
         value = runCatching { HealthInsightsRepository.load(db) }.onFailure { loadFailed = true }.getOrNull()
     }
     var restUntil by remember { mutableStateOf(RestMode.until(context)) }
+    // Collected here, not under the loaded branch, so it is in by the time the snapshot is; null
+    // until then, so the Cycle row never shows "log your period" to someone who has.
+    val periods by remember { db.periodDao().allFlow() }.collectAsState(initial = null)
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -173,10 +179,14 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
         ) {
             val s = snap
             if (s == null) {
-                Text(
-                    if (loadFailed) tr("Couldn't load your health history.") else tr("Reading your history…"),
-                    color = if (loadFailed) PulseColors.warning else PulseColors.textMuted, fontSize = 13.sp,
-                )
+                if (loadFailed) {
+                    Text(tr("Couldn't load your health history."), color = PulseColors.warning, fontSize = 13.sp)
+                } else {
+                    // Only after a moment: on a quick read the line would just flash before the cards.
+                    var slow by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) { delay(400); slow = true }
+                    if (slow) Text(tr("Reading your history…"), color = PulseColors.textMuted, fontSize = 13.sp)
+                }
             } else {
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
@@ -203,8 +213,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                         Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                     }
                 }
-                val periods by remember { db.periodDao().allFlow() }.collectAsState(initial = emptyList())
-                val cycle = Cycle.status(periods.map { it.toPeriod() }, java.time.LocalDate.now())
+                val cycle = periods?.let { list -> Cycle.status(list.map { it.toPeriod() }, java.time.LocalDate.now()) }
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
                         .clickable(onClick = onCycle).padding(16.dp),
@@ -212,7 +221,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(cycle?.let { trf("Cycle · day {0} · {1}", it.cycleDay, it.phase.label) } ?: tr("Cycle"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text(cycle?.phase?.note ?: tr("Log your period to see its phase beside your sleep and recovery"), fontSize = 12.sp, color = PulseColors.textMuted)
+                        Text(cycle?.phase?.note ?: if (periods == null) "" else tr("Log your period to see its phase beside your sleep and recovery"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }
@@ -238,7 +247,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                                     Text(a.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                                     Text(a.detail, fontSize = 12.sp, color = PulseColors.textMuted)
                                 }
-                                Text(a.rating.label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ratingColor(a.rating))
+                                Text(a.rating.label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = ratingColor(a.rating), textAlign = TextAlign.End, maxLines = 2, modifier = Modifier.widthIn(max = 120.dp))
                             }
                             Sparkline(a.trend, ratingColor(a.rating))
                         }
@@ -349,13 +358,14 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HeartSection(s: HealthInsightsRepository.Snapshot) {
     Section(tr("Heart")) {
         if (s.hrToday.size >= 2) {
             Text(tr("Heart rate since last night"), fontSize = 13.sp, color = PulseColors.textSecondary)
             HeartRateContextChart(s.hrToday, s.sleepWindows, s.workoutWindows)
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Legend(PulseColors.sleep, tr("Sleep")); Legend(PulseColors.steps, tr("Workout")); Legend(PulseColors.heartRate, tr("Day"))
             }
         }
@@ -429,12 +439,12 @@ private fun HabitsSection(h: HealthInsightsRepository.Habits) {
 private fun TrendsSection(db: PulseLoopDatabase) {
     var metric by remember { mutableStateOf(TrendMetric.SLEEP) }
     var period by remember { mutableStateOf(Trends.Period.WEEK) }
-    var trendFailed by remember { mutableStateOf(false) }
-    val points by produceState<List<Trends.Point>?>(null, metric, period) {
-        value = null
-        trendFailed = false
-        value = runCatching { Trends.aggregate(HealthInsightsRepository.daily(db, metric, period.days), period) }
-            .onFailure { trendFailed = true }.getOrNull()
+    // Each load remembers what it was for, so switching metric or period keeps the last chart up
+    // (drawn as its own metric) until the new one is in, instead of collapsing to "Loading…".
+    val load by produceState<TrendLoad?>(null, metric, period) {
+        val m = metric
+        val p = period
+        value = TrendLoad(m, p, runCatching { Trends.aggregate(HealthInsightsRepository.daily(db, m, p.days), p) }.getOrNull())
     }
     Section(tr("Trends")) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -450,7 +460,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
             Trends.Period.entries.forEach { p ->
                 val on = p == period
                 Text(p.label, fontSize = 12.sp, color = if (on) PulseColors.textPrimary else PulseColors.textMuted,
-                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).minimumInteractiveComponentSize().clip(RoundedCornerShape(4.dp))
                         .then(if (on) Modifier.dither(PulseColors.accent, 0.18f) else Modifier)
                         .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(4.dp))
@@ -458,12 +468,15 @@ private fun TrendsSection(db: PulseLoopDatabase) {
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             }
         }
-        val pts = points
+        val l = load
+        val pts = l?.points
         when {
-            pts == null && trendFailed -> Text(trf("Couldn't load {0} trends.", metric.label.lowercase()), fontSize = 12.sp, color = PulseColors.warning)
-            pts == null -> Text(tr("Loading…"), fontSize = 12.sp, color = PulseColors.textMuted)
-            pts.size < 2 -> Text(trf("Not enough {0} data for this view yet.", metric.label.lowercase()), fontSize = 12.sp, color = PulseColors.textMuted)
+            l == null -> Text(tr("Loading…"), fontSize = 12.sp, color = PulseColors.textMuted)
+            pts == null -> Text(trf("Couldn't load {0} trends.", l.metric.label.lowercase()), fontSize = 12.sp, color = PulseColors.warning)
+            pts.size < 2 -> Text(trf("Not enough {0} data for this view yet.", l.metric.label.lowercase()), fontSize = 12.sp, color = PulseColors.textMuted)
             else -> {
+                val metric = l.metric
+                val period = l.period
                 val shown = pts.takeLast(if (period == Trends.Period.DAY) 30 else 26)
                 val fmt = if (metric == TrendMetric.TEMPERATURE || metric == TrendMetric.SLEEP || metric == TrendMetric.WEIGHT) "%.1f" else "%.0f"
                 val summary = trf("{0} by {1}: latest {2} {3}, range {4}–{5} {6}, {7} points", metric.label, period.label.lowercase(), fmt.format(shown.last().value), metric.unit, fmt.format(shown.minOf { it.value }), fmt.format(shown.maxOf { it.value }), metric.unit, shown.size)
@@ -485,6 +498,9 @@ private fun TrendsSection(db: PulseLoopDatabase) {
         }
     }
 }
+
+/** One trend load and the metric and period it was made for. Null points: the load failed. */
+private data class TrendLoad(val metric: TrendMetric, val period: Trends.Period, val points: List<Trends.Point>?)
 
 // ── Breathing session ─────────────────────────────────────────────────────────────────────────
 
@@ -632,12 +648,15 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
         granted = ok
         if (ok) scope.launch { com.pulseloop.service.StepCalibration.sample(context) }
     }
+    // "Collecting: needs N days…" is the answer for a null result, so it must wait for the read.
+    var resultLoaded by remember { mutableStateOf(false) }
     val result by produceState<com.pulseloop.service.StepCalibration.Result?>(null, granted) {
         value = runCatching {
             val zone = java.time.ZoneId.systemDefault()
             val ring = db.activityDailyDao().recentReal(60).associate { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate() to it.steps }
             com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())
         }.getOrNull()
+        resultLoaded = true
     }
     Section(tr("Ring steps vs your phone")) {
         when {
@@ -647,6 +666,7 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) launcher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
                 }, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare with my phone")) }
             }
+            !resultLoaded -> Spacer(Modifier.height(36.dp))
             result == null -> Text(
                 trf("Collecting: needs {0} days with at least {1} steps on both. Carry your phone as usual.", com.pulseloop.service.StepCalibration.MIN_DAYS, com.pulseloop.service.StepCalibration.MIN_STEPS),
                 fontSize = 13.sp, color = PulseColors.textMuted,

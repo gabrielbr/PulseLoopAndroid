@@ -23,8 +23,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.coach.tools.NutritionTools
@@ -73,14 +76,19 @@ fun NutritionScreen(
 
     var suggestion by remember { mutableStateOf<com.pulseloop.service.MealSuggester.Suggestion?>(null) }
 
+    // Until the day and the goal are read, the gauge would show "0 kcal of 2000" and then jump.
+    // The previous day's values stay up while a new day loads (reload never clears them).
+    var dayLoaded by remember { mutableStateOf(false) }
+    var goalLoaded by remember { mutableStateOf(false) }
     fun reload() {
         scope.launch {
             meals = db.mealEntryDao().byDay(todayStart)
             totals = db.mealEntryDao().dayTotals(todayStart)
             suggestion = runCatching { com.pulseloop.service.MealSuggester.load(db) }.getOrNull()
+            dayLoaded = true
         }
     }
-    LaunchedEffect(Unit) { goal = db.userGoalDao().get() }
+    LaunchedEffect(Unit) { goal = db.userGoalDao().get(); goalLoaded = true }
     LaunchedEffect(dayOffset) { reload() }
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -92,8 +100,8 @@ fun NutritionScreen(
     // photo-analysis pref, so both pills gate on the coach master toggle alone (reported
     // divergence in ios-sync.md).
     val keyStore = remember(context) { ApiKeyStore(context) }
-    var coachEnabled by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { coachEnabled = keyStore.coachEnabled }
+    // Read up front, not in an effect: starting false popped the Photo/Describe row in a frame later.
+    var coachEnabled by remember { mutableStateOf(keyStore.coachEnabled) }
     var startScanner by remember { mutableStateOf(false) }
     LaunchedEffect(start) {
         when (start) {
@@ -141,9 +149,13 @@ fun NutritionScreen(
                 val goalCal = goal?.intakeCalories ?: 2000.0
                 val pct = if (goalCal > 0) (totalCal / goalCal).coerceAtMost(1.0) else 0.0
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
-                    Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Invisible rather than absent while loading, so the card keeps its height.
+                    Column(
+                        Modifier.padding(20.dp).then(if (dayLoaded && goalLoaded) Modifier else Modifier.alpha(0f)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
                         Text("${totalCal.roundToInt()} kcal", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-                        Text("of ${goalCal.roundToInt()}", color = PulseColors.textMuted)
+                        Text(trf("of {0}", goalCal.roundToInt()), color = PulseColors.textMuted)
                         Spacer(Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = { pct.toFloat() },
@@ -152,10 +164,10 @@ fun NutritionScreen(
                             trackColor = PulseColors.cardSoft,
                         )
                         Spacer(Modifier.height(8.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            MacroBar(tr("Protein"), totals.sumOf { it.totalP }, goal?.intakeProteinG ?: 150.0, PulseColors.heartRate)
-                            MacroBar(tr("Carbs"), totals.sumOf { it.totalC }, goal?.intakeCarbsG ?: 250.0, PulseColors.calories)
-                            MacroBar(tr("Fat"), totals.sumOf { it.totalF }, goal?.intakeFatG ?: 65.0, PulseColors.warning)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            MacroBar(tr("Protein"), totals.sumOf { it.totalP }, goal?.intakeProteinG ?: 150.0, PulseColors.heartRate, Modifier.weight(1f))
+                            MacroBar(tr("Carbs"), totals.sumOf { it.totalC }, goal?.intakeCarbsG ?: 250.0, PulseColors.calories, Modifier.weight(1f))
+                            MacroBar(tr("Fat"), totals.sumOf { it.totalF }, goal?.intakeFatG ?: 65.0, PulseColors.warning, Modifier.weight(1f))
                         }
                     }
                 }
@@ -228,22 +240,26 @@ fun NutritionScreen(
             // analysis sheet in camera mode, Describe in describe mode.
             if (coachEnabled) {
                 item {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Half-width buttons: tighter padding and up to two lines for a long translation,
+                    // equal heights so a wrapped label doesn't leave the pair misaligned.
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         OutlinedButton(
                             onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {
                             Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(tr("Photo"))
+                            Text(tr("Photo"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                         }
                         OutlinedButton(
                             onClick = { analysisRequest = AnalysisRequest(startWithCamera = false) },
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                         ) {
                             Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text(tr("Describe"))
+                            Text(tr("Describe"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                         }
                     }
                 }
@@ -350,10 +366,11 @@ data class MealLogSave(
 )
 
 @Composable
-private fun MacroBar(label: String, value: Double, goal: Double, color: Color) {
+private fun MacroBar(label: String, value: Double, goal: Double, color: Color, modifier: Modifier = Modifier) {
     val pct = if (goal > 0) (value / goal).coerceAtMost(1.0) else 0.0
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, fontSize = 12.sp, color = PulseColors.textMuted)
+    // Equal thirds, so a long translated macro name ellipsizes instead of crowding its neighbours.
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text("${value.roundToInt()}g", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         LinearProgressIndicator(
             progress = { pct.toFloat() },
@@ -476,12 +493,12 @@ fun MealLogDialog(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = cal, onValueChange = { cal = decimalInput(it) ?: cal }, label = { Text("kcal", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
-                    OutlinedTextField(value = protein, onValueChange = { protein = decimalInput(it) ?: protein }, label = { Text(tr("Protein (g)"), maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = cal, onValueChange = { cal = decimalInput(it) ?: cal }, label = { Text("kcal", maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = protein, onValueChange = { protein = decimalInput(it) ?: protein }, label = { Text(tr("Protein (g)"), maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = carbs, onValueChange = { carbs = decimalInput(it) ?: carbs }, label = { Text(tr("Carbs (g)"), maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
-                    OutlinedTextField(value = fat, onValueChange = { fat = decimalInput(it) ?: fat }, label = { Text(tr("Fat (g)"), maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = carbs, onValueChange = { carbs = decimalInput(it) ?: carbs }, label = { Text(tr("Carbs (g)"), maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = fat, onValueChange = { fat = decimalInput(it) ?: fat }, label = { Text(tr("Fat (g)"), maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
             }
         },
@@ -590,10 +607,15 @@ private fun NextMealCard(
                     Text(tr("Your preference: ") + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.accent)
                 }
                 idea.note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textSecondary) }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onLog, modifier = Modifier.weight(1f)) { Text(tr("Log this")) }
+                // Same treatment as the Photo/Describe pair: two lines allowed, equal heights.
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onLog, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                        Text(tr("Log this"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                    }
                     if (onDiscuss != null) {
-                        OutlinedButton(onClick = onDiscuss, modifier = Modifier.weight(1f)) { Text(tr("Other ideas")) }
+                        OutlinedButton(onClick = onDiscuss, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                            Text(tr("Other ideas"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        }
                     }
                 }
             }

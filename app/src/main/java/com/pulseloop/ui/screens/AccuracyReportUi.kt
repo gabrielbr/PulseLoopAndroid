@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -34,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -49,6 +51,7 @@ import com.pulseloop.health.accuracy.ComparisonMetric
 import com.pulseloop.health.accuracy.EchoCheck
 import com.pulseloop.health.accuracy.Stage
 import com.pulseloop.ui.theme.PulseColors
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -68,7 +71,9 @@ internal fun AccuracyReportSection(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val days by db.accuracyDao().daysFlow(check.id).collectAsState(initial = emptyList())
+    // null until Room answers, so "Nothing to compare yet" only shows when there really is nothing.
+    val daysLoad by remember(db, check.id) { db.accuracyDao().daysFlow(check.id) }.collectAsState(initial = null)
+    val days = daysLoad.orEmpty()
     var scoring by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
     var expanded by remember { mutableStateOf<ComparisonMetric?>(null) }
@@ -106,9 +111,12 @@ internal fun AccuracyReportSection(
                 if (check.state == AccuracyCheckEntity.STATE_RUNNING) tr("So far (preliminary)") else tr("Report"),
                 fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, modifier = Modifier.weight(1f),
             )
+            // Both actions are width-bounded so translated labels can't squeeze the weighted title.
             if (scoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-            else TextButton(onClick = { rescore(force = true) }) { Text(tr("Recompute")) }
-            if (summaries.isNotEmpty()) TextButton(onClick = {
+            else TextButton(onClick = { rescore(force = true) }, modifier = Modifier.widthIn(max = 120.dp)) {
+                Text(tr("Recompute"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (summaries.isNotEmpty()) TextButton(modifier = Modifier.widthIn(max = 120.dp), onClick = {
                 scope.launch {
                     val ring = db.deviceDao().currentReal()?.takeIf { RingIdentity.keyOf(it) == check.deviceKey }
                     val text = AccuracyReportText.share(
@@ -121,7 +129,7 @@ internal fun AccuracyReportSection(
                     }
                     context.startActivity(android.content.Intent.createChooser(send, tr("Share accuracy report")))
                 }
-            }) { Text(tr("Share")) }
+            }) { Text(tr("Share"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
         }
         Text(
             trf("How your ring compares with {0}, the device you chose to trust. This is agreement between two consumer devices, not a lab measurement.", check.referenceLabel),
@@ -142,7 +150,7 @@ internal fun AccuracyReportSection(
             )
         }
         status?.let { Text(it, fontSize = 12.sp, color = PulseColors.warning) }
-        if (days.isEmpty() && !scoring) {
+        if (daysLoad != null && days.isEmpty() && !scoring) {
             Text(tr("Nothing to compare yet. Check back after the first full day and night."), fontSize = 13.sp, color = PulseColors.textSecondary)
         }
         val worst = AccuracyReportText.worstFirst(summaries)
@@ -202,10 +210,14 @@ private fun MetricCard(
                 }
                 headline?.let { Text(it, fontSize = 13.sp, color = PulseColors.textSecondary) }
             }
+            // Bounded chip: unbounded, a long translated verdict took the row and squeezed the
+            // weighted metric name to a character per line (the DrinksUi bug).
             Text(
                 AccuracyReportText.verdictLabel(summary.verdict),
                 fontSize = 12.sp, color = verdictColor(summary.verdict),
-                modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(PulseColors.cardSoft).padding(horizontal = 8.dp, vertical = 3.dp),
+                maxLines = 2, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = 8.dp).widthIn(max = 140.dp)
+                    .clip(RoundedCornerShape(10.dp)).background(PulseColors.cardSoft).padding(horizontal = 8.dp, vertical = 3.dp),
             )
         }
         Text(AccuracyReportText.reading(summary, check.referenceLabel), fontSize = 12.sp, color = PulseColors.textSecondary)
@@ -299,10 +311,14 @@ internal fun AccuracyCorrectionControl(check: AccuracyCheckEntity, summary: Accu
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val all by db.accuracyDao().allCorrectionsFlow().collectAsState(initial = emptyList())
-    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
-    val existing = all.firstOrNull { it.deviceKey == check.deviceKey && it.metric == metric.name }
+    // Both null until Room answers: read as "none", they flashed "Pair that ring" and the
+    // "Apply correction" button before the real state (correction on/off) replaced them.
+    val allLoad by remember(db) { db.accuracyDao().allCorrectionsFlow() }.collectAsState(initial = null)
+    val ringLoad by remember(db) { db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }.collectAsState(initial = null)
     var editing by remember { mutableStateOf(false) }
+    val all = allLoad ?: return
+    val ring: com.pulseloop.data.entity.DeviceEntity? = (ringLoad ?: return).orElse(null)
+    val existing = all.firstOrNull { it.deviceKey == check.deviceKey && it.metric == metric.name }
     val paired = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID && RingIdentity.keyOf(it) == check.deviceKey } == true
 
     if (!paired) {
@@ -313,13 +329,19 @@ internal fun AccuracyCorrectionControl(check: AccuracyCheckEntity, summary: Accu
         existing != null && existing.enabled -> Row(verticalAlignment = Alignment.CenterVertically) {
             Text(trf("Correction on: {0}", AccuracyCorrections.formatValue(metric, existing.value)), fontSize = 12.sp,
                 color = PulseColors.success, modifier = Modifier.weight(1f))
-            TextButton(onClick = { editing = true }) { Text(tr("Change")) }
-            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, false) } }) { Text(tr("Turn off")) }
+            TextButton(onClick = { editing = true }, modifier = Modifier.widthIn(max = 110.dp)) {
+                Text(tr("Change"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, false) } }, modifier = Modifier.widthIn(max = 110.dp)) {
+                Text(tr("Turn off"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         existing != null -> Row(verticalAlignment = Alignment.CenterVertically) {
             Text(trf("Correction off ({0})", AccuracyCorrections.formatValue(metric, existing.value)), fontSize = 12.sp,
                 color = PulseColors.textMuted, modifier = Modifier.weight(1f))
-            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, true) } }) { Text(tr("Turn on")) }
+            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, true) } }, modifier = Modifier.widthIn(max = 120.dp)) {
+                Text(tr("Turn on"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         else -> Button(onClick = { editing = true }, modifier = Modifier.fillMaxWidth()) {
             Text(trf("Apply correction ({0})", AccuracyCorrections.formatValue(metric, fitted)))
@@ -389,8 +411,11 @@ internal fun AccuracyCorrectionsCard() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val db = remember { PulseLoopDatabase.getInstance(context) }
-    val all by db.accuracyDao().allCorrectionsFlow().collectAsState(initial = emptyList())
-    val ring by db.deviceDao().currentFlow().collectAsState(initial = null)
+    // null until loaded: an empty list flashed "None. A finished check offers one…" before the
+    // ring's corrections arrived.
+    val allLoad by remember(db) { db.accuracyDao().allCorrectionsFlow() }.collectAsState(initial = null)
+    val ring by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
+    val all = allLoad ?: return
     val r = ring?.takeIf { it.id != RingIdentity.DEMO_DEVICE_ID } ?: return
     val key = RingIdentity.keyOf(r)
     val mine = all.filter { it.deviceKey == key }.sortedBy { ComparisonMetric.byName(it.metric)?.ordinal ?: 99 }
@@ -415,7 +440,9 @@ internal fun AccuracyCorrectionsCard() {
                     }
                 }
                 Switch(checked = c.enabled, onCheckedChange = { on -> scope.launch { AccuracyCorrections.setEnabled(db, c, on) } })
-                TextButton(onClick = { scope.launch { AccuracyCorrections.remove(db, c) } }) { Text(tr("Remove")) }
+                TextButton(onClick = { scope.launch { AccuracyCorrections.remove(db, c) } }, modifier = Modifier.widthIn(max = 110.dp)) {
+                    Text(tr("Remove"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
         Text(tr("Applied to what PulseLoop shows, never to stored readings or Health Connect."), fontSize = 11.sp, color = PulseColors.textMuted)

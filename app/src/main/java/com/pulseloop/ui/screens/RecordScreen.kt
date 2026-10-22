@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulseloop.service.HeartRateZones
 import com.pulseloop.settings.UnitConverter
@@ -80,10 +81,14 @@ fun RecordScreen(
     Column(Modifier.fillMaxSize().padding(16.dp)) {
         // Activity name + status
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(ActivityMeta.label(activityName), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            // Weighted (fill = false) so a long translated name wraps instead of pushing PAUSED off.
+            Text(
+                ActivityMeta.label(activityName), style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp),
+            )
             if (isPaused) {
                 Surface(color = MaterialTheme.colorScheme.errorContainer, shape = MaterialTheme.shapes.small) {
-                    Text("PAUSED", Modifier.padding(horizontal = 12.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    Text(tr("PAUSED"), Modifier.padding(horizontal = 12.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -137,19 +142,19 @@ fun RecordScreen(
                 Button(onClick = onResume, Modifier.weight(1f).height(52.dp)) {
                     Icon(Icons.Filled.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))
-                    Text(tr("Resume"))
+                    Text(tr("Resume"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             } else {
                 OutlinedButton(onClick = onPause, Modifier.weight(1f).height(52.dp)) {
                     Icon(Icons.Filled.Pause, null)
                     Spacer(Modifier.width(8.dp))
-                    Text(tr("Pause"))
+                    Text(tr("Pause"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             Button(onClick = onFinish, Modifier.weight(1f).height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                 Icon(Icons.Filled.Stop, null)
                 Spacer(Modifier.width(8.dp))
-                Text(tr("Finish"))
+                Text(tr("Finish"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

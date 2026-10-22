@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.coach.config.CoachProviderMode
@@ -93,6 +94,7 @@ import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.wearables.WearableModel
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
@@ -256,7 +258,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             askEnableCheckIns = true
                         }
                     }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("Enable AI Coach"))
+                    Text(tr("Enable AI Coach"), Modifier.weight(1f))
                     Switch(checked = coachEnabled, onCheckedChange = null)
                 }
 
@@ -823,7 +825,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(tr("Coach Memory"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(tr("Coach Memory"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                         TextButton(onClick = { showMemory = !showMemory }) {
                             Text(if (showMemory) tr("Hide") else trf("Show ({0})", memories.size))
                         }
@@ -977,7 +979,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
 
                 Row(Modifier.fillMaxWidth()
                     .switchRow(checked = notificationEnabled, enabled = coachEnabled, onCheckedChange = { setNotifications(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("Daily Check-in Notifications"))
+                    Text(tr("Daily Check-in Notifications"), Modifier.weight(1f))
                     Switch(checked = notificationEnabled, enabled = coachEnabled, onCheckedChange = null)
                 }
 
@@ -994,7 +996,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                     // Morning time picker
                     var morningHour by remember { mutableStateOf(keyStore.morningHour) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(tr("Morning"))
+                        Text(tr("Morning"), Modifier.weight(1f))
                         var amExpanded by remember { mutableStateOf(false) }
                         Box {
                             OutlinedButton(enabled = coachEnabled, onClick = { amExpanded = true }) {
@@ -1014,7 +1016,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                     // Evening time picker
                     var eveningHour by remember { mutableStateOf(keyStore.eveningHour) }
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(tr("Evening"))
+                        Text(tr("Evening"), Modifier.weight(1f))
                         var pmExpanded by remember { mutableStateOf(false) }
                         Box {
                             OutlinedButton(enabled = coachEnabled, onClick = { pmExpanded = true }) {
@@ -1065,7 +1067,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth()
                     .switchRow(checked = batteryAlertsEnabled, onCheckedChange = { setBatteryAlerts(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("Low Battery Notifications"))
+                    Text(tr("Low Battery Notifications"), Modifier.weight(1f))
                     Switch(checked = batteryAlertsEnabled, onCheckedChange = null)
                 }
                 if (batteryPermDenied) {
@@ -1268,23 +1270,21 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
     val keyStore = remember { ApiKeyStore(context) }
     val imperial = keyStore.resolvedUnitSystem == UnitSystem.IMPERIAL
 
-    var athleteMode by remember { mutableStateOf(false) }
-    var altitudeText by remember { mutableStateOf("") }
-    var betaBlockers by remember { mutableStateOf<Boolean?>(null) }
-    var lungCondition by remember { mutableStateOf<Boolean?>(null) }
-    var glucoseUnit by remember { mutableStateOf(GlucoseUnit.MGDL) }
-    var savedMsg by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        athleteMode = keyStore.athleteMode
-        betaBlockers = keyStore.usesBetaBlockers
-        lungCondition = keyStore.hasKnownLungCondition
-        glucoseUnit = keyStore.preferredGlucoseUnit
-        keyStore.altitudeMeters?.let { m ->
-            // Stored canonical metres; show in the display unit (iOS enters ft, stores m).
-            altitudeText = (if (imperial) (m / 0.3048).roundToInt() else m.roundToInt()).toString()
-        }
+    // Initialised straight from the (synchronous) prefs: loading them in a LaunchedEffect showed
+    // the defaults for a frame and then flipped every control to the stored value.
+    var athleteMode by remember { mutableStateOf(keyStore.athleteMode) }
+    var altitudeText by remember {
+        mutableStateOf(
+            keyStore.altitudeMeters?.let { m ->
+                // Stored canonical metres; show in the display unit (iOS enters ft, stores m).
+                (if (imperial) (m / 0.3048).roundToInt() else m.roundToInt()).toString()
+            } ?: "",
+        )
     }
+    var betaBlockers by remember { mutableStateOf(keyStore.usesBetaBlockers) }
+    var lungCondition by remember { mutableStateOf(keyStore.hasKnownLungCondition) }
+    var glucoseUnit by remember { mutableStateOf(keyStore.preferredGlucoseUnit) }
+    var savedMsg by remember { mutableStateOf<String?>(null) }
 
     SettingsSubScreen(title = tr("Physiology"), onBack = onBack) {
         Text(
@@ -1384,15 +1384,18 @@ private fun PhysiologyCard(title: String, footer: String?, content: @Composable 
 @Composable
 private fun TriStateRow(title: String, value: Boolean?, onChange: (Boolean?) -> Unit) {
     val options = listOf<Pair<String, Boolean?>>("Not set" to null, "No" to false, "Yes" to true)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-        SingleChoiceSegmentedButtonRow {
+    // Stacked rather than side by side: three translated segments ("Não definido" …) left the
+    // weighted title a few dp and broke it a character per line.
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyMedium)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, (label, v) ->
                 SegmentedButton(
                     selected = value == v,
                     onClick = { onChange(v) },
                     shape = SegmentedButtonDefaults.itemShape(i, options.size),
-                ) { Text(label) }
+                    modifier = Modifier.weight(1f),
+                ) { Text(tr(label), maxLines = 1, overflow = TextOverflow.Ellipsis) }
             }
         }
     }
@@ -1413,19 +1416,13 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
 
-    var bpSys by remember { mutableStateOf("") }
-    var bpDia by remember { mutableStateOf("") }
-    var glucoseRef by remember { mutableStateOf("") }
-    var glucoseOffset by remember { mutableStateOf(0.0) }
+    // Initialised from the prefs directly, so the fields don't flash empty / "No calibration set".
+    var bpSys by remember { mutableStateOf(keyStore.bpAdjustSystolic.takeIf { it > 0 }?.toString() ?: "") }
+    var bpDia by remember { mutableStateOf(keyStore.bpAdjustDiastolic.takeIf { it > 0 }?.toString() ?: "") }
+    var glucoseRef by remember { mutableStateOf(keyStore.glucoseRefMgdl.takeIf { it > 0 }?.let { "%.0f".format(it) } ?: "") }
+    var glucoseOffset by remember { mutableStateOf(keyStore.glucoseOffsetMgdl) }
     var glucoseMsg by remember { mutableStateOf<String?>(null) }
     var savedMsg by remember { mutableStateOf<String?>(null) }
-
-    LaunchedEffect(Unit) {
-        bpSys = keyStore.bpAdjustSystolic.takeIf { it > 0 }?.toString() ?: ""
-        bpDia = keyStore.bpAdjustDiastolic.takeIf { it > 0 }?.toString() ?: ""
-        glucoseOffset = keyStore.glucoseOffsetMgdl
-        glucoseRef = keyStore.glucoseRefMgdl.takeIf { it > 0 }?.let { "%.0f".format(it) } ?: ""
-    }
 
     SettingsSubScreen(title = tr("Calibration"), onBack = onBack) {
         Card(Modifier.fillMaxWidth()) {
@@ -1528,7 +1525,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                             glucoseOffset = 0.0
                             glucoseRef = ""
                             glucoseMsg = tr("Calibration cleared")
-                        }) { Text(tr("Reset")) }
+                        }, modifier = Modifier.widthIn(max = 120.dp)) { Text(tr("Reset"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                     }
                 }
                 glucoseMsg?.let {
@@ -1610,7 +1607,11 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
-    val device = db.deviceDao().currentFlow().collectAsState(initial = null).value
+    // Optional-wrapped: null = still loading, empty = no ring. Reading null as "no ring" flashed
+    // "Pair a ring to configure…" before the toggles appeared.
+    val deviceLoad = remember(db) { db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }
+        .collectAsState(initial = null).value
+    val device: com.pulseloop.data.entity.DeviceEntity? = deviceLoad?.orElse(null)
     val capabilities = device?.capabilities.orEmpty()
     val minimumInterval = if (device?.deviceType == RingDeviceType.YCBT) 30 else 5
     val intervalSteps = ((60 - minimumInterval) / 5 - 1).coerceAtLeast(0)
@@ -1656,7 +1657,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     fun VitalToggle(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
         Row(Modifier.fillMaxWidth()
             .switchRow(checked = checked, enabled = cfgLoaded, onCheckedChange = { onChange(it); cfgSavedMsg = null }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text(label)
+            Text(label, Modifier.weight(1f))
             Switch(checked = checked, enabled = cfgLoaded, onCheckedChange = null)
         }
     }
@@ -1673,7 +1674,9 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                 )
                 Spacer(Modifier.height(12.dp))
 
-                if (device == null) {
+                if (deviceLoad == null) {
+                    // Loading: the header above is enough until the ring row arrives.
+                } else if (device == null) {
                     Text(
                         tr("Pair a ring to configure its all-day measurements."),
                         style = MaterialTheme.typography.bodySmall,
@@ -1815,7 +1818,7 @@ private fun QuietHoursCard() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(tr("Sleep quiet hours"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Sleep quiet hours"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 Switch(checked = enabled, onCheckedChange = null)
             }
             Text(
@@ -1971,7 +1974,12 @@ fun WearableSettingsScreen(
     val bleState = bleClient?.state?.collectAsState()?.value ?: RingBLEClient.BLEState()
     // Observe the device row reactively so the connection status reflects live BLE state
     // changes (connect / disconnect / reconnect) in real time.
-    val device by db.deviceDao().currentFlow().collectAsState(initial = null)
+    // Optional-wrapped: null = still loading, empty = no ring. Reading null as "no ring" flashed
+    // "No ring paired" + "Add a ring" before the stored ring's details.
+    val deviceLoad by remember(db) { db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }
+        .collectAsState(initial = null)
+    val deviceLoaded = deviceLoad != null
+    val device: com.pulseloop.data.entity.DeviceEntity? = deviceLoad?.orElse(null)
     val isConnected = bleState.connectionState == RingConnectionState.CONNECTED
     val supportsFactoryReset = bleState.activeCapabilities
         .contains(com.pulseloop.ring.WearableCapability.FACTORY_RESET)
@@ -2003,6 +2011,7 @@ fun WearableSettingsScreen(
                     Spacer(Modifier.width(8.dp))
                     Text(
                         if (isConnected) trf("Connected — {0} · {1}%", wearableDisplayName, battery ?: 0)
+                        else if (!deviceLoaded) "" // keeps the line's height while loading
                         else device?.let { trf("Last seen: {0}", wearableDisplayName) } ?: tr("No ring paired"),
                         style = MaterialTheme.typography.bodyMedium,
                     )
@@ -2020,7 +2029,7 @@ fun WearableSettingsScreen(
                     Text(trf("Last synced: {0}", lastSyncedLabel), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
                 }
 
-                if (device == null) {
+                if (deviceLoaded && device == null) {
                     // No ring yet — route into the redesigned pairing screen (iOS #48).
                     Spacer(Modifier.height(12.dp))
                     Button(onClick = onAddRing, modifier = Modifier.fillMaxWidth()) {
@@ -2280,14 +2289,15 @@ private fun BackgroundSyncCard() {
 
 /** 24h/7d windows for the battery drainage chart (iOS #61b — only these two ranges). */
 private enum class BatteryHistoryRange(val label: String, val spanMs: Long) {
-    DAY(tr("24h"), 24 * 3600_000L),
-    WEEK(tr("7d"), 7 * 24 * 3600_000L),
+    DAY("24h", 24 * 3600_000L),
+    WEEK("7d", 7 * 24 * 3600_000L),
 }
 
 /** Fixed 0–100 zone coloring for the battery line — mirrors iOS `colorForValue`
  *  (≤20 danger, ≤50 warning, else success). Zone boundaries use an exclusive upper bound
  *  (`ZoneLineChart` matches `lower <= value < upper`), so 21/51 sit just above each cut. */
-private val batteryZones = listOf(
+/** A getter, so the zone names follow a language change without a restart. */
+private val batteryZones: List<MetricZone> get() = listOf(
     MetricZone("critical", tr("Critical"), null, 21.0, ZoneSeverity.CRITICAL, VitalColorToken.Red, tr("Battery critically low")),
     MetricZone("low", tr("Low"), 21.0, 51.0, ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Battery low")),
     MetricZone("good", tr("Good"), 51.0, null, ZoneSeverity.OPTIMAL, VitalColorToken.Mint, tr("Battery healthy")),
@@ -2302,8 +2312,10 @@ private val batteryZones = listOf(
 private fun BatteryHistorySection(db: PulseLoopDatabase) {
     var range by remember { mutableStateOf(BatteryHistoryRange.DAY) }
     // Reactive on the device row so a fresh battery reading refetches the window without a manual pull.
-    val device by db.deviceDao().currentFlow().collectAsState(initial = null)
-    var samples by remember { mutableStateOf<List<VitalSample>>(emptyList()) }
+    val device by remember(db) { db.deviceDao().currentFlow() }.collectAsState(initial = null)
+    // null until the first read: "Not enough data yet" then only shows when it is true. A range
+    // switch keeps the previous series on screen while the new one loads.
+    var samples by remember { mutableStateOf<List<VitalSample>?>(null) }
 
     LaunchedEffect(range, device?.batteryPercent, device?.updatedAt) {
         val end = System.currentTimeMillis()
@@ -2315,7 +2327,7 @@ private fun BatteryHistorySection(db: PulseLoopDatabase) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Battery history"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Battery history"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
                 SingleChoiceSegmentedButtonRow {
                     BatteryHistoryRange.entries.forEachIndexed { i, r ->
                         SegmentedButton(
@@ -2327,7 +2339,11 @@ private fun BatteryHistorySection(db: PulseLoopDatabase) {
                 }
             }
             Spacer(Modifier.height(8.dp))
-            if (samples.size < 2) {
+            val loaded = samples
+            if (loaded == null) {
+                // Chart-height placeholder so the card doesn't grow when the samples land.
+                Spacer(Modifier.height(160.dp))
+            } else if (loaded.size < 2) {
                 Text(
                     tr("Not enough data yet — battery history builds up as the ring reports its level."),
                     style = MaterialTheme.typography.bodySmall,
@@ -2335,19 +2351,19 @@ private fun BatteryHistorySection(db: PulseLoopDatabase) {
                 )
             } else {
                 ZoneLineChart(
-                    samples = samples,
+                    samples = loaded,
                     zones = batteryZones,
                     yDomain = 0.0..100.0,
                     accent = PulseColors.success,
                     height = 160.dp,
                     // Day boundaries on the 7 d view, six-hour marks on 24 h (issue #65).
                     verticalGridlines = com.pulseloop.service.BatteryProjection.gridlines(
-                        startMs = samples.first().timestampMs,
-                        endMs = samples.last().timestampMs,
+                        startMs = loaded.first().timestampMs,
+                        endMs = loaded.last().timestampMs,
                     ),
                 )
                 Spacer(Modifier.height(10.dp))
-                BatteryRuntimeEstimate(samples)
+                BatteryRuntimeEstimate(loaded)
             }
         }
     }
@@ -3558,7 +3574,9 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(msg, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { store.update { it.copy(removalStatus = null) } }) { Text(tr("Dismiss")) }
+                    TextButton(onClick = { store.update { it.copy(removalStatus = null) } }, modifier = Modifier.widthIn(max = 120.dp)) {
+                        Text(tr("Dismiss"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
         }
@@ -3800,14 +3818,16 @@ private fun AutoBackupCard() {
                     trf("Folder: {0}", folderName ?: tr("not chosen")),
                     style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { picker.launch(null) }) { Text(if (folderName == null) tr("Choose") else tr("Change")) }
+                TextButton(onClick = { picker.launch(null) }, modifier = Modifier.widthIn(max = 120.dp)) {
+                    Text(if (folderName == null) tr("Choose") else tr("Change"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(1 to "Daily", 7 to "Weekly").forEach { (d, label) ->
                     FilterChip(
                         selected = interval == d,
                         onClick = { interval = d; com.pulseloop.data.AutoBackup.setIntervalDays(context, d) },
-                        label = { Text(label) },
+                        label = { Text(tr(label)) },
                     )
                 }
             }

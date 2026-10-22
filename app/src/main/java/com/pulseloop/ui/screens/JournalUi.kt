@@ -23,9 +23,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -61,8 +63,10 @@ fun JournalTagsCard(
     var onYesterday by remember(date) { mutableStateOf(false) }
     val shown = if (allowYesterday && onYesterday) date.minusDays(1) else date
     val day = remember(shown) { dayKey(shown) }
-    val entries by remember(day) { db.journalDao().forDayFlow(day) }.collectAsState(initial = emptyList())
-    val selected = entries.map { it.tag }.toSet()
+    // null until Room's first answer: with emptyList() every chip drew unselected and the day's
+    // tags then flipped on a frame later. A day switch keeps the previous list until the new one lands.
+    val entries by remember(day) { db.journalDao().forDayFlow(day) }.collectAsState(initial = null)
+    val selected = entries.orEmpty().map { it.tag }.toSet()
     val scope = rememberCoroutineScope()
 
     Column(
@@ -83,7 +87,8 @@ fun JournalTagsCard(
         // broke the longer labels over two lines in a monospace face.
         // Each chip sits in a 48dp-tall touch target, so the rows need no extra vertical gap.
         FlowRow(
-            Modifier.fillMaxWidth(),
+            // Laid out but invisible while loading, so the card keeps its height.
+            Modifier.fillMaxWidth().alpha(if (entries == null) 0f else 1f),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             tags.forEach { tag ->
@@ -125,15 +130,18 @@ fun JournalTagsCard(
 @Composable
 private fun DaySwitch(yesterday: Boolean, onChange: (Boolean) -> Unit) {
     val shape = RoundedCornerShape(16.dp)
-    Box(Modifier.heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+    // Bounded: it sits beside the weighted title and is measured first.
+    Box(Modifier.heightIn(min = 48.dp).widthIn(max = 200.dp), contentAlignment = Alignment.Center) {
         Row(Modifier.clip(shape).border(1.dp, PulseColors.borderSubtle, shape).selectableGroup()) {
             listOf(false to "Today", true to "Yesterday").forEach { (isYesterday, label) ->
                 val on = yesterday == isYesterday
                 Text(
-                    label,
+                    tr(label),
                     fontSize = 12.sp,
                     fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                     color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .background(if (on) PulseColors.accent else PulseColors.cardSoft)
                         .selectable(selected = on, role = Role.RadioButton) { onChange(isYesterday) }

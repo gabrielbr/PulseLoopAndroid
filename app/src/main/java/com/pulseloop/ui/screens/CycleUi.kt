@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -50,7 +52,11 @@ fun CycleScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
-    val periods by remember { db.periodDao().allFlow() }.collectAsState(initial = emptyList())
+    // null until Room answers: read as empty, the card said "log your period to start" and the
+    // button offered "period started today" to someone mid-period, then both changed a frame later.
+    val periodsLoaded by remember { db.periodDao().allFlow() }.collectAsState(initial = null)
+    val loaded = periodsLoaded != null
+    val periods = periodsLoaded.orEmpty()
     val today = remember { LocalDate.now() }
     val status = Cycle.status(periods.map { it.toPeriod() }, today)
     val fmt = remember { DateTimeFormatter.ofPattern("EEE d MMM") }
@@ -60,7 +66,11 @@ fun CycleScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Cycle"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(
+                tr("Cycle"), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
+            )
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -70,7 +80,10 @@ fun CycleScreen(onBack: () -> Unit) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (status == null) {
+                if (!loaded) {
+                    // Holds roughly the card's height until the dates are read.
+                    Spacer(Modifier.height(72.dp))
+                } else if (status == null) {
                     Text(tr("Log your period to start"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(tr("PulseLoop shows the day of your cycle and its phase from the dates you log, next to your sleep and recovery."), fontSize = 13.sp, color = PulseColors.textSecondary)
                 } else {
@@ -95,7 +108,9 @@ fun CycleScreen(onBack: () -> Unit) {
                 }
             }
             val open = periods.firstOrNull()?.takeIf { it.endDay == null && status?.inPeriod == true }
-            if (open != null) {
+            if (!loaded) {
+                Spacer(Modifier.height(40.dp))
+            } else if (open != null) {
                 Button(onClick = { scope.launch { db.periodDao().upsert(open.copy(endDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Period ended today"))
                 }
@@ -107,7 +122,7 @@ fun CycleScreen(onBack: () -> Unit) {
             OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
 
             if (periods.isNotEmpty()) {
-                Text("HISTORY", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("HISTORY"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 val starts = periods.map { it.startDay }.sorted()
                 periods.forEach { p ->
                     val next = starts.firstOrNull { it > p.startDay }

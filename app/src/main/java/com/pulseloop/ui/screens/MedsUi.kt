@@ -27,6 +27,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.data.PulseLoopDatabase
@@ -48,7 +50,9 @@ fun MedsScreen(onBack: () -> Unit) {
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
     val today = remember { LocalDate.now() }
-    val meds by remember { db.medDao().allFlow() }.collectAsState(initial = emptyList())
+    // null until Room answers, so the "add what you take" intro doesn't flash for someone who has meds.
+    val medsLoaded by remember { db.medDao().allFlow() }.collectAsState(initial = null)
+    val meds = medsLoaded.orEmpty()
     val answers by remember { db.medDao().dosesSinceFlow(today.minusDays(8).toEpochDay()) }.collectAsState(initial = emptyList())
     var editing by remember { mutableStateOf<MedEntity?>(null) }
     var adding by remember { mutableStateOf(false) }
@@ -62,13 +66,18 @@ fun MedsScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Medications & supplements"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            // Kept clear of the back button: the translated title is long.
+            Text(
+                tr("Medications & supplements"), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
+                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
+            )
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            if (meds.isEmpty()) {
+            if (medsLoaded != null && meds.isEmpty()) {
                 Text(tr("Add what you take on a schedule. PulseLoop asks once per dose and keeps a week's record, and the coach can see it."), fontSize = 14.sp, color = PulseColors.textSecondary)
             }
             if (doses.isNotEmpty()) {
@@ -76,7 +85,7 @@ fun MedsScreen(onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text("TODAY", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("TODAY"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                     doses.forEach { d ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -92,11 +101,12 @@ fun MedsScreen(onBack: () -> Unit) {
                                 )
                             }
                             when (d.state) {
+                                // Bounded so long translations can't squeeze the dose name beside them.
                                 Meds.State.TAKEN, Meds.State.SKIPPED ->
-                                    TextButton(onClick = { answer(d, null) }) { Text(tr("Undo")) }
+                                    TextButton(onClick = { answer(d, null) }, modifier = Modifier.widthIn(max = 104.dp)) { Text(tr("Undo"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                 else -> {
-                                    TextButton(onClick = { answer(d, "skipped") }) { Text(tr("Skip"), color = PulseColors.textMuted) }
-                                    TextButton(onClick = { answer(d, "taken") }) { Text(tr("Taken")) }
+                                    TextButton(onClick = { answer(d, "skipped") }, modifier = Modifier.widthIn(max = 96.dp)) { Text(tr("Skip"), color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                    TextButton(onClick = { answer(d, "taken") }, modifier = Modifier.widthIn(max = 96.dp)) { Text(tr("Taken"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                 }
                             }
                         }

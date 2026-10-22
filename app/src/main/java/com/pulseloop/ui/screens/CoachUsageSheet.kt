@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.coach.config.CoachProviderMode
@@ -142,7 +143,7 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
         ) {
             Text(
                 tr("Per-message breakdown"), fontSize = 13.sp, fontWeight = FontWeight.Medium,
-                color = PulseColors.textPrimary,
+                color = PulseColors.textPrimary, modifier = Modifier.weight(1f),
             )
             Text(if (expanded) tr("Hide") else tr("Show"), fontSize = 12.sp, color = PulseColors.textSecondary)
         }
@@ -176,7 +177,12 @@ private fun UsageRow(label: String, value: String, mono: Boolean = false) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(label, fontSize = 14.sp, color = PulseColors.textSecondary)
-        Text(value, fontSize = 14.sp, color = PulseColors.textPrimary)
+        // The value can be a list of model slugs: let it wrap in the space the label leaves
+        // instead of pushing the label off the row.
+        Text(
+            value, fontSize = 14.sp, color = PulseColors.textPrimary, textAlign = TextAlign.End,
+            modifier = Modifier.padding(start = 12.dp).weight(1f, fill = false),
+        )
     }
 }
 

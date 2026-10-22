@@ -108,6 +108,7 @@ fun DeviceHeroCard(
                     fontSize = 13.sp,
                     color = status.statusTint,
                     maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
                 status.syncText?.let { syncText ->
                     Text(
@@ -115,6 +116,7 @@ fun DeviceHeroCard(
                         fontSize = 12.sp,
                         color = PulseColors.textSecondary,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

@@ -110,8 +110,13 @@ fun SleepScreen(
             SleepRangeSelector(state.range) { viewModel?.setRange(it) }
         }
         state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
-        if (state.range == SleepRangeKey.DAY) dayItems(state, navController, viewModel)
-        else aggregateItems(state, navController)
+        // Every rebuild stamps shownDayMillis, so 0 means the first one hasn't landed yet: render
+        // nothing rather than flash "No sleep recorded" (and a 1970 date header) for a frame.
+        val loaded = viewModel == null || state.shownDayMillis != 0L
+        if (loaded) {
+            if (state.range == SleepRangeKey.DAY) dayItems(state, navController, viewModel)
+            else aggregateItems(state, navController)
+        }
         item { Spacer(Modifier.height(64.dp)) }
     }
 }
@@ -367,6 +372,7 @@ private fun SleepRangeSelector(selection: SleepRangeKey, onSelect: (SleepRangeKe
                 fontWeight = FontWeight.SemiBold,
                 color = if (active) PulseColors.textPrimary else PulseColors.textMuted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .weight(1f)
                     .heightIn(min = 48.dp)
@@ -426,13 +432,20 @@ private fun SleepHeroCard(
                 color = PulseColors.sleep,
             )
             if (scoreLabel != null && score != null) {
-                Text(scoreLabel, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
+                // Bounded: a long translated rating word must not squeeze the duration column.
+                Text(
+                    scoreLabel, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 120.dp),
+                )
             }
         }
     }
 }
 
 /** Card wrapper for sleep visualizations: eyebrow + title + optional stage legend. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun VisualizationCard(
     eyebrow: String,
@@ -460,7 +473,13 @@ private fun VisualizationCard(
                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             }
             if (legend) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                // A wrapping legend capped at half the row (weight, fill = false): four translated
+                // stage names in one unbounded Row squeezed the title to a word per line.
+                FlowRow(
+                    Modifier.weight(1f, fill = false),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     LegendItem(tr("Deep"), PulseColors.stageDeep)
                     LegendItem(tr("Light"), PulseColors.stageLight)
                     LegendItem("REM", PulseColors.stageRem)
