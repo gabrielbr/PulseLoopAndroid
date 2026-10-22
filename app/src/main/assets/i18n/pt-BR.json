@@ -217,7 +217,6 @@
  "Battery healthy": "Bateria saudável",
  "Battery history": "Histórico da bateria",
  "Battery low": "Bateria baixa",
- "Be realistic about portion sizes; state your assumptions (portion sizes, preparation) briefly. Use confidence \"high\" only for clearly identifiable, standard portions. Return only JSON matching the schema.": "Seja realista quanto ao tamanho das porções; informe brevemente suas suposições (tamanho das porções, preparo). Use a confiança \"high\" apenas para porções padrão claramente identificáveis. Retorne apenas JSON de acordo com o schema.",
  "Bedtime": "Hora de dormir",
  "Bedtimes within about 30 minutes help sleep quality": "Horários de dormir com variação de até uns 30 minutos ajudam a qualidade do sono",
  "Beer": "Cerveja",

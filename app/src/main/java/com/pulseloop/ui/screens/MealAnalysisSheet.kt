@@ -659,7 +659,9 @@ object MealAnalysisLogic {
     val systemPrompt: String =
         "You are a nutrition estimator. Given a meal description and/or photo, " +
             "identify the food and estimate total calories and macros for the portion shown or described. " +
-            tr("Be realistic about portion sizes; state your assumptions (portion sizes, preparation) briefly. Use confidence \"high\" only for clearly identifiable, standard portions. Return only JSON matching the schema.")
+            "Be realistic about portion sizes; state your assumptions (portion sizes, preparation) briefly. " +
+            "Use confidence \"high\" only for clearly identifiable, standard portions. " +
+            "Return only JSON matching the schema."
 
     /**
      * The verbatim strict meal_estimate json_schema (MealAnalysisSheet.swift:344-362), built
