@@ -812,9 +812,7 @@ private fun SleepDurationHistogram(
     val summary = remember(bars, goalMin) {
         val tracked = bars.filter { it.present }.mapNotNull { it.durationMin }
         if (tracked.isEmpty()) tr("Nightly sleep: no nights tracked in this range")
-        else trf("Nightly sleep: latest {0}, ", SleepFormat.duration(tracked.last())) +
-            trf("range {0}–{1}, ", SleepFormat.duration(tracked.min()), SleepFormat.duration(tracked.max())) +
-            trf("{0} of {1} nights tracked", tracked.size, bars.size) +
+        else trf("Nightly sleep: latest {0}, range {1}–{2}, {3} of {4} nights tracked", SleepFormat.duration(tracked.last()), SleepFormat.duration(tracked.min()), SleepFormat.duration(tracked.max()), tracked.size, bars.size) +
             (goalMin?.takeIf { it > 0 }?.let { trf(", goal {0}", SleepFormat.duration(it)) } ?: "")
     }
 
@@ -1145,8 +1143,7 @@ private fun SleepRecordsCard(
             title = { Text(tr("Delete this record?")) },
             text = {
                 Text(
-                    "${SleepFormat.clockTime(run.startAt)} – ${SleepFormat.clockTime(run.endAt)} " +
-                        "leaves tonight's totals and the hypnogram, and it won't come back on re-sync.",
+                    trf("{0} – {1} leaves tonight's totals and the hypnogram, and it won't come back on re-sync.", SleepFormat.clockTime(run.startAt), SleepFormat.clockTime(run.endAt)),
                 )
             },
             confirmButton = {
@@ -1213,8 +1210,7 @@ private fun SleepRecordEditDialog(
                 }
                 if (pickedOutside) {
                     Text(
-                        trf("This record runs {0} – ", SleepFormat.clockTime(run.startAt)) +
-                            trf("{0}. You can only shorten it.", SleepFormat.clockTime(run.endAt)),
+                        trf("This record runs {0} – {1}. You can only shorten it.", SleepFormat.clockTime(run.startAt), SleepFormat.clockTime(run.endAt)),
                         color = PulseColors.danger,
                         fontSize = 12.sp,
                     )

@@ -298,8 +298,7 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
         Text(tr("Check finished: resume Health Connect export"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(AccuracyUiText.endReason(check) + " ${AccuracyUiText.span(check)}.", fontSize = 13.sp, color = PulseColors.textSecondary)
         Text(
-            trf("During the check, {0} wrote the same types to Health Connect. Exporting the ring's copy ", check.referenceLabel) +
-                "of those days now would count them twice.",
+            trf("During the check, {0} wrote the same types to Health Connect. Exporting the ring's copy of those days now would count them twice.", check.referenceLabel),
             fontSize = 12.sp, color = PulseColors.textMuted,
         )
         Button(onClick = {
@@ -351,8 +350,7 @@ private fun StartDialog(
                     }
                 }
                 Text(
-                    trf("Compared: {0}. These stop exporting to Health Connect until the check ends ", AccuracyUiText.units(units)) +
-                        "and you choose what to do with those days.",
+                    trf("Compared: {0}. These stop exporting to Health Connect until the check ends and you choose what to do with those days.", AccuracyUiText.units(units)),
                     fontSize = 12.sp,
                 )
                 Text(tr("Wear both devices as you normally would, including at night."), fontSize = 12.sp)
@@ -381,8 +379,7 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
         )
         s.echo?.takeIf { it.looksLikeEcho }?.let {
             Text(
-                trf("{0} of {1} heart-rate samples match your ring exactly. This looks like PulseLoop's own ", it.matching, it.compared) +
-                    "data coming back — check that the app syncs from your watch only, not from Health Connect.",
+                trf("{0} of {1} heart-rate samples match your ring exactly. This looks like PulseLoop's own data coming back — check that the app syncs from your watch only, not from Health Connect.", it.matching, it.compared),
                 fontSize = 12.sp, color = PulseColors.danger,
             )
         }
@@ -397,8 +394,7 @@ private fun MetricRow(m: MetricSurvey) {
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(m.metric.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Text(
-            trf("{0} samples, {1} · latest {2} · ", m.sampleCount, ReferenceSurveyText.cadence(m), last) +
-                trf("arrives ~{0} late", ReferenceSurveyText.duration(m.medianDeliveryDelayMs)),
+            trf("{0} samples, {1} · latest {2} · arrives ~{3} late", m.sampleCount, ReferenceSurveyText.cadence(m), last, ReferenceSurveyText.duration(m.medianDeliveryDelayMs)),
             fontSize = 12.sp, color = PulseColors.textSecondary,
         )
         if (m.metric == ReferenceMetric.SLEEP) {

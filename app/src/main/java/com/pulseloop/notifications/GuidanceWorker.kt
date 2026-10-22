@@ -144,8 +144,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 // Drinks, for users who track them: the week that is ending, in one line.
                 val drinks = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching {
                     val d = com.pulseloop.service.DrinksRepository.load(db, now, zone)
-                    trf(" Drinks: {0} of {1}, ", com.pulseloop.service.DrinkInsights.fmt(d.week.standardDrinks), com.pulseloop.service.DrinkInsights.fmt(d.weeklyLimit)) +
-                        trf("{0} dry day{1}.", d.week.dryDays, if (d.week.dryDays == 1) "" else "s")
+                    trf(" Drinks: {0} of {1}, {2} dry day{3}.", com.pulseloop.service.DrinkInsights.fmt(d.week.standardDrinks), com.pulseloop.service.DrinkInsights.fmt(d.weeklyLimit), d.week.dryDays, if (d.week.dryDays == 1) "" else "s")
                 }.getOrNull().orEmpty() else ""
                 val body = report + drinks
                 notify(ctx, ID_WEEKLY, title, body)
@@ -269,7 +268,7 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
             Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
                 ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
-        @android.annotation.SuppressLint(tr("MissingPermission")) // checked by canNotify before every call
+        @android.annotation.SuppressLint("MissingPermission") // checked by canNotify before every call
         private fun notify(context: Context, id: Int, title: String, body: String, openMealLog: Boolean = false) {
             val intent = Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK

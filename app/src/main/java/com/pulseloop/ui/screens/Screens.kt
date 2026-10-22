@@ -1204,8 +1204,7 @@ private fun zoneRangeText(
 private fun metricDisclaimer(metric: String, isDerived: Boolean): String? = when {
     metric == "stress" && isDerived ->
         tr("Estimated from HRV — your ring doesn't measure stress. Scored against your own recent " +
-        tr("HRV readings, so it says how this reading compares with your normal, not how you compare " +
-        "with anyone else."))
+        tr("HRV readings, so it says how this reading compares with your normal, not how you compare with anyone else."))
     metric == "glucose" ->
         tr("Estimated wellness metric — not for dosing or diabetes decisions. No smart ring or watch is " +
         tr("FDA-authorized to measure or estimate glucose on its own."))

@@ -157,8 +157,7 @@ private fun WeightLine(points: List<BodyMeasurementEntity>, units: UnitSystem) {
     val t1 = points.last().measuredAt
     val unit = UnitConverter.weightUnit(units)
     fun shown(kg: Double) = "%.1f".format(UnitConverter.weight(kg, units))
-    val summary = trf("Weight, last 90 days: latest {0} {1}, ", shown(points.last().value), unit) +
-        trf("range {0}–{1} {2}, {3} weigh-ins", shown(min), shown(max), unit, points.size)
+    val summary = trf("Weight, last 90 days: latest {0} {1}, range {2}–{3} {4}, {5} weigh-ins", shown(points.last().value), unit, shown(min), shown(max), unit, points.size)
     Canvas(Modifier.fillMaxWidth().height(56.dp).semantics { contentDescription = summary }) {
         val range = (max - min).takeIf { it > 0.2 } ?: 0.2
         fun x(t: Long) = if (t1 == t0) size.width else (t - t0).toFloat() / (t1 - t0) * size.width

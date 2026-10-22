@@ -514,7 +514,7 @@ object ReadinessCopy {
 
     const val LOW_COVERAGE = 0.6
 
-    const val DERIVED_FOOTER =
+    val DERIVED_FOOTER: String get() =
         tr("Readiness is estimated by PulseLoop from your ring's sleep, heart rate, HRV and activity, compared with your own recent nights. It is not a medical measurement.")
 
     /** What each contributor measures, for its detail sheet. */

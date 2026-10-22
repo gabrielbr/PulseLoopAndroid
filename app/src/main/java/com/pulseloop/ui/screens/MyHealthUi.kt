@@ -376,8 +376,7 @@ private fun Legend(color: Color, label: String) {
 fun HeartRateContextChart(samples: List<VitalSample>, sleep: List<LongRange>, workouts: List<LongRange>) {
     val sorted = remember(samples) { samples.sortedBy { it.timestampMs } }
     val summary = remember(sorted) {
-        trf("Heart rate since last night: latest {0} bpm, ", sorted.last().value.roundToInt()) +
-            trf("range {0}–{1} bpm, {2} readings", sorted.minOf { it.value }.roundToInt(), sorted.maxOf { it.value }.roundToInt(), sorted.size)
+        trf("Heart rate since last night: latest {0} bpm, range {1}–{2} bpm, {3} readings", sorted.last().value.roundToInt(), sorted.minOf { it.value }.roundToInt(), sorted.maxOf { it.value }.roundToInt(), sorted.size)
     }
     Canvas(Modifier.fillMaxWidth().height(90.dp).semantics { contentDescription = summary }) {
         val t0 = sorted.first().timestampMs; val t1 = sorted.last().timestampMs.coerceAtLeast(t0 + 1)
@@ -453,8 +452,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
             else -> {
                 val shown = pts.takeLast(if (period == Trends.Period.DAY) 30 else 26)
                 val fmt = if (metric == TrendMetric.TEMPERATURE || metric == TrendMetric.SLEEP || metric == TrendMetric.WEIGHT) "%.1f" else "%.0f"
-                val summary = trf("{0} by {1}: latest {2} {3}, ", metric.label, period.label.lowercase(), fmt.format(shown.last().value), metric.unit) +
-                    trf("range {0}–{1} {2}, {3} points", fmt.format(shown.minOf { it.value }), fmt.format(shown.maxOf { it.value }), metric.unit, shown.size)
+                val summary = trf("{0} by {1}: latest {2} {3}, range {4}–{5} {6}, {7} points", metric.label, period.label.lowercase(), fmt.format(shown.last().value), metric.unit, fmt.format(shown.minOf { it.value }), fmt.format(shown.maxOf { it.value }), metric.unit, shown.size)
                 Canvas(Modifier.fillMaxWidth().height(120.dp).semantics { contentDescription = summary }) {
                     val max = shown.maxOf { it.value }; val min = minOf(0.0, shown.minOf { it.value })
                     val lo = if (metric in setOf(TrendMetric.RESTING_HR, TrendMetric.HRV, TrendMetric.SPO2, TrendMetric.TEMPERATURE, TrendMetric.WEIGHT))

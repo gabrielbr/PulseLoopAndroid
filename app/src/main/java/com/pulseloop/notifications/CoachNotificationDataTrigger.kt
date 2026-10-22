@@ -1,7 +1,5 @@
 package com.pulseloop.notifications
 
-import com.pulseloop.ui.i18n.tr
-
 import android.content.Context
 import com.pulseloop.ring.PulseEvent
 import com.pulseloop.ring.PulseEventBus

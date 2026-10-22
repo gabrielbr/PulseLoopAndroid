@@ -124,8 +124,7 @@ internal fun AccuracyReportSection(
             }) { Text(tr("Share")) }
         }
         Text(
-            trf("How your ring compares with {0}, the device you chose to trust. This is agreement between two ", check.referenceLabel) +
-                "consumer devices, not a lab measurement.",
+            trf("How your ring compares with {0}, the device you chose to trust. This is agreement between two consumer devices, not a lab measurement.", check.referenceLabel),
             fontSize = 12.sp, color = PulseColors.textMuted,
         )
         if (echo?.looksLikeEcho == true) {
@@ -138,8 +137,7 @@ internal fun AccuracyReportSection(
         }
         if (waitingDays > 0) {
             Text(
-                trf("Waiting for {0} to deliver {1} day{2}. Open the app ", check.referenceLabel, waitingDays, if (waitingDays == 1) "" else "s") +
-                    "that syncs it to send it sooner; otherwise those days are scored 24 hours after they end.",
+                trf("Waiting for {0} to deliver {1} day{2}. Open the app that syncs it to send it sooner; otherwise those days are scored 24 hours after they end.", check.referenceLabel, waitingDays, if (waitingDays == 1) "" else "s"),
                 fontSize = 12.sp, color = PulseColors.warning,
             )
         }
@@ -221,8 +219,7 @@ private fun MetricCard(
         if (m.kind != ComparisonMetric.Kind.STAGES && summary.validDays > 0) {
             val (lo, hi) = summary.limits
             Text(
-                trf("Average difference {0}; 95 % of differences between ", AccuracyReportText.signed(m, summary.bias)) +
-                    trf("{0} and {1}", AccuracyReportText.signed(m, lo), AccuracyReportText.signed(m, hi)) +
+                trf("Average difference {0}; 95 % of differences between {1} and {2}", AccuracyReportText.signed(m, summary.bias), AccuracyReportText.signed(m, lo), AccuracyReportText.signed(m, hi)) +
                     if (m.kind == ComparisonMetric.Kind.PAIRED) trf(" ({0} matched readings).", summary.pairs) else ".",
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )

@@ -1891,8 +1891,7 @@ private fun QuietHoursCard() {
                     tr("To log when Bedtime or Do Not Disturb turns on and off while PulseLoop is " +
                         "in the background, Android requires Notification access. PulseLoop only " +
                         "listens for Mode changes and does not read your notifications.\n\n" +
-                        tr("If the switch is greyed out, open PulseLoop's App info, tap ⋮ → " +
-                        tr("Allow restricted settings, then come back here."))),
+                        tr("If the switch is greyed out, open PulseLoop's App info, tap ⋮ → Allow restricted settings, then come back here.")),
                 )
             },
             confirmButton = {
