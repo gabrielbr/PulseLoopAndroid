@@ -40,7 +40,7 @@ enum class AppLanguage(
 /**
  * The app's language (Settings → Language). The UI is written in English, and every displayed
  * literal goes through [tr], which looks the English text up in the language's catalogs
- * (`assets/i18n/*.json`) and falls back to the English when a string has no entry yet. The
+ * (`assets/i18n/<language>.json`) and falls back to the English when a string has no entry yet. The
  * English text *is* the key, so a reworded string simply shows in English until it is translated
  * again.
  *
