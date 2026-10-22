@@ -219,6 +219,7 @@ fun PulseLoopApp() {
                 // Daily guidance: unusual-signal alerts, weekly report, wind-down reminder.
                 com.pulseloop.notifications.GuidanceWorker.schedule(context.applicationContext)
                 com.pulseloop.health.HealthConnectBodyImport.schedule(context.applicationContext)
+                com.pulseloop.health.source.HealthConnectSource.schedule(context.applicationContext)
                 runCatching { com.pulseloop.health.ProfileAging.refresh(db) }
 
                 // NOTE: demo data is never auto-seeded. A clean install starts empty so the UI
@@ -251,6 +252,8 @@ fun PulseLoopApp() {
                         activityVM.refreshCurrentDay()
                         sleepVM.refreshReferenceNight()
                         if (isFirstStart) isFirstStart = false else bleClient.reconnectIfNeeded()
+                        // No ring, Health Connect instead: foreground reads get the larger quota.
+                        com.pulseloop.health.source.HealthConnectSource.runNow(context.applicationContext)
                     }
                     Lifecycle.Event.ON_STOP -> {
                         if (liveWorkout.state.value.activeSession != null) return@LifecycleEventObserver
@@ -304,7 +307,8 @@ fun PulseLoopApp() {
         LaunchedEffect(Unit) {
             if (!apiKeyStore.onboardingCompleted) {
                 val profileDone = db.userProfileDao().get()?.onboardingCompleted == true
-                val hasRing = db.deviceDao().current() != null || bleClient.hasLastKnownRing
+                val hasRing = db.deviceDao().current() != null || bleClient.hasLastKnownRing ||
+                    com.pulseloop.health.source.HealthConnectSource.isEnabled(context)
                 if (profileDone || hasRing) {
                     apiKeyStore.onboardingCompleted = true
                 } else {
@@ -433,12 +437,15 @@ fun PulseLoopApp() {
                                 com.pulseloop.ring.RingConnectionState.RECONNECTING,
                                 com.pulseloop.ring.RingConnectionState.SCANNING,
                             )
+                            val hcSource by remember { com.pulseloop.health.source.HealthConnectSource.activeSource(context) }
+                                .collectAsState()
                             AppHeader(
                                 state = if (liveActive) ble.connectionState
                                     else storedDevice?.state ?: ble.connectionState,
                                 batteryPercent = ble.batteryPercent ?: storedDevice?.batteryPercent,
                                 onOpenSettings = { navController.navigate("settings") },
                                 idle = ble.idleSince != null,
+                                sourceLabel = hcSource?.let { com.pulseloop.health.source.HealthConnectSource.label(context, it) + " · Health Connect" },
                             )
                             // Thin sync-progress accent under the greeting while history streams in.
                             val syncPct = coordinator.syncProgress.collectAsState().value
@@ -627,6 +634,9 @@ fun PulseLoopApp() {
                 }
                 paddedComposable("settings/health-connect") {
                     HealthConnectSettingsScreen(onBack = { navController.popBackStack() })
+                }
+                paddedComposable("settings/hc-source") {
+                    HealthConnectSourceScreen(onBack = { navController.popBackStack() })
                 }
                 paddedComposable("settings/accuracy-check") {
                     AccuracyCheckSettingsScreen(onBack = { navController.popBackStack() })

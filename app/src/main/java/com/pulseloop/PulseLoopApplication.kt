@@ -27,6 +27,7 @@ class PulseLoopApplication : Application() {
         super.onCreate()
         CrashLogger.install(this)
         com.pulseloop.service.DrinkPrefs.init(this)
+        com.pulseloop.health.source.HealthConnectSource.isEnabled(this) // warms [HealthConnectSource.enabledNow]
         // Application-scoped so capture runs whether or not the Debug screen is open.
         DiagnosticsSubscriber(PulseLoopDatabase.getInstance(this)).start(appScope)
         // Accuracy check: a different ring ends a running check at once (it can't be told apart later).

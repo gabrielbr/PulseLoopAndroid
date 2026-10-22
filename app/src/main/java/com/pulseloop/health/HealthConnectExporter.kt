@@ -227,6 +227,8 @@ class HealthConnectExporter(
     private val db: PulseLoopDatabase,
     private val store: HealthConnectPrefsStore,
     private val now: () -> Long = { System.currentTimeMillis() },
+    /** Held back on top of the accuracy check's, for all time: the Health Connect source mode's. */
+    private val extraExclusions: List<com.pulseloop.health.accuracy.ExportExclusion> = emptyList(),
 ) {
 
     /**
@@ -306,7 +308,9 @@ class HealthConnectExporter(
         // advance past them (see [ExportPause]). Read once per pass; the pass runs under
         // HealthConnectExportWorker.passMutex, which the resume choice also takes, so a choice can't
         // land halfway through a pass.
-        val exclusions = ExportPause.exclusions(db.accuracyDao().all(), db.accuracyDao().allPausedUnits())
+        // While Health Connect is the data source ([extraExclusions]), nothing it wrote goes back to it.
+        val exclusions = ExportPause.exclusions(db.accuracyDao().all(), db.accuracyDao().allPausedUnits()) +
+            extraExclusions
         fun noteHeldBack(label: String, f: ExportPause.Filtered) {
             if (f.heldBack > 0) skipped += "$label: ${f.heldBack} record(s) held back by the accuracy check"
         }

@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.Paid
 import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.Watch
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -106,6 +107,8 @@ fun OnboardingScreen(
     }
     var path by remember { mutableStateOf(progressStore.loadPath()) }
     val step = path.lastOrNull() ?: OnboardingStep.WELCOME
+    // "I wear an Oura…": the RING step becomes the Health Connect source picker instead of pairing.
+    var useHealthConnect by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
 
     fun push(next: OnboardingStep) {
         if (path.lastOrNull() == next) return
@@ -195,6 +198,7 @@ fun OnboardingScreen(
                 OnboardingStep.WELCOME -> WelcomeStep(
                     getStarted = ::getStarted,
                     exploreWithoutRing = { push(OnboardingStep.PROFILE) },
+                    useOtherDevice = { useHealthConnect = true; push(OnboardingStep.RING) },
                     permissionDenied = blePermissionDenied,
                     openAppSettings = {
                         context.startActivity(
@@ -204,7 +208,9 @@ fun OnboardingScreen(
                         )
                     },
                 )
-                OnboardingStep.RING -> PairingScreen(
+                OnboardingStep.RING -> if (useHealthConnect) HealthConnectSourceStep(
+                    next = { push(OnboardingStep.PROFILE) },
+                ) else PairingScreen(
                     bleClient = bleClient,
                     onConnected = {
                         scope.launch {
@@ -310,6 +316,7 @@ private data class WelcomeFeature(
 private fun WelcomeStep(
     getStarted: () -> Unit,
     exploreWithoutRing: () -> Unit,
+    useOtherDevice: () -> Unit = {},
     permissionDenied: Boolean = false,
     openAppSettings: () -> Unit = {},
 ) {
@@ -341,6 +348,7 @@ private fun WelcomeStep(
                     SecondaryButton("Continue without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
                 } else {
                     PrimaryButton("Get started", icon = Icons.Filled.ArrowForward, onClick = getStarted)
+                    SecondaryButton("I wear an Oura or another device", icon = Icons.Filled.Watch, onClick = useOtherDevice)
                     SecondaryButton("Explore without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
                 }
             }
@@ -653,6 +661,23 @@ private fun SetupCompleteEyebrow() {
 // MARK: - Shared step chrome
 
 /** Scrolling step content above a pinned action footer (iOS `OnboardingActionFooter`). */
+/** The RING step for someone without a PulseLoop ring: read their Oura (or other) app from Health Connect. */
+@Composable
+private fun HealthConnectSourceStep(next: () -> Unit) {
+    StepScaffold(
+        footer = { SecondaryButton("Skip for now", modifier = Modifier.fillMaxWidth(), onClick = next) },
+    ) {
+        Text(
+            "Use your device's data",
+            fontSize = 26.sp,
+            fontWeight = FontWeight.Bold,
+            color = PulseColors.textPrimary,
+            textAlign = TextAlign.Center,
+        )
+        HealthConnectSourceContent(onEnabled = next)
+    }
+}
+
 @Composable
 private fun StepScaffold(
     footer: @Composable () -> Unit,
