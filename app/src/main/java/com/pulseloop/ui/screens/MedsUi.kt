@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -57,15 +59,15 @@ fun MedsScreen(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text("Medications & supplements", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
+            Text(tr("Medications & supplements"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (meds.isEmpty()) {
-                Text("Add what you take on a schedule. PulseLoop asks once per dose and keeps a week's record, and the coach can see it.", fontSize = 14.sp, color = PulseColors.textSecondary)
+                Text(tr("Add what you take on a schedule. PulseLoop asks once per dose and keeps a week's record, and the coach can see it."), fontSize = 14.sp, color = PulseColors.textSecondary)
             }
             if (doses.isNotEmpty()) {
                 Column(
@@ -89,10 +91,10 @@ fun MedsScreen(onBack: () -> Unit) {
                             }
                             when (d.state) {
                                 Meds.State.TAKEN, Meds.State.SKIPPED ->
-                                    TextButton(onClick = { answer(d, null) }) { Text("Undo") }
+                                    TextButton(onClick = { answer(d, null) }) { Text(tr("Undo")) }
                                 else -> {
-                                    TextButton(onClick = { answer(d, "skipped") }) { Text("Skip", color = PulseColors.textMuted) }
-                                    TextButton(onClick = { answer(d, "taken") }) { Text("Taken") }
+                                    TextButton(onClick = { answer(d, "skipped") }) { Text(tr("Skip"), color = PulseColors.textMuted) }
+                                    TextButton(onClick = { answer(d, "taken") }) { Text(tr("Taken")) }
                                 }
                             }
                         }
@@ -110,16 +112,16 @@ fun MedsScreen(onBack: () -> Unit) {
                             color = if (m.active) PulseColors.textPrimary else PulseColors.textMuted)
                         val adherence = Meds.adherence(m, answers, today)
                         Text(
-                            (if (m.kind == "supplement") "Supplement" else "Medication") + " · " + Meds.times(m).joinToString(", ") +
-                                (adherence?.let { " · $it% taken this week" } ?: "") + if (!m.active) " · paused" else "",
+                            (if (m.kind == "supplement") tr("Supplement") else tr("Medication")) + " · " + Meds.times(m).joinToString(", ") +
+                                (adherence?.let { " · $it% taken this week" } ?: "") + if (!m.active) tr(" · paused") else "",
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
                     }
                 }
             }
-            Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text("Add medication or supplement") }
+            Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
             Text(
-                "A record for you and your doctor. PulseLoop doesn't check interactions or doses; ask your pharmacist.",
+                tr("A record for you and your doctor. PulseLoop doesn't check interactions or doses; ask your pharmacist."),
                 fontSize = 11.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
@@ -158,16 +160,16 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (initial == null) "Add" else "Edit") },
+        title = { Text(if (initial == null) tr("Add") else tr("Edit")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it.take(60) }, label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                OutlinedTextField(dose, { dose = it.take(40) }, label = { Text("Dose (optional)") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(name, { name = it.take(60) }, label = { Text(tr("Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(dose, { dose = it.take(40) }, label = { Text(tr("Dose (optional)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    chip("Medication", kind == "medication") { kind = "medication" }
-                    chip("Supplement", kind == "supplement") { kind = "supplement" }
+                    chip(tr("Medication"), kind == "medication") { kind = "medication" }
+                    chip(tr("Supplement"), kind == "supplement") { kind = "supplement" }
                 }
-                Text("Times", fontSize = 13.sp, color = PulseColors.textSecondary)
+                Text(tr("Times"), fontSize = 13.sp, color = PulseColors.textSecondary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     (PRESET_TIMES + times).distinct().sorted().forEach { t ->
                         chip(t, t in times) { times = if (t in times) times - t else times + t }
@@ -175,12 +177,12 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
                 }
                 if (initial != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Active", fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        Text(tr("Active"), fontSize = 14.sp, modifier = Modifier.weight(1f))
                         androidx.compose.material3.Switch(checked = active, onCheckedChange = { active = it })
                     }
                     onDelete?.let { del -> TextButton(onClick = del) {
                         Icon(Icons.Filled.Delete, null, tint = PulseColors.danger, modifier = Modifier.size(16.dp))
-                        Text(" Delete", color = PulseColors.danger)
+                        Text(tr(" Delete"), color = PulseColors.danger)
                     } }
                 }
             }
@@ -191,8 +193,8 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
                     name = name.trim(), dose = dose.trim().ifEmpty { null }, kind = kind,
                     timesCsv = times.sorted().joinToString(","), active = active,
                 ))
-            }) { Text("Save") }
+            }) { Text(tr("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }

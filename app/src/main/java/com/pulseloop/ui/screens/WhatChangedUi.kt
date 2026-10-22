@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -45,8 +47,8 @@ fun WhatChangedScreen(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text("What changed", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
+            Text(tr("What changed"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -58,10 +60,10 @@ fun WhatChangedScreen(onBack: () -> Unit) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text("LAST 3 DAYS", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("LAST 3 DAYS"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 if (recent.isEmpty()) {
-                    Text("Nothing stood out", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text("Your nights look like your usual. That's an answer too.", fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Nothing stood out"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(tr("Your nights look like your usual. That's an answer too."), fontSize = 13.sp, color = PulseColors.textSecondary)
                 } else {
                     recent.distinctBy { it.kind }.forEach { FindingRow(it) }
                 }
@@ -80,7 +82,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
                 }
             }
             Text(
-                "Each night is compared with your own previous four weeks once there are two weeks to compare with. " +
+                tr("Each night is compared with your own previous four weeks once there are two weeks to compare with. ") +
                     "Findings carry the formula version that made them (now v${Algorithms.VERSION}). Patterns, not diagnoses.",
                 fontSize = 11.sp, color = PulseColors.textMuted,
             )

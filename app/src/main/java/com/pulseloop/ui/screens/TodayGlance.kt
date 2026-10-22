@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -96,7 +98,7 @@ fun TodayGlance(
             ) {
                 Icon(Icons.Filled.Warning, null, Modifier.size(16.dp), tint = PulseColors.warning)
                 Text(
-                    "Unusual last night: " + alert.joinToString(", ") { it.title.lowercase() },
+                    tr("Unusual last night: ") + alert.joinToString(", ") { it.title.lowercase() },
                     fontSize = 13.sp, color = PulseColors.textPrimary,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                 )
@@ -123,10 +125,10 @@ fun TodayGlance(
 @Composable
 fun QuickLogRow(onMeal: () -> Unit, onTag: () -> Unit, onMeasure: () -> Unit, onWorkout: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        QuickChip("Meal", Icons.Filled.Restaurant, PulseColors.calories, Modifier.weight(1f), onMeal)
-        QuickChip("Tag day", Icons.Filled.LocalOffer, PulseColors.accent, Modifier.weight(1f), onTag)
-        QuickChip("Measure", Icons.Filled.FavoriteBorder, PulseColors.heartRate, Modifier.weight(1f), onMeasure)
-        QuickChip("Workout", Icons.Filled.DirectionsRun, PulseColors.steps, Modifier.weight(1f), onWorkout)
+        QuickChip(tr("Meal"), Icons.Filled.Restaurant, PulseColors.calories, Modifier.weight(1f), onMeal)
+        QuickChip(tr("Tag day"), Icons.Filled.LocalOffer, PulseColors.accent, Modifier.weight(1f), onTag)
+        QuickChip(tr("Measure"), Icons.Filled.FavoriteBorder, PulseColors.heartRate, Modifier.weight(1f), onMeasure)
+        QuickChip(tr("Workout"), Icons.Filled.DirectionsRun, PulseColors.steps, Modifier.weight(1f), onWorkout)
     }
 }
 
@@ -168,7 +170,7 @@ fun LastNightCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("LAST NIGHT", fontSize = 11.sp, letterSpacing = 1.8.sp, color = PulseColors.sleep)
+        Text(tr("LAST NIGHT"), fontSize = 11.sp, letterSpacing = 1.8.sp, color = PulseColors.sleep)
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(durationText, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             score?.let {
@@ -198,10 +200,10 @@ fun LastNightCard(
 fun MealSheet(onDismiss: () -> Unit, onPick: (start: String) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(), containerColor = PulseColors.secondaryBackground) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Log a meal", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            SheetOption("Photo", "Snap your plate; the AI estimates it", Icons.Filled.CameraAlt) { onPick("photo") }
-            SheetOption("Barcode", "Scan a packaged food", Icons.Filled.QrCodeScanner) { onPick("barcode") }
-            SheetOption("Add by hand", "Type the name and calories", Icons.Filled.Add) { onPick("add") }
+            Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onPick("photo") }
+            SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onPick("barcode") }
+            SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onPick("add") }
         }
     }
 }
@@ -212,9 +214,9 @@ fun MealSheet(onDismiss: () -> Unit, onPick: (start: String) -> Unit) {
 fun TagDaySheet(db: PulseLoopDatabase, onDismiss: () -> Unit, onSeeEffects: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = PulseColors.secondaryBackground) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
-            JournalTagsCard(db, java.time.LocalDate.now(), "Tag your day", allowYesterday = true) {
+            JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
                 Text(
-                    "See what affects you",
+                    tr("See what affects you"),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
                     modifier = Modifier
                         .heightIn(min = 48.dp)
@@ -272,7 +274,7 @@ fun CoachBriefSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text("TODAY'S BRIEF", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.accent)
+            Text(tr("TODAY'S BRIEF"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.accent)
             Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(body, fontSize = 15.sp, lineHeight = 22.sp, color = PulseColors.textSecondary)
             if (chips.isNotEmpty()) {
@@ -298,7 +300,7 @@ fun CoachBriefSheet(
                 androidx.compose.material3.Button(
                     onClick = onAsk,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text("Ask the coach about it") }
+                ) { Text(tr("Ask the coach about it")) }
             }
         }
     }

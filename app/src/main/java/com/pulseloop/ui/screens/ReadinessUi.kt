@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -80,7 +82,7 @@ fun ScoreRing(
     Box(
         Modifier.size(size).clearAndSetSemantics {
             // One spoken value instead of a bare number; an empty ring says so.
-            contentDescription = value?.let { "Score $it out of 100" } ?: "No score"
+            contentDescription = value?.let { "Score $it out of 100" } ?: tr("No score")
             if (value != null) progressBarRangeInfo = ProgressBarRangeInfo(value.coerceIn(0, 100).toFloat(), 0f..100f)
         },
         contentAlignment = Alignment.Center,
@@ -148,13 +150,13 @@ fun ScoreHeader(
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
             HeaderRing(
-                label = "Readiness",
+                label = tr("Readiness"),
                 value = score?.value,
                 caption = when (readiness) {
                     is Readiness.Result.Score -> readiness.band.label
-                    is Readiness.Result.Learning -> "Learning"
-                    Readiness.Result.NoSleep -> "No sleep yet"
-                    is Readiness.Result.Withheld -> "Not measured"
+                    is Readiness.Result.Learning -> tr("Learning")
+                    Readiness.Result.NoSleep -> tr("No sleep yet")
+                    is Readiness.Result.Withheld -> tr("Not measured")
                     null -> " "
                 },
                 color = score?.let { bandColor(it.band) } ?: PulseColors.readiness,
@@ -162,17 +164,17 @@ fun ScoreHeader(
                 modifier = Modifier.weight(1f),
             )
             HeaderRing(
-                label = "Sleep",
+                label = tr("Sleep"),
                 value = sleepScore,
-                caption = sleepScore?.let { Readiness.Band.of(it).label } ?: "No data",
+                caption = sleepScore?.let { Readiness.Band.of(it).label } ?: tr("No data"),
                 color = PulseColors.sleep,
                 onTap = onSleep,
                 modifier = Modifier.weight(1f),
             )
             HeaderRing(
-                label = "Activity",
+                label = tr("Activity"),
                 value = activity?.value,
-                caption = activity?.band?.label ?: "No data",
+                caption = activity?.band?.label ?: tr("No data"),
                 color = PulseColors.steps,
                 onTap = onActivity,
                 modifier = Modifier.weight(1f),
@@ -211,10 +213,10 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
             }
             Text(
-                "Readiness", modifier = Modifier.align(Alignment.Center),
+                tr("Readiness"), modifier = Modifier.align(Alignment.Center),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
             )
         }
@@ -256,7 +258,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                 ContributorsCard(score.contributors.map { it.asScoreContributor() })
                 if (score.missing.isNotEmpty()) {
                     Text(
-                        "Not enough data yet: " + score.missing.joinToString { it.title.lowercase() } + ".",
+                        tr("Not enough data yet: ") + score.missing.joinToString { it.title.lowercase() } + ".",
                         fontSize = 12.sp, color = PulseColors.textMuted,
                     )
                 }
@@ -267,7 +269,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Text("Why there's no score today", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+                    Text(tr("Why there's no score today"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
                     result.reasons.forEach { Text("• $it", fontSize = 13.sp, color = PulseColors.textSecondary) }
                 }
             }
@@ -282,7 +284,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
 
 /** "Contributors" heading and a card of tappable rows; shared by Readiness, Sleep and Activity. */
 @Composable
-fun ContributorsCard(contributors: List<ScoreContributor>, title: String = "Contributors") {
+fun ContributorsCard(contributors: List<ScoreContributor>, title: String = tr("Contributors")) {
     if (contributors.isEmpty()) return
     var expanded by remember(contributors) { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -303,7 +305,7 @@ private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> 
     Column(
         Modifier.fillMaxWidth()
             .clickable(role = Role.Button, onClick = onTap)
-            .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+            .semantics { stateDescription = if (expanded) tr("Expanded") else tr("Collapsed") }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -335,10 +337,10 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
             }
             Text(
-                "Activity", modifier = Modifier.align(Alignment.Center),
+                tr("Activity"), modifier = Modifier.align(Alignment.Center),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
             )
         }
@@ -362,12 +364,12 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
             }
             result?.let { ContributorsCard(it.contributors) }
             Text(
-                "Open today's activity",
+                tr("Open today's activity"),
                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.steps,
                 modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onOpenActivity).padding(8.dp),
             )
             Text(
-                "Activity is estimated by PulseLoop from your ring's steps and the workouts you log. It is not a medical measurement.",
+                tr("Activity is estimated by PulseLoop from your ring's steps and the workouts you log. It is not a medical measurement."),
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
@@ -379,8 +381,8 @@ fun activityHeadline(result: com.pulseloop.service.ActivityScore.Result?): Strin
     if (result == null) return "No activity recorded yet. Sync your ring to see today's score."
     val weakest = result.contributors.minByOrNull { it.score }?.takeIf { it.score < 70 }?.title?.lowercase()
     return when (result.band) {
-        Readiness.Band.OPTIMAL -> "Great balance of movement and recovery. Keep it up."
-        Readiness.Band.GOOD -> "A solid active day so far."
+        Readiness.Band.OPTIMAL -> tr("Great balance of movement and recovery. Keep it up.")
+        Readiness.Band.GOOD -> tr("A solid active day so far.")
         Readiness.Band.FAIR, Readiness.Band.PAY_ATTENTION ->
             if (weakest != null) "There's room to move more. Start with your $weakest." else "There's room to move more today."
     }
@@ -403,22 +405,22 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Data behind this score", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
-            Text(if (open) "Hide" else "Show", fontSize = 13.sp, color = PulseColors.accent)
+            Text(tr("Data behind this score"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+            Text(if (open) tr("Hide") else tr("Show"), fontSize = 13.sp, color = PulseColors.accent)
         }
         if (open) {
             val night = inputs?.lastNight
             fun line(label: String, value: String) = label to value
             val rows = buildList {
                 if (night != null) {
-                    add(line("Night covered by the ring", "${(night.coverage * 100).roundToInt()}%"))
-                    add(line("Heart-rate readings", "${night.hrSamples}"))
-                    add(line("HRV readings", "${night.hrvSamples}"))
-                    add(line("Resting heart rate", night.restingHr?.let { "${it.roundToInt()} bpm" } ?: "not measured"))
+                    add(line(tr("Night covered by the ring"), "${(night.coverage * 100).roundToInt()}%"))
+                    add(line(tr("Heart-rate readings"), "${night.hrSamples}"))
+                    add(line(tr("HRV readings"), "${night.hrvSamples}"))
+                    add(line(tr("Resting heart rate"), night.restingHr?.let { "${it.roundToInt()} bpm" } ?: "not measured"))
                     add(line("HRV", night.hrv?.let { "${it.roundToInt()} ms" } ?: "not measured"))
-                } else add(line("Last night", "no sleep recorded"))
-                inputs?.let { add(line("Nights in your baseline", "${it.history.count { n -> n.restingHr != null || n.hrv != null }}")) }
-                add(line("Formula version", "${com.pulseloop.service.Algorithms.VERSION}"))
+                } else add(line(tr("Last night"), "no sleep recorded"))
+                inputs?.let { add(line(tr("Nights in your baseline"), "${it.history.count { n -> n.restingHr != null || n.hrv != null }}")) }
+                add(line(tr("Formula version"), "${com.pulseloop.service.Algorithms.VERSION}"))
             }
             rows.forEach { (k, v) ->
                 Row(Modifier.fillMaxWidth()) {

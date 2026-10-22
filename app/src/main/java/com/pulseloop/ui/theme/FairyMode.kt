@@ -46,18 +46,18 @@ object FairyMode {
     fun onProfileName(name: String?) {
         val match = matches(name)
         if (match && !on && !celebrating) celebrating = true
-        if (!match && on) setOn(false)
+        if (!match && on) persist(false)
     }
 
     /** Called by the overlay at the moment of transformation, under the sparkles. */
-    fun transform() = setOn(true)
+    fun transform() = persist(true)
 
     fun celebrationDone() {
         celebrating = false
-        if (!on) setOn(true)
+        if (!on) persist(true)
     }
 
-    private fun setOn(value: Boolean) {
+    private fun persist(value: Boolean) {
         on = value
         prefs?.edit()?.putBoolean("on", value)?.apply()
     }

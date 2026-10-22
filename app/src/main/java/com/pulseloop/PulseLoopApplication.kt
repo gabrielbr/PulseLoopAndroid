@@ -28,6 +28,7 @@ class PulseLoopApplication : Application() {
         CrashLogger.install(this)
         com.pulseloop.service.DrinkPrefs.init(this)
         com.pulseloop.ui.theme.FairyMode.init(this)
+        com.pulseloop.ui.i18n.L10n.init(this)
         com.pulseloop.health.source.HealthConnectSource.isEnabled(this) // warms [HealthConnectSource.enabledNow]
         // Application-scoped so capture runs whether or not the Debug screen is open.
         DiagnosticsSubscriber(PulseLoopDatabase.getInstance(this)).start(appScope)

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.viewmodels
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pulseloop.data.ActivityBucketDeletion
@@ -960,7 +962,7 @@ class CoachViewModel(
     )
 
     private val greeting = ChatMessage("assistant",
-        "Hi! I'm your PulseLoop coach. I can answer questions about your sleep, heart rate, activity, and recovery. What would you like to know?")
+        tr("Hi! I'm your PulseLoop coach. I can answer questions about your sleep, heart rate, activity, and recovery. What would you like to know?"))
 
     private val _state = MutableStateFlow(CoachState(messages = listOf(greeting)))
     val state: StateFlow<CoachState> = _state.asStateFlow()
@@ -1134,7 +1136,11 @@ class CoachViewModel(
 
 // ──────────────────────── Vital Detail ────────────────────────
 
-enum class Period(val label: String) { DAY("Today"), WEEK("Week"), MONTH("Month") }
+enum class Period(private val en: String) {
+    DAY(tr("Today")), WEEK(tr("Week")), MONTH(tr("Month"));
+    /** Translated when read, not when the enum loads, so a language change shows at once. */
+    val label: String get() = tr(en)
+}
 
 /**
  * VitalDetailViewModel — drives a single-metric detail screen with Today/Week/Month

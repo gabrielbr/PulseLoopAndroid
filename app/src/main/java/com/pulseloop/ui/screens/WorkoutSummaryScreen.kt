@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import android.content.res.Configuration
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
@@ -123,7 +125,7 @@ fun WorkoutSummaryScreen(
     ) {
         item {
             Row(Modifier.fillMaxWidth()) {
-                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = PulseColors.textSecondary, onTap = onBack)
+                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), tint = PulseColors.textSecondary, onTap = onBack)
                 Spacer(Modifier.weight(1f))
                 if (s.useGps && points.any { it.accepted }) {
                     CircleIconButton(Icons.Filled.Share, "Export route as GPX", tint = PulseColors.textSecondary, onTap = {
@@ -143,9 +145,9 @@ fun WorkoutSummaryScreen(
                     })
                     Spacer(Modifier.width(10.dp))
                 }
-                CircleIconButton(Icons.Filled.Edit, "Edit workout", tint = PulseColors.accent, onTap = { editing = true })
+                CircleIconButton(Icons.Filled.Edit, tr("Edit workout"), tint = PulseColors.accent, onTap = { editing = true })
                 Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Filled.Delete, "Delete workout", tint = PulseColors.danger, onTap = { confirmDelete = true })
+                CircleIconButton(Icons.Filled.Delete, tr("Delete workout"), tint = PulseColors.danger, onTap = { confirmDelete = true })
             }
         }
         item {
@@ -175,7 +177,7 @@ fun WorkoutSummaryScreen(
     if (confirmDelete) {
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
-            title = { Text("Delete workout?") },
+            title = { Text(tr("Delete workout?")) },
             text = { Text("This removes the session and its recorded route. This can't be undone.") },
             confirmButton = {
                 TextButton(onClick = {
@@ -188,9 +190,9 @@ fun WorkoutSummaryScreen(
                         com.pulseloop.health.HealthConnectWorkoutDeletion.removeSessionRecords(context, s.id)
                         onBack()
                     }
-                }) { Text("Delete", color = PulseColors.danger) }
+                }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("Cancel")) } },
         )
     }
 
@@ -206,7 +208,7 @@ fun WorkoutSummaryScreen(
                         reload()
                         editing = false
                     } else {
-                        editError = "Couldn't save these changes. Check the times and try again."
+                        editError = tr("Couldn't save these changes. Check the times and try again.")
                     }
                 }
             },
@@ -236,11 +238,11 @@ private fun EditWorkoutSheet(
 
     val pauseMs = (session.totalPauseSeconds * 1000).toLong()
     val validationMessage = when {
-        endedAt > System.currentTimeMillis() -> "End time can't be in the future."
+        endedAt > System.currentTimeMillis() -> tr("End time can't be in the future.")
         endedAt - startedAt <= pauseMs ->
             if (session.totalPauseSeconds > 0)
                 "The window must be longer than the ${maxOf(1, (session.totalPauseSeconds / 60).toInt())} min of pauses in this workout."
-            else "End must be after the start."
+            else tr("End must be after the start.")
         else -> null
     }
 
@@ -249,9 +251,9 @@ private fun EditWorkoutSheet(
             Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Text("Edit workout", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(tr("Edit workout"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
 
-            EditFieldRow("Activity") {
+            EditFieldRow(tr("Activity")) {
                 Box {
                     OutlinedButton(onClick = { typeExpanded = true }) {
                         Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(16.dp))
@@ -270,17 +272,17 @@ private fun EditWorkoutSheet(
                 }
             }
 
-            EditFieldRow("Starts") {
+            EditFieldRow(tr("Starts")) {
                 DateTimeButton(startedAt) { startedAt = it }
             }
-            EditFieldRow("Ends") {
+            EditFieldRow(tr("Ends")) {
                 DateTimeButton(endedAt) { endedAt = it }
             }
 
             val message = validationMessage ?: saveError
             Text(
                 message
-                    ?: "Distance, calories, and heart-rate stats are recalculated for the new window.",
+                    ?: tr("Distance, calories, and heart-rate stats are recalculated for the new window."),
                 fontSize = 12.sp,
                 color = if (message != null) PulseColors.warning else PulseColors.textMuted,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -296,11 +298,11 @@ private fun EditWorkoutSheet(
             ) {
                 Icon(Icons.Filled.Check, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Save changes", fontWeight = FontWeight.SemiBold)
+                Text(tr("Save changes"), fontWeight = FontWeight.SemiBold)
             }
 
             TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-                Text("Cancel", color = PulseColors.textPrimary, fontWeight = FontWeight.SemiBold)
+                Text(tr("Cancel"), color = PulseColors.textPrimary, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -360,9 +362,9 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
                     }
                     showDate = false
                     showTime = true
-                }) { Text("Next") }
+                }) { Text(tr("Next")) }
             },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showDate = false }) { Text(tr("Cancel")) } },
         ) { DatePicker(state = state, title = null) }
     }
 
@@ -377,7 +379,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
         )
         AlertDialog(
             onDismissRequest = { showTime = false },
-            title = { Text("Time") },
+            title = { Text(tr("Time")) },
             // The dial doesn't fit a landscape dialog; the keyboard entry form does.
             text = { if (landscape) TimeInput(state = timeState) else TimePicker(state = timeState) },
             confirmButton = {
@@ -390,9 +392,9 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
                     }.timeInMillis
                     onChange(result)
                     showTime = false
-                }) { Text("Done") }
+                }) { Text(tr("Done")) }
             },
-            dismissButton = { TextButton(onClick = { showTime = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { showTime = false }) { Text(tr("Cancel")) } },
         )
     }
 }
@@ -442,8 +444,8 @@ private fun dateRange(s: ActivitySessionEntity): String {
         it.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) && it.get(Calendar.DAY_OF_YEAR) == startCal.get(Calendar.DAY_OF_YEAR)
     }
     val day = when {
-        sameDay -> "Today"
-        yesterday -> "Yesterday"
+        sameDay -> tr("Today")
+        yesterday -> tr("Yesterday")
         else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(s.startedAt))
     }
     val ended = s.endedAt ?: return day
@@ -622,13 +624,13 @@ private fun MissingWorkout(onBack: () -> Unit) {
     ) {
         Icon(Icons.AutoMirrored.Filled.DirectionsRun, null, tint = PulseColors.textMuted, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(12.dp))
-        Text("Workout not found", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+        Text(tr("Workout not found"), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Spacer(Modifier.height(6.dp))
         Text(
-            "This workout is no longer in local storage. It may have been deleted or replaced.",
+            tr("This workout is no longer in local storage. It may have been deleted or replaced."),
             fontSize = 14.sp, color = PulseColors.textMuted, textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
-        TextButton(onClick = onBack) { Text("Back", color = PulseColors.accent) }
+        TextButton(onClick = onBack) { Text(tr("Back"), color = PulseColors.accent) }
     }
 }

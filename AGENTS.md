@@ -1033,3 +1033,24 @@ and each one fails silently if broken:
   writing next month would then echo.
 
 It is exclusive with a paired ring: a `DeviceIdentified` turns it off.
+
+## Every UI string goes through `tr()`, and the English text is the key
+
+**The app speaks English and Brazilian Portuguese (Settings → Language, `ui/i18n/L10n.kt`).** There
+are no string resources for UI text: a composable writes `Text(tr("Save"))`, and `tr` looks the
+English up in `assets/i18n/pt-BR.json`, falling back to the English when there is no entry. So:
+
+- **New UI text: wrap it in `tr()` and add the pt-BR entry to the catalog in the same change.** An
+  unwrapped string, or a wrapped one with no entry, silently stays English for Portuguese users.
+  Rewording an English string orphans its translation the same way; update the key too.
+- **Translate where text is shown, never where a value is defined.** A literal that is also
+  *compared* (`zone.label == "High"`, a `when` over labels) must stay English; wrap the display site
+  instead (`Text(tr(zone.label))`). `MetricThresholds` and `HeartRateZones` labels work this way.
+- **Not inside an enum constructor or an object-level `val`:** those evaluate once, so a language
+  change wouldn't show until the process restarts. Use a getter (`val label get() = tr(en)`).
+- **Never date patterns or format keys.** `tr("EEE d MMM")` would let a translation break parsing.
+  Dates already localise through the default `Locale`, which `L10n` sets.
+- A string built by a template (`"Day $n"`) can't be a key. Split it into a translated part and the
+  value, or leave it English. Many still are; templates and service-layer text (insights,
+  notifications) are the known gaps.
+- The coach answers in the app's language through `L10n.coachInstruction()`, appended to its prompts.

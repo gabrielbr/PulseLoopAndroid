@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -62,7 +64,7 @@ fun CoachModelPicker(
     val presetSlugs = presets.map { it.first }.toSet()
     val others = success?.entries?.filter { it.id !in presetSlugs }.orEmpty()
 
-    Text("Model", style = MaterialTheme.typography.labelMedium)
+    Text(tr("Model"), style = MaterialTheme.typography.labelMedium)
     Spacer(Modifier.height(4.dp))
     var expanded by remember { mutableStateOf(false) }
     var filter by remember(provider) { mutableStateOf("") }
@@ -83,7 +85,7 @@ fun CoachModelPicker(
                 onClick = { onPick(slug); expanded = false },
             )
 
-            if (presets.isNotEmpty()) MenuHeader("Recommended")
+            if (presets.isNotEmpty()) MenuHeader(tr("Recommended"))
             presets.forEach { (slug, blurb) -> Item(slug, blurb) }
 
             if (others.isNotEmpty()) {
@@ -95,8 +97,8 @@ fun CoachModelPicker(
                     OutlinedTextField(
                         value = filter,
                         onValueChange = { filter = it },
-                        label = { Text("Filter models") },
-                        placeholder = { Text("Filter, e.g. claude") },
+                        label = { Text(tr("Filter models")) },
+                        placeholder = { Text(tr("Filter, e.g. claude")) },
                         singleLine = true,
                         modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth(),
                     )
@@ -133,7 +135,7 @@ fun CoachModelPicker(
         Text(status, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(1f))
         if (savedKey.isNotBlank() && !loading) {
             TextButton(onClick = { load(force = true) }) {
-                Text(if (listing is CoachModelCatalog.Result.Failure) "Retry" else "Refresh")
+                Text(if (listing is CoachModelCatalog.Result.Failure) tr("Retry") else tr("Refresh"))
             }
         }
     }

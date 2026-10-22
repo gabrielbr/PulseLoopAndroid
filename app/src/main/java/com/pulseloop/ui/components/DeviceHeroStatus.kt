@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.ui.graphics.Color
 import com.pulseloop.ring.RingConnectionState
 import com.pulseloop.ui.theme.PulseColors
@@ -28,10 +30,10 @@ data class DeviceHeroStatus(
 
     val actionTitle: String
         get() = when (action) {
-            Action.DISCONNECT -> "Disconnect"
-            Action.CONNECT -> "Connect"
-            Action.SET_UP -> "Set up a ring"
-            Action.PENDING -> "Connecting…"
+            Action.DISCONNECT -> tr("Disconnect")
+            Action.CONNECT -> tr("Connect")
+            Action.SET_UP -> tr("Set up a ring")
+            Action.PENDING -> tr("Connecting…")
         }
 
     /** The action button is inert while a connection attempt is in flight, so a tap can't
@@ -54,28 +56,28 @@ data class DeviceHeroStatus(
             /** The ring hung up between syncs on its own (`IdleLinkPolicy`), not a fault. */
             idle: Boolean = false,
         ): DeviceHeroStatus {
-            val title = connectedName ?: knownName ?: "No ring connected"
+            val title = connectedName ?: knownName ?: tr("No ring connected")
 
             val statusLine: String
             val statusTint: Color
             when (state) {
                 RingConnectionState.CONNECTED -> {
-                    statusLine = "Connected"; statusTint = PulseColors.success
+                    statusLine = tr("Connected"); statusTint = PulseColors.success
                 }
                 RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> {
-                    statusLine = "Connecting…"; statusTint = PulseColors.warning
+                    statusLine = tr("Connecting…"); statusTint = PulseColors.warning
                 }
                 RingConnectionState.SCANNING -> {
-                    statusLine = "Searching…"; statusTint = PulseColors.warning
+                    statusLine = tr("Searching…"); statusTint = PulseColors.warning
                 }
                 RingConnectionState.FAILED -> {
-                    statusLine = "Connection failed"; statusTint = PulseColors.danger
+                    statusLine = tr("Connection failed"); statusTint = PulseColors.danger
                 }
                 RingConnectionState.IDLE, RingConnectionState.DISCONNECTED -> {
                     statusLine = when {
-                        knownName == null -> "No ring paired"
-                        idle && state == RingConnectionState.DISCONNECTED -> "Idle between syncs"
-                        else -> "Disconnected"
+                        knownName == null -> tr("No ring paired")
+                        idle && state == RingConnectionState.DISCONNECTED -> tr("Idle between syncs")
+                        else -> tr("Disconnected")
                     }
                     statusTint = PulseColors.textSecondary
                 }

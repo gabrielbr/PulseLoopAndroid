@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -106,10 +108,10 @@ fun NutritionScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             TopAppBar(
-                title = { Text("Nutrition") },
+                title = { Text(tr("Nutrition")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
                     }
                 },
                 windowInsets = WindowInsets(0, 0, 0, 0),
@@ -125,9 +127,9 @@ fun NutritionScreen(
             // Day navigation — left goes to older dates (higher offset), right goes to today (offset 0).
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { dayOffset++ }) { Icon(Icons.Filled.ChevronLeft, "Previous day") }
+                    IconButton(onClick = { dayOffset++ }) { Icon(Icons.Filled.ChevronLeft, tr("Previous day")) }
                     Text(dateLabel, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    IconButton(onClick = { if (dayOffset > 0) dayOffset-- }, enabled = dayOffset > 0) { Icon(Icons.Filled.ChevronRight, "Next day") }
+                    IconButton(onClick = { if (dayOffset > 0) dayOffset-- }, enabled = dayOffset > 0) { Icon(Icons.Filled.ChevronRight, tr("Next day")) }
                 }
             }
 
@@ -149,9 +151,9 @@ fun NutritionScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                            MacroBar("Protein", totals.sumOf { it.totalP }, goal?.intakeProteinG ?: 150.0, PulseColors.heartRate)
-                            MacroBar("Carbs", totals.sumOf { it.totalC }, goal?.intakeCarbsG ?: 250.0, PulseColors.calories)
-                            MacroBar("Fat", totals.sumOf { it.totalF }, goal?.intakeFatG ?: 65.0, PulseColors.warning)
+                            MacroBar(tr("Protein"), totals.sumOf { it.totalP }, goal?.intakeProteinG ?: 150.0, PulseColors.heartRate)
+                            MacroBar(tr("Carbs"), totals.sumOf { it.totalC }, goal?.intakeCarbsG ?: 250.0, PulseColors.calories)
+                            MacroBar(tr("Fat"), totals.sumOf { it.totalF }, goal?.intakeFatG ?: 65.0, PulseColors.warning)
                         }
                     }
                 }
@@ -176,7 +178,7 @@ fun NutritionScreen(
                                     carbsG = idea.items.sumOf { it.carbsG }.toDouble(),
                                     fatG = idea.items.sumOf { it.fatG }.toDouble(),
                                     sourceRaw = NutritionTools.sourceRawManual,
-                                    notes = "From the next-meal suggestion",
+                                    notes = tr("From the next-meal suggestion"),
                                 )
                                 db.mealEntryDao().upsert(entry)
                                 com.pulseloop.service.MealJournal.afterLog(db, entry)
@@ -231,7 +233,7 @@ fun NutritionScreen(
                         ) {
                             Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Photo")
+                            Text(tr("Photo"))
                         }
                         OutlinedButton(
                             onClick = { analysisRequest = AnalysisRequest(startWithCamera = false) },
@@ -239,7 +241,7 @@ fun NutritionScreen(
                         ) {
                             Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Describe")
+                            Text(tr("Describe"))
                         }
                     }
                 }
@@ -253,7 +255,7 @@ fun NutritionScreen(
                 ) {
                     Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Log Meal")
+                    Text(tr("Log Meal"))
                 }
             }
         }
@@ -262,7 +264,7 @@ fun NutritionScreen(
     mealToDelete?.let { meal ->
         AlertDialog(
             onDismissRequest = { mealToDelete = null },
-            title = { Text("Delete meal?") },
+            title = { Text(tr("Delete meal?")) },
             text = { Text("\"${meal.name}\" will be removed from this day's log.") },
             confirmButton = {
                 TextButton(onClick = {
@@ -272,9 +274,9 @@ fun NutritionScreen(
                         com.pulseloop.service.DrinksRepository.onMealDeleted(db, meal.id)
                         reload()
                     }
-                }) { Text("Delete", color = PulseColors.danger) }
+                }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { mealToDelete = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { mealToDelete = null }) { Text(tr("Cancel")) } },
         )
     }
 
@@ -404,7 +406,7 @@ fun MealLogDialog(
                     }
                 if (product == null) {
                     // iOS MealLogSheet.swift:128-130.
-                    scanNotice = "Product not found for that barcode. Enter it manually instead."
+                    scanNotice = tr("Product not found for that barcode. Enter it manually instead.")
                 } else {
                     // Clear on success too: two scans in quick succession run two lookups, and
                     // an earlier-started "not found" completing after a later success would
@@ -433,7 +435,7 @@ fun MealLogDialog(
                 throw e
             } catch (e: Exception) {
                 // iOS MealLogSheet.swift:258-260 catch-all.
-                scanNotice = "Couldn't look up that barcode. Check your connection or enter the meal manually."
+                scanNotice = tr("Couldn't look up that barcode. Check your connection or enter the meal manually.")
             } finally {
                 lookingUp = false
             }
@@ -442,7 +444,7 @@ fun MealLogDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Log Meal") },
+        title = { Text(tr("Log Meal")) },
         text = {
             // Scrolls so the fields stay reachable on short screens and with the keyboard up.
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -458,14 +460,14 @@ fun MealLogDialog(
                     TextButton(onClick = { showScanner = true }, enabled = !lookingUp) {
                         Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Scan barcode")
+                        Text(tr("Scan barcode"))
                     }
                 }
                 scanNotice?.let {
                     // iOS inlineNotice copy (MealLogSheet.swift:128-130 / :259).
                     Text(it, fontSize = 12.sp, color = PulseColors.warning)
                 }
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Name")) }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("breakfast", "lunch", "dinner", "snack").forEach { t ->
                         FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t.replaceFirstChar { it.uppercase() }) })
@@ -473,11 +475,11 @@ fun MealLogDialog(
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(value = cal, onValueChange = { cal = decimalInput(it) ?: cal }, label = { Text("kcal", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
-                    OutlinedTextField(value = protein, onValueChange = { protein = decimalInput(it) ?: protein }, label = { Text("Protein (g)", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = protein, onValueChange = { protein = decimalInput(it) ?: protein }, label = { Text(tr("Protein (g)"), maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = carbs, onValueChange = { carbs = decimalInput(it) ?: carbs }, label = { Text("Carbs (g)", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
-                    OutlinedTextField(value = fat, onValueChange = { fat = decimalInput(it) ?: fat }, label = { Text("Fat (g)", maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = carbs, onValueChange = { carbs = decimalInput(it) ?: carbs }, label = { Text(tr("Carbs (g)"), maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = fat, onValueChange = { fat = decimalInput(it) ?: fat }, label = { Text(tr("Fat (g)"), maxLines = 1) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
             }
         },
@@ -512,9 +514,9 @@ fun MealLogDialog(
                         userEdited = edited,
                     )
                 })
-            }, enabled = valid) { Text("Save") }
+            }, enabled = valid) { Text(tr("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 
     if (showScanner) {
@@ -583,13 +585,13 @@ private fun NextMealCard(
                     fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
                 )
                 if (idea.fromPreferences.isNotEmpty()) {
-                    Text("Your preference: " + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.accent)
+                    Text(tr("Your preference: ") + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.accent)
                 }
                 idea.note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textSecondary) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onLog, modifier = Modifier.weight(1f)) { Text("Log this") }
+                    Button(onClick = onLog, modifier = Modifier.weight(1f)) { Text(tr("Log this")) }
                     if (onDiscuss != null) {
-                        OutlinedButton(onClick = onDiscuss, modifier = Modifier.weight(1f)) { Text("Other ideas") }
+                        OutlinedButton(onClick = onDiscuss, modifier = Modifier.weight(1f)) { Text(tr("Other ideas")) }
                     }
                 }
             }

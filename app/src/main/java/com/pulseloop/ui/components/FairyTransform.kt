@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -37,7 +39,7 @@ import kotlin.random.Random
  * swallows touches while it does.
  */
 @Composable
-fun FairyTransformOverlay(name: String?) {
+fun FairyTransformOverlay() {
     if (!FairyMode.celebrating) return
     val reduceMotion = rememberReduceMotion()
     val progress = remember { Animatable(0f) }
@@ -89,13 +91,10 @@ fun FairyTransformOverlay(name: String?) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                "Oi, ${name?.trim()?.split(Regex("\\s+"))?.firstOrNull() ?: "Tatá"} ✨",
-                fontSize = 34.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center,
+                tr("Tatá, te amo!"),
+                fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center,
             )
-            Text(
-                "Feito com amor pra você 💗",
-                fontSize = 16.sp, color = Color(0xFFFFE3F1), textAlign = TextAlign.Center,
-            )
+            Text("💗", fontSize = 28.sp, textAlign = TextAlign.Center)
         }
     }
 }

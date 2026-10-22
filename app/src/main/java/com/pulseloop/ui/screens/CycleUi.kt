@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -55,8 +57,8 @@ fun CycleScreen(onBack: () -> Unit) {
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text("Cycle", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
+            Text(tr("Cycle"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -67,8 +69,8 @@ fun CycleScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 if (status == null) {
-                    Text("Log your period to start", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text("PulseLoop shows the day of your cycle and its phase from the dates you log, next to your sleep and recovery.", fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Log your period to start"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(tr("PulseLoop shows the day of your cycle and its phase from the dates you log, next to your sleep and recovery."), fontSize = 13.sp, color = PulseColors.textSecondary)
                 } else {
                     Text("Day ${status.cycleDay} · ${status.phase.label}", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(status.phase.note, fontSize = 13.sp, color = PulseColors.textSecondary)
@@ -85,14 +87,14 @@ fun CycleScreen(onBack: () -> Unit) {
             val open = periods.firstOrNull()?.takeIf { it.endDay == null && status?.inPeriod == true }
             if (open != null) {
                 Button(onClick = { scope.launch { db.periodDao().upsert(open.copy(endDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Period ended today")
+                    Text(tr("Period ended today"))
                 }
             } else {
                 Button(onClick = { scope.launch { db.periodDao().upsert(PeriodEntity(startDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Period started today")
+                    Text(tr("Period started today"))
                 }
             }
-            OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text("Log a past period") }
+            OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
 
             if (periods.isNotEmpty()) {
                 Text("HISTORY", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
@@ -112,13 +114,13 @@ fun CycleScreen(onBack: () -> Unit) {
                             next?.let { Text("Cycle of ${it - p.startDay} days", fontSize = 12.sp, color = PulseColors.textMuted) }
                         }
                         IconButton(onClick = { scope.launch { db.periodDao().delete(p.id) } }) {
-                            Icon(Icons.Filled.Delete, "Delete", tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Delete, tr("Delete"), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
                         }
                     }
                 }
             }
             Text(
-                "Phases come only from the dates you log. PulseLoop doesn't predict fertile days, and this isn't contraception or a medical tool.",
+                tr("Phases come only from the dates you log. PulseLoop doesn't predict fertile days, and this isn't contraception or a medical tool."),
                 fontSize = 11.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
@@ -141,11 +143,11 @@ fun CycleScreen(onBack: () -> Unit) {
                             picking = null; pastStart = null
                         }
                     }
-                }) { Text(if (picking == "start") "Next: end date" else "Save") }
+                }) { Text(if (picking == "start") tr("Next: end date") else tr("Save")) }
             },
-            dismissButton = { TextButton(onClick = { picking = null; pastStart = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { picking = null; pastStart = null }) { Text(tr("Cancel")) } },
         ) {
-            Text(if (picking == "start") "When did it start?" else "When did it end?", modifier = Modifier.padding(start = 24.dp, top = 16.dp), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+            Text(if (picking == "start") tr("When did it start?") else tr("When did it end?"), modifier = Modifier.padding(start = 24.dp, top = 16.dp), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             DatePicker(state = state, showModeToggle = false)
         }
     }

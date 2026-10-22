@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -80,7 +82,7 @@ fun DeviceHeroCard(
         Row(
             Modifier
                 .fillMaxWidth()
-                .clickable(onClickLabel = "Open ring settings", role = Role.Button, onClick = onOpenWearable),
+                .clickable(onClickLabel = tr("Open ring settings"), role = Role.Button, onClick = onOpenWearable),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             RingArtView(

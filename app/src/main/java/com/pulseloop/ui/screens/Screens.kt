@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -156,11 +158,11 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.HEART_RATE),
-                        label = "Heart rate",
+                        label = tr("Heart rate"),
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                     )
                 } else {
-                    Text("No HR samples yet — sync your ring to start your trend.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("No HR samples yet — sync your ring to start your trend."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             DashboardCard.SPO2 -> VitalCard(
@@ -172,12 +174,12 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.SPO2),
-                        label = "Blood oxygen",
+                        label = tr("Blood oxygen"),
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                         showPoints = true,
                     )
                 } else {
-                    Text("No SpO₂ samples yet — take a reading to start your trend.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("No SpO₂ samples yet — take a reading to start your trend."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             DashboardCard.BLOOD_PRESSURE -> VitalCard(
@@ -192,23 +194,23 @@ fun VitalsScreen(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         BpGaugeColumn(
-                            title = "Systolic", value = sys, domain = 80.0..190.0,
+                            title = tr("Systolic"), value = sys, domain = 80.0..190.0,
                             zones = cards.getValue(MetricKind.BLOOD_PRESSURE).zones,
                             fallback = ZonePalette.accent(MetricKind.BLOOD_PRESSURE),
                             modifier = Modifier.weight(1f),
                         )
                         BpGaugeColumn(
-                            title = "Diastolic", value = dia, domain = 50.0..130.0,
+                            title = tr("Diastolic"), value = dia, domain = 50.0..130.0,
                             zones = com.pulseloop.service.VitalsThresholdEngine.diastolicReferenceZones(),
                             fallback = ZonePalette.accent(MetricKind.BLOOD_PRESSURE).copy(alpha = 0.7f),
                             modifier = Modifier.weight(1f),
                         )
                     }
                 } else {
-                    Text("No blood pressure data yet.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("No blood pressure data yet."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (measuring) {
-                    Text("Measuring… updates when complete", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(tr("Measuring… updates when complete"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 }
             }
             DashboardCard.HRV -> VitalCard(
@@ -224,7 +226,7 @@ fun VitalsScreen(
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                     )
                 } else {
-                    Text("No HRV data yet — HRV builds up over a few hours of wear.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("No HRV data yet — HRV builds up over a few hours of wear."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             DashboardCard.STRESS -> VitalGaugeCardItem(
@@ -234,22 +236,22 @@ fun VitalsScreen(
                 // scores below 10 — so the floor would hide exactly the reading it was asked for.
                 hasReading = state.stressSamples.isNotEmpty() &&
                     (state.stressIsDerived || (state.latestStress?.toInt() ?: 0) >= 10),
-                emptyText = "No stress data yet — take a measurement.",
+                emptyText = tr("No stress data yet — take a measurement."),
                 // Issue #67: say so on the card itself. A derived figure presented as a measurement
                 // would be worse than the empty card it replaces.
-                footnote = if (state.stressIsDerived) "Estimated from HRV — your ring doesn't measure stress" else null,
+                footnote = if (state.stressIsDerived) tr("Estimated from HRV — your ring doesn't measure stress") else null,
                 onTap = { navController?.navigate("vitals/stress") },
             )
             DashboardCard.FATIGUE -> VitalGaugeCardItem(
                 card = cards.getValue(MetricKind.FATIGUE),
                 hasReading = state.fatigueSamples.isNotEmpty() && (state.latestFatigue?.toInt() ?: 0) >= 10,
-                emptyText = "No fatigue data yet — take a measurement.",
+                emptyText = tr("No fatigue data yet — take a measurement."),
                 onTap = { navController?.navigate("vitals/fatigue") },
             )
             DashboardCard.GLUCOSE -> VitalGaugeCardItem(
                 card = cards.getValue(MetricKind.GLUCOSE),
                 hasReading = state.bloodSugar != null,
-                emptyText = "No blood sugar data yet.",
+                emptyText = tr("No blood sugar data yet."),
                 measuring = measuring,
                 onTap = { navController?.navigate("vitals/glucose") },
             )
@@ -263,11 +265,11 @@ fun VitalsScreen(
                     ZoneLineChart(
                         samples = c.samples, zones = c.zones, yDomain = c.yDomain,
                         accent = ZonePalette.accent(MetricKind.TEMPERATURE),
-                        label = "Temperature",
+                        label = tr("Temperature"),
                         referenceBands = c.referenceBands, dashedRules = c.dashedRules,
                     )
                 } else {
-                    Text("No temperature data yet — temperature trends appear after overnight wear.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("No temperature data yet — temperature trends appear after overnight wear."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             else -> {}
@@ -285,8 +287,8 @@ fun VitalsScreen(
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Vitals", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                    Text("Live measurements and trends", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("Vitals"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                    Text(tr("Live measurements and trends"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     state.adjustedNote?.let { AdjustedCaption(it) }
                 }
                 // Measure button: combined (0x23) for 56ff/Jring, or sequential live
@@ -357,7 +359,7 @@ fun VitalsScreen(
                     // A ring that streams HRV gets it on its own control in the row below.
                     val hrvOnRemaining = coordinator.canMeasureHrv && !coordinator.streamsSpotVitals
                     val remainingLegsLabel = when {
-                        coordinator.canMeasureBloodPressure && hrvOnRemaining -> "BP & HRV"
+                        coordinator.canMeasureBloodPressure && hrvOnRemaining -> tr("BP & HRV")
                         coordinator.canMeasureBloodPressure -> "BP"
                         hrvOnRemaining -> "HRV"
                         else -> null
@@ -377,7 +379,7 @@ fun VitalsScreen(
                                 onClick = {
                                     runMeasurement(
                                         coordinator.heartRateMeasureSeconds, "HR",
-                                        caption = "Keep still — measuring heart rate…",
+                                        caption = tr("Keep still — measuring heart rate…"),
                                         failed = { coordinator.hrState == failedState },
                                     ) { coordinator.measureHeartRateOnly() }
                                 },
@@ -391,14 +393,14 @@ fun VitalsScreen(
                                 enabled = !measuring,
                                 onClick = {
                                     runMeasurement(
-                                        coordinator.spo2OnlyMeasureSeconds, "SpO₂",
-                                        caption = "Keep still — measuring blood oxygen…",
+                                        coordinator.spo2OnlyMeasureSeconds, tr("SpO₂"),
+                                        caption = tr("Keep still — measuring blood oxygen…"),
                                         failed = { coordinator.spo2State == failedState },
                                     ) { coordinator.measureSpO2Only() }
                                 },
                             ) {
                                 Text(
-                                    if (measuring && measuringLabel == "SpO₂") "SpO₂ ${remaining}s" else "SpO₂",
+                                    if (measuring && measuringLabel == "SpO₂") "SpO₂ ${remaining}s" else tr("SpO₂"),
                                     color = androidx.compose.ui.graphics.Color.Unspecified,
                                 )
                             }
@@ -457,9 +459,9 @@ fun VitalsScreen(
                             runMeasurement(
                                 measureSeconds, "all",
                                 caption = if (combinedMode)
-                                    "Keep still — measuring blood pressure, SpO₂, stress, fatigue & blood sugar…"
+                                    tr("Keep still — measuring blood pressure, SpO₂, stress, fatigue & blood sugar…")
                                 else
-                                    "Keep still — measuring heart rate & SpO₂…",
+                                    tr("Keep still — measuring heart rate & SpO₂…"),
                                 failed = {
                                     !combinedMode &&
                                         (coordinator.hrState == failedState || coordinator.spo2State == failedState)
@@ -470,7 +472,7 @@ fun VitalsScreen(
                         },
                     ) {
                         Text(
-                            if (measuring) "Measuring… ${remaining}s" else "Measure",
+                            if (measuring) "Measuring… ${remaining}s" else tr("Measure"),
                             color = androidx.compose.ui.graphics.Color.Unspecified,
                         )
                     }
@@ -503,11 +505,11 @@ fun VitalsScreen(
                 Text(
                     when {
                         measureDisconnectedHint ->
-                            "The ring disconnected during measurement."
+                            tr("The ring disconnected during measurement.")
                         measureNotWornHint ->
-                            "The ring isn't detecting your finger. Put it on snugly, then try again."
+                            tr("The ring isn't detecting your finger. Put it on snugly, then try again.")
                         else ->
-                            "Couldn't get a steady reading. Keep the ring snug and your hand still, then try again."
+                            tr("Couldn't get a steady reading. Keep the ring snug and your hand still, then try again.")
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
@@ -595,7 +597,7 @@ private fun VitalGaugeCardItem(
             Text(emptyText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (measuring) {
-            Text("Measuring… updates when complete", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Text(tr("Measuring… updates when complete"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -670,7 +672,7 @@ fun VitalDetailScreen(
         // edge, title centered.
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
             }
             Text(
                 title,
@@ -727,7 +729,7 @@ fun VitalDetailScreen(
                             )
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 IconButton(onClick = { vm.prev() }) {
-                                    Icon(Icons.Filled.ChevronLeft, "Previous", tint = PulseColors.textMuted)
+                                    Icon(Icons.Filled.ChevronLeft, tr("Previous"), tint = PulseColors.textMuted)
                                 }
                                 Text(
                                     text = dateLabel(state.anchor, state.period),
@@ -740,7 +742,7 @@ fun VitalDetailScreen(
                                     enabled = vm.canGoForward(),
                                 ) {
                                     Icon(
-                                        Icons.Filled.ChevronRight, "Next",
+                                        Icons.Filled.ChevronRight, tr("Next"),
                                         tint = if (vm.canGoForward()) PulseColors.textMuted else PulseColors.textMuted.copy(alpha = 0.3f),
                                     )
                                 }
@@ -752,7 +754,7 @@ fun VitalDetailScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Text(
-                                    "Not enough data for this period.",
+                                    tr("Not enough data for this period."),
                                     fontSize = 13.sp,
                                     color = PulseColors.textMuted,
                                 )
@@ -765,8 +767,8 @@ fun VitalDetailScreen(
                                     ?: MaterialTheme.colorScheme.primary,
                                 secondary = state.secondary,
                                 colorSecondary = ZonePalette.accent(MetricKind.BLOOD_PRESSURE).copy(alpha = 0.5f),
-                                legendPrimary = if (state.isBP) "Systolic" else null,
-                                legendSecondary = if (state.isBP) "Diastolic" else null,
+                                legendPrimary = if (state.isBP) tr("Systolic") else null,
+                                legendSecondary = if (state.isBP) tr("Diastolic") else null,
                                 // Points arrive in display units from the VM; convert the zone/axis
                                 // reference to match so temp bands (°F) and glucose bands (mmol/L)
                                 // line up with the plotted line (iOS #43 §2/§3).
@@ -780,7 +782,7 @@ fun VitalDetailScreen(
                             )
                             if (state.usualRange != null) {
                                 Text(
-                                    "Shaded: your usual range over the last 30 days",
+                                    tr("Shaded: your usual range over the last 30 days"),
                                     fontSize = 11.sp,
                                     color = PulseColors.textMuted,
                                     modifier = Modifier.padding(top = 6.dp),
@@ -802,13 +804,13 @@ fun VitalDetailScreen(
                             .padding(horizontal = 10.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        DetailStat("Latest", state.latest?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
+                        DetailStat(tr("Latest"), state.latest?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
                         DetailStatDivider()
-                        DetailStat("Average", state.avg?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
+                        DetailStat(tr("Average"), state.avg?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
                         DetailStatDivider()
-                        DetailStat("Min", state.min?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
+                        DetailStat(tr("Min"), state.min?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
                         DetailStatDivider()
-                        DetailStat("Max", state.max?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
+                        DetailStat(tr("Max"), state.max?.let { formatStat(it, metric, gUnit) } ?: "--", Modifier.weight(1f))
                     }
                 }
 
@@ -842,7 +844,7 @@ fun VitalDetailScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             Text(
-                                "REFERENCE ZONES",
+                                tr("REFERENCE ZONES"),
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 letterSpacing = 1.sp,
@@ -859,7 +861,7 @@ fun VitalDetailScreen(
                                             .background(zone.colorToken.toColor(), CircleShape),
                                     )
                                     Text(
-                                        zone.label,
+                                        tr(zone.label),
                                         fontSize = 13.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = PulseColors.textPrimary,
@@ -889,7 +891,7 @@ fun VitalDetailScreen(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
                         Text(
-                            "WHAT THIS MEANS",
+                            tr("WHAT THIS MEANS"),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 1.sp,
@@ -980,9 +982,9 @@ private fun ReadingsCard(
                 .fillMaxWidth()
                 .clickable(
                     role = Role.Button,
-                    onClickLabel = if (expanded) "Hide readings" else "Show readings",
+                    onClickLabel = if (expanded) tr("Hide readings") else tr("Show readings"),
                 ) { expanded = !expanded }
-                .semantics { stateDescription = if (expanded) "Expanded" else "Collapsed" }
+                .semantics { stateDescription = if (expanded) tr("Expanded") else tr("Collapsed") }
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -1038,7 +1040,7 @@ private fun ReadingsCard(
                     IconButton(onClick = { pendingDelete = reading }) {
                         Icon(
                             Icons.Filled.DeleteOutline,
-                            contentDescription = "Delete this reading",
+                            contentDescription = tr("Delete this reading"),
                             tint = PulseColors.textMuted,
                             modifier = Modifier.size(18.dp),
                         )
@@ -1060,7 +1062,7 @@ private fun ReadingsCard(
     pendingDelete?.let { reading ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete this reading?") },
+            title = { Text(tr("Delete this reading?")) },
             text = {
                 Text(
                     buildString {
@@ -1072,7 +1074,7 @@ private fun ReadingsCard(
                         // Say so plainly rather than letting a user wonder why the reading
                         // didn't come back after a re-sync — that is deliberate.
                         if (reading.fromHistory) {
-                            append(" The reading stays deleted the next time this day syncs.")
+                            append(tr(" The reading stays deleted the next time this day syncs."))
                         }
                     },
                 )
@@ -1081,10 +1083,10 @@ private fun ReadingsCard(
                 TextButton(onClick = {
                     onDelete(reading)
                     pendingDelete = null
-                }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
+                }) { Text(tr("Delete"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -1199,49 +1201,49 @@ private fun zoneRangeText(
  */
 private fun metricDisclaimer(metric: String, isDerived: Boolean): String? = when {
     metric == "stress" && isDerived ->
-        "Estimated from HRV — your ring doesn't measure stress. Scored against your own recent " +
+        tr("Estimated from HRV — your ring doesn't measure stress. Scored against your own recent " +
         "HRV readings, so it says how this reading compares with your normal, not how you compare " +
-        "with anyone else."
+        "with anyone else.")
     metric == "glucose" ->
-        "Estimated wellness metric — not for dosing or diabetes decisions. No smart ring or watch is " +
-        "FDA-authorized to measure or estimate glucose on its own."
+        tr("Estimated wellness metric — not for dosing or diabetes decisions. No smart ring or watch is " +
+        "FDA-authorized to measure or estimate glucose on its own.")
     metric == "bp" ->
-        "Ring blood pressure is an estimate. Calibrate against a validated cuff in Settings → Calibration, " +
-        "and talk to a clinician about persistent high or low readings."
+        tr("Ring blood pressure is an estimate. Calibrate against a validated cuff in Settings → Calibration, " +
+        "and talk to a clinician about persistent high or low readings.")
     else -> null
 }
 
 /** Detail titles use MetricKind.title's sentence case (iOS navigation titles). */
 private fun metricDisplayName(metric: String): String = when (metric) {
-    "hr"      -> "Heart rate"
-    "spo2"    -> "Blood oxygen"
-    "stress"  -> "Stress"
-    "fatigue" -> "Fatigue"
+    "hr"      -> tr("Heart rate")
+    "spo2"    -> tr("Blood oxygen")
+    "stress"  -> tr("Stress")
+    "fatigue" -> tr("Fatigue")
     "hrv"     -> "HRV"
-    "temp"    -> "Skin temperature"
-    "bp"      -> "Blood pressure"
-    "glucose" -> "Blood sugar"
+    "temp"    -> tr("Skin temperature")
+    "bp"      -> tr("Blood pressure")
+    "glucose" -> tr("Blood sugar")
     else      -> metric
 }
 
 /** "WHAT THIS MEANS" copy, verbatim from iOS MetricDetailView `explainerText`. */
 private fun metricExplainer(metric: String): String = when (metric) {
-    "hr" -> "Resting heart rate reflects how hard your heart works at rest. A typical adult range is 60–100 bpm; " +
-        "fitness, medication, caffeine, and stress all shift it."
-    "spo2" -> "Blood oxygen (SpO₂) is the percentage of oxygen your blood carries. 95–100% is normal; " +
-        "altitude and lung conditions can lower it."
-    "hrv" -> "Heart-rate variability is the variation between beats. It's highly individual, so we track it " +
-        "against your personal baseline rather than a universal cutoff."
-    "bp" -> "Blood pressure is systolic over diastolic (mmHg). The category is the worse of the two. " +
-        "A ring estimate is not a substitute for a cuff."
-    "stress" -> "A device wellness score from 0–100 based on heart-rate patterns. Lower is calmer. " +
-        "It's an estimate, not a medical stress measure."
-    "fatigue" -> "A device wellness score from 0–100 estimating tiredness. Higher means more fatigue. " +
-        "It's a ring estimate, not a clinical scale."
-    "glucose" -> "An estimated glucose value. No smart ring is cleared to measure glucose, so treat this " +
-        "as a wellness estimate only."
-    "temp" -> "Skin temperature from the ring runs cooler than core body temperature. " +
-        "Trends over time matter more than any single reading."
+    "hr" -> tr("Resting heart rate reflects how hard your heart works at rest. A typical adult range is 60–100 bpm; " +
+        "fitness, medication, caffeine, and stress all shift it.")
+    "spo2" -> tr("Blood oxygen (SpO₂) is the percentage of oxygen your blood carries. 95–100% is normal; " +
+        "altitude and lung conditions can lower it.")
+    "hrv" -> tr("Heart-rate variability is the variation between beats. It's highly individual, so we track it " +
+        "against your personal baseline rather than a universal cutoff.")
+    "bp" -> tr("Blood pressure is systolic over diastolic (mmHg). The category is the worse of the two. " +
+        "A ring estimate is not a substitute for a cuff.")
+    "stress" -> tr("A device wellness score from 0–100 based on heart-rate patterns. Lower is calmer. " +
+        "It's an estimate, not a medical stress measure.")
+    "fatigue" -> tr("A device wellness score from 0–100 estimating tiredness. Higher means more fatigue. " +
+        "It's a ring estimate, not a clinical scale.")
+    "glucose" -> tr("An estimated glucose value. No smart ring is cleared to measure glucose, so treat this " +
+        "as a wellness estimate only.")
+    "temp" -> tr("Skin temperature from the ring runs cooler than core body temperature. " +
+        "Trends over time matter more than any single reading.")
     else -> ""
 }
 

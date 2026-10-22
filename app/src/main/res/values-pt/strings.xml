@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Portuguese (Settings → Language, or a phone set to Portuguese). The app name stays. -->
+    <string name="widget_activity_label">Atividade do dia</string>
+    <string name="widget_activity_description">Passos, distância e calorias com seus anéis de progresso.</string>
+    <string name="widget_metric_label">Bloco de métrica</string>
+    <string name="widget_metric_description">Um bloco de Hoje à sua escolha: atividade, sono, frequência cardíaca e mais.</string>
+    <string name="widget_dual_label">Dois blocos de métrica</string>
+    <string name="widget_dual_description">Dois blocos de Hoje lado a lado, cada um configurável.</string>
+    <string name="widget_snap_meal_label">Foto da refeição</string>
+    <string name="widget_snap_meal_short">Registrar refeição</string>
+    <string name="widget_snap_meal_description">Um toque abre a câmera para registrar uma refeição com análise por IA.</string>
+</resources>

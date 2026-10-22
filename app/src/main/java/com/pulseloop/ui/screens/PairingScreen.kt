@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -213,8 +215,8 @@ fun PairingScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             PairingHeader(
-                title = "Add your ring",
-                subtitle = "Swipe to find your model, then tap to connect.\nYou can also explore first and pair later.",
+                title = tr("Add your ring"),
+                subtitle = tr("Swipe to find your model, then tap to connect.\nYou can also explore first and pair later."),
             )
 
             if (!btReady) {
@@ -269,7 +271,7 @@ fun PairingScreen(
 
             if (!connected && (isLooking || state.diagnostics.isNotEmpty())) {
                 Text(
-                    if (showDiagnostics) "Hide connection details" else "Show connection details",
+                    if (showDiagnostics) tr("Hide connection details") else tr("Show connection details"),
                     fontSize = 12.sp,
                     color = PulseColors.textSecondary,
                     modifier = Modifier
@@ -287,7 +289,7 @@ fun PairingScreen(
             val trace = buildList {
                 addAll(state.diagnostics.takeLast(4))
                 state.lastError?.let { if (it !in this) add(it) }
-            }.joinToString("\n").ifBlank { "Waiting for BLE connection events…" }
+            }.joinToString("\n").ifBlank { tr("Waiting for BLE connection events…") }
             Box(
                 Modifier
                     .fillMaxWidth()
@@ -317,11 +319,11 @@ fun PairingScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (!isLooking && btReady) {
-                        PrimaryButton("Connect ring", icon = Icons.Filled.Sensors) { startLooking() }
+                        PrimaryButton(tr("Connect ring"), icon = Icons.Filled.Sensors) { startLooking() }
                         if (bleClient.hasLastKnownRing &&
                             state.connectionState != RingConnectionState.RECONNECTING
                         ) {
-                            SecondaryButton("Reconnect last ring", icon = Icons.Filled.Refresh) {
+                            SecondaryButton(tr("Reconnect last ring"), icon = Icons.Filled.Refresh) {
                                 // See SettingsScreen's onConnect (issue #72): a user-initiated
                                 // reconnect must clear the stay-off flag a manual Disconnect set,
                                 // or it is silently suppressed.
@@ -330,9 +332,9 @@ fun PairingScreen(
                         }
                     }
                     if (onSkip != null) {
-                        SecondaryButton("Skip for now", icon = Icons.Filled.ArrowForward, onClick = onSkip)
+                        SecondaryButton(tr("Skip for now"), icon = Icons.Filled.ArrowForward, onClick = onSkip)
                         Text(
-                            "You can pair a ring later from Settings.",
+                            tr("You can pair a ring later from Settings."),
                             fontSize = 12.sp,
                             color = PulseColors.textMuted,
                             textAlign = TextAlign.Center,
@@ -535,13 +537,13 @@ private fun ScanningCard(
 
         if (matchingRings.isEmpty()) {
             InlineEmptyState(
-                title = "No rings found yet",
-                message = "Wake the ring by tapping or moving it, and keep it close.",
+                title = tr("No rings found yet"),
+                message = tr("Wake the ring by tapping or moving it, and keep it close."),
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
 
-        SecondaryButton("Stop scanning", icon = Icons.Filled.StopCircle, onClick = onStop)
+        SecondaryButton(tr("Stop scanning"), icon = Icons.Filled.StopCircle, onClick = onStop)
     }
 }
 
@@ -666,7 +668,7 @@ private fun ConnectedCard(
             )
         }
         if (onContinue != null) {
-            PrimaryButton("Continue", icon = Icons.Filled.Check, onClick = onContinue)
+            PrimaryButton(tr("Continue"), icon = Icons.Filled.Check, onClick = onContinue)
         }
     }
 }
@@ -690,18 +692,18 @@ private fun BluetoothOffCard() {
             tint = PulseColors.textMuted,
         )
         Text(
-            "Bluetooth is off",
+            tr("Bluetooth is off"),
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
         )
         Text(
-            "Turn on Bluetooth to find and connect your ring.",
+            tr("Turn on Bluetooth to find and connect your ring."),
             fontSize = 14.sp,
             color = PulseColors.textSecondary,
             textAlign = TextAlign.Center,
         )
-        SecondaryButton("Open Settings", icon = Icons.Filled.Settings) {
+        SecondaryButton(tr("Open Settings"), icon = Icons.Filled.Settings) {
             try {
                 context.startActivity(Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))
             } catch (_: Exception) {
@@ -731,27 +733,27 @@ private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () ->
             tint = PulseColors.textMuted,
         )
         Text(
-            "Bluetooth access needed",
+            tr("Bluetooth access needed"),
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
         )
         Text(
             if (permanentlyDenied) {
-                "PulseLoop uses Bluetooth to find and connect your ring. " +
-                    "Allow " +
-                    (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) "\"Nearby devices\"" else "Location") +
+                tr("PulseLoop uses Bluetooth to find and connect your ring. " +
+                    "Allow ") +
+                    (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) tr("\"Nearby devices\"") else tr("Location")) +
                     " for PulseLoop in Settings."
             } else {
-                "PulseLoop uses Bluetooth to find and connect your ring. " +
-                    "Nothing is shared off your phone."
+                tr("PulseLoop uses Bluetooth to find and connect your ring. " +
+                    "Nothing is shared off your phone.")
             },
             fontSize = 14.sp,
             color = PulseColors.textSecondary,
             textAlign = TextAlign.Center,
         )
         if (permanentlyDenied) {
-            SecondaryButton("Open Settings", icon = Icons.Filled.Settings) {
+            SecondaryButton(tr("Open Settings"), icon = Icons.Filled.Settings) {
                 try {
                     context.startActivity(
                         Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
@@ -762,7 +764,7 @@ private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () ->
                 }
             }
         } else {
-            SecondaryButton("Allow Bluetooth access", icon = Icons.Filled.Bluetooth, onClick = onRequest)
+            SecondaryButton(tr("Allow Bluetooth access"), icon = Icons.Filled.Bluetooth, onClick = onRequest)
         }
     }
 }

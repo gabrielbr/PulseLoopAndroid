@@ -44,6 +44,11 @@ import kotlinx.coroutines.launch
  */
 class MainActivity : ComponentActivity() {
 
+    // Settings → Language: Android resources and system UI follow the app's language.
+    override fun attachBaseContext(newBase: android.content.Context) {
+        super.attachBaseContext(com.pulseloop.ui.i18n.L10n.wrap(newBase))
+    }
+
     // Request multiple permissions at once on Android 12+
     private val blePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -106,7 +111,7 @@ class MainActivity : ComponentActivity() {
                 ) {
                     PulseLoopApp()
                 }
-                com.pulseloop.ui.components.FairyTransformOverlay(profile?.name)
+                com.pulseloop.ui.components.FairyTransformOverlay()
             }
         }
 

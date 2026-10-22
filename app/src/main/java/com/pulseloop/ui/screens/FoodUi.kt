@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -87,7 +89,7 @@ fun FoodCard(
             Text("FOOD", fontSize = 12.sp, letterSpacing = 1.8.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
             if (!f.enabled) {
                 Text(
-                    "Hide", fontSize = 12.sp, color = PulseColors.textMuted,
+                    tr("Hide"), fontSize = 12.sp, color = PulseColors.textMuted,
                     modifier = Modifier.clickable(role = Role.Button) {
                         hidden = true
                         hiddenPrefs(context).edit().putBoolean("hidden", true).apply()
@@ -112,15 +114,15 @@ fun FoodCard(
             }
         } else {
             Text(
-                "Log meals to see food next to the calories you burn, and to link late meals and drinks to your sleep.",
+                tr("Log meals to see food next to the calories you burn, and to link late meals and drinks to your sleep."),
                 fontSize = 13.sp, color = PulseColors.textSecondary,
             )
         }
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FoodAction("Photo", Icons.Filled.CameraAlt, Modifier.weight(1f)) { onLog("photo") }
-            FoodAction("Barcode", Icons.Filled.QrCodeScanner, Modifier.weight(1f)) { onLog("barcode") }
-            FoodAction("Add", Icons.Filled.Add, Modifier.weight(1f)) { onLog("add") }
+            FoodAction(tr("Photo"), Icons.Filled.CameraAlt, Modifier.weight(1f)) { onLog("photo") }
+            FoodAction(tr("Barcode"), Icons.Filled.QrCodeScanner, Modifier.weight(1f)) { onLog("barcode") }
+            FoodAction(tr("Add"), Icons.Filled.Add, Modifier.weight(1f)) { onLog("add") }
         }
     }
 }

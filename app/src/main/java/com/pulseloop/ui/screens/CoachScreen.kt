@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import android.content.res.Configuration
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -117,8 +119,8 @@ fun CoachScreen(
                     plan = goalPlan,
                     hasGoal = activeGoal != null,
                     enabled = !state.isThinking,
-                    onSetGoal = { viewModel?.sendMessage("I'd like to set a goal. Ask me what I want and help me make it realistic for my data.", emptyList()) },
-                    onCheckIn = { viewModel?.sendMessage("How am I doing on my goal? What should I focus on this week?", emptyList()) },
+                    onSetGoal = { viewModel?.sendMessage(tr("I'd like to set a goal. Ask me what I want and help me make it realistic for my data."), emptyList()) },
+                    onCheckIn = { viewModel?.sendMessage(tr("How am I doing on my goal? What should I focus on this week?"), emptyList()) },
                 )
             }
             // Persisted rows key by id; the greeting and this session's unsaved turns have none.
@@ -128,7 +130,7 @@ fun CoachScreen(
             if (state.isThinking) {
                 item {
                     Text(
-                        "Coach is thinking…",
+                        tr("Coach is thinking…"),
                         fontSize = 12.sp, color = PulseColors.textMuted,
                         modifier = Modifier.padding(start = 8.dp),
                     )
@@ -193,16 +195,16 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null) {
             )
         }
         Column(Modifier.weight(1f)) {
-            Text("PulseLoop Coach", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-            Text("Using your latest ring sync", fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("PulseLoop Coach"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(tr("Using your latest ring sync"), fontSize = 12.sp, color = PulseColors.textMuted)
         }
         if (onOpenUsage != null) {
             RoundIconTarget(visualSize = 36.dp, onClick = onOpenUsage) {
-                Icon(Icons.Filled.Info, "Usage & cost", tint = PulseColors.textSecondary, modifier = Modifier.size(16.dp))
+                Icon(Icons.Filled.Info, tr("Usage & cost"), tint = PulseColors.textSecondary, modifier = Modifier.size(16.dp))
             }
         }
         RoundIconTarget(visualSize = 36.dp, onClick = onNewChat) {
-            Icon(Icons.Filled.Add, "New chat", tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -273,7 +275,7 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
                         bmp?.let {
                             Image(
                                 bitmap = it.asImageBitmap(),
-                                contentDescription = "Attached photo",
+                                contentDescription = tr("Attached photo"),
                                 modifier = Modifier.size(96.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
                             )
@@ -300,10 +302,10 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
 // ─────────────────────────── Composer ───────────────────────────
 
 private val SUGGESTIONS = listOf(
-    "How am I doing today?",
-    "Explain my heart rate trend",
-    "Summarize my week",
-    "How can I sleep better?",
+    tr("How am I doing today?"),
+    tr("Explain my heart rate trend"),
+    tr("Summarize my week"),
+    tr("How can I sleep better?"),
 )
 
 @Composable
@@ -401,7 +403,7 @@ private fun Composer(
                         bmp?.let {
                             Image(
                                 bitmap = it.asImageBitmap(),
-                                contentDescription = "Staged photo",
+                                contentDescription = tr("Staged photo"),
                                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
                             )
@@ -418,7 +420,7 @@ private fun Composer(
                                 },
                             contentAlignment = Alignment.TopEnd,
                         ) {
-                            Icon(Icons.Filled.Close, "Remove photo", Modifier.padding(3.dp).size(14.dp), tint = Color.White)
+                            Icon(Icons.Filled.Close, tr("Remove photo"), Modifier.padding(3.dp).size(14.dp), tint = Color.White)
                         }
                     }
                 }
@@ -434,7 +436,7 @@ private fun Composer(
                 // input. Bordered circle + "+" glyph mirrors the header's affordance exactly so the
                 // control reads the same in both orientations.
                 RoundIconTarget(visualSize = 40.dp, onClick = onNewChat) {
-                    Icon(Icons.Filled.Add, "New chat", tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
                 }
             }
             if (imageInputEnabled) {
@@ -444,7 +446,7 @@ private fun Composer(
                     enabled = !isThinking,
                     onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 ) {
-                    Icon(Icons.Filled.Add, "Attach photo", tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Filled.Add, tr("Attach photo"), tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
                 }
             }
             // Pill text field (iOS composer): filled capsule, no outline.
@@ -456,7 +458,7 @@ private fun Composer(
                     .padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 if (inputText.isEmpty()) {
-                    Text("Ask the coach...", fontSize = 14.sp, color = PulseColors.textMuted)
+                    Text(tr("Ask the coach..."), fontSize = 14.sp, color = PulseColors.textMuted)
                 }
                 BasicTextField(
                     value = inputText,
@@ -474,7 +476,7 @@ private fun Composer(
                     keyboardActions = KeyboardActions(onSend = { send() }),
                     // The placeholder is a sibling Text that disappears once typing starts, so
                     // the field carries its own label.
-                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Message the coach" },
+                    modifier = Modifier.fillMaxWidth().semantics { contentDescription = tr("Message the coach") },
                 )
             }
             RoundIconTarget(
@@ -485,7 +487,7 @@ private fun Composer(
                 onClick = ::send,
             ) {
                 Icon(
-                    Icons.Filled.ArrowUpward, "Send",
+                    Icons.Filled.ArrowUpward, tr("Send"),
                     tint = if (canSend) PulseColors.onAccent else PulseColors.textMuted,
                     modifier = Modifier.size(20.dp),
                 )
@@ -518,12 +520,12 @@ private fun GoalBanner(
         Text("◎", fontSize = 18.sp, color = PulseColors.accent)
         Column(Modifier.weight(1f)) {
             if (hasGoal && plan != null) {
-                Text("YOUR GOAL", fontSize = 10.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+                Text(tr("YOUR GOAL"), fontSize = 10.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
                 Text(com.pulseloop.service.GoalPlan.headline(plan), fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 2)
-                Text(com.pulseloop.service.GoalPlan.focusLine(plan) + " · tap for this week's plan", fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 2)
+                Text(com.pulseloop.service.GoalPlan.focusLine(plan) + tr(" · tap for this week's plan"), fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 2)
             } else {
-                Text("What's your goal?", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("Tell the coach, and it plans with your scale, ring and food data.", fontSize = 12.sp, color = PulseColors.textSecondary)
+                Text(tr("What's your goal?"), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Tell the coach, and it plans with your scale, ring and food data."), fontSize = 12.sp, color = PulseColors.textSecondary)
             }
         }
     }

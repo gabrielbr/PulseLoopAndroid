@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import android.Manifest
 import android.content.Context
@@ -259,7 +261,7 @@ private fun OnboardingTopBar(
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = tr("Back"),
                             tint = PulseColors.textSecondary,
                         )
                     }
@@ -277,7 +279,7 @@ private fun OnboardingTopBar(
             Box(Modifier.size(width = 60.dp, height = 44.dp), contentAlignment = Alignment.CenterEnd) {
                 if (showsSkip) {
                     Text(
-                        "Skip",
+                        tr("Skip"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textSecondary,
@@ -321,12 +323,12 @@ private fun WelcomeStep(
     openAppSettings: () -> Unit = {},
 ) {
     val features = listOf(
-        WelcomeFeature(Icons.Filled.Paid, "No subscription", "Own your ring data", PulseColors.success),
-        WelcomeFeature(Icons.Filled.Lock, "Privacy first", "Data stays on device", PulseColors.info),
-        WelcomeFeature(Icons.Filled.AutoAwesome, "AI health coach", "Learns your baseline", PulseColors.accent),
-        WelcomeFeature(Icons.Filled.MonitorHeart, "See your vitals", "HR, SpO₂, HRV & stress", PulseColors.heartRate),
-        WelcomeFeature(Icons.Filled.Bedtime, "Sleep tracking", "Stages and trends", PulseColors.sleep),
-        WelcomeFeature(Icons.Filled.DirectionsRun, "Activity recording", "Live workout tracking", PulseColors.steps),
+        WelcomeFeature(Icons.Filled.Paid, tr("No subscription"), tr("Own your ring data"), PulseColors.success),
+        WelcomeFeature(Icons.Filled.Lock, tr("Privacy first"), tr("Data stays on device"), PulseColors.info),
+        WelcomeFeature(Icons.Filled.AutoAwesome, tr("AI health coach"), tr("Learns your baseline"), PulseColors.accent),
+        WelcomeFeature(Icons.Filled.MonitorHeart, tr("See your vitals"), tr("HR, SpO₂, HRV & stress"), PulseColors.heartRate),
+        WelcomeFeature(Icons.Filled.Bedtime, tr("Sleep tracking"), tr("Stages and trends"), PulseColors.sleep),
+        WelcomeFeature(Icons.Filled.DirectionsRun, tr("Activity recording"), tr("Live workout tracking"), PulseColors.steps),
     )
 
     StepScaffold(
@@ -334,8 +336,8 @@ private fun WelcomeStep(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (permissionDenied) {
                     Text(
-                        "PulseLoop needs Bluetooth permission to find and connect to your ring. " +
-                            "Allow it in Settings, or continue without a ring and pair one later.",
+                        tr("PulseLoop needs Bluetooth permission to find and connect to your ring. " +
+                            "Allow it in Settings, or continue without a ring and pair one later."),
                         fontSize = 13.sp,
                         color = PulseColors.textSecondary,
                         textAlign = TextAlign.Center,
@@ -343,13 +345,13 @@ private fun WelcomeStep(
                     )
                     // "Try again" re-checks the grant first, so it also carries on after the user
                     // allowed Bluetooth in Settings; without it a denial had no way back to pairing.
-                    PrimaryButton("Try again", icon = Icons.Filled.ArrowForward, onClick = getStarted)
-                    SecondaryButton("Open settings", onClick = openAppSettings)
-                    SecondaryButton("Continue without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
+                    PrimaryButton(tr("Try again"), icon = Icons.Filled.ArrowForward, onClick = getStarted)
+                    SecondaryButton(tr("Open settings"), onClick = openAppSettings)
+                    SecondaryButton(tr("Continue without ring"), icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
                 } else {
-                    PrimaryButton("Get started", icon = Icons.Filled.ArrowForward, onClick = getStarted)
-                    SecondaryButton("I wear an Oura or another device", icon = Icons.Filled.Watch, onClick = useOtherDevice)
-                    SecondaryButton("Explore without ring", icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
+                    PrimaryButton(tr("Get started"), icon = Icons.Filled.ArrowForward, onClick = getStarted)
+                    SecondaryButton(tr("I wear an Oura or another device"), icon = Icons.Filled.Watch, onClick = useOtherDevice)
+                    SecondaryButton(tr("Explore without ring"), icon = Icons.Filled.GridView, onClick = exploreWithoutRing)
                 }
             }
         },
@@ -368,8 +370,8 @@ private fun WelcomeStep(
                 .clip(RoundedCornerShape(8.dp)),
         )
         StepHeader(
-            title = "Set up PulseLoop",
-            subtitle = "Your health, on your terms — no subscription, no cloud.",
+            title = tr("Set up PulseLoop"),
+            subtitle = tr("Your health, on your terms — no subscription, no cloud."),
         )
 
         // Two-column feature grid (rows of two, since we're inside a scroll column).
@@ -444,7 +446,7 @@ private fun ProfileStep(
 
     StepScaffold(
         footer = {
-            PrimaryButton("Continue", icon = Icons.Filled.ArrowForward, enabled = draft != null) {
+            PrimaryButton(tr("Continue"), icon = Icons.Filled.ArrowForward, enabled = draft != null) {
                 val current = draft ?: return@PrimaryButton
                 scope.launch {
                     val existing = db.userProfileDao().get()
@@ -458,8 +460,8 @@ private fun ProfileStep(
         },
     ) {
         StepHeader(
-            title = "Profile",
-            subtitle = "Used to tune calories, activity goals, and summaries.",
+            title = tr("Profile"),
+            subtitle = tr("Used to tune calories, activity goals, and summaries."),
         )
         draft?.let { current ->
             ProfileEditor(draft = current, onDraftChange = { draft = it })
@@ -488,7 +490,7 @@ private fun GoalsStep(
 
     StepScaffold(
         footer = {
-            PrimaryButton("Save goals", icon = Icons.Filled.Check, enabled = draft != null) {
+            PrimaryButton(tr("Save goals"), icon = Icons.Filled.Check, enabled = draft != null) {
                 val current = draft ?: return@PrimaryButton
                 scope.launch {
                     val existing = db.userGoalDao().get()
@@ -502,8 +504,8 @@ private fun GoalsStep(
         },
     ) {
         StepHeader(
-            title = "Daily goals",
-            subtitle = "Start with recommended targets. You can change these anytime.",
+            title = tr("Daily goals"),
+            subtitle = tr("Start with recommended targets. You can change these anytime."),
         )
         draft?.let { current ->
             GoalEditor(
@@ -529,9 +531,9 @@ private data class BaselineMilestone(
 private fun BaselineStep(finish: () -> Unit) {
     // iOS #75 finale copy: Today / First sync / Days 3–7.
     val milestones = listOf(
-        BaselineMilestone(null, "Today", "Activity and live vitals, right away", PulseColors.info),
-        BaselineMilestone(Icons.Filled.Bedtime, "First sync", "Sleep stages and nightly trends", PulseColors.sleep),
-        BaselineMilestone(Icons.AutoMirrored.Filled.TrendingUp, "Days 3–7", "Your personalized baseline unlocks", PulseColors.success),
+        BaselineMilestone(null, tr("Today"), tr("Activity and live vitals, right away"), PulseColors.info),
+        BaselineMilestone(Icons.Filled.Bedtime, tr("First sync"), tr("Sleep stages and nightly trends"), PulseColors.sleep),
+        BaselineMilestone(Icons.AutoMirrored.Filled.TrendingUp, tr("Days 3–7"), tr("Your personalized baseline unlocks"), PulseColors.success),
     )
 
     // Celebratory finale (iOS #75): the medallion scales in on appear. reduceMotion-equivalent
@@ -546,14 +548,14 @@ private fun BaselineStep(finish: () -> Unit) {
 
     StepScaffold(
         footer = {
-            PrimaryButton("Start using PulseLoop", icon = Icons.Filled.ArrowForward, onClick = finish)
+            PrimaryButton(tr("Start using PulseLoop"), icon = Icons.Filled.ArrowForward, onClick = finish)
         },
     ) {
         SuccessMedallion(scale = medallionScale)
         SetupCompleteEyebrow()
         StepHeader(
-            title = "You're all set",
-            subtitle = "Wear your ring today. Your baseline builds from here.",
+            title = tr("You're all set"),
+            subtitle = tr("Wear your ring today. Your baseline builds from here."),
         )
 
         Column(
@@ -568,13 +570,13 @@ private fun BaselineStep(finish: () -> Unit) {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "PulseLoop learns your baseline over time",
+                    tr("PulseLoop learns your baseline over time"),
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.textPrimary,
                 )
                 Text(
-                    "Wear your ring during the day and sync after sleep. Trends become more personal after a few days.",
+                    tr("Wear your ring during the day and sync after sleep. Trends become more personal after a few days."),
                     fontSize = 14.sp,
                     color = PulseColors.textSecondary,
                     lineHeight = 20.sp,
@@ -634,7 +636,7 @@ private fun SuccessMedallion(scale: Float) {
         ) {
             Icon(
                 Icons.Filled.Verified,
-                contentDescription = "Setup complete",
+                contentDescription = tr("Setup complete"),
                 tint = PulseColors.accent,
                 modifier = Modifier.size(56.dp),
             )
@@ -654,7 +656,7 @@ private fun SetupCompleteEyebrow() {
             .padding(horizontal = 12.dp, vertical = 6.dp),
     ) {
         Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(14.dp), tint = PulseColors.accent)
-        Text("Setup complete", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent)
+        Text(tr("Setup complete"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent)
     }
 }
 
@@ -665,10 +667,10 @@ private fun SetupCompleteEyebrow() {
 @Composable
 private fun HealthConnectSourceStep(next: () -> Unit) {
     StepScaffold(
-        footer = { SecondaryButton("Skip for now", modifier = Modifier.fillMaxWidth(), onClick = next) },
+        footer = { SecondaryButton(tr("Skip for now"), modifier = Modifier.fillMaxWidth(), onClick = next) },
     ) {
         Text(
-            "Use your device's data",
+            tr("Use your device's data"),
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             color = PulseColors.textPrimary,

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -48,7 +50,7 @@ import java.time.format.DateTimeFormatter
 /** Settings → Health Connect as your data source (docs/health-connect-source.md). */
 @Composable
 fun HealthConnectSourceScreen(onBack: () -> Unit) {
-    SettingsSubScreen(title = "Use without a ring", onBack = onBack) {
+    SettingsSubScreen(title = tr("Use without a ring"), onBack = onBack) {
         HealthConnectSourceContent()
     }
 }
@@ -80,8 +82,8 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
         scope.launch {
             when (val r = runCatching { ReferenceSourceScanner.scan(context) }.getOrNull()) {
                 is ReferenceSourceScanner.Result.Done -> scan = r
-                ReferenceSourceScanner.Result.Unavailable -> note = "Health Connect isn't available on this phone."
-                null -> note = "Couldn't read Health Connect. Try again in a moment."
+                ReferenceSourceScanner.Result.Unavailable -> note = tr("Health Connect isn't available on this phone.")
+                null -> note = tr("Couldn't read Health Connect. Try again in a moment.")
             }
             scanning = false
         }
@@ -94,9 +96,9 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
             note = when (val r = runCatching { HealthConnectSourceImporter.run(context) }.getOrNull()) {
                 is HealthConnectSourceImporter.Outcome.Done -> "Imported ${"%,d".format(r.stored)} readings."
                 is HealthConnectSourceImporter.Outcome.Failed -> r.message
-                HealthConnectSourceImporter.Outcome.NoPermission -> "PulseLoop isn't allowed to read Health Connect any more."
-                HealthConnectSourceImporter.Outcome.Unavailable -> "Health Connect isn't available on this phone."
-                else -> "The import failed. Try again in a moment."
+                HealthConnectSourceImporter.Outcome.NoPermission -> tr("PulseLoop isn't allowed to read Health Connect any more.")
+                HealthConnectSourceImporter.Outcome.Unavailable -> tr("Health Connect isn't available on this phone.")
+                else -> tr("The import failed. Try again in a moment.")
             }
             importing = false
             refresh++
@@ -111,7 +113,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
     val launcher = rememberLauncherForActivityResult(PermissionController.createRequestPermissionResultContract()) { got ->
         granted = got
         if (got.none { it in HealthConnectSource.readPermissions }) {
-            note = "No access granted. You can allow it in Health Connect's settings."
+            note = tr("No access granted. You can allow it in Health Connect's settings.")
         } else if (!enabled) doScan()
     }
     val canRead = granted.any { it in HealthConnectSource.readPermissions }
@@ -119,26 +121,26 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AccuracyCard {
-            Text("Use the device you already wear", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(tr("Use the device you already wear"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(
-                "No PulseLoop ring? If your Oura, Galaxy Ring, Fitbit or watch app writes to Health Connect, PulseLoop can " +
+                tr("No PulseLoop ring? If your Oura, Galaxy Ring, Fitbit or watch app writes to Health Connect, PulseLoop can " +
                     "read it from there: sleep, heart rate, HRV, blood oxygen, steps, calories, workouts and periods. " +
-                    "Every screen, the coach and your insights then work from that data.",
+                    "Every screen, the coach and your insights then work from that data."),
                 fontSize = 13.sp, color = PulseColors.textSecondary,
             )
             Text(
-                "PulseLoop reads only the app you choose, and doesn't write that data back to Health Connect.",
+                tr("PulseLoop reads only the app you choose, and doesn't write that data back to Health Connect."),
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
             if (!available) {
-                Text("Health Connect isn't available on this phone.", fontSize = 12.sp, color = PulseColors.danger)
+                Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = PulseColors.danger)
             } else if (hasRing && !enabled) {
                 Text(
-                    "A ring is paired. Forget it in Settings → Wearable first: the two would count the same steps and nights.",
+                    tr("A ring is paired. Forget it in Settings → Wearable first: the two would count the same steps and nights."),
                     fontSize = 12.sp, color = PulseColors.warning,
                 )
             } else if (!canRead) {
-                Button(onClick = { launcher.launch(HealthConnectSource.request) }) { Text("Allow access") }
+                Button(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow access")) }
             }
         }
 
@@ -152,21 +154,21 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     last?.let {
                         "Last import " + DateTimeFormatter.ofPattern("EEE d MMM, HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())) +
                             " · ${"%,d".format(count)} readings"
-                    } ?: "Not imported yet",
+                    } ?: tr("Not imported yet"),
                     fontSize = 13.sp, color = PulseColors.textSecondary,
                 )
                 Text(
-                    "PulseLoop checks for new data every hour and whenever you open the app. A night usually appears once " +
+                    tr("PulseLoop checks for new data every hour and whenever you open the app. A night usually appears once ") +
                         "${HealthConnectSource.label(context, pkg)} has synced it in the morning.",
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
                 if (canRead && !HealthConnectSource.canReadInBackground(granted)) {
-                    Text("Allow background access so imports also run while PulseLoop is closed.", fontSize = 12.sp, color = PulseColors.warning)
+                    Text(tr("Allow background access so imports also run while PulseLoop is closed."), fontSize = 12.sp, color = PulseColors.warning)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Button(onClick = { importNow() }, enabled = !importing && canRead) { Text("Import now") }
+                    Button(onClick = { importNow() }, enabled = !importing && canRead) { Text(tr("Import now")) }
                     if (missing.isNotEmpty()) {
-                        OutlinedButton(onClick = { launcher.launch(HealthConnectSource.request) }) { Text("Allow more") }
+                        OutlinedButton(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow more")) }
                     }
                     if (importing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
@@ -174,14 +176,14 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     HealthConnectSource.disable(context)
                     enabled = false
                     doScan()
-                }) { Text("Stop using Health Connect", color = PulseColors.danger) }
+                }) { Text(tr("Stop using Health Connect"), color = PulseColors.danger) }
             }
         } else if (canRead && !hasRing) {
             val r = scan
             if (scanning) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text("Looking for apps writing to Health Connect…", fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Looking for apps writing to Health Connect…"), fontSize = 13.sp, color = PulseColors.textSecondary)
                 }
             } else if (r != null) {
                 val usable = r.sources.filter { it.echo?.looksLikeEcho != true }
@@ -189,10 +191,10 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     AccuracyCard {
                         Text("No app wrote health data in the last ${ReferenceSourceScanner.LOOKBACK_DAYS} days.", fontSize = 13.sp, color = PulseColors.textSecondary)
                         Text(
-                            "In the Oura app: Settings → Health Connect, and turn on sharing. Then come back and look again.",
+                            tr("In the Oura app: Settings → Health Connect, and turn on sharing. Then come back and look again."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
-                        OutlinedButton(onClick = { doScan() }) { Text("Look again") }
+                        OutlinedButton(onClick = { doScan() }) { Text(tr("Look again")) }
                     }
                 }
                 usable.forEach { src ->
@@ -226,11 +228,11 @@ fun HealthConnectSourceHeroCard(onOpen: () -> Unit) {
             .clickable(onClick = onOpen).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("DATA SOURCE", fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("DATA SOURCE"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
         Text("${HealthConnectSource.label(context, pkg)} via Health Connect", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(
             last?.let { "Last import " + DateTimeFormatter.ofPattern("EEE HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault())) }
-                ?: "Waiting for the first import",
+                ?: tr("Waiting for the first import"),
             fontSize = 13.sp, color = PulseColors.textSecondary,
         )
     }

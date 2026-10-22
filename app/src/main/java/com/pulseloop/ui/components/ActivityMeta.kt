@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.DirectionsBike
 import androidx.compose.material.icons.automirrored.filled.DirectionsRun
@@ -23,29 +25,29 @@ object ActivityMeta {
     val ORDER = listOf("walk", "run", "cycle", "gym", "squash", "sport", "yoga", "dance", "hike", "other")
 
     fun label(type: String): String = when (type) {
-        "walk" -> "Walking"
-        "run" -> "Running"
-        "cycle" -> "Cycling"
-        "gym" -> "Gym"
-        "squash" -> "Squash"
-        "sport" -> "Sport"
-        "yoga" -> "Yoga"
-        "dance" -> "Dance"
-        "hike" -> "Hiking"
+        "walk" -> tr("Walking")
+        "run" -> tr("Running")
+        "cycle" -> tr("Cycling")
+        "gym" -> tr("Gym")
+        "squash" -> tr("Squash")
+        "sport" -> tr("Sport")
+        "yoga" -> tr("Yoga")
+        "dance" -> tr("Dance")
+        "hike" -> tr("Hiking")
         else -> type.replaceFirstChar { it.uppercase() }
     }
 
     fun helper(type: String): String = when (type) {
-        "walk" -> "Casual or brisk walking"
-        "run" -> "Outdoor or treadmill runs"
-        "cycle" -> "Road, trail, or stationary"
-        "gym" -> "Strength or circuit training"
-        "squash" -> "Court sessions"
-        "sport" -> "Team or racket sports"
-        "yoga" -> "Flow, stretch, or breathwork"
-        "dance" -> "Studio, cardio, or freestyle"
-        "hike" -> "Trails and elevation"
-        else -> "Anything else"
+        "walk" -> tr("Casual or brisk walking")
+        "run" -> tr("Outdoor or treadmill runs")
+        "cycle" -> tr("Road, trail, or stationary")
+        "gym" -> tr("Strength or circuit training")
+        "squash" -> tr("Court sessions")
+        "sport" -> tr("Team or racket sports")
+        "yoga" -> tr("Flow, stretch, or breathwork")
+        "dance" -> tr("Studio, cardio, or freestyle")
+        "hike" -> tr("Trails and elevation")
+        else -> tr("Anything else")
     }
 
     fun icon(type: String): ImageVector = when (type) {

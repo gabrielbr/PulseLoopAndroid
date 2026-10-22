@@ -1,5 +1,7 @@
 package com.pulseloop.ui
 
+import com.pulseloop.ui.i18n.tr
+
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -318,11 +320,11 @@ fun PulseLoopApp() {
         }
 
         val tabs = listOf(
-            Tab("today", "Today", Icons.Filled.Adjust, Icons.Outlined.Adjust),
-            Tab("vitals", "Vitals", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
-            Tab("activity", "Activity", Icons.Filled.MonitorHeart, Icons.Outlined.MonitorHeart),
-            Tab("sleep", "Sleep", Icons.Filled.Bedtime, Icons.Outlined.Bedtime),
-            Tab("coach", "Coach", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
+            Tab("today", tr("Today"), Icons.Filled.Adjust, Icons.Outlined.Adjust),
+            Tab("vitals", tr("Vitals"), Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
+            Tab("activity", tr("Activity"), Icons.Filled.MonitorHeart, Icons.Outlined.MonitorHeart),
+            Tab("sleep", tr("Sleep"), Icons.Filled.Bedtime, Icons.Outlined.Bedtime),
+            Tab("coach", tr("Coach"), Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
         )
 
         // ── Self-update: release-only. Checked on every return to foreground (ON_START also
@@ -445,7 +447,7 @@ fun PulseLoopApp() {
                                 batteryPercent = ble.batteryPercent ?: storedDevice?.batteryPercent,
                                 onOpenSettings = { navController.navigate("settings") },
                                 idle = ble.idleSince != null,
-                                sourceLabel = hcSource?.let { com.pulseloop.health.source.HealthConnectSource.label(context, it) + " · Health Connect" },
+                                sourceLabel = hcSource?.let { com.pulseloop.health.source.HealthConnectSource.label(context, it) + tr(" · Health Connect") },
                             )
                             // Thin sync-progress accent under the greeting while history streams in.
                             val syncPct = coordinator.syncProgress.collectAsState().value
@@ -668,6 +670,9 @@ fun PulseLoopApp() {
                         onCoach = discussMeal,
                     )
                 }
+                paddedComposable("settings/language") {
+                    LanguageSettingsScreen(onBack = { navController.popBackStack() })
+                }
                 paddedComposable("settings/about") {
                     AboutSettingsScreen(
                         onOpenDebug = { navController.navigate("debug") },
@@ -759,7 +764,7 @@ fun PulseLoopApp() {
                         }
                     }
                     RecordScreen(
-                        activityName = workoutState.activeSession?.type ?: "Workout",
+                        activityName = workoutState.activeSession?.type ?: tr("Workout"),
                         elapsedSeconds = workoutState.elapsedSeconds,
                         distanceMeters = workoutState.distanceMeters,
                         heartRate = workoutState.latestHeartRate,

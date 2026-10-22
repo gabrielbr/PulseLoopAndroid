@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -50,12 +52,12 @@ fun UnusualSignalsCard(signals: List<OffSignal>) {
             .dither(PulseColors.warning, 0.12f).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text("Some signals look unusual", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.warning)
+        Text(tr("Some signals look unusual"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.warning)
         signals.forEach {
             Text("${it.title}: ${it.detail}", fontSize = 13.sp, color = PulseColors.textPrimary)
         }
         Text(
-            "Compared with your own recent nights. This can follow illness, stress, alcohol or a hard day. It isn't a diagnosis; consider an easier day.",
+            tr("Compared with your own recent nights. This can follow illness, stress, alcohol or a hard day. It isn't a diagnosis; consider an easier day."),
             fontSize = 12.sp, color = PulseColors.textSecondary,
         )
     }
@@ -80,9 +82,9 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
             )
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("LAST CAFFEINE", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = PulseColors.calories)
+            Text(tr("LAST CAFFEINE"), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = PulseColors.calories)
             Text(BedtimeGuidance.fmt(g.caffeineCutoff), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-            Text("8 hours before bed", fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("8 hours before bed"), fontSize = 12.sp, color = PulseColors.textMuted)
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -78,13 +80,13 @@ fun AppHeader(
             idle = idle,
             sourceLabel = sourceLabel,
             modifier = Modifier.clickable(
-                onClickLabel = "Open ring settings",
+                onClickLabel = tr("Open ring settings"),
                 role = Role.Button,
                 onClick = onOpenSettings,
             ),
         )
         IconButton(onClick = onOpenSettings) {
-            Icon(Icons.Outlined.Settings, "Settings", tint = PulseColors.textSecondary)
+            Icon(Icons.Outlined.Settings, tr("Settings"), tint = PulseColors.textSecondary)
         }
     }
 }
@@ -115,11 +117,11 @@ fun ConnectionStatusPill(
     val label = sourceLabel ?: when (state) {
         RingConnectionState.CONNECTED ->
             if (batteryPercent != null && batteryPercent > 0) "Connected · $batteryPercent%" else "Connected"
-        RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> "Connecting…"
-        RingConnectionState.FAILED -> "Sync failed"
+        RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> tr("Connecting…")
+        RingConnectionState.FAILED -> tr("Sync failed")
         else -> if (idleNow) {
             if (batteryPercent != null && batteryPercent > 0) "Idle · $batteryPercent%" else "Idle"
-        } else "Disconnected"
+        } else tr("Disconnected")
     }
     // Only run the transition while pulsing: an infinite 1f→1f animation still ticks every frame.
     val pulse = if (isPulsing) {
@@ -159,10 +161,10 @@ fun ConnectionStatusPill(
 
 /** Time-of-day greeting, mirroring RootViews.swift `greetingForHour()`. */
 fun greetingForHour(): String = when (Calendar.getInstance().get(Calendar.HOUR_OF_DAY)) {
-    in 5..11 -> "Good morning"
-    in 12..16 -> "Good afternoon"
-    in 17..21 -> "Good evening"
-    else -> "Good night"
+    in 5..11 -> tr("Good morning")
+    in 12..16 -> tr("Good afternoon")
+    in 17..21 -> tr("Good evening")
+    else -> tr("Good night")
 }
 
 /**

@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import com.pulseloop.ui.components.rememberReduceMotion
 import com.pulseloop.ui.components.switchRow
 import androidx.activity.compose.BackHandler
@@ -142,8 +144,8 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
-            Text("My Health", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
+            Text(tr("My Health"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
             val shareScope = rememberCoroutineScope()
             IconButton(
                 onClick = {
@@ -156,12 +158,12 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                                 putExtra(android.content.Intent.EXTRA_STREAM, uri)
                                 addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                             }
-                            context.startActivity(android.content.Intent.createChooser(intent, "Share my week"))
+                            context.startActivity(android.content.Intent.createChooser(intent, tr("Share my week")))
                         }
                     }
                 },
                 modifier = Modifier.align(Alignment.CenterEnd),
-            ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, "Share my week", tint = PulseColors.textSecondary) }
+            ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, tr("Share my week"), tint = PulseColors.textSecondary) }
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -170,7 +172,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
             val s = snap
             if (s == null) {
                 Text(
-                    if (loadFailed) "Couldn't load your health history." else "Reading your history…",
+                    if (loadFailed) tr("Couldn't load your health history.") else tr("Reading your history…"),
                     color = if (loadFailed) PulseColors.warning else PulseColors.textMuted, fontSize = 13.sp,
                 )
             } else {
@@ -180,8 +182,8 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("What changed", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text("Your nights against your own normal, kept as a log", fontSize = 12.sp, color = PulseColors.textMuted)
+                        Text(tr("What changed"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Your nights against your own normal, kept as a log"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }
@@ -194,7 +196,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(cycle?.let { "Cycle · day ${it.cycleDay} · ${it.phase.label}" } ?: "Cycle", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text(cycle?.phase?.note ?: "Log your period to see its phase beside your sleep and recovery", fontSize = 12.sp, color = PulseColors.textMuted)
+                        Text(cycle?.phase?.note ?: tr("Log your period to see its phase beside your sleep and recovery"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }
@@ -204,8 +206,8 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text("Medications & supplements", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text("Your schedule, today's doses and a week's record", fontSize = 12.sp, color = PulseColors.textMuted)
+                        Text(tr("Medications & supplements"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Your schedule, today's doses and a week's record"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }
@@ -213,7 +215,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     RestMode.set(context, days); restUntil = RestMode.until(context)
                 }
                 if (s.areas.isNotEmpty()) {
-                    Section("Health areas · last 60–90 days") {
+                    Section(tr("Health areas · last 60–90 days")) {
                         s.areas.forEach { a ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
@@ -233,7 +235,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                 StepCalibrationCard(db)
                 TrendsSection(db)
                 Text(
-                    "Estimates from your ring compared with your own recent normal, not medical measurements.",
+                    tr("Estimates from your ring compared with your own recent normal, not medical measurements."),
                     fontSize = 11.sp, color = PulseColors.textMuted,
                 )
                 Spacer(Modifier.height(24.dp))
@@ -244,7 +246,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
 
 @Composable
 private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate?, onRest: (Int?) -> Unit) {
-    Section("Symptom Radar") {
+    Section(tr("Symptom Radar")) {
         if (r == null || r.baselineNights < SymptomRadar.MIN_BASELINE) {
             Text("Learning your normal: ${r?.baselineNights ?: 0} of ${SymptomRadar.MIN_BASELINE} nights.", fontSize = 13.sp, color = PulseColors.textSecondary)
         } else {
@@ -256,19 +258,19 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
             Text(r.level.label, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = color)
             Text(r.level.summary, fontSize = 13.sp, color = PulseColors.textSecondary)
             r.signals.forEach { sig ->
-                Fact(sig.metric.title, if (sig.flagged) "Elevated" else "Normal", sig.detail,
+                Fact(sig.metric.title, if (sig.flagged) tr("Elevated") else tr("Normal"), sig.detail,
                     if (sig.flagged) PulseColors.warning else PulseColors.textSecondary)
             }
             if (r.level != SymptomRadar.Level.NONE) {
-                Text("Not a diagnosis. Rest, fluids and an easier day help; see a doctor if you feel unwell.", fontSize = 12.sp, color = PulseColors.textMuted)
+                Text(tr("Not a diagnosis. Rest, fluids and an easier day help; see a doctor if you feel unwell."), fontSize = 12.sp, color = PulseColors.textMuted)
             }
         }
         Row(Modifier.switchRow(checked = restUntil != null, onCheckedChange = { on -> onRest(if (on) 3 else null) }), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Rest Mode", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Rest Mode"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
                     restUntil?.let { "On until ${it.dayOfMonth}/${it.monthValue}: activity nudges paused, the coach eases off." }
-                        ?: "Feeling unwell? Pause activity nudges for 3 days.",
+                        ?: tr("Feeling unwell? Pause activity nudges for 3 days."),
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
             }
@@ -279,18 +281,18 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
 
 @Composable
 private fun SleepSection(s: HealthInsightsRepository.Snapshot) {
-    Section("Sleep") {
-        Fact("Sleep need", SleepFormat.duration(s.need.minutes),
-            if (s.need.isLearned) "Learned from nights you woke recovered" else "Your goal, until 5 recovered nights teach the app yours")
+    Section(tr("Sleep")) {
+        Fact(tr("Sleep need"), SleepFormat.duration(s.need.minutes),
+            if (s.need.isLearned) tr("Learned from nights you woke recovered") else tr("Your goal, until 5 recovered nights teach the app yours"))
         s.debt?.let { d ->
             val color = when (d.level) {
                 SleepDebt.Level.NONE -> PulseColors.success; SleepDebt.Level.LOW -> PulseColors.info
                 SleepDebt.Level.MODERATE -> PulseColors.warning; SleepDebt.Level.HIGH -> PulseColors.danger
             }
-            Fact("Sleep debt", "${d.level.label} · ${SleepFormat.duration(d.minutes)}", "Last 14 nights, recent nights weigh more", color)
-        } ?: Fact("Sleep debt", "—", "Needs 5 nights in the last 2 weeks")
+            Fact(tr("Sleep debt"), "${d.level.label} · ${SleepFormat.duration(d.minutes)}", "Last 14 nights, recent nights weigh more", color)
+        } ?: Fact(tr("Sleep debt"), "—", tr("Needs 5 nights in the last 2 weeks"))
         s.bodyClock?.let { c ->
-            Fact("Body clock", c.chronotype.label, "Usual sleep midpoint ${c.midpointLabel()} · this week ${c.alignment.label.lowercase()}" +
+            Fact(tr("Body clock"), c.chronotype.label, "Usual sleep midpoint ${c.midpointLabel()} · this week ${c.alignment.label.lowercase()}" +
                 if (c.alignment != BodyClock.Alignment.ALIGNED) " (${if (c.recentShiftMin > 0) "+" else ""}${c.recentShiftMin} min)" else "")
         }
     }
@@ -299,10 +301,10 @@ private fun SleepSection(s: HealthInsightsRepository.Snapshot) {
 @Composable
 private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () -> Unit) {
     val context = LocalContext.current
-    Section("Stress") {
+    Section(tr("Stress")) {
         val z = s.todayStress
         if (z == null) {
-            Text("No daytime stress readings today yet.", fontSize = 13.sp, color = PulseColors.textMuted)
+            Text(tr("No daytime stress readings today yet."), fontSize = 13.sp, color = PulseColors.textMuted)
         } else {
             Text("Today: ${z.summary.label}", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             val total = z.totalMin.coerceAtLeast(1).toFloat()
@@ -315,46 +317,46 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
             Text("Restored ${SleepFormat.duration(z.restoredMin)} · relaxed ${SleepFormat.duration(z.relaxedMin)} · engaged ${SleepFormat.duration(z.engagedMin)} · stressed ${SleepFormat.duration(z.stressedMin)}",
                 fontSize = 12.sp, color = PulseColors.textMuted)
         }
-        s.resilience?.let { Fact("Resilience", it.level.label, "Daytime recovery against stress, and how well nights restore you (${it.daysUsed} days)") }
+        s.resilience?.let { Fact(tr("Resilience"), it.level.label, "Daytime recovery against stress, and how well nights restore you (${it.daysUsed} days)") }
         val sessions = remember { MindfulSessions.all(context) }
         val week = sessions.filter { it.startAt >= System.currentTimeMillis() - 7 * 86_400_000L }
-        Fact("Breathing sessions this week", "${week.size} · ${week.sumOf { it.minutes }} min")
+        Fact(tr("Breathing sessions this week"), "${week.size} · ${week.sumOf { it.minutes }} min")
         val effectDb = remember { PulseLoopDatabase.getInstance(context) }
         val effect by produceState<MindfulSessions.Effect?>(null) { value = runCatching { MindfulSessions.effect(context, effectDb) }.getOrNull() }
         effect?.let { e ->
             Fact(
-                "After a session", "HRV ${if (e.hrvChangePct >= 0) "+" else ""}${e.hrvChangePct}%",
+                tr("After a session"), "HRV ${if (e.hrvChangePct >= 0) "+" else ""}${e.hrvChangePct}%",
                 "Two hours after against two hours before, over ${e.sessions} sessions. Readings during a session aren't counted: slow breathing raises HRV while it lasts.",
             )
         }
-        OutlinedButton(onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text("Start a breathing session") }
+        OutlinedButton(onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text(tr("Start a breathing session")) }
     }
 }
 
 @Composable
 private fun HeartSection(s: HealthInsightsRepository.Snapshot) {
-    Section("Heart") {
+    Section(tr("Heart")) {
         if (s.hrToday.size >= 2) {
-            Text("Heart rate since last night", fontSize = 13.sp, color = PulseColors.textSecondary)
+            Text(tr("Heart rate since last night"), fontSize = 13.sp, color = PulseColors.textSecondary)
             HeartRateContextChart(s.hrToday, s.sleepWindows, s.workoutWindows)
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Legend(PulseColors.sleep, "Sleep"); Legend(PulseColors.steps, "Workout"); Legend(PulseColors.heartRate, "Day")
+                Legend(PulseColors.sleep, tr("Sleep")); Legend(PulseColors.steps, tr("Workout")); Legend(PulseColors.heartRate, tr("Day"))
             }
         }
         s.cardioLoad?.let { l ->
             Fact(
-                "Cardio load today", "${l.load}" + (l.band?.let { " · ${it.label}" } ?: ""),
+                tr("Cardio load today"), "${l.load}" + (l.band?.let { " · ${it.label}" } ?: ""),
                 "Heart rate above your quiet waking ${l.quietHr} bpm, ${l.elevatedMinutes} min well above it" +
                     (l.usual?.let { ". Your usual day: $it" } ?: ""),
             )
         }
         s.cardio?.let { c ->
             Fact("Cardio capacity (VO₂max)", "%.0f · %s".format(c.vo2max, c.level.label),
-                if (c.fromRing) "Measured by your ring" else "Estimated from resting heart rate and age")
+                if (c.fromRing) tr("Measured by your ring") else tr("Estimated from resting heart rate and age"))
             // No "cardiovascular age": from a ring it would only restate resting heart rate and age
             // as a number of years, which reads as far more than it is (OpenStrap Edge dropped its
             // own for the same reason).
-        } ?: Text("Add your age in Settings → User Profile for cardio capacity.", fontSize = 12.sp, color = PulseColors.textMuted)
+        } ?: Text(tr("Add your age in Settings → User Profile for cardio capacity."), fontSize = 12.sp, color = PulseColors.textMuted)
     }
 }
 
@@ -395,15 +397,15 @@ fun HeartRateContextChart(samples: List<VitalSample>, sleep: List<LongRange>, wo
 
 @Composable
 private fun HabitsSection(h: HealthInsightsRepository.Habits) {
-    Section("Habits & routines · 30-day averages") {
-        h.bedtime?.let { Fact("Bedtime", it) }
-        h.wake?.let { Fact("Wake-up", it) }
-        h.sleepMin?.let { Fact("Sleep", SleepFormat.duration(it)) }
+    Section(tr("Habits & routines · 30-day averages")) {
+        h.bedtime?.let { Fact(tr("Bedtime"), it) }
+        h.wake?.let { Fact(tr("Wake-up"), it) }
+        h.sleepMin?.let { Fact(tr("Sleep"), SleepFormat.duration(it)) }
         h.steps?.let { Fact("Steps", "%,d".format(it)) }
-        h.activeMin?.let { Fact("Active minutes", "$it min") }
-        h.restingHr?.let { Fact("Resting heart rate", "${it.roundToInt()} bpm") }
+        h.activeMin?.let { Fact(tr("Active minutes"), "$it min") }
+        h.restingHr?.let { Fact(tr("Resting heart rate"), "${it.roundToInt()} bpm") }
         if (listOf(h.bedtime, h.steps, h.restingHr).all { it == null }) {
-            Text("A few more days of data and your routines show up here.", fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("A few more days of data and your routines show up here."), fontSize = 12.sp, color = PulseColors.textMuted)
         }
     }
 }
@@ -419,7 +421,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
         value = runCatching { Trends.aggregate(HealthInsightsRepository.daily(db, metric, period.days), period) }
             .onFailure { trendFailed = true }.getOrNull()
     }
-    Section("Trends") {
+    Section(tr("Trends")) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TrendMetric.entries.forEach { m ->
                 val on = m == metric
@@ -444,7 +446,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
         val pts = points
         when {
             pts == null && trendFailed -> Text("Couldn't load ${metric.label.lowercase()} trends.", fontSize = 12.sp, color = PulseColors.warning)
-            pts == null -> Text("Loading…", fontSize = 12.sp, color = PulseColors.textMuted)
+            pts == null -> Text(tr("Loading…"), fontSize = 12.sp, color = PulseColors.textMuted)
             pts.size < 2 -> Text("Not enough ${metric.label.lowercase()} data for this view yet.", fontSize = 12.sp, color = PulseColors.textMuted)
             else -> {
                 val shown = pts.takeLast(if (period == Trends.Period.DAY) 30 else 26)
@@ -515,9 +517,9 @@ fun BreatheScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(PulseColors.background).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Box(Modifier.fillMaxWidth()) {
             IconButton(onClick = { if (startedAt != null) finish(); onBack() }, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
             }
-            Text("Breathe", modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Breathe"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.weight(1f))
         val r = result
@@ -538,27 +540,27 @@ fun BreatheScreen(onBack: () -> Unit) {
                 Box(Modifier.size(220.dp).scale(s).clip(CircleShape).dither(PulseColors.accent, 0.35f, CircleShape).border(2.dp, PulseColors.accent, CircleShape))
                 Spacer(Modifier.height(24.dp))
                 Text(
-                    if (inhaling) "Breathe in" else "Breathe out", fontSize = 18.sp, color = PulseColors.textPrimary,
+                    if (inhaling) tr("Breathe in") else tr("Breathe out"), fontSize = 18.sp, color = PulseColors.textPrimary,
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 Text("%d:%02d".format(remaining / 60, remaining % 60), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Spacer(Modifier.height(16.dp))
-                OutlinedButton(onClick = { finish() }) { Text("End session") }
+                OutlinedButton(onClick = { finish() }) { Text(tr("End session")) }
             }
             r != null -> {
-                Text("Session saved", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Session saved"), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text("${r.minutes} min" + (r.avgHr?.let { " · average $it bpm" } ?: ""), fontSize = 15.sp, color = PulseColors.textSecondary)
                 if (r.startHr != null && r.endHr != null) {
                     Text("Heart rate ${r.startHr} → ${r.endHr} bpm", fontSize = 15.sp, color = PulseColors.textSecondary)
                 } else {
-                    Text("Your ring logs heart rate every few minutes, so short sessions may show none.", fontSize = 12.sp, color = PulseColors.textMuted)
+                    Text(tr("Your ring logs heart rate every few minutes, so short sessions may show none."), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
-                Text("Tagged as \"Meditation or relaxing\" in today's journal.", fontSize = 12.sp, color = PulseColors.textMuted)
+                Text(tr("Tagged as \"Meditation or relaxing\" in today's journal."), fontSize = 12.sp, color = PulseColors.textMuted)
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onBack) { Text("Done") }
+                Button(onClick = onBack) { Text(tr("Done")) }
             }
             else -> {
-                Text("Slow breathing: in for 4 seconds, out for 6.", fontSize = 15.sp, color = PulseColors.textSecondary)
+                Text(tr("Slow breathing: in for 4 seconds, out for 6."), fontSize = 15.sp, color = PulseColors.textSecondary)
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(1, 3, 5, 10).forEach { m ->
@@ -570,7 +572,7 @@ fun BreatheScreen(onBack: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = { result = null; elapsedMs = 0L; startedAt = System.currentTimeMillis() }) { Text("Start") }
+                Button(onClick = { result = null; elapsedMs = 0L; startedAt = System.currentTimeMillis() }) { Text(tr("Start")) }
             }
         }
         Spacer(Modifier.weight(1f))
@@ -591,10 +593,10 @@ fun MyHealthEntryCard(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text("My Health & Trends", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(tr("My Health & Trends"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(
                 if (restUntil != null) "Rest Mode on until ${restUntil.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault())}"
-                else "Symptom radar, sleep debt, stress, body clock, cardio capacity",
+                else tr("Symptom radar, sleep debt, stress, body clock, cardio capacity"),
                 fontSize = 12.sp, color = if (restUntil != null) PulseColors.accent else PulseColors.textMuted,
             )
         }
@@ -623,13 +625,13 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
             com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())
         }.getOrNull()
     }
-    Section("Ring steps vs your phone") {
+    Section(tr("Ring steps vs your phone")) {
         when {
             !granted -> {
-                Text("Your phone counts steps too. Comparing the two over a few days shows whether your ring over- or under-counts.", fontSize = 13.sp, color = PulseColors.textSecondary)
+                Text(tr("Your phone counts steps too. Comparing the two over a few days shows whether your ring over- or under-counts."), fontSize = 13.sp, color = PulseColors.textSecondary)
                 OutlinedButton(onClick = {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) launcher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
-                }, modifier = Modifier.fillMaxWidth()) { Text("Compare with my phone") }
+                }, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare with my phone")) }
             }
             result == null -> Text(
                 "Collecting: needs ${com.pulseloop.service.StepCalibration.MIN_DAYS} days with at least ${com.pulseloop.service.StepCalibration.MIN_STEPS} steps on both. Carry your phone as usual.",
@@ -647,10 +649,10 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
                     fontSize = 14.sp, color = PulseColors.textPrimary,
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Show phone-calibrated steps on Today", fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+                    Text(tr("Show phone-calibrated steps on Today"), fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
                     Switch(checked = applied, onCheckedChange = { applied = it; com.pulseloop.service.StepCalibration.setApplied(context, it) })
                 }
-                Text("Goals, scores and Health Connect keep the ring's own count.", fontSize = 11.sp, color = PulseColors.textMuted)
+                Text(tr("Goals, scores and Health Connect keep the ring's own count."), fontSize = 11.sp, color = PulseColors.textMuted)
             }
         }
     }

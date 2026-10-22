@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.i18n.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -67,7 +69,7 @@ fun JournalTagsCard(
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
-                if (allowYesterday && onYesterday) "Tag yesterday" else title,
+                if (allowYesterday && onYesterday) tr("Tag yesterday") else title,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
@@ -162,10 +164,10 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Filled.ArrowBack, "Back")
+                Icon(Icons.Filled.ArrowBack, tr("Back"))
             }
             Text(
-                "Journal", modifier = Modifier.align(Alignment.Center),
+                tr("Journal"), modifier = Modifier.align(Alignment.Center),
                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
             )
         }
@@ -173,19 +175,19 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            JournalTagsCard(db, today, "Today")
-            JournalTagsCard(db, today.minusDays(1), "Yesterday")
+            JournalTagsCard(db, today, tr("Today"))
+            JournalTagsCard(db, today.minusDays(1), tr("Yesterday"))
             // The Alcohol tag is a yes/no; Drinks counts them, sets a limit and shows the dose.
             if (onOpenDrinks != null) {
                 Text(
-                    if (com.pulseloop.service.DrinkPrefs.enabled) "Open Drinks: this week, your plan and what drinking does to your nights"
-                    else "Want to drink less? Track drinks, set a weekly limit and see what each drink does to your nights",
+                    if (com.pulseloop.service.DrinkPrefs.enabled) tr("Open Drinks: this week, your plan and what drinking does to your nights")
+                    else tr("Want to drink less? Track drinks, set a weekly limit and see what each drink does to your nights"),
                     fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.drinks,
                     modifier = Modifier.clickable(onClick = onOpenDrinks).padding(vertical = 4.dp),
                 )
             }
 
-            Text("What affects you", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+            Text(tr("What affects you"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
             val list = effects
             when {
                 list == null -> Unit
@@ -212,7 +214,7 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
                 }
             }
             Text(
-                "These are patterns in your own data, not proof of cause and effect. Every tag is checked against your sleep, HRV and resting heart rate together, so a difference that could easily be chance isn't shown. They get more reliable the more days you tag.",
+                tr("These are patterns in your own data, not proof of cause and effect. Every tag is checked against your sleep, HRV and resting heart rate together, so a difference that could easily be chance isn't shown. They get more reliable the more days you tag."),
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
