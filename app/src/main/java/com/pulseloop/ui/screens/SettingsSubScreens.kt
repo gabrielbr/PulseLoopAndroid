@@ -2289,14 +2289,15 @@ private fun BackgroundSyncCard() {
 
 /** 24h/7d windows for the battery drainage chart (iOS #61b — only these two ranges). */
 private enum class BatteryHistoryRange(val label: String, val spanMs: Long) {
-    DAY(tr("24h"), 24 * 3600_000L),
-    WEEK(tr("7d"), 7 * 24 * 3600_000L),
+    DAY("24h", 24 * 3600_000L),
+    WEEK("7d", 7 * 24 * 3600_000L),
 }
 
 /** Fixed 0–100 zone coloring for the battery line — mirrors iOS `colorForValue`
  *  (≤20 danger, ≤50 warning, else success). Zone boundaries use an exclusive upper bound
  *  (`ZoneLineChart` matches `lower <= value < upper`), so 21/51 sit just above each cut. */
-private val batteryZones = listOf(
+/** A getter, so the zone names follow a language change without a restart. */
+private val batteryZones: List<MetricZone> get() = listOf(
     MetricZone("critical", tr("Critical"), null, 21.0, ZoneSeverity.CRITICAL, VitalColorToken.Red, tr("Battery critically low")),
     MetricZone("low", tr("Low"), 21.0, 51.0, ZoneSeverity.WATCH, VitalColorToken.Amber, tr("Battery low")),
     MetricZone("good", tr("Good"), 51.0, null, ZoneSeverity.OPTIMAL, VitalColorToken.Mint, tr("Battery healthy")),
