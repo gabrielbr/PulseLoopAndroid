@@ -726,7 +726,7 @@ object MealEstimator {
             if (!keyStore.coachEnabled || resolution.key == null) {
                 return@withContext Result.Failure(
                     tr("AI analysis needs the coach enabled with a configured provider (Settings → AI Coach). " +
-                        tr("You can still search the database or enter the meal manually.")),
+                        "You can still search the database or enter the meal manually."),
                 )
             }
             val model = CoachClientResolver.activeModel(providerStore.snapshot(), keyStore.model)

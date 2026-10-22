@@ -278,7 +278,7 @@ fun ActivityScreen(
             text = {
                 Text(
                     tr("Recording a workout needs the Physical activity permission. " +
-                        tr("You can allow it in Android Settings › Apps › PulseLoop › Permissions.")),
+                        "You can allow it in Android Settings › Apps › PulseLoop › Permissions."),
                 )
             },
             confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text("OK") } },

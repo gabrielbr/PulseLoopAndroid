@@ -128,7 +128,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
             item {
                 DebugCard(tr("Database")) {
                     Text(tr("Row counts include demo and real rows. Tap a table to see its newest rows. " +
-                        tr("Stored health rows are never included in a diagnostics export.")),
+                        "Stored health rows are never included in a diagnostics export."),
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     counts.forEach { count ->
                         Row(

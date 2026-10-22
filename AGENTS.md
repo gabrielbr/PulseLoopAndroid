@@ -1069,8 +1069,30 @@ gives the coach and its notifications the persona through `L10n.coachInstruction
   same topics (`FUNNY_VOICE`).
 - **The joke wraps the content.** Same facts, same values (`{0}` placeholders), same advice.
   Roast habits, never the person. Swearing is censored (`f*cking`), and the test checks that too.
-- **Adding the Portuguese version** is one enum entry and one file: `FUCKING_HEALTH_PT` with
-  `localeTag = "pt-BR"` and `catalogs = listOf("i18n/pt-BR-FH.json", "i18n/pt-BR.json")`, so a
-  string the Portuguese voice doesn't rewrite reads as plain Portuguese. Write the catalog in
-  Brazilian Portuguese (Brazilian censored swearing: p*rra, c*ralho, m*rda), not as a translation
-  of the English jokes, and extend `FuckingHealthCatalogTest` to cover it.
+- **The Portuguese voice is "Saúde do C*ralho"** (`FUCKING_HEALTH_PT`): `pt-BR-FH.json` layered on
+  `pt-BR.json`, so a string it doesn't rewrite reads as plain Portuguese. It was written natively
+  (p*rra, c*ralho, m*rda), not translated from the English jokes, and the same test covers it.
+
+## Postpartum mode: opt-in from the profile, and it never diagnoses
+
+**Read this before touching `service/Postpartum.kt` or `ui/screens/PostpartumUi.kt`.** Research and
+sources: `docs/postpartum-breastfeeding-research.md`.
+
+- **Only she switches it on**, in User Profile → Life stage (baby's birth date, feeding). It turns
+  itself off two years after the birth date (`Postpartum.active`).
+- **It never claims detection.** Not mastitis, fever, depression, preeclampsia, milk supply or
+  returning fertility; the ring's numbers are context. The alcohol time is an estimate (CDC: at
+  least 2 h per 14 g standard drink), said as one. The LAM card is information, not contraception
+  advice. Medications get e-lactancia/LactMed links and "ask your clinician", never a verdict.
+- **The mood check-in is the EPDS, verbatim** (`assets/epds.json`, with its citation). Don't
+  paraphrase items: the validated wording is the instrument. The Portuguese text is the Pelotas
+  2004 cohort's (Santos et al., 2007); its per-option scores were mapped by meaning from the English
+  scoring because the publication prints none, so have a clinician confirm them. **Any answer above
+  0 on item 10 shows CVV 188 and SAMU 192 at once, whatever the total.** Cut-offs: 10 (possible),
+  13 (likely), from the Brazilian validation.
+- **Answers stay on the phone**: SharedPreferences only, not the data archive, diagnostics or
+  Health Connect.
+- **The calorie allowance is tracked, not guessed** (`appliedCalorieBonus`): the intake goal moves
+  by the difference between what the stage calls for and what was added before, so weaning or
+  switching off takes exactly that back.
+- **No F*cking Health jokes here**: postpartum text is on the voice's safety list.

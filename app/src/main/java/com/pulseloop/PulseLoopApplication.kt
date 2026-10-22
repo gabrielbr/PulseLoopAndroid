@@ -27,6 +27,7 @@ class PulseLoopApplication : Application() {
         super.onCreate()
         CrashLogger.install(this)
         com.pulseloop.service.DrinkPrefs.init(this)
+        com.pulseloop.service.Postpartum.init(this)
         com.pulseloop.ui.theme.FairyMode.init(this)
         com.pulseloop.ui.i18n.L10n.init(this)
         com.pulseloop.health.source.HealthConnectSource.isEnabled(this) // warms [HealthConnectSource.enabledNow]

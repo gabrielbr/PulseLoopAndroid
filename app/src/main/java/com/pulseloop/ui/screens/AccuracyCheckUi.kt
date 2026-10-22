@@ -134,7 +134,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                 Text(tr("Compare your ring with another device"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
                     tr("Wear the ring and a watch or band you trust for a few days. PulseLoop reads that device's data from " +
-                        tr("Health Connect and shows where the ring agrees and where it falls short.")),
+                        "Health Connect and shows where the ring agrees and where it falls short."),
                     fontSize = 13.sp, color = PulseColors.textSecondary,
                 )
                 Text(

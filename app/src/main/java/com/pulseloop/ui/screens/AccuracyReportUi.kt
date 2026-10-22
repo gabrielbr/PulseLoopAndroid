@@ -352,7 +352,7 @@ private fun CorrectionDialog(
                 Text(
                     trf("Fitted from this check so your ring matches {0}: {1}. ", ref, AccuracyCorrections.formatValue(metric, fitted)) +
                         tr("It changes what PulseLoop shows and what it works out from it (zones, resting baseline, calorie estimate). " +
-                        tr("Your ring's stored readings and what goes to Health Connect stay as measured.")),
+                        "Your ring's stored readings and what goes to Health Connect stay as measured."),
                     fontSize = 12.sp,
                 )
                 Text(AccuracyCorrections.formatValue(metric, value), fontSize = 20.sp, fontWeight = FontWeight.Bold)

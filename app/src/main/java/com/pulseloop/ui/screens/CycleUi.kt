@@ -76,7 +76,15 @@ fun CycleScreen(onBack: () -> Unit) {
                 } else {
                     Text(trf("Day {0} · {1}", status.cycleDay, status.phase.label), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(status.phase.note, fontSize = 13.sp, color = PulseColors.textSecondary)
-                    status.nextStart?.let { next ->
+                    val paused = com.pulseloop.service.Postpartum.pausesCycle(
+                        com.pulseloop.service.Postpartum.active(today), com.pulseloop.service.Postpartum.birthDate,
+                        com.pulseloop.service.Postpartum.feeding, periods.map { LocalDate.ofEpochDay(it.startDay) },
+                    )
+                    if (paused) Text(
+                        tr("Predictions are paused after birth: while breastfeeding, and until your first period, cycles don't follow their usual pattern."),
+                        fontSize = 13.sp, color = PulseColors.textSecondary,
+                    )
+                    status.nextStart?.takeIf { !paused }?.let { next ->
                         val d = status.daysToNext ?: 0
                         Text(
                             if (d >= 0) trf("Next period around {0} (in {1} day{2}), from your usual {3}-day cycle.", next.format(fmt), d, if (d == 1) "" else "s", status.usualLength)

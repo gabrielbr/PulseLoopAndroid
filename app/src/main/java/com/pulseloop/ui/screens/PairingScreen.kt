@@ -742,13 +742,13 @@ private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () ->
         )
         Text(
             if (permanentlyDenied) {
-                tr("PulseLoop uses Bluetooth to find and connect your ring. " +
-                    tr("Allow ")) +
-                    (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) tr("\"Nearby devices\"") else tr("Location")) +
-                    " for PulseLoop in Settings."
+                trf(
+                    "PulseLoop uses Bluetooth to find and connect your ring. Allow {0} for PulseLoop in Settings.",
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) tr("\"Nearby devices\"") else tr("Location"),
+                )
             } else {
                 tr("PulseLoop uses Bluetooth to find and connect your ring. " +
-                    tr("Nothing is shared off your phone."))
+                    "Nothing is shared off your phone.")
             },
             fontSize = 14.sp,
             color = PulseColors.textSecondary,

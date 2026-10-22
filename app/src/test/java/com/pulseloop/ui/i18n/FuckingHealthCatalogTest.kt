@@ -15,10 +15,13 @@ import java.io.File
  */
 class FuckingHealthCatalogTest {
 
-    private val catalog: Map<String, String> = run {
-        val f = listOf("src/main/assets/i18n/en-FH.json", "app/src/main/assets/i18n/en-FH.json").map(::File).first { it.exists() }
-        Json.parseToJsonElement(f.readText()).jsonObject.mapValues { it.value.jsonPrimitive.content }
+    /** Both voices, English and Brazilian Portuguese, as (English key, voice line) pairs. */
+    private val all: List<Pair<String, String>> = listOf("en-FH.json", "pt-BR-FH.json").flatMap { name ->
+        val f = listOf("src/main/assets/i18n/$name", "app/src/main/assets/i18n/$name").map(::File).first { it.exists() }
+        Json.parseToJsonElement(f.readText()).jsonObject.map { (k, v) -> k to v.jsonPrimitive.content }
     }
+
+    private val catalog: Map<String, String> = all.toMap()
 
     @Test
     fun `safety, medical and crisis text keeps its plain wording`() {
@@ -35,7 +38,7 @@ class FuckingHealthCatalogTest {
     fun `values, format specifiers and spacing survive the attitude`() {
         val ph = Regex("\\{\\d+\\}")
         val spec = Regex("%[0-9$,.]*[sdf]")
-        catalog.forEach { (en, fh) ->
+        all.forEach { (en, fh) ->
             assertEquals("placeholders: $en", ph.findAll(en).map { it.value }.sorted().toList(), ph.findAll(fh).map { it.value }.sorted().toList())
             assertEquals("specifiers: $en", spec.findAll(en).map { it.value }.sorted().toList(), spec.findAll(fh).map { it.value }.sorted().toList())
             assertEquals("leading space: $en", en.startsWith(" "), fh.startsWith(" "))
@@ -45,8 +48,11 @@ class FuckingHealthCatalogTest {
 
     @Test
     fun `the swearing is censored`() {
-        val raw = Regex("\\b(fuck\\w*|shit\\w*|asshole|bitch\\w*|cunt|dick)\\b", RegexOption.IGNORE_CASE)
-        val uncensored = catalog.values.filter { raw.containsMatchIn(it) }
+        val raw = Regex(
+            "\\b(fuck\\w*|shit\\w*|asshole|bitch\\w*|cunt|dick|porra|caralho|merda|foda\\w*|puta\\w*|buceta|cacete)\\b",
+            RegexOption.IGNORE_CASE,
+        )
+        val uncensored = all.map { it.second }.filter { raw.containsMatchIn(it) }
         assertTrue("uncensored: ${uncensored.take(5)}", uncensored.isEmpty())
     }
 
