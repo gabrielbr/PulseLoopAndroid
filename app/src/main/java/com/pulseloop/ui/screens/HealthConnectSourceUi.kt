@@ -127,7 +127,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
             Text(
                 tr("No PulseLoop ring? If your Oura, Galaxy Ring, Fitbit or watch app writes to Health Connect, PulseLoop can " +
                     "read it from there: sleep, heart rate, HRV, blood oxygen, steps, calories, workouts and periods. " +
-                    tr("Every screen, the coach and your insights then work from that data.")),
+                    "Every screen, the coach and your insights then work from that data."),
                 fontSize = 13.sp, color = PulseColors.textSecondary,
             )
             Text(

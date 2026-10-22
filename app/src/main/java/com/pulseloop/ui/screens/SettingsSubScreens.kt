@@ -507,7 +507,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             Text(
                                 urlProblem?.let { LocalEndpoint.message(it) }
                                     ?: tr("Default ports — Ollama 11434 · LM Studio 1234 · llama.cpp 8080 · vLLM 8000 · SGLang 30000. " +
-                                       tr("The /v1 path is added for you.")),
+                                       "The /v1 path is added for you."),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (urlProblem != null) MaterialTheme.colorScheme.error
                                     else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -1171,7 +1171,7 @@ private fun GuidanceSwitch(title: String, subtitle: String, checked: Boolean, on
  * BP/glucose calibration moved to the capability-gated Calibration screen (iOS #49).
  */
 @Composable
-fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
+fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit, onOpenPostpartum: () -> Unit = {}) {
     val context = LocalContext.current
     val keyStore = remember { ApiKeyStore(context) }
     val db = remember { PulseLoopDatabase.getInstance(context) }
@@ -1191,12 +1191,14 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit)
     SettingsSubScreen(title = tr("User Profile"), onBack = onBack) {
         Text(
             tr("Your age, sex, height and weight let the ring compute accurate calories (and, on " +
-                tr("56ff/Jring rings, blood sugar). Blood pressure is measured directly by the sensor.")),
+                "56ff/Jring rings, blood sugar). Blood pressure is measured directly by the sensor."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         // A smart scale's weight and body composition, read from Health Connect.
         HealthConnectBodyCard(onUpdated = { profileReload++ })
+        // Postpartum / breastfeeding: only ever switched on here, by the user.
+        PostpartumProfileCard(onOpen = onOpenPostpartum)
 
         profileDraft?.let { draft ->
             // Shared editor (iOS #48) — same component as the onboarding Profile step, with
@@ -1287,7 +1289,7 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
     SettingsSubScreen(title = tr("Physiology"), onBack = onBack) {
         Text(
             tr("Optional refinements to how your vitals are interpreted. Leave anything unset and " +
-                tr("PulseLoop uses sensible defaults.")),
+                "PulseLoop uses sensible defaults."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -1476,7 +1478,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                 Text(tr("Blood sugar calibration"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     tr("Optional. The ring estimates glucose from your profile, not a real sensor. " +
-                        tr("Enter a recent lab/meter reading (mg/dL) to offset the displayed value to match.")),
+                        "Enter a recent lab/meter reading (mg/dL) to offset the displayed value to match."),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -1891,7 +1893,7 @@ private fun QuietHoursCard() {
                     tr("To log when Bedtime or Do Not Disturb turns on and off while PulseLoop is " +
                         "in the background, Android requires Notification access. PulseLoop only " +
                         "listens for Mode changes and does not read your notifications.\n\n" +
-                        tr("If the switch is greyed out, open PulseLoop's App info, tap ⋮ → Allow restricted settings, then come back here.")),
+                        "If the switch is greyed out, open PulseLoop's App info, tap ⋮ → Allow restricted settings, then come back here."),
                 )
             },
             confirmButton = {
@@ -2735,7 +2737,7 @@ fun PrivacyDataSettingsScreen(
             text = {
                 Text(
                     tr("Removes all demo measurements, activity, sleep, and the demo device. " +
-                    tr("Synced ring data is not affected.")),
+                    "Synced ring data is not affected."),
                 )
             },
             confirmButton = {

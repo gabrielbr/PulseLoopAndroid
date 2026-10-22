@@ -237,6 +237,12 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                 score?.let {
                     Text(it.band.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = bandColor(it.band))
                 }
+                if (com.pulseloop.service.Postpartum.active()) {
+                    Text(
+                        tr("Postpartum: your baseline is still settling after birth, so read the score against recent weeks, not against before."),
+                        fontSize = 12.sp, color = PulseColors.textMuted,
+                    )
+                }
                 if (result != null) {
                     Text(
                         ReadinessCopy.headline(result), fontSize = 15.sp, color = PulseColors.textSecondary,

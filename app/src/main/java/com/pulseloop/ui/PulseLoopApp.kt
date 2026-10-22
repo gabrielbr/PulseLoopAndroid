@@ -222,6 +222,8 @@ fun PulseLoopApp() {
                 com.pulseloop.notifications.GuidanceWorker.schedule(context.applicationContext)
                 com.pulseloop.health.HealthConnectBodyImport.schedule(context.applicationContext)
                 com.pulseloop.health.source.HealthConnectSource.schedule(context.applicationContext)
+                // The breastfeeding allowance grows at six months and ends at twelve.
+                runCatching { com.pulseloop.ui.screens.syncCalorieGoal(context.applicationContext) }
                 runCatching { com.pulseloop.health.ProfileAging.refresh(db) }
 
                 // NOTE: demo data is never auto-seeded. A clean install starts empty so the UI
@@ -608,7 +610,7 @@ fun PulseLoopApp() {
                     CheckInsSettingsScreen(onBack = { navController.popBackStack() })
                 }
                 paddedComposable("settings/profile") {
-                    ProfileSettingsScreen(coordinator, onBack = { navController.popBackStack() })
+                    ProfileSettingsScreen(coordinator, onBack = { navController.popBackStack() }, onOpenPostpartum = { navController.navigate("postpartum") })
                 }
                 paddedComposable("settings/physiology") {
                     PhysiologySettingsScreen(onBack = { navController.popBackStack() })
@@ -710,6 +712,13 @@ fun PulseLoopApp() {
                         onWhatChanged = { navController.navigate("what_changed") },
                         onCycle = { navController.navigate("cycle") },
                         onMeds = { navController.navigate("meds") },
+                        onPostpartum = { navController.navigate("postpartum") },
+                    )
+                }
+                paddedComposable("postpartum") {
+                    com.pulseloop.ui.screens.PostpartumScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenProfile = { navController.navigate("settings/profile") },
                     )
                 }
                 paddedComposable("meds") {

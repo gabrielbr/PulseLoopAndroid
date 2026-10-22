@@ -243,6 +243,7 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
                 } else when (tab) {
                     0 -> {
                         WeekHero(s)
+                        BreastfeedingAlcoholCard(s)
                         LogCard(db, s) { refresh++ }
                         InsightCard(s)
                     }
@@ -269,6 +270,26 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
 }
 
 // ── Welcome ─────────────────────────────────────────────────────────────────────────────────
+
+/**
+ * While breastfeeding (Postpartum mode): when the drinks just logged should be out of her milk, by
+ * CDC's two-hours-per-drink rule. An estimate, said as one, with what doesn't help (pumping and
+ * dumping) and what is safest (not drinking).
+ */
+@Composable
+private fun BreastfeedingAlcoholCard(s: DrinksRepository.Snapshot) {
+    if (!com.pulseloop.service.Postpartum.breastfeeding) return
+    val now = System.currentTimeMillis()
+    val clear = com.pulseloop.service.Postpartum.alcoholClearAt(s.recent.map { it.timestamp to it.grams }, now) ?: return
+    val time = DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochMilli(clear).atZone(ZoneId.systemDefault()))
+    DrinkCard {
+        Text(trf("Breastfeeding: estimated clear around {0}", time), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.warning)
+        Text(
+            tr("CDC suggests waiting at least 2 hours per standard drink before feeding. It's an estimate: bodies differ, and pumping and dumping doesn't make it faster. Not drinking is the safest choice."),
+            fontSize = 12.sp, color = PulseColors.textSecondary,
+        )
+    }
+}
 
 @Composable
 private fun Benefit(icon: ImageVector, text: String) {

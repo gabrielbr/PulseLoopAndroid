@@ -35,6 +35,10 @@ enum class AppLanguage(
         "fh-en", "F*cking Health", "en", listOf("i18n/en-FH.json"), Voice.FUNNY,
         caption = "English, with attitude. Strong language.",
     ),
+    FUCKING_HEALTH_PT(
+        "fh-pt", "Saúde do C*ralho", "pt-BR", listOf("i18n/pt-BR-FH.json", "i18n/pt-BR.json"), Voice.FUNNY,
+        caption = "Português, com atitude. Linguagem forte.",
+    ),
 }
 
 /**
@@ -119,7 +123,8 @@ object L10n {
         "\n\nVOICE: The user picked \"F*cking Health\", the app's sarcastic, foul-mouthed persona. Talk like a " +
             "grumpy best friend who happens to know physiology: blunt, funny, a bit theatrical, complaining about " +
             "the numbers even when they're good. Swear, but censor it with asterisks the way the app does " +
-            "(f*cking, sh*t, WTF, damn). Short punchy sentences, rhetorical questions, the odd exclamation. " +
+            "(f*cking, sh*t, WTF, damn; in Portuguese, Brazilian swearing censored the same way: p*rra, c*ralho, " +
+            "m*rda, f*da). Short punchy sentences, rhetorical questions, the odd exclamation. " +
             "The facts, numbers and advice must stay exactly as accurate and useful as in plain mode; the " +
             "attitude is the wrapping, not the content. Roast the habits, never the person: no jokes about " +
             "weight, body shape, age, gender, illness or appearance. Drop the act completely and be calm, kind " +

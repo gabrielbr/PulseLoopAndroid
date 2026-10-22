@@ -339,7 +339,7 @@ private fun WelcomeStep(
                 if (permissionDenied) {
                     Text(
                         tr("PulseLoop needs Bluetooth permission to find and connect to your ring. " +
-                            tr("Allow it in Settings, or continue without a ring and pair one later.")),
+                            "Allow it in Settings, or continue without a ring and pair one later."),
                         fontSize = 13.sp,
                         color = PulseColors.textSecondary,
                         textAlign = TextAlign.Center,

@@ -1204,10 +1204,10 @@ private fun zoneRangeText(
 private fun metricDisclaimer(metric: String, isDerived: Boolean): String? = when {
     metric == "stress" && isDerived ->
         tr("Estimated from HRV — your ring doesn't measure stress. Scored against your own recent " +
-        tr("HRV readings, so it says how this reading compares with your normal, not how you compare with anyone else."))
+        "HRV readings, so it says how this reading compares with your normal, not how you compare with anyone else.")
     metric == "glucose" ->
         tr("Estimated wellness metric — not for dosing or diabetes decisions. No smart ring or watch is " +
-        tr("FDA-authorized to measure or estimate glucose on its own."))
+        "FDA-authorized to measure or estimate glucose on its own.")
     metric == "bp" ->
         tr("Ring blood pressure is an estimate. Calibrate against a validated cuff in Settings → Calibration, " +
         "and talk to a clinician about persistent high or low readings.")
@@ -1236,15 +1236,15 @@ private fun metricExplainer(metric: String): String = when (metric) {
     "hrv" -> tr("Heart-rate variability is the variation between beats. It's highly individual, so we track it " +
         "against your personal baseline rather than a universal cutoff.")
     "bp" -> tr("Blood pressure is systolic over diastolic (mmHg). The category is the worse of the two. " +
-        tr("A ring estimate is not a substitute for a cuff."))
+        "A ring estimate is not a substitute for a cuff.")
     "stress" -> tr("A device wellness score from 0–100 based on heart-rate patterns. Lower is calmer. " +
-        tr("It's an estimate, not a medical stress measure."))
+        "It's an estimate, not a medical stress measure.")
     "fatigue" -> tr("A device wellness score from 0–100 estimating tiredness. Higher means more fatigue. " +
-        tr("It's a ring estimate, not a clinical scale."))
+        "It's a ring estimate, not a clinical scale.")
     "glucose" -> tr("An estimated glucose value. No smart ring is cleared to measure glucose, so treat this " +
         "as a wellness estimate only.")
     "temp" -> tr("Skin temperature from the ring runs cooler than core body temperature. " +
-        tr("Trends over time matter more than any single reading."))
+        "Trends over time matter more than any single reading.")
     else -> ""
 }
 

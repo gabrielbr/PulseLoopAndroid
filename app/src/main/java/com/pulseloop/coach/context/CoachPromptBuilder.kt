@@ -75,6 +75,8 @@ data class CoachContextPacket(
     val primaryGoal: com.pulseloop.service.GoalPlan.Plan? = null,
     /** Drinks, when the user tracks them (docs/drinks-plan.md); null otherwise. */
     val drinks: com.pulseloop.service.DrinksContext? = null,
+    /** The postpartum life stage, when she switched it on in her profile; null otherwise. */
+    val postpartum: com.pulseloop.service.PostpartumContext? = null,
 ) {
     @kotlinx.serialization.Serializable
     data class ProfileContext(

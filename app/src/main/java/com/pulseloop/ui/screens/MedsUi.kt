@@ -113,6 +113,22 @@ fun MedsScreen(onBack: () -> Unit) {
                         Text(m.name + (m.dose?.let { " · $it" } ?: ""), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
                             color = if (m.active) PulseColors.textPrimary else PulseColors.textMuted)
                         val adherence = Meds.adherence(m, answers, today)
+                        if (com.pulseloop.service.Postpartum.breastfeeding) {
+                            Text(
+                                tr("While breastfeeding: check in e-lactancia or LactMed, and ask your clinician"),
+                                fontSize = 12.sp, color = PulseColors.accent,
+                                modifier = Modifier.clickable {
+                                    runCatching {
+                                        context.startActivity(
+                                            android.content.Intent(
+                                                android.content.Intent.ACTION_VIEW,
+                                                android.net.Uri.parse("https://www.e-lactancia.org/buscar/?term=" + android.net.Uri.encode(m.name)),
+                                            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                                        )
+                                    }
+                                },
+                            )
+                        }
                         Text(
                             (if (m.kind == "supplement") tr("Supplement") else tr("Medication")) + " · " + Meds.times(m).joinToString(", ") +
                                 (adherence?.let { trf(" · {0}% taken this week", it) } ?: "") + if (!m.active) tr(" · paused") else "",

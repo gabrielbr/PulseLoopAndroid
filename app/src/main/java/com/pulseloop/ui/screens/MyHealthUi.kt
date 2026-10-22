@@ -132,7 +132,7 @@ private fun Sparkline(values: List<Double>, color: Color, modifier: Modifier = M
 }
 
 @Composable
-fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}) {
+fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}, onPostpartum: () -> Unit = {}) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -188,6 +188,20 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                         Text(tr("Your nights against your own normal, kept as a log"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
+                if (com.pulseloop.service.Postpartum.active()) {
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                            .clickable(onClick = onPostpartum).padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            val birth = com.pulseloop.service.Postpartum.birthDate!!
+                            Text(trf("Postpartum · week {0}", com.pulseloop.service.Postpartum.weeksSince(birth, java.time.LocalDate.now())), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                            Text(tr("Recovery, nights, mood check-in and warning signs"), fontSize = 12.sp, color = PulseColors.textMuted)
+                        }
+                        Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                    }
                 }
                 val periods by remember { db.periodDao().allFlow() }.collectAsState(initial = emptyList())
                 val cycle = Cycle.status(periods.map { it.toPeriod() }, java.time.LocalDate.now())

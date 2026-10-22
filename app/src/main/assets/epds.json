@@ -1,0 +1,435 @@
+{
+ "en": {
+  "instruction": "As you have recently had a baby, we would like to know how you are feeling. Please choose the answer which comes closest to how you have felt IN THE PAST 7 DAYS, not just how you feel today.",
+  "items_heading": "In the past 7 days:",
+  "items": [
+   {
+    "text": "I have been able to laugh and see the funny side of things.",
+    "options": [
+     {
+      "text": "As much as I always could",
+      "score": 0
+     },
+     {
+      "text": "Not quite so much now",
+      "score": 1
+     },
+     {
+      "text": "Definitely not so much now",
+      "score": 2
+     },
+     {
+      "text": "Not at all",
+      "score": 3
+     }
+    ]
+   },
+   {
+    "text": "I have looked forward with enjoyment to things.",
+    "options": [
+     {
+      "text": "As much as I ever did",
+      "score": 0
+     },
+     {
+      "text": "Rather less than I used to",
+      "score": 1
+     },
+     {
+      "text": "Definitely less than I used to",
+      "score": 2
+     },
+     {
+      "text": "Hardly at all",
+      "score": 3
+     }
+    ]
+   },
+   {
+    "text": "I have blamed myself unnecessarily when things went wrong.",
+    "options": [
+     {
+      "text": "Yes, most of the time",
+      "score": 3
+     },
+     {
+      "text": "Yes, some of the time",
+      "score": 2
+     },
+     {
+      "text": "Not very often",
+      "score": 1
+     },
+     {
+      "text": "No, never",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "I have been anxious or worried for no good reason.",
+    "options": [
+     {
+      "text": "No, not at all",
+      "score": 0
+     },
+     {
+      "text": "Hardly ever",
+      "score": 1
+     },
+     {
+      "text": "Yes, sometimes",
+      "score": 2
+     },
+     {
+      "text": "Yes, very often",
+      "score": 3
+     }
+    ]
+   },
+   {
+    "text": "I have felt scared or panicky for no very good reason.",
+    "options": [
+     {
+      "text": "Yes, quite a lot",
+      "score": 3
+     },
+     {
+      "text": "Yes, sometimes",
+      "score": 2
+     },
+     {
+      "text": "No, not much",
+      "score": 1
+     },
+     {
+      "text": "No, not at all",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Things have been getting on top of me.",
+    "options": [
+     {
+      "text": "Yes, most of the time I haven't been able to cope at all",
+      "score": 3
+     },
+     {
+      "text": "Yes, sometimes I haven't been coping as well as usual",
+      "score": 2
+     },
+     {
+      "text": "No, most of the time I have coped quite well",
+      "score": 1
+     },
+     {
+      "text": "No, I have been coping as well as ever",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "I have been so unhappy that I have had difficulty sleeping.",
+    "options": [
+     {
+      "text": "Yes, most of the time",
+      "score": 3
+     },
+     {
+      "text": "Yes, sometimes",
+      "score": 2
+     },
+     {
+      "text": "Not very often",
+      "score": 1
+     },
+     {
+      "text": "No, not at all",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "I have felt sad or miserable.",
+    "options": [
+     {
+      "text": "Yes, most of the time",
+      "score": 3
+     },
+     {
+      "text": "Yes, quite often",
+      "score": 2
+     },
+     {
+      "text": "Not very often",
+      "score": 1
+     },
+     {
+      "text": "No, not at all",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "I have been so unhappy that I have been crying.",
+    "options": [
+     {
+      "text": "Yes, most of the time",
+      "score": 3
+     },
+     {
+      "text": "Yes, quite often",
+      "score": 2
+     },
+     {
+      "text": "Only occasionally",
+      "score": 1
+     },
+     {
+      "text": "No, never",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "The thought of harming myself has occurred to me.",
+    "options": [
+     {
+      "text": "Yes, quite often",
+      "score": 3
+     },
+     {
+      "text": "Sometimes",
+      "score": 2
+     },
+     {
+      "text": "Hardly ever",
+      "score": 1
+     },
+     {
+      "text": "Never",
+      "score": 0
+     }
+    ]
+   }
+  ]
+ },
+ "pt": {
+  "instruction": "Marque a resposta que melhor reflete como você tem se sentido nos últimos 7 dias:",
+  "items": [
+   {
+    "text": "Eu tenho sido capaz de rir e achar graça das coisas.",
+    "options": [
+     {
+      "text": "Como eu sempre fiz.",
+      "score": 0
+     },
+     {
+      "text": "Não tanto quanto antes.",
+      "score": 1
+     },
+     {
+      "text": "Sem dúvida, menos que antes.",
+      "score": 2
+     },
+     {
+      "text": "De jeito nenhum.",
+      "score": 3
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho pensado no futuro com alegria.",
+    "options": [
+     {
+      "text": "Sim, como de costume.",
+      "score": 0
+     },
+     {
+      "text": "Um pouco menos que de costume.",
+      "score": 1
+     },
+     {
+      "text": "Muito menos que de costume.",
+      "score": 2
+     },
+     {
+      "text": "Praticamente não.",
+      "score": 3
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho me culpado sem razão quando as coisas dão errado.",
+    "options": [
+     {
+      "text": "Não, de jeito nenhum.",
+      "score": 0
+     },
+     {
+      "text": "Raramente.",
+      "score": 1
+     },
+     {
+      "text": "Sim, às vezes.",
+      "score": 2
+     },
+     {
+      "text": "Sim, muito freqüentemente.",
+      "score": 3
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho ficado ansiosa ou preocupada sem uma boa razão.",
+    "options": [
+     {
+      "text": "Sim, muito seguido.",
+      "score": 3
+     },
+     {
+      "text": "Sim, às vezes.",
+      "score": 2
+     },
+     {
+      "text": "De vez em quando.",
+      "score": 1
+     },
+     {
+      "text": "Não, de jeito nenhum.",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho me sentido assustada ou em pânico sem um bom motivo.",
+    "options": [
+     {
+      "text": "Sim, muito seguido.",
+      "score": 3
+     },
+     {
+      "text": "Sim, às vezes.",
+      "score": 2
+     },
+     {
+      "text": "Raramente.",
+      "score": 1
+     },
+     {
+      "text": "Não, de jeito nenhum.",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho me sentido sobrecarregada pelas tarefas e acontecimentos do meu dia-a-dia.",
+    "options": [
+     {
+      "text": "Sim. Na maioria das vezes eu não consigo lidar bem com eles.",
+      "score": 3
+     },
+     {
+      "text": "Sim. Algumas vezes não consigo lidar bem como antes.",
+      "score": 2
+     },
+     {
+      "text": "Não. Na maioria das vezes consigo lidar bem com eles.",
+      "score": 1
+     },
+     {
+      "text": "Não. Eu consigo lidar com eles tão bem quanto antes.",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho me sentido tão infeliz que eu tenho tido dificuldade de dormir.",
+    "options": [
+     {
+      "text": "Sim, na maioria das vezes.",
+      "score": 3
+     },
+     {
+      "text": "Sim, algumas vezes.",
+      "score": 2
+     },
+     {
+      "text": "Raramente.",
+      "score": 1
+     },
+     {
+      "text": "Não, nenhuma vez.",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho me sentido triste ou muito mal.",
+    "options": [
+     {
+      "text": "Sim, na maioria das vezes.",
+      "score": 3
+     },
+     {
+      "text": "Sim, muitas vezes.",
+      "score": 2
+     },
+     {
+      "text": "Raramente.",
+      "score": 1
+     },
+     {
+      "text": "Não, de jeito nenhum.",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho me sentido tão triste que tenho chorado.",
+    "options": [
+     {
+      "text": "Sim, a maior parte do tempo.",
+      "score": 3
+     },
+     {
+      "text": "Sim, muitas vezes.",
+      "score": 2
+     },
+     {
+      "text": "Só de vez em quando.",
+      "score": 1
+     },
+     {
+      "text": "Não, nunca.",
+      "score": 0
+     }
+    ]
+   },
+   {
+    "text": "Eu tenho pensado em fazer alguma coisa contra mim mesma.",
+    "options": [
+     {
+      "text": "Sim, muitas vezes.",
+      "score": 3
+     },
+     {
+      "text": "Às vezes.",
+      "score": 2
+     },
+     {
+      "text": "Raramente.",
+      "score": 1
+     },
+     {
+      "text": "Nunca.",
+      "score": 0
+     }
+    ]
+   }
+  ]
+ },
+ "citation_en": "Cox JL, Holden JM, Sagovsky R. Detection of postnatal depression: development of the 10-item Edinburgh Postnatal Depression Scale. British Journal of Psychiatry 1987;150:782-786. Users may reproduce the scale without further permission providing they respect copyright by quoting the names of the authors, the title and the source of the paper in all reproduced copies.",
+ "citation_pt": "Escala de Depressão Pós-Parto de Edimburgo (EPDS), versão em português utilizada na Coorte de Nascimentos de Pelotas de 2004. Texto conforme publicado em: Santos IS, Matijasevich A, Tavares BF, Lima ACC, Riegel RE, Lopes BC. Comparing validity of Edinburgh scale and SRQ20 in screening for post-partum depression. Clin Pract Epidemiol Ment Health 2007;3:18 (Tabela 1). Validação: Santos IS, Matijasevich A, Tavares BF, Barros AJD, Botelho IP, Lapolli C, et al. Validation of the Edinburgh Postnatal Depression Scale (EPDS) in a sample of mothers from the 2004 Pelotas Birth Cohort Study. Cad Saúde Pública 2007;23(11):2577-2588. doi:10.1590/S0102-311X2007001100005. Escala original: Cox JL, Holden JM, Sagovsky R. Br J Psychiatry 1987;150:782-786."
+}
