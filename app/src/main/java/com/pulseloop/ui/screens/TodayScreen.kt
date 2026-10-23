@@ -108,13 +108,15 @@ fun TodayScreen(
     val sleepLoaded = sleepViewModel == null || sleep.loaded
     val vitalsLoaded = vitalsViewModel == null || vitals.loaded
     val guidance = rememberGuidance(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
-    var mealSheet by remember { mutableStateOf(false) }
     var briefSheet by remember { mutableStateOf(false) }
-    var tagSheet by remember { mutableStateOf(false) }
+    // The "+ Log" sheet is app-wide (PulseLoopApp); Today's shortcuts open it at a step, and
+    // its closing is what refreshes the food and drinks numbers here.
+    val logOpen by com.pulseloop.ui.LaunchRequests.openLog.collectAsState()
+    fun openLog(step: LogStep) { com.pulseloop.ui.LaunchRequests.openLog.value = step }
     // Today's food log, for the Nutrition tile and the midday food moment. [foodLoaded] tells the
     // first load apart from "nothing logged", so the tile doesn't flash 0 kcal before it.
     var foodLoaded by remember { mutableStateOf(false) }
-    val food by produceState<FoodTotals?>(null, state.lastUpdated, mealSheet) {
+    val food by produceState<FoodTotals?>(null, state.lastUpdated, logOpen) {
         value = runCatching {
             val meals = db.mealEntryDao().byDay(java.time.LocalDate.now().atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli())
             val goal = db.userGoalDao().get()
@@ -145,7 +147,7 @@ fun TodayScreen(
     var drinkTick by remember { mutableIntStateOf(0) }
     var drinksLoaded by remember { mutableStateOf(false) }
     val accuracyOpen by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
-    val drinks by produceState<com.pulseloop.service.DrinksRepository.Snapshot?>(null, state.lastUpdated, sleep.lastNight?.id, drinkTick) {
+    val drinks by produceState<com.pulseloop.service.DrinksRepository.Snapshot?>(null, state.lastUpdated, sleep.lastNight?.id, drinkTick, logOpen) {
         value = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching { com.pulseloop.service.DrinksRepository.load(db) }.getOrNull() else null
         drinksLoaded = true
     }
@@ -188,7 +190,7 @@ fun TodayScreen(
         when (card) {
             DashboardCard.ACTIVITY -> ActivityTileFor(state, units, m, onTap = { navController?.navigate("activity") }, stepFactor = stepFactor)
             DashboardCard.SLEEP -> SleepTileFor(sleep, m) { navController?.navigate("sleep") }
-            DashboardCard.NUTRITION -> NutritionTile(food, foodLoaded, m, onLog = { mealSheet = true }) { navController?.navigate("nutrition") }
+            DashboardCard.NUTRITION -> NutritionTile(food, foodLoaded, m, onLog = { openLog(LogStep.MEAL) }) { navController?.navigate("nutrition") }
             DashboardCard.DRINKS -> TodayTile(label = tr("Drinks"), color = PulseColors.drinks, modifier = m, onTap = { navController?.navigate("drinks") }) {
                 // The empty tile until the first load, not "0 of 14 this week".
                 if (drinksLoaded) DrinksTileContent(
@@ -246,12 +248,17 @@ fun TodayScreen(
                 val alert = guidance?.offSignals?.takeIf { com.pulseloop.service.VitalsCheck.shouldAlert(it) }
                 val summary = state.coachSummary
                 // Until readiness has loaded, the fallback would be the hero's "sync your ring" copy,
-                // which flashed on every launch before the real sentence replaced it.
-                val pending = !(coachEnabled && summary != null) && !readinessLoad.loaded
+                // which flashed on every launch before the real sentence replaced it. Space is held
+                // only when a coach brief is likely to fill it; without the coach the line is
+                // usually empty once loaded, and holding it would collapse on every launch.
+                val pending = coachEnabled && summary == null && !readinessLoad.loaded
+                // The readiness sentence is already the line under the score rings, so it isn't
+                // repeated here: this line is for the coach's brief, or the hero copy when there
+                // is no readiness at all.
                 val insight = when {
                     coachEnabled && summary != null -> listOf(summary.title, summary.body).filter { it.isNotBlank() }.joinToString(". ")
-                    readiness != null -> com.pulseloop.service.ReadinessCopy.headline(readiness)
-                    pending -> null
+                    !readinessLoad.loaded -> null
+                    readiness != null -> null
                     else -> hero.summary
                 }
                 TodayGlance(
@@ -267,8 +274,8 @@ fun TodayScreen(
             // Act: one tap to log, then at most two cards chosen by the time of day.
             item {
                 QuickLogRow(
-                    onMeal = { mealSheet = true },
-                    onTag = { tagSheet = true },
+                    onMeal = { openLog(LogStep.MEAL) },
+                    onDrink = { openLog(LogStep.DRINK) },
                     onMeasure = { navController?.navigate("vitals") },
                     onWorkout = {
                         com.pulseloop.ui.LaunchRequests.openWorkoutPicker.value = true
@@ -276,9 +283,25 @@ fun TodayScreen(
                     },
                 )
             }
+            item {
+                ProgramsRow(
+                    db = db,
+                    onCycle = { navController?.navigate("cycle") },
+                    onMeds = { navController?.navigate("meds") },
+                    onPostpartum = { navController?.navigate("postpartum") },
+                )
+            }
+            item {
+                val unusual = guidance?.offSignals?.let { com.pulseloop.service.VitalsCheck.shouldAlert(it) } == true
+                RestModeLine(offerIt = unusual)
+            }
             val moments = TodayMoments.at(
                 hour = java.time.LocalTime.now().hour,
-                hasSleep = sleep.lastNight != null,
+                // The Sleep tile already shows last night, so the morning card only adds itself
+                // when the tile is hidden or when it carries what the tile can't: what last
+                // night's drinks did to the night.
+                hasSleep = sleep.lastNight != null &&
+                    (DashboardCard.SLEEP !in visibleOrdered || drinks?.morningAfter != null),
                 // The tile already invites a meal when it is on the grid; the card is for when it isn't.
                 mealsToday = if (DashboardCard.NUTRITION in visibleOrdered) -1 else mealsToday ?: -1,
                 hasBedtime = guidance?.bedtime != null,
@@ -375,12 +398,6 @@ fun TodayScreen(
             item { Spacer(Modifier.height(64.dp)) }
         }
 
-        if (mealSheet) {
-            MealSheet(onDismiss = { mealSheet = false }) { start ->
-                mealSheet = false
-                navController?.navigate("nutrition/$start")
-            }
-        }
         if (briefSheet) {
             val summary = state.coachSummary
             val fromCoach = coachEnabled && summary != null
@@ -396,12 +413,6 @@ fun TodayScreen(
                     navController?.navigate("coach")
                 },
             )
-        }
-        if (tagSheet) {
-            TagDaySheet(db, onDismiss = { tagSheet = false }) {
-                tagSheet = false
-                navController?.navigate("journal")
-            }
         }
 
         PullRefreshIndicator(

@@ -875,7 +875,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { askEnableCheckIns = false },
             title = { Text(tr("Enable Coach Check-Ins?")) },
-            text = { Text(tr("Get a daily check-in from your coach. You can change this anytime in Coach Check-Ins.")) },
+            text = { Text(tr("Get a daily check-in from your coach. You can change this anytime in Settings → Notifications.")) },
             confirmButton = {
                 TextButton(onClick = { askEnableCheckIns = false; enableCheckIns() }) { Text(tr("Enable")) }
             },
@@ -957,16 +957,33 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
         }
     }
 
-    SettingsSubScreen(title = tr("Coach Check-Ins"), onBack = onBack) {
-        if (!coachEnabled) {
-            Card(Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Text(tr("AI Coach is off"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                    Spacer(Modifier.height(4.dp))
+    SettingsSubScreen(title = tr("Notifications"), onBack = onBack) {
+        // Guidance and battery alerts work without the coach, so they lead; the coach's own
+        // check-ins come last and explain themselves when the coach is off.
+        DailyGuidanceSettingsCard()
+
+        // Ring battery alerts — independent of the coach toggle (iOS #61a puts this in its own
+        // NotificationsSettingsView section): a local notification at <20% / <10%, once per day.
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text(tr("Ring battery alerts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    tr("Get notified when your ring drops below 20% and 10%, so tracking doesn't stop mid-day."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth()
+                    .switchRow(checked = batteryAlertsEnabled, onCheckedChange = { setBatteryAlerts(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Low Battery Notifications"), Modifier.weight(1f))
+                    Switch(checked = batteryAlertsEnabled, onCheckedChange = null)
+                }
+                if (batteryPermDenied) {
                     Text(
-                        tr("Enable the AI Coach to change these — daily check-ins are written by the coach from your recent trends."),
+                        tr("Notifications are disabled for PulseLoop in Android Settings."),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = PulseColors.danger,
                     )
                 }
             }
@@ -975,6 +992,14 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text(tr("Daily check-ins"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                if (!coachEnabled) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        tr("Enable the AI Coach to change these — daily check-ins are written by the coach from your recent trends."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
 
                 Row(Modifier.fillMaxWidth()
@@ -1053,34 +1078,6 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
             }
         }
 
-        // Ring battery alerts — independent of the coach toggle (iOS #61a puts this in its own
-        // NotificationsSettingsView section): a local notification at <20% / <10%, once per day.
-        Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(16.dp)) {
-                Text(tr("Ring battery alerts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    tr("Get notified when your ring drops below 20% and 10%, so tracking doesn't stop mid-day."),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(12.dp))
-                Row(Modifier.fillMaxWidth()
-                    .switchRow(checked = batteryAlertsEnabled, onCheckedChange = { setBatteryAlerts(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text(tr("Low Battery Notifications"), Modifier.weight(1f))
-                    Switch(checked = batteryAlertsEnabled, onCheckedChange = null)
-                }
-                if (batteryPermDenied) {
-                    Text(
-                        tr("Notifications are disabled for PulseLoop in Android Settings."),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = PulseColors.danger,
-                    )
-                }
-            }
-        }
-
-        DailyGuidanceSettingsCard()
     }
 }
 
@@ -1579,10 +1576,7 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
                             includeWeeklyWorkouts = true,
                         )
                         db.userGoalDao().upsert(saved)
-                        com.pulseloop.service.GoalSync.noteEdits(context, saved)
-                        coordinator?.setGoal(draft.steps.toInt())
-                        // Ring goals drive the widget's activity rings — republish.
-                        com.pulseloop.widgets.WidgetSnapshotPublisher.publish(context)
+                        com.pulseloop.service.GoalSync.afterManualSave(context, saved, coordinator)
                         goalSavedMsg = if (coordinator?.isConnected == true)
                             tr("Saved & sent to ring ✓") else tr("Saved")
                     }
@@ -3334,7 +3328,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                 Text(tr("Health Connect"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    tr("Export ring data to Health Connect so other apps and dashboards can show it. Write-only: PulseLoop never reads data back."),
+                    tr("Export ring data to Health Connect so other apps and dashboards can show it. Exporting only writes. PulseLoop reads Health Connect only for features you turn on: body data in your profile, Use without a ring, and the accuracy check."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

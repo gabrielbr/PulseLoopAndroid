@@ -314,7 +314,12 @@ fun ActivityScreen(
             onDismiss = { goalsOpen = false },
             onSave = { steps, active, sleepMin, workouts ->
                 goalsOpen = false
-                scope.launch { viewModel.saveGoals(steps, active, sleepMin, workouts) }
+                scope.launch {
+                    val saved = viewModel.saveGoals(steps, active, sleepMin, workouts)
+                    com.pulseloop.service.GoalSync.afterManualSave(
+                        context, saved, com.pulseloop.AppServices.get(context).coordinator,
+                    )
+                }
             },
         )
     }

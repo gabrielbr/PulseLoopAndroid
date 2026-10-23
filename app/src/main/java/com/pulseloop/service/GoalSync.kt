@@ -156,6 +156,17 @@ object GoalSync {
         if (edited.isNotEmpty()) setFollowing(context, edited, false)
     }
 
+    /**
+     * Everything a hand-saved goal must do besides the database write, whichever screen saved it:
+     * stop the edited fields following the coach, send the step goal to the ring, and republish
+     * the widget's rings. Activity's goal dialog used to skip all three.
+     */
+    fun afterManualSave(context: Context, saved: UserGoalEntity, coordinator: RingSyncCoordinator?) {
+        noteEdits(context, saved)
+        coordinator?.setGoal(saved.steps)
+        com.pulseloop.widgets.WidgetSnapshotPublisher.publish(context)
+    }
+
     private fun lastApplied(context: Context): Map<Field, Double> {
         val p = prefs(context)
         return Field.entries.mapNotNull { f ->

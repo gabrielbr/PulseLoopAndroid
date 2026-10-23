@@ -12,11 +12,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.DirectionsRun
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.LocalOffer
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.LocalBar
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,7 +25,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -35,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.service.OffSignal
 import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.theme.dither
@@ -131,12 +127,12 @@ fun TodayGlance(
     }
 }
 
-/** Meal · Tag day · Measure · Workout — the things a user does on Today, one tap each. */
+/** Meal · Drink · Measure · Workout — Today's shortcuts; the "+ Log" button holds the rest. */
 @Composable
-fun QuickLogRow(onMeal: () -> Unit, onTag: () -> Unit, onMeasure: () -> Unit, onWorkout: () -> Unit) {
+fun QuickLogRow(onMeal: () -> Unit, onDrink: () -> Unit, onMeasure: () -> Unit, onWorkout: () -> Unit) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         QuickChip(tr("Meal"), Icons.Filled.Restaurant, PulseColors.calories, Modifier.weight(1f), onMeal)
-        QuickChip(tr("Tag day"), Icons.Filled.LocalOffer, PulseColors.accent, Modifier.weight(1f), onTag)
+        QuickChip(tr("Drink"), Icons.Filled.LocalBar, PulseColors.drinks, Modifier.weight(1f), onDrink)
         QuickChip(tr("Measure"), Icons.Filled.FavoriteBorder, PulseColors.heartRate, Modifier.weight(1f), onMeasure)
         QuickChip(tr("Workout"), Icons.Filled.DirectionsRun, PulseColors.steps, Modifier.weight(1f), onWorkout)
     }
@@ -210,42 +206,8 @@ fun LastNightCard(
     }
 }
 
-/** Meal chip: photo, barcode or a manual entry. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MealSheet(onDismiss: () -> Unit, onPick: (start: String) -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(), containerColor = PulseColors.secondaryBackground) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onPick("photo") }
-            SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onPick("barcode") }
-            SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onPick("add") }
-        }
-    }
-}
-
-/** Tag-day chip: every journal tag for today, and the way to the effects. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TagDaySheet(db: PulseLoopDatabase, onDismiss: () -> Unit, onSeeEffects: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = PulseColors.secondaryBackground) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp)) {
-            JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
-                Text(
-                    tr("See what affects you"),
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .clickable(role = Role.Button, onClick = onSeeEffects)
-                        .wrapContentHeight(Alignment.CenterVertically),
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SheetOption(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
+internal fun SheetOption(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
     Row(
         Modifier
