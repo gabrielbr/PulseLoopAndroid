@@ -381,8 +381,23 @@ fun PulseLoopApp() {
             noiseFactor = 0.02f,
         )
 
+        // "+ Log" on every tab but Coach: recording something is the most frequent job in the
+        // app, so it sits in the same place whichever tab is open.
+        val fabEntry by navController.currentBackStackEntryAsState()
+        val showLogFab = fabEntry?.destination?.route.let { it in tabRoutes && it != "coach" }
         Scaffold(
             containerColor = com.pulseloop.ui.theme.PulseColors.background,
+            floatingActionButton = {
+                if (showLogFab) {
+                    ExtendedFloatingActionButton(
+                        onClick = { LaunchRequests.openLog.value = com.pulseloop.ui.screens.LogStep.MENU },
+                        icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                        text = { Text(tr("Log"), maxLines = 1) },
+                        containerColor = com.pulseloop.ui.theme.PulseColors.accent,
+                        contentColor = com.pulseloop.ui.theme.PulseColors.onAccent,
+                    )
+                }
+            },
             topBar = {
                 // Shared iOS-style header (PULSELOOP eyebrow + greeting + status pill) on tab
                 // routes only; pushed screens (settings, details, pairing) bring their own bars.
@@ -564,6 +579,8 @@ fun PulseLoopApp() {
             // bars as an opaque floor/ceiling via this per-route padding wrapper.
             val topPad = padding.calculateTopPadding()
             val barPad = padding.calculateBottomPadding()
+            // The four tabs with the "+ Log" button scroll their last card clear of it.
+            val tabPad = barPad + 72.dp
             fun androidx.navigation.NavGraphBuilder.paddedComposable(
                 route: String,
                 content: @Composable (androidx.navigation.NavBackStackEntry) -> Unit,
@@ -575,10 +592,10 @@ fun PulseLoopApp() {
                 startDestination = "today",
                 modifier = Modifier.hazeSource(hazeState),
             ) {
-                composable("today") { TodayScreen(navController, todayVM, coordinator, vitalsVM, sleepVM, topBarPadding = topPad, bottomBarPadding = barPad) }
-                composable("vitals") { VitalsScreen(navController = navController, viewModel = vitalsVM, coordinator = coordinator, topBarPadding = topPad, bottomBarPadding = barPad) }
-                composable("sleep") { SleepScreen(navController = navController, viewModel = sleepVM, onOpen = { coordinator.syncSleepNow() }, topBarPadding = topPad, bottomBarPadding = barPad) }
-                composable("activity") { ActivityScreen(navController = navController, viewModel = activityVM, liveWorkout = liveWorkout, topBarPadding = topPad, bottomBarPadding = barPad) }
+                composable("today") { TodayScreen(navController, todayVM, coordinator, vitalsVM, sleepVM, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                composable("vitals") { VitalsScreen(navController = navController, viewModel = vitalsVM, coordinator = coordinator, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                composable("sleep") { SleepScreen(navController = navController, viewModel = sleepVM, onOpen = { coordinator.syncSleepNow() }, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                composable("activity") { ActivityScreen(navController = navController, viewModel = activityVM, liveWorkout = liveWorkout, topBarPadding = topPad, bottomBarPadding = tabPad) }
                 paddedComposable("activity_detail/{id}") { backStackEntry ->
                     val id = backStackEntry.arguments?.getString("id") ?: return@paddedComposable
                     WorkoutSummaryScreen(sessionId = id, onBack = { navController.popBackStack() })
@@ -818,6 +835,29 @@ fun PulseLoopApp() {
                     )
                 }
             }
+        }
+
+        val logStep by LaunchRequests.openLog.collectAsState()
+        logStep?.let { step ->
+            fun close() { LaunchRequests.openLog.value = null }
+            com.pulseloop.ui.screens.LogSheet(
+                db = db,
+                start = step,
+                onDismiss = ::close,
+                onMeal = { start -> close(); navController.navigate("nutrition/$start") },
+                onMoreDrinks = { close(); navController.navigate("drinks") },
+                onMeds = { close(); navController.navigate("meds") },
+                onPeriod = { close(); navController.navigate("cycle") },
+                onWorkout = {
+                    close()
+                    LaunchRequests.openWorkoutPicker.value = true
+                    navController.navigate("activity") {
+                        popUpTo(navController.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                },
+                onSeeEffects = { close(); navController.navigate("journal") },
+            )
         }
 
         pendingUpdate?.let { info ->

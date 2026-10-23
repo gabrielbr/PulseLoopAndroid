@@ -98,7 +98,7 @@ import kotlin.math.roundToInt
 private fun std(v: Double) = DrinkInsights.fmt(v)
 
 /** Short names for the one-tap buttons; the full label is on the "More" sheet. */
-private val DrinkType.short: String
+internal val DrinkType.short: String
     get() = when (this) {
         DrinkType.BEER -> tr("Beer")
         DrinkType.BEER_600 -> tr("600 ml")
@@ -110,7 +110,7 @@ private val DrinkType.short: String
         DrinkType.OTHER -> tr("Other")
     }
 
-private val DrinkType.icon: ImageVector
+internal val DrinkType.icon: ImageVector
     get() = when (this) {
         DrinkType.BEER, DrinkType.BEER_600, DrinkType.DRAFT -> Icons.Filled.SportsBar
         DrinkType.WINE -> Icons.Filled.WineBar

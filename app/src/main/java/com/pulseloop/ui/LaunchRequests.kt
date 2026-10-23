@@ -16,4 +16,7 @@ object LaunchRequests {
 
     /** Today's Workout chip: open the Activity tab with the workout-type picker up. */
     val openWorkoutPicker = MutableStateFlow(false)
+
+    /** The app-wide "+ Log" sheet: open at this step, or closed when null. */
+    val openLog = MutableStateFlow<com.pulseloop.ui.screens.LogStep?>(null)
 }
