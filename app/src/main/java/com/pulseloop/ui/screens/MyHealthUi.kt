@@ -88,13 +88,37 @@ import kotlin.math.roundToInt
  */
 
 @Composable
-internal fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+internal fun Section(
+    title: String,
+    /**
+     * Set for a section that starts closed: the card shows its title and this one-line summary,
+     * and opens in place on tap. Leave null for one that is always open.
+     */
+    summary: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(summary == null) }
+    val collapsible = summary != null
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         content = {
-            Text(title.uppercase(), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-            content()
+            if (collapsible) {
+                Row(
+                    Modifier.fillMaxWidth().heightIn(min = 40.dp).clickable(role = Role.Button) { open = !open },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        if (!open) Text(summary!!, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    }
+                    Text(if (open) "⌃" else "⌄", fontSize = 18.sp, color = PulseColors.textMuted)
+                }
+                if (open) content()
+            } else {
+                Text(title.uppercase(), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                content()
+            }
         },
     )
 }
@@ -231,7 +255,13 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
 
 @Composable
 private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate?, onRest: (Int?) -> Unit) {
-    Section(tr("Symptom Radar")) {
+    // Open only when it has something to say; otherwise one line with Rest Mode's state.
+    val flagged = r != null && r.baselineNights >= SymptomRadar.MIN_BASELINE && r.level != SymptomRadar.Level.NONE
+    val quiet = when {
+        r == null || r.baselineNights < SymptomRadar.MIN_BASELINE -> trf("Learning your normal: {0} of {1} nights.", r?.baselineNights ?: 0, SymptomRadar.MIN_BASELINE)
+        else -> r.level.label
+    } + if (restUntil != null) " · " + tr("Rest Mode on") else ""
+    Section(tr("Symptom Radar"), summary = if (flagged) null else quiet) {
         if (r == null || r.baselineNights < SymptomRadar.MIN_BASELINE) {
             Text(trf("Learning your normal: {0} of {1} nights.", r?.baselineNights ?: 0, SymptomRadar.MIN_BASELINE), fontSize = 13.sp, color = PulseColors.textSecondary)
         } else {
@@ -287,7 +317,7 @@ internal fun SleepBalanceSection(s: HealthInsightsRepository.SleepBalance) {
 @Composable
 private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () -> Unit) {
     val context = LocalContext.current
-    Section(tr("Stress & breathing")) {
+    Section(tr("Stress & breathing"), summary = s.resilience?.let { trf("Resilience {0}", it.level.label.lowercase()) } ?: tr("Breathing sessions and how you recover")) {
         s.resilience?.let { Fact(tr("Resilience"), it.level.label, trf("Daytime recovery against stress, and how well nights restore you ({0} days)", it.daysUsed)) }
         val sessions = remember { MindfulSessions.all(context) }
         val week = sessions.filter { it.startAt >= System.currentTimeMillis() - 7 * 86_400_000L }
@@ -340,7 +370,15 @@ fun HeartRateContextChart(samples: List<VitalSample>, sleep: List<LongRange>, wo
 
 @Composable
 private fun HabitsSection(h: HealthInsightsRepository.Habits, cardio: com.pulseloop.service.CardioCapacity?) {
-    Section(tr("Habits & routines · 30-day averages")) {
+    Section(
+        tr("Habits & routines"),
+        summary = listOfNotNull(
+            h.bedtime?.let { trf("bed {0}", it) },
+            h.wake?.let { trf("up {0}", it) },
+            h.steps?.let { trf("{0} steps", "%,d".format(it)) },
+        ).joinToString(" · ").ifBlank { tr("30-day averages") },
+    ) {
+        Text(tr("30-day averages"), fontSize = 12.sp, color = PulseColors.textMuted)
         h.bedtime?.let { Fact(tr("Bedtime"), it) }
         h.wake?.let { Fact(tr("Wake-up"), it) }
         h.sleepMin?.let { Fact(tr("Sleep"), SleepFormat.duration(it)) }
@@ -371,7 +409,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
         val p = period
         value = TrendLoad(m, p, runCatching { Trends.aggregate(HealthInsightsRepository.daily(db, m, p.days), p) }.getOrNull())
     }
-    Section(tr("Trends")) {
+    Section(tr("Trends"), summary = tr("Sleep, steps, heart and more, from a week to a year")) {
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TrendMetric.entries.forEach { m ->
                 val on = m == metric

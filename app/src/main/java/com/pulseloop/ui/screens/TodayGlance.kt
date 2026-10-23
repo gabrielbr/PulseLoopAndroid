@@ -127,41 +127,6 @@ fun TodayGlance(
     }
 }
 
-/** Meal · Drink · Measure · Workout — Today's shortcuts; the "+ Log" button holds the rest. */
-@Composable
-fun QuickLogRow(onMeal: () -> Unit, onDrink: () -> Unit, onMeasure: () -> Unit, onWorkout: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        QuickChip(tr("Meal"), Icons.Filled.Restaurant, PulseColors.calories, Modifier.weight(1f), onMeal)
-        QuickChip(tr("Drink"), Icons.Filled.LocalBar, PulseColors.drinks, Modifier.weight(1f), onDrink)
-        QuickChip(tr("Measure"), Icons.Filled.FavoriteBorder, PulseColors.heartRate, Modifier.weight(1f), onMeasure)
-        QuickChip(tr("Workout"), Icons.Filled.DirectionsRun, PulseColors.steps, Modifier.weight(1f), onWorkout)
-    }
-}
-
-@Composable
-private fun QuickChip(label: String, icon: ImageVector, tint: Color, modifier: Modifier, onClick: () -> Unit) {
-    val shape = RoundedCornerShape(8.dp)
-    Column(
-        modifier
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Icon(icon, null, Modifier.size(20.dp), tint = tint)
-        Text(
-            label, fontSize = 12.sp, color = PulseColors.textPrimary,
-            // Four equal chips: a long translated label ("Refeição", a voice's rewrite) ellipsises
-            // inside its quarter rather than clipping mid-letter.
-            maxLines = 1, overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 4.dp),
-        )
-    }
-}
-
 /** Morning moment: last night in one card. */
 @Composable
 fun LastNightCard(
