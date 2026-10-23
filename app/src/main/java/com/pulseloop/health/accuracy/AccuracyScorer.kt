@@ -131,11 +131,57 @@ object AccuracyScorer {
         val ringHrAll = db.measurementDao().rangeReal(MeasurementKind.HEART_RATE.name, readFrom, readTo)
         val ringHr = ringHrAll.filter { it.timestamp in from..to }.map { TimedValue(it.timestamp, it.value) }
 
+        val ringNights = ringNights(db, from, to, zone)
+        val ringBuckets = fullDaysOrPartial(from, to, zone).flatMap { d ->
+            db.activityBucketDao().byDay(LocalDate.ofEpochDay(d).atStartOfDay(zone).toInstant().toEpochMilli())
+        }
+
+        // ── Wear coverage: when each device was off (flat, charging, taken off), from the gaps in
+        //    its own data. Only a device that logs heart rate often enough can be judged; for one
+        //    that doesn't, quiet and off look the same, so it is taken as worn throughout.
+        val coverageEnd = minOf(to, now)
+        val ringEvidence = buildList {
+            ringHrAll.forEach { add(it.timestamp) }
+            ringBuckets.filter { it.steps > 0 }.forEach { add(it.startEpoch); add(it.startEpoch + BUCKET_MS) }
+            ringNights.values.forEach { n -> n.blocks.forEach { b -> add(b.startAt); add(b.startAt + b.durationMinutes * 60_000L) } }
+        }
+        val refEvidence = buildList {
+            refHr.forEach { add(it.at) }
+            // A day-long steps record says nothing about when the device was on.
+            ref.steps.filter { it.endTime.toEpochMilli() - it.startTime.toEpochMilli() <= HOUR }
+                .forEach { add(it.startTime.toEpochMilli()); add(it.endTime.toEpochMilli()) }
+            ref.sleep.forEach { r ->
+                add(r.startTime.toEpochMilli()); add(r.endTime.toEpochMilli())
+                r.stages.forEach { st -> add(st.startTime.toEpochMilli()); add(st.endTime.toEpochMilli()) }
+            }
+            ref.spo2.forEach { add(it.time.toEpochMilli()) }
+            ref.hrv.forEach { add(it.time.toEpochMilli()) }
+        }
+        val ringGaps = if (AccuracyComparison.judgeable(ringHrAll.map { it.timestamp }))
+            AccuracyComparison.offGaps(ringEvidence, from, coverageEnd) else emptyList()
+        val refGaps = if (AccuracyComparison.judgeable(refHr.map { it.at }))
+            AccuracyComparison.offGaps(refEvidence, from, coverageEnd) else emptyList()
+
+        /** Which device was off longer within [a, b), and from when; null when both stayed on. */
+        fun offNote(prefix: String, a: Long, b: Long, minMs: Long): String? {
+            val r = AccuracyComparison.gapsWithin(ringGaps, a, b)
+            val f = AccuracyComparison.gapsWithin(refGaps, a, b)
+            val rMs = AccuracyComparison.gapMs(r, a, b)
+            val fMs = AccuracyComparison.gapMs(f, a, b)
+            if (maxOf(rMs, fMs) < minMs) return null
+            val (who, gaps) = if (rMs >= fMs) WHO_RING to r else WHO_REF to f
+            return "$prefix$who:${gaps.first().first}"
+        }
+
         // ── Daily totals: whole local days inside the window only. The day a check starts on is
-        //    partial for whichever device went on later, so its totals aren't comparable.
+        //    partial for whichever device went on later, so its totals aren't comparable. A day
+        //    one device spent partly off is compared over the hours both covered, or not at all
+        //    when that is under [MIN_SHARED_MS].
         val fullDays = fullDaysIn(from, to, zone)
-        val refSteps = AccuracyComparison.dailyTotals(ref.steps.map { AccuracyComparison.IntervalAmount(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.count.toDouble()) }, zone)
-        val refDist = AccuracyComparison.dailyTotals(ref.distance.map { AccuracyComparison.IntervalAmount(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.distance.inMeters) }, zone)
+        val refStepItems = ref.steps.map { AccuracyComparison.IntervalAmount(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.count.toDouble()) }
+        val refDistItems = ref.distance.map { AccuracyComparison.IntervalAmount(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.distance.inMeters) }
+        val refSteps = AccuracyComparison.dailyTotals(refStepItems, zone)
+        val refDist = AccuracyComparison.dailyTotals(refDistItems, zone)
         val refCal = AccuracyComparison.dailyTotals(ref.calories.map { AccuracyComparison.IntervalAmount(it.startTime.toEpochMilli(), it.endTime.toEpochMilli(), it.energy.inKilocalories) }, zone)
         for (day in fullDays) {
             val dayStart = LocalDate.ofEpochDay(day).atStartOfDay(zone).toInstant().toEpochMilli()
@@ -146,27 +192,51 @@ object AccuracyScorer {
             val refStepsDay = refSteps[day]
             // Worn on both: the reference walked a real day and the ring recorded something.
             val worn = (refStepsDay ?: 0.0) >= MIN_REF_STEPS && (ringDay?.steps ?: 0) > 0
+            val off = AccuracyComparison.gapsWithin(ringGaps + refGaps, dayStart, dayEnd)
+            val sharedMs = (dayEnd - dayStart) - AccuracyComparison.gapMs(off, dayStart, dayEnd)
+            val partial = off.isNotEmpty()
+            val tooPartial = partial && sharedMs < MIN_SHARED_MS
+            val partlyNote = offNote(NOTE_PARTLY_WORN_PREFIX, dayStart, dayEnd, 1L)
             val note = when {
                 !isDelivered -> NOTE_WAITING
                 !worn -> NOTE_NOT_WORN
+                tooPartial -> partlyNote
+                partial -> "$NOTE_SHARED_PREFIX${sharedMs / 60_000L}"
                 else -> null
             }
+            // Over the shared hours only: the ring's 15-minute buckets and the reference's
+            // records, each cut to the time both devices were on.
+            val ringItems = ringBuckets.filter { it.startEpoch in dayStart until dayEnd }
+            fun ringWithin(value: (com.pulseloop.data.entity.ActivityBucketEntity) -> Double) =
+                AccuracyComparison.amountWithin(ringItems.map { AccuracyComparison.IntervalAmount(it.startEpoch, it.startEpoch + BUCKET_MS, value(it)) }, dayStart, dayEnd, off)
             if (ReferenceMetric.STEPS in compared) {
-                rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.STEPS, day, ringDay?.steps?.toDouble(), refStepsDay, isDelivered && worn, note, now)
+                val ringSteps = if (partial) ringWithin { it.steps.toDouble() } else ringDay?.steps?.toDouble()
+                val refStepsCompared = if (partial) AccuracyComparison.amountWithin(refStepItems, dayStart, dayEnd, off) else refStepsDay
+                rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.STEPS, day, ringSteps, refStepsCompared, isDelivered && worn && !tooPartial, note, now)
             }
             if (ReferenceMetric.DISTANCE in compared) {
-                val ringDist = ringDay?.distanceMeters?.takeIf { it > 0 }
-                rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.DISTANCE, day, ringDist, refDist[day], isDelivered && (worn || ReferenceMetric.STEPS !in compared), note, now)
+                // Only the ring's buckets can be cut to the shared hours; without bucket distance
+                // a partial day can't be compared.
+                val bucketDist = if (partial) ringWithin { it.distanceMeters }.takeIf { it > 0 } else null
+                val ringDist = if (partial) bucketDist else ringDay?.distanceMeters?.takeIf { it > 0 }
+                val refDistCompared = if (partial) AccuracyComparison.amountWithin(refDistItems, dayStart, dayEnd, off) else refDist[day]
+                val ok = !tooPartial && (!partial || bucketDist != null)
+                rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.DISTANCE, day, ringDist, refDistCompared,
+                    isDelivered && (worn || ReferenceMetric.STEPS !in compared) && ok,
+                    if (partial && !ok && note?.startsWith(NOTE_SHARED_PREFIX) == true) partlyNote else note, now)
             }
             if (ReferenceMetric.ACTIVE_CALORIES in compared) {
+                // The ring's calories are one figure for the whole day, so a partly worn day can't be cut.
                 val ringCal = ringDay?.let { DailyCalorieEstimator.effectiveActiveCalories(it) }
-                rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.ACTIVE_CALORIES, day, ringCal, refCal[day], isDelivered && (worn || ReferenceMetric.STEPS !in compared), note, now)
+                rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.ACTIVE_CALORIES, day, ringCal, refCal[day],
+                    isDelivered && (worn || ReferenceMetric.STEPS !in compared) && !partial,
+                    if (partial && note?.startsWith(NOTE_SHARED_PREFIX) == true) partlyNote else note, now)
             }
         }
 
         // ── Sleep, per waking day. The ring's main night is its longest session that day, the
-        //    same night Readiness uses.
-        val ringNights = ringNights(db, from, to, zone)
+        //    same night Readiness uses. A night either device stopped partway through isn't
+        //    compared: a watch flat at 3 am makes the ring look like it over-reports sleep.
         val needsNights = ReferenceMetric.SLEEP in compared || ReferenceMetric.RESTING_HEART_RATE in compared || ReferenceMetric.HRV in compared
         val refNights = ref.sleep.groupBy { AccuracyComparison.epochDay(TimeUtil.wakingDayLocal(it.startTime.toEpochMilli(), zone), zone) }
             .mapValues { (_, s) -> s.maxBy { it.endTime.toEpochMilli() - it.startTime.toEpochMilli() } }
@@ -174,15 +244,20 @@ object AccuracyScorer {
         for ((day, night) in ringNights) {
             val dayMidnight = LocalDate.ofEpochDay(day).atStartOfDay(zone).toInstant().toEpochMilli()
             val isDelivered = delivered(night.session.endAt)
+            val refRecForSpan = refNights[day]
+            val spanStart = minOf(night.session.startAt, refRecForSpan?.startTime?.toEpochMilli() ?: night.session.startAt)
+            val spanEnd = maxOf(night.session.endAt, refRecForSpan?.endTime?.toEpochMilli() ?: night.session.endAt)
+            val nightOff = offNote(NOTE_NIGHT_OFF_PREFIX, spanStart, spanEnd, NIGHT_OFF_MIN_MS)
             if (ReferenceMetric.SLEEP in compared) {
                 val refRec = refNights[day]
                 val refNight = refRec?.let(::toNight)
                 val note = when {
                     !isDelivered -> NOTE_WAITING
                     refNight == null -> NOTE_NO_REF_NIGHT
+                    nightOff != null -> nightOff
                     else -> null
                 }
-                val valid = isDelivered && refNight != null
+                val valid = isDelivered && refNight != null && nightOff == null
                 val ringAsleep = (if (night.blocks.isEmpty()) night.session.totalMinutes else asleepMinutes(night.blocks)).toDouble()
                 rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.SLEEP_ASLEEP, day, ringAsleep, refNight?.asleepMinutes?.toDouble(), valid, note, now)
                 rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.SLEEP_ONSET, day,
@@ -211,14 +286,14 @@ object AccuracyScorer {
                     val refRhr = ref.resting.filter { AccuracyComparison.epochDay(it.time.toEpochMilli(), zone) == day }
                         .maxByOrNull { it.time }?.beatsPerMinute?.toDouble()
                     rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.RESTING_HR, day, summary.restingHr, refRhr,
-                        isDelivered, if (!isDelivered) NOTE_WAITING else null, now)
+                        isDelivered && nightOff == null, if (!isDelivered) NOTE_WAITING else nightOff, now)
                 }
                 if (ReferenceMetric.HRV in compared) {
                     val window = (night.session.startAt - HOUR)..(night.session.endAt + HOUR)
                     val refHrvNight = ref.hrv.filter { it.time.toEpochMilli() in window }.map { it.heartRateVariabilityMillis }.sorted()
                     val refMedian = refHrvNight.takeIf { it.isNotEmpty() }?.let { it[it.size / 2] }
                     rows += AccuracyComparison.dailyRow(check.id, ComparisonMetric.HRV, day, summary.hrv, refMedian,
-                        isDelivered, if (!isDelivered) NOTE_WAITING else null, now)
+                        isDelivered && nightOff == null, if (!isDelivered) NOTE_WAITING else nightOff, now)
                 }
             }
         }
@@ -228,9 +303,7 @@ object AccuracyScorer {
         if (ReferenceMetric.HEART_RATE in compared && refHr.isNotEmpty()) {
             echo = ReferenceSurveyBuilder.echoCheck(refHr, ringHr)
             val tol = AccuracyComparison.tolerance(ReferenceSurveyBuilder.medianInterval(refHr.map { it.at }), 60_000L, 150_000L)
-            val buckets = fullDaysOrPartial(from, to, zone).flatMap { d ->
-                db.activityBucketDao().byDay(LocalDate.ofEpochDay(d).atStartOfDay(zone).toInstant().toEpochMilli())
-            }.associateBy { it.startEpoch }
+            val buckets = ringBuckets.associateBy { it.startEpoch }
             val workouts = db.activitySessionDao().finishedSince(from).filter { it.endedAt != null && it.startedAt < to }
             val sleepWindows = ringNights.values.map { it.session.startAt..it.session.endAt }
             val pairs = AccuracyComparison.pair(ringHr, refHr, tol, zone) { t ->
@@ -289,6 +362,19 @@ object AccuracyScorer {
     const val NOTE_NO_REF_NIGHT = "no_ref_night"
     const val NOTE_NO_REF_STAGES = "no_ref_stages"
     const val NOTE_FEW_PAIRS = "few_pairs"
+    /** `partly:<ring|ref>:<epoch ms>`: that device was off from then, for too much of the day. */
+    const val NOTE_PARTLY_WORN_PREFIX = "partly:"
+    /** `night_off:<ring|ref>:<epoch ms>`: that device stopped partway through the night. */
+    const val NOTE_NIGHT_OFF_PREFIX = "night_off:"
+    /** `shared:<minutes>`: counted, but only over the minutes both devices were on. */
+    const val NOTE_SHARED_PREFIX = "shared:"
+    const val WHO_RING = "ring"
+    const val WHO_REF = "ref"
+    /** A partly worn day still counts with this much time both devices covered. */
+    const val MIN_SHARED_MS = 12 * HOUR
+    /** A night is dropped when either device was off for this long inside it. */
+    const val NIGHT_OFF_MIN_MS = 15 * 60_000L
+    private const val BUCKET_MS = 15 * 60_000L
 
     private data class RefData(
         val steps: List<StepsRecord>,

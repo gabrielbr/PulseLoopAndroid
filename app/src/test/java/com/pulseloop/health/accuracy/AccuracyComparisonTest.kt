@@ -277,4 +277,48 @@ class AccuracyComparisonTest {
         assertTrue(text, text.contains("Steps: −19 % on average, consistently low (4 days)"))
         assertFalse(text, text.contains("7123") || text.contains("7,123") || text.contains("8765") || text.contains("8,765"))
     }
+
+    // ── wear coverage ──
+
+    @Test
+    fun aDeviceThatStopsAtThreeIsOffFromThenToTheEndOfTheDay() {
+        // Heart rate every 5 minutes from midnight until 15:00, then nothing.
+        val hr = (0 until 15 * 12).map { day0 + it * 5 * min }
+        val gaps = AccuracyComparison.offGaps(hr, day0, day0 + 24 * h)
+        assertEquals(1, gaps.size)
+        assertEquals(day0 + 15 * h - 5 * min, gaps[0].first)
+        assertEquals(day0 + 24 * h, gaps[0].last)
+    }
+
+    @Test
+    fun anHourlyMonitorIsQuietNotOff() {
+        val hr = (0..24).map { day0 + it * h }
+        assertTrue(AccuracyComparison.offGaps(hr, day0, day0 + 24 * h).isEmpty())
+        assertTrue(AccuracyComparison.judgeable(hr))
+    }
+
+    @Test
+    fun sparseOrMissingHeartRateCannotBeJudged() {
+        assertFalse(AccuracyComparison.judgeable(emptyList()))
+        // Every three hours: too sparse to tell a flat battery from a quiet afternoon.
+        assertFalse(AccuracyComparison.judgeable((0..20).map { day0 + it * 3 * h }))
+    }
+
+    @Test
+    fun totalsAreCutToTheTimeBothDevicesWereOn() {
+        // A watch that counted 600 steps an hour all day; the ring was off from 15:00.
+        val items = (0 until 24).map { AccuracyComparison.IntervalAmount(day0 + it * h, day0 + (it + 1) * h, 600.0) }
+        val off = listOf((day0 + 15 * h)..(day0 + 24 * h))
+        assertEquals(15 * 600.0, AccuracyComparison.amountWithin(items, day0, day0 + 24 * h, off), 1e-6)
+        // Half an interval inside a gap counts half.
+        val half = listOf((day0 + 30 * min)..(day0 + h))
+        assertEquals(300.0, AccuracyComparison.amountWithin(items.take(1), day0, day0 + 24 * h, half), 1e-6)
+    }
+
+    @Test
+    fun overlappingGapsFromBothDevicesAreCountedOnce() {
+        val gaps = listOf((day0 + h)..(day0 + 3 * h), (day0 + 2 * h)..(day0 + 4 * h))
+        assertEquals(3 * h, AccuracyComparison.gapMs(gaps, day0, day0 + 24 * h))
+        assertEquals(listOf((day0 + h)..(day0 + 4 * h)), AccuracyComparison.merge(gaps))
+    }
 }

@@ -1009,6 +1009,16 @@ because breaking it fails silently:
   ring is exactly the false fix the verdict exists to refuse. Sleep stages, onset/wake, HRV and
   calories are report-only on purpose: vendors compute them differently, so a difference there
   doesn't show which device is wrong.
+- **A day or night is compared only over the time both devices were on.** A flat battery or a
+  charger mid-day used to pass the 500-step "worn" test and read as the other device
+  over-counting by everything after. `AccuracyComparison.offGaps` finds each device's off
+  stretches (no data for over 90 minutes), but only for a device that logs heart rate at least
+  every 75 minutes (`judgeable`); for one that doesn't, quiet and off look alike and it is taken
+  as worn. A partly worn day's steps and distance are cut to the shared hours (the ring's
+  15-minute buckets against the reference's records); calories can't be cut, so such a day
+  drops them; under 12 shared hours the day doesn't count. A night either device stopped
+  inside drops sleep, resting HR and HRV. Heart rate and SpO₂ need nothing: they only pair
+  readings taken minutes apart. The day notes say which device was off and from when.
 - **A running check ends the moment a different ring is paired** (`AccuracyRingWatcher`, started
   from `PulseLoopApplication`). Ring rows carry no device id, so a later sweep could not split
   the two rings' data.

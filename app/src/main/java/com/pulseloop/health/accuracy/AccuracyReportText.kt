@@ -114,8 +114,31 @@ object AccuracyReportText {
         }
     }
 
-    /** Why a day doesn't count, for the per-day rows. */
-    fun dayNote(note: String?, ref: String): String? = when (note) {
+    /**
+     * What a coverage note says: which device was off and from when (`partly:` / `night_off:`),
+     * or how many hours a partly worn day was compared over (`shared:`).
+     */
+    private fun coverageNote(note: String, ref: String): String? {
+        fun device(who: String) = if (who == AccuracyScorer.WHO_RING) com.pulseloop.ui.i18n.tr("the ring") else ref
+        fun time(ms: String) = ms.toLongOrNull()?.let {
+            java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+        } ?: "?"
+        return when {
+            note.startsWith(AccuracyScorer.NOTE_SHARED_PREFIX) -> note.removePrefix(AccuracyScorer.NOTE_SHARED_PREFIX).toLongOrNull()?.let {
+                com.pulseloop.ui.i18n.trf("compared over the {0} h both were on", "%.1f".format(it / 60.0))
+            }
+            note.startsWith(AccuracyScorer.NOTE_PARTLY_WORN_PREFIX) -> note.removePrefix(AccuracyScorer.NOTE_PARTLY_WORN_PREFIX).split(':').takeIf { it.size == 2 }?.let { (who, at) ->
+                com.pulseloop.ui.i18n.trf("{0} was off from {1}, too long to compare", device(who), time(at))
+            }
+            note.startsWith(AccuracyScorer.NOTE_NIGHT_OFF_PREFIX) -> note.removePrefix(AccuracyScorer.NOTE_NIGHT_OFF_PREFIX).split(':').takeIf { it.size == 2 }?.let { (who, at) ->
+                com.pulseloop.ui.i18n.trf("{0} stopped mid-night at {1}", device(who), time(at))
+            }
+            else -> null
+        }
+    }
+
+    /** Why a day doesn't count, or how it was counted, for the per-day rows. */
+    fun dayNote(note: String?, ref: String): String? = note?.let { coverageNote(it, ref) } ?: when (note) {
         AccuracyScorer.NOTE_WAITING -> "waiting for $ref to deliver"
         AccuracyScorer.NOTE_NOT_WORN -> "not worn on both"
         AccuracyScorer.NOTE_NO_REF_NIGHT -> "no night from $ref"
