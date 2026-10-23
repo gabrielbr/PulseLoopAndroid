@@ -93,10 +93,12 @@ internal fun AccuracyReportSection(
         }
     }
     // An open check refreshes on view. A finished one keeps its stored result, unless days were
-    // still waiting for the reference to deliver when it was last scored.
+    // still waiting for the reference to deliver when it was last scored, or it was scored under
+    // older rules (AccuracyScorer.SCORING_VERSION), which re-scores it once.
     LaunchedEffect(check.id) {
         val waiting = db.accuracyDao().days(check.id).any { it.note == AccuracyScorer.NOTE_WAITING }
-        if (check.isOpen || check.scoredAt == null || waiting) rescore(force = false)
+        val outdated = AccuracyScorer.outdated(context, check.id)
+        if (check.isOpen || check.scoredAt == null || waiting || outdated) rescore(force = outdated)
     }
 
     val metrics = ComparisonMetric.entries.filter { m -> days.any { it.metric == m.name } }

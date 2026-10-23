@@ -32,6 +32,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import kotlin.reflect.KClass
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Reads both devices for a check's window and stores the scored days (plan, "Comparison
@@ -54,6 +55,35 @@ object AccuracyScorer {
     const val DELIVERY_GRACE_MS = 24 * HOUR
     /** Don't re-read more often than this unless asked. */
     const val RESCORE_INTERVAL_MS = 30 * 60_000L
+
+    /**
+     * Bumped when the scoring rules change in a way that alters a finished check's result
+     * (2: wear coverage). A check last scored under an older version is scored again once, by
+     * itself, the next time the app can read Health Connect in the foreground; finished checks
+     * otherwise keep their stored result for good.
+     */
+    const val SCORING_VERSION = 2
+
+    private val rescoreLock = kotlinx.coroutines.sync.Mutex()
+
+    private fun versions(context: Context) =
+        context.applicationContext.getSharedPreferences("accuracy_scoring", Context.MODE_PRIVATE)
+
+    /** True when [checkId] was last scored under older rules (or never). */
+    fun outdated(context: Context, checkId: String): Boolean =
+        versions(context).getInt(checkId, 0) < SCORING_VERSION
+
+    /**
+     * Scores every finished check that predates the current rules, oldest first. Each one that
+     * can't be read now (no permission, Health Connect busy) is left for the next call.
+     */
+    suspend fun rescoreOutdated(context: Context, checks: List<AccuracyCheckEntity>) = rescoreLock.withLock {
+        // Started from app launch and from the accuracy screen; one pass at a time, and a check
+        // the other pass already re-scored drops out of the filter.
+        checks.filter { !it.isOpen && outdated(context, it.id) }.sortedBy { it.startedAt }.forEach { c ->
+            runCatching { score(context, c) }.onFailure { Log.w(TAG, "re-scoring ${c.id} failed", it) }
+        }
+    }
 
     enum class HrContext { REST, ACTIVE }
 
@@ -353,6 +383,7 @@ object AccuracyScorer {
         dao.clearDays(check.id)
         dao.upsertDays(rows)
         dao.byId(check.id)?.let { dao.upsert(it.copy(scoredAt = now)) }
+        versions(context).edit().putInt(check.id, SCORING_VERSION).apply()
         return Result.Scored(rows.size, waiting, echo)
     }
 

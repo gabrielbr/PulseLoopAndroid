@@ -172,6 +172,18 @@ fun PulseLoopApp() {
             }
         }
 
+        // Finished accuracy checks scored under older rules are scored again once, here, while the
+        // app is in the foreground (Health Connect reads need it). One that can't be read now is
+        // retried on the next launch or when the accuracy screen opens.
+        LaunchedEffect(Unit) {
+            if (!isFirstComposition) return@LaunchedEffect
+            services.startupScope.launch {
+                // After startup's own work, so it doesn't compete with connecting the ring.
+                kotlinx.coroutines.delay(10_000)
+                runCatching { com.pulseloop.health.accuracy.AccuracyScorer.rescoreOutdated(context, db.accuracyDao().all()) }
+            }
+        }
+
         // ── Start services (one-shot per process) ────────────────────────
         LaunchedEffect(Unit) {
             if (!isFirstComposition) return@LaunchedEffect

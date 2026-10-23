@@ -18,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.AccuracyCheckEntity
 import com.pulseloop.health.accuracy.AccuracyCheckController
+import com.pulseloop.health.accuracy.AccuracyScorer
 import com.pulseloop.health.accuracy.ExportUnit
 import com.pulseloop.health.accuracy.RingIdentity
 import androidx.compose.foundation.layout.Arrangement
@@ -91,6 +92,8 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
     val openLoad by remember(db) { db.accuracyDao().openFlow().map { java.util.Optional.ofNullable(it) } }.collectAsState(initial = null)
     val open: AccuracyCheckEntity? = openLoad?.orElse(null)
     val history by remember(db) { db.accuracyDao().allFlow() }.collectAsState(initial = emptyList())
+    // Past checks scored under older rules get scored again once (AccuracyScorer.SCORING_VERSION).
+    LaunchedEffect(history.size) { AccuracyScorer.rescoreOutdated(context, history) }
     val ringLoad by remember(db) { db.deviceDao().currentFlow().map { java.util.Optional.ofNullable(it) } }.collectAsState(initial = null)
     val ring: com.pulseloop.data.entity.DeviceEntity? = ringLoad?.orElse(null)
     val hasRing = ring?.let { it.id != RingIdentity.DEMO_DEVICE_ID } == true

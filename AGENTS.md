@@ -1019,6 +1019,10 @@ because breaking it fails silently:
   drops them; under 12 shared hours the day doesn't count. A night either device stopped
   inside drops sleep, resting HR and HRV. Heart rate and SpO₂ need nothing: they only pair
   readings taken minutes apart. The day notes say which device was off and from when.
+  When a rule change like this one alters a finished check's result, bump
+  `AccuracyScorer.SCORING_VERSION`: finished checks otherwise keep their stored result forever,
+  and an outdated one is re-scored once by itself (app launch, or opening the accuracy screen).
+  Corrections already accepted are not touched by a re-score.
 - **A running check ends the moment a different ring is paired** (`AccuracyRingWatcher`, started
   from `PulseLoopApplication`). Ring rows carry no device id, so a later sweep could not split
   the two rings' data.
