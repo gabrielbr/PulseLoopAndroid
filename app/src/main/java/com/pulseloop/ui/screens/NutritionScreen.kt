@@ -318,7 +318,7 @@ fun NutritionScreen(
                         servingGrams = save.servingGrams,
                         quantity = save.quantity,
                         userEdited = save.userEdited,
-                        confidenceRaw = save.confidenceRaw,
+                        confidenceRaw = save.confidenceRaw ?: "known",
                         notes = save.notes,
                     )
                     db.mealEntryDao().upsert(entry)
