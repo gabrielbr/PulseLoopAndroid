@@ -2,8 +2,8 @@ package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.tr
 import com.pulseloop.ui.i18n.trf
-import androidx.compose.foundation.ExperimentalLayoutApi
-import androidx.compose.foundation.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable

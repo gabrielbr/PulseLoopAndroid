@@ -1096,3 +1096,25 @@ sources: `docs/postpartum-breastfeeding-research.md`.
   by the difference between what the stage calls for and what was added before, so weaning or
   switching off takes exactly that back.
 - **No F*cking Health jokes here**: postpartum text is on the voice's safety list.
+
+## Where things live: intent first, then overview → detail
+
+**Read this before adding a card, a row or a screen.** The app is organised in two layers, and most
+clutter came from ignoring one of them:
+
+- **Where a thing lives follows what the user came to do.** Logging (meal, drink, dose, period,
+  tags, workout) is one job, so it has one door: the "+ Log" button on every tab but Coach
+  (`LogSheet`, opened through `LaunchRequests.openLog`). Today's Meal/Drink chips open the same
+  sheet at a step; don't grow a second logging path on a new screen. Programs the user switched on
+  (cycle, meds, postpartum) surface on Today (`ProgramsRow`), and Rest Mode is offered where
+  "I'm unwell" happens (`RestModeLine`), not only in a menu.
+- **Inside a screen, summary first, detail on tap.** A screen leads with one summary and its
+  primary action; everything else is a row that opens. A new section added inline at full weight
+  is how My Health became a wall.
+- **Repeat a figure only when the question differs.** Last night's sleep on Today (am I okay?) and
+  on Sleep (why?) is fine; the same sleep three times on Today is not. The alcohol-clearance card
+  on Postpartum stays even though Drinks has one: "can I feed now?" is asked on that screen.
+- **Notifications are reachable whether or not the coach is on.** Most of them (daily guidance,
+  battery alerts) never needed it, and gating the row on the coach hid them all.
+- **A goal saved anywhere goes through `GoalSync.afterManualSave`** — it is what stops the field
+  following the coach, sends the step goal to the ring and republishes the widget.

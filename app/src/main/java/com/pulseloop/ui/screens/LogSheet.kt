@@ -84,7 +84,7 @@ fun LogSheet(
                     SheetOption(tr("Drink"), tr("One tap for the usual ones"), Icons.Filled.LocalBar) { step = LogStep.DRINK }
                     SheetOption(tr("Medication or supplement"), tr("Mark today's doses"), Icons.Filled.Medication, onMeds)
                     SheetOption(tr("Period"), tr("Started or ended today, or a past one"), Icons.Filled.WaterDrop, onPeriod)
-                    SheetOption(tr("Tag your day"), tr("Caffeine, stress, a late meal…"), Icons.Filled.LocalOffer) { step = LogStep.TAGS }
+                    SheetOption(tr("Tag your day"), tr("Alcohol, stress, a late meal…"), Icons.Filled.LocalOffer) { step = LogStep.TAGS }
                     SheetOption(tr("Workout"), tr("Start one now"), Icons.Filled.DirectionsRun, onWorkout)
                 }
                 LogStep.MEAL -> {
