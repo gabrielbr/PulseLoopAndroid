@@ -93,6 +93,9 @@ fun ScoreRing(
     centerText: String = value?.toString() ?: "—",
     centerSize: Int = 22,
 ) {
+    // Fills from empty on first show and counts the number up with it.
+    val shown = com.pulseloop.ui.theme.sweepIn((value ?: 0).coerceIn(0, 100).toFloat())
+    val text = if (value != null && centerText == value.toString()) shown.roundToInt().toString() else centerText
     Box(
         Modifier.size(size).clearAndSetSemantics {
             // One spoken value instead of a bare number; an empty ring says so.
@@ -109,16 +112,16 @@ fun ScoreRing(
                 color = PulseColors.borderStrong, startAngle = 135f, sweepAngle = 270f, useCenter = false,
                 topLeft = Offset(inset, inset), size = arcSize, style = Stroke(w, cap = StrokeCap.Round),
             )
-            if (value != null && value > 0) {
+            if (value != null && shown > 0f) {
                 drawArc(
-                    color = color, startAngle = 135f, sweepAngle = 270f * (value.coerceIn(0, 100) / 100f),
+                    color = color, startAngle = 135f, sweepAngle = 270f * (shown / 100f),
                     useCenter = false, topLeft = Offset(inset, inset), size = arcSize,
                     style = Stroke(w, cap = StrokeCap.Round),
                 )
             }
         }
         Text(
-            centerText, fontSize = centerSize.sp, fontWeight = FontWeight.SemiBold,
+            text, fontSize = centerSize.sp, fontWeight = FontWeight.SemiBold,
             color = if (value != null) PulseColors.textPrimary else PulseColors.textMuted,
         )
     }

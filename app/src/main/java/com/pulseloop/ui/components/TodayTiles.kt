@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import com.pulseloop.ui.theme.pressScale
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
@@ -108,8 +109,10 @@ fun TodayTile(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val shape = RoundedCornerShape(TodayTileMetrics.corner)
+    val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Column(
         modifier = modifier
+            .pressScale(press)
             // A floor, not a fixed height — see [TodayTileMetrics.minHeight]. The grid row measures
             // its tiles with IntrinsicSize.Min and stretches both to match, so this grows to fit
             // whatever the tile actually contains instead of clipping it.
@@ -117,7 +120,7 @@ fun TodayTile(
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .then(if (onTap != null) Modifier.clickable(onClick = onTap) else Modifier)
+            .then(if (onTap != null) Modifier.clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, onClick = onTap) else Modifier)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
