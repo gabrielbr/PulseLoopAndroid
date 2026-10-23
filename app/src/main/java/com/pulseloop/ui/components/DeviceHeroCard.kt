@@ -86,7 +86,7 @@ fun DeviceHeroCard(
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             RingArtView(
-                tint = PulseColors.info,
+                tint = PulseColors.accent,
                 size = 72f,
                 imageRes = wearableModel?.imageRes ?: fallbackRingImage(deviceType),
             )
