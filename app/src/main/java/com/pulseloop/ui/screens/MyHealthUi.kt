@@ -88,7 +88,7 @@ import kotlin.math.roundToInt
  */
 
 @Composable
-private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+internal fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -100,7 +100,7 @@ private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) 
 }
 
 @Composable
-private fun Fact(label: String, value: String, note: String? = null, color: Color = PulseColors.textPrimary) {
+internal fun Fact(label: String, value: String, note: String? = null, color: Color = PulseColors.textPrimary) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f)) {
             Text(label, fontSize = 14.sp, color = PulseColors.textSecondary)
@@ -146,9 +146,6 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
         value = runCatching { HealthInsightsRepository.load(db) }.onFailure { loadFailed = true }.getOrNull()
     }
     var restUntil by remember { mutableStateOf(RestMode.until(context)) }
-    // Collected here, not under the loaded branch, so it is in by the time the snapshot is; null
-    // until then, so the Cycle row never shows "log your period" to someone who has.
-    val periods by remember { db.periodDao().allFlow() }.collectAsState(initial = null)
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -188,54 +185,9 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     if (slow) Text(tr("Reading your history…"), color = PulseColors.textMuted, fontSize = 13.sp)
                 }
             } else {
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-                        .clickable(onClick = onWhatChanged).padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(tr("What changed"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text(tr("Your nights against your own normal, kept as a log"), fontSize = 12.sp, color = PulseColors.textMuted)
-                    }
-                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
-                }
-                if (com.pulseloop.service.Postpartum.active()) {
-                    Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-                            .clickable(onClick = onPostpartum).padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            val birth = com.pulseloop.service.Postpartum.birthDate!!
-                            Text(trf("Postpartum · week {0}", com.pulseloop.service.Postpartum.weeksSince(birth, java.time.LocalDate.now())), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                            Text(tr("Recovery, nights, mood check-in and warning signs"), fontSize = 12.sp, color = PulseColors.textMuted)
-                        }
-                        Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
-                    }
-                }
-                val cycle = periods?.let { list -> Cycle.status(list.map { it.toPeriod() }, java.time.LocalDate.now()) }
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-                        .clickable(onClick = onCycle).padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(cycle?.let { trf("Cycle · day {0} · {1}", it.cycleDay, it.phase.label) } ?: tr("Cycle"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text(cycle?.phase?.note ?: if (periods == null) "" else tr("Log your period to see its phase beside your sleep and recovery"), fontSize = 12.sp, color = PulseColors.textMuted)
-                    }
-                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
-                }
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-                        .clickable(onClick = onMeds).padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(tr("Medications & supplements"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text(tr("Your schedule, today's doses and a week's record"), fontSize = 12.sp, color = PulseColors.textMuted)
-                    }
-                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
-                }
+                // Overview first: is anything off, then the long view, then the tools to dig in.
+                // Programs (cycle, meds, postpartum) live on Today and in "+ Log" now, and the
+                // day's sleep, heart and stress detail on their own tabs.
                 RadarSection(s.radar, restUntil) { days ->
                     RestMode.set(context, days); restUntil = RestMode.until(context)
                 }
@@ -253,12 +205,20 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                         }
                     }
                 }
-                SleepSection(s)
-                StressSection(s, onBreathe)
-                HeartSection(s)
-                HabitsSection(s.habits)
-                StepCalibrationCard(db)
                 TrendsSection(db)
+                HabitsSection(s.habits, s.cardio)
+                StressSection(s, onBreathe)
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                        .clickable(onClick = onWhatChanged).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(tr("What changed"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Your nights against your own normal, kept as a log"), fontSize = 12.sp, color = PulseColors.textMuted)
+                    }
+                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
                 Text(
                     tr("Estimates from your ring compared with your own recent normal, not medical measurements."),
                     fontSize = 11.sp, color = PulseColors.textMuted,
@@ -282,7 +242,8 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
             }
             Text(r.level.label, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = color)
             Text(r.level.summary, fontSize = 13.sp, color = PulseColors.textSecondary)
-            r.signals.forEach { sig ->
+            // When nothing is flagged the headline says so; five "Normal" rows under it were noise.
+            if (r.level != SymptomRadar.Level.NONE) r.signals.forEach { sig ->
                 Fact(sig.metric.title, if (sig.flagged) tr("Elevated") else tr("Normal"), sig.detail,
                     if (sig.flagged) PulseColors.warning else PulseColors.textSecondary)
             }
@@ -305,8 +266,8 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
 }
 
 @Composable
-private fun SleepSection(s: HealthInsightsRepository.Snapshot) {
-    Section(tr("Sleep")) {
+internal fun SleepBalanceSection(s: HealthInsightsRepository.SleepBalance) {
+    Section(tr("Sleep balance")) {
         Fact(tr("Sleep need"), SleepFormat.duration(s.need.minutes),
             if (s.need.isLearned) tr("Learned from nights you woke recovered") else tr("Your goal, until 5 recovered nights teach the app yours"))
         s.debt?.let { d ->
@@ -326,22 +287,7 @@ private fun SleepSection(s: HealthInsightsRepository.Snapshot) {
 @Composable
 private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () -> Unit) {
     val context = LocalContext.current
-    Section(tr("Stress")) {
-        val z = s.todayStress
-        if (z == null) {
-            Text(tr("No daytime stress readings today yet."), fontSize = 13.sp, color = PulseColors.textMuted)
-        } else {
-            Text(trf("Today: {0}", z.summary.label), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            val total = z.totalMin.coerceAtLeast(1).toFloat()
-            Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(2.dp))) {
-                listOf(z.restoredMin to PulseColors.success, z.relaxedMin to PulseColors.info,
-                    z.engagedMin to PulseColors.warning, z.stressedMin to PulseColors.danger).forEach { (m, c) ->
-                    if (m > 0) Box(Modifier.weight(m / total).fillMaxHeight().background(c))
-                }
-            }
-            Text(trf("Restored {0} · relaxed {1} · engaged {2} · stressed {3}", SleepFormat.duration(z.restoredMin), SleepFormat.duration(z.relaxedMin), SleepFormat.duration(z.engagedMin), SleepFormat.duration(z.stressedMin)),
-                fontSize = 12.sp, color = PulseColors.textMuted)
-        }
+    Section(tr("Stress & breathing")) {
         s.resilience?.let { Fact(tr("Resilience"), it.level.label, trf("Daytime recovery against stress, and how well nights restore you ({0} days)", it.daysUsed)) }
         val sessions = remember { MindfulSessions.all(context) }
         val week = sessions.filter { it.startAt >= System.currentTimeMillis() - 7 * 86_400_000L }
@@ -355,34 +301,6 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
             )
         }
         OutlinedButton(onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text(tr("Start a breathing session")) }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun HeartSection(s: HealthInsightsRepository.Snapshot) {
-    Section(tr("Heart")) {
-        if (s.hrToday.size >= 2) {
-            Text(tr("Heart rate since last night"), fontSize = 13.sp, color = PulseColors.textSecondary)
-            HeartRateContextChart(s.hrToday, s.sleepWindows, s.workoutWindows)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Legend(PulseColors.sleep, tr("Sleep")); Legend(PulseColors.steps, tr("Workout")); Legend(PulseColors.heartRate, tr("Day"))
-            }
-        }
-        s.cardioLoad?.let { l ->
-            Fact(
-                tr("Cardio load today"), "${l.load}" + (l.band?.let { " · ${it.label}" } ?: ""),
-                trf("Heart rate above your quiet waking {0} bpm, {1} min well above it", l.quietHr, l.elevatedMinutes) +
-                    (l.usual?.let { trf(". Your usual day: {0}", it) } ?: ""),
-            )
-        }
-        s.cardio?.let { c ->
-            Fact(tr("Cardio capacity (VO₂max)"), "%.0f · %s".format(c.vo2max, c.level.label),
-                if (c.fromRing) tr("Measured by your ring") else tr("Estimated from resting heart rate and age"))
-            // No "cardiovascular age": from a ring it would only restate resting heart rate and age
-            // as a number of years, which reads as far more than it is (OpenStrap Edge dropped its
-            // own for the same reason).
-        } ?: Text(tr("Add your age in Settings → User Profile for cardio capacity."), fontSize = 12.sp, color = PulseColors.textMuted)
     }
 }
 
@@ -421,7 +339,7 @@ fun HeartRateContextChart(samples: List<VitalSample>, sleep: List<LongRange>, wo
 }
 
 @Composable
-private fun HabitsSection(h: HealthInsightsRepository.Habits) {
+private fun HabitsSection(h: HealthInsightsRepository.Habits, cardio: com.pulseloop.service.CardioCapacity?) {
     Section(tr("Habits & routines · 30-day averages")) {
         h.bedtime?.let { Fact(tr("Bedtime"), it) }
         h.wake?.let { Fact(tr("Wake-up"), it) }
@@ -429,6 +347,13 @@ private fun HabitsSection(h: HealthInsightsRepository.Habits) {
         h.steps?.let { Fact(tr("Steps"), "%,d".format(it)) }
         h.activeMin?.let { Fact(tr("Active minutes"), "$it min") }
         h.restingHr?.let { Fact(tr("Resting heart rate"), "${it.roundToInt()} bpm") }
+        cardio?.let { c ->
+            Fact(tr("Cardio capacity (VO₂max)"), "%.0f · %s".format(c.vo2max, c.level.label),
+                if (c.fromRing) tr("Measured by your ring") else tr("Estimated from resting heart rate and age"))
+            // No "cardiovascular age": from a ring it would only restate resting heart rate and age
+            // as a number of years, which reads as far more than it is (OpenStrap Edge dropped its
+            // own for the same reason).
+        }
         if (listOf(h.bedtime, h.steps, h.restingHr).all { it == null }) {
             Text(tr("A few more days of data and your routines show up here."), fontSize = 12.sp, color = PulseColors.textMuted)
         }
@@ -615,8 +540,7 @@ private const val INHALE_MS = 4_000L
 /** The way into [MyHealthScreen] from Vitals: one row, with Rest Mode shown while it is on. */
 @Composable
 fun MyHealthEntryCard(onClick: () -> Unit) {
-    val context = LocalContext.current
-    val restUntil = remember { RestMode.until(context) }
+    // Rest Mode has its own line on Today now, so this row only says what is behind it.
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
             .clickable(onClick = onClick).padding(16.dp),
@@ -624,11 +548,7 @@ fun MyHealthEntryCard(onClick: () -> Unit) {
     ) {
         Column(Modifier.weight(1f)) {
             Text(tr("My Health & Trends"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(
-                if (restUntil != null) trf("Rest Mode on until {0}", restUntil.dayOfWeek.getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()))
-                else tr("Symptom radar, sleep debt, stress, body clock, cardio capacity"),
-                fontSize = 12.sp, color = if (restUntil != null) PulseColors.accent else PulseColors.textMuted,
-            )
+            Text(tr("How your last months went: health areas, trends and habits"), fontSize = 12.sp, color = PulseColors.textMuted)
         }
         Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
     }
@@ -637,7 +557,7 @@ fun MyHealthEntryCard(onClick: () -> Unit) {
 
 /** Ring steps against the phone's own counter, with the option to show calibrated steps on Today. */
 @Composable
-private fun StepCalibrationCard(db: PulseLoopDatabase) {
+internal fun StepCalibrationCard(db: PulseLoopDatabase) {
     val context = LocalContext.current
     var granted by remember { mutableStateOf(com.pulseloop.service.StepCalibration.hasPermission(context)) }
     var applied by remember { mutableStateOf(com.pulseloop.service.StepCalibration.isApplied(context)) }
@@ -688,6 +608,36 @@ private fun StepCalibrationCard(db: PulseLoopDatabase) {
                 }
                 Text(tr("Goals, scores and Health Connect keep the ring's own count."), fontSize = 11.sp, color = PulseColors.textMuted)
             }
+        }
+    }
+}
+
+/** Sleep need, debt and body clock, under last night on the Sleep tab. Nothing until loaded. */
+@Composable
+fun SleepBalanceCard() {
+    val context = LocalContext.current
+    val db = remember { PulseLoopDatabase.getInstance(context) }
+    val balance by produceState<HealthInsightsRepository.SleepBalance?>(null) {
+        value = runCatching { HealthInsightsRepository.sleepBalance(db) }.getOrNull()
+    }
+    balance?.let { SleepBalanceSection(it) }
+}
+
+/** Today's cardio load on the Activity tab; nothing until there are enough days of heart rate. */
+@Composable
+fun CardioLoadCard(refreshKey: Any?) {
+    val context = LocalContext.current
+    val db = remember { PulseLoopDatabase.getInstance(context) }
+    val load by produceState<com.pulseloop.service.CardioLoad.Result?>(null, refreshKey) {
+        value = runCatching { HealthInsightsRepository.cardioLoadToday(db) }.getOrNull() ?: value
+    }
+    load?.let { l ->
+        Section(tr("Cardio load today")) {
+            Fact(
+                tr("Cardio load"), "${l.load}" + (l.band?.let { " · ${it.label}" } ?: ""),
+                trf("Heart rate above your quiet waking {0} bpm, {1} min well above it", l.quietHr, l.elevatedMinutes) +
+                    (l.usual?.let { trf(". Your usual day: {0}", it) } ?: ""),
+            )
         }
     }
 }

@@ -159,6 +159,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.dayItems(
         else -> item { SleepCarousel(sessions, state.dayBlocks, viewModel, state.goalMinutes) }
     }
 
+    // Need, debt and body clock describe now, not the night being browsed, so only on today.
+    if (state.dayOffset == 0) item { SleepBalanceCard() }
+
     item {
         val summary = state.daySummary
         val fallback = state.coach

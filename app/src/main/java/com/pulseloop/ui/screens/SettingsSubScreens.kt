@@ -1143,7 +1143,7 @@ private fun DailyGuidanceSettingsCard() {
             ) { progress = it; prefs.activityProgress = it }
             GuidanceSwitch(
                 tr("Medication reminders"),
-                tr("Once per dose, at its time, for what you add in My Health → Medications & supplements."),
+                tr("Once per dose, at its time, for what you add with + Log → Medication or supplement."),
                 medsOn,
             ) { medsOn = it; prefs.medReminders = it }
         }

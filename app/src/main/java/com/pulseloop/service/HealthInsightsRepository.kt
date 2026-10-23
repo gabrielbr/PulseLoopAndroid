@@ -256,6 +256,30 @@ object HealthInsightsRepository {
         return Snapshot(nights, need, debt, radar, todayStress, resilience, bodyClock, cardio, areas, habits, hrToday, sleepWindows, workoutWindows, cardioLoad)
     }
 
+    /** Sleep need, debt and body clock: what the Sleep tab shows under last night. */
+    data class SleepBalance(val need: SleepNeed, val debt: SleepDebt?, val bodyClock: BodyClock?)
+
+    suspend fun sleepBalance(db: PulseLoopDatabase, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): SleepBalance {
+        val inputs = ReadinessRepository.loadInputs(db, now, zone)
+        val nights = (inputs.history + listOfNotNull(inputs.lastNight)).sortedBy { it.day }
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val need = SleepNeed.estimate(nights, db.userGoalDao().get()?.sleepMinutes ?: 480, today)
+        return SleepBalance(need, SleepDebt.from(nights, need, today), BodyClock.compute(nights, zone))
+    }
+
+    /** Today's cardio load, for the Activity tab; null until there are enough days of heart rate. */
+    suspend fun cardioLoadToday(db: PulseLoopDatabase, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): CardioLoad.Result? {
+        val inputs = ReadinessRepository.loadInputs(db, now, zone)
+        val nights = inputs.history + listOfNotNull(inputs.lastNight)
+        val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
+        val hr29 = db.measurementDao().rangeReal(MeasurementKind.HEART_RATE.name, today.minusDays(29).atStartOfDay(zone).toInstant().toEpochMilli(), now)
+            .map { it.timestamp to it.value }
+        val nightRanges = nights.map { it.startAt..it.endAt }
+        return runCatching {
+            CardioLoad.compute(hr29, { t -> nightRanges.any { t in it } }, today, zone, db.userProfileDao().get()?.age)
+        }.getOrNull()
+    }
+
     // ── Trends ───────────────────────────────────────────────────────────────
 
     enum class TrendMetric(private val labelEn: String, val unit: String) {

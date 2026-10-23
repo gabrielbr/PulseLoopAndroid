@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -72,6 +73,10 @@ fun MedsScreen(onBack: () -> Unit) {
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
             )
+            // Adding is setup, not the daily job: it sits in the header so today's doses lead.
+            IconButton(onClick = { adding = true }, modifier = Modifier.align(Alignment.CenterEnd)) {
+                Icon(Icons.Filled.Add, tr("Add medication or supplement"), tint = PulseColors.textSecondary)
+            }
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -147,7 +152,10 @@ fun MedsScreen(onBack: () -> Unit) {
                     }
                 }
             }
-            Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
+            // With nothing added yet, adding is the only thing to do here: keep the big button.
+            if (medsLoaded != null && meds.isEmpty()) {
+                Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
+            }
             Text(
                 tr("A record for you and your doctor. PulseLoop doesn't check interactions or doses; ask your pharmacist."),
                 fontSize = 11.sp, color = PulseColors.textMuted,
