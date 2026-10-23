@@ -18,11 +18,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.graphicsLayer
@@ -30,7 +30,8 @@ import kotlin.math.abs
 
 /**
  * The app's screen transition: the new screen dissolves in through the same 4×4 Bayer dither the
- * rest of the UI is drawn with, along a gradient that sweeps from the top down, and the sweep's
+ * rest of the UI is drawn with, along a gradient that sweeps diagonally from the top-left corner to
+ * the bottom-right, and the sweep's
  * front edge glitters in the accent colour. Fairy mode swaps the dots for a smooth fade, as the
  * rest of the dither does.
  *
@@ -39,14 +40,14 @@ import kotlin.math.abs
  * the outgoing one on top for a back press), the picture is the same.
  */
 object DitherTransition {
-    /** Long enough to read as a wipe, short enough not to hold anyone up. */
-    const val DURATION_MS = 420
+    /** Long enough to watch the sweep cross the screen; 420 ms read as a flicker. */
+    const val DURATION_MS = 750
 
-    /** How much of the screen's height the dithered gradient at the front spans. */
+    /** How much of the sweep's path (corner to corner) the dithered gradient at the front spans. */
     private const val GRADIENT = 0.35f
 
-    /** Horizontal bands the gradient is cut into; one per dither step reads as smooth. */
-    private const val BANDS = 32
+    /** Diagonal bands the corner-to-corner sweep is cut into. */
+    private const val BANDS = 48
 
     /**
      * NavHost's own transitions only hold both screens on screen for [DURATION_MS]: the alpha
@@ -55,7 +56,7 @@ object DitherTransition {
     val enter: EnterTransition = fadeIn(tween(DURATION_MS, easing = LinearEasing), initialAlpha = 0.99f)
     val exit: ExitTransition = fadeOut(tween(DURATION_MS, easing = LinearEasing), targetAlpha = 0.99f)
 
-    /** Share of the cells revealed at height [t] (0 top, 1 bottom) when the sweep is at [p]. */
+    /** Share of the cells revealed at [t] along the diagonal (0 top-left, 1 bottom-right) when the sweep is at [p]. */
     internal fun coverage(t: Float, p: Float): Float {
         val front = p * (1f + GRADIENT)
         return ((front - t) / GRADIENT).coerceIn(0f, 1f)
@@ -73,18 +74,30 @@ object DitherTransition {
      */
     internal fun DrawScope.drawWipe(p: Float, entering: Boolean, accent: Color) {
         val keepMode = if (entering) BlendMode.DstIn else BlendMode.DstOut
+        val w = size.width
+        val h = size.height
         if (FairyMode.on) {
             val stops = (0..BANDS).map { i -> val t = i / BANDS.toFloat(); t to Color.Black.copy(alpha = coverage(t, p)) }
-            drawRect(Brush.verticalGradient(*stops.toTypedArray()), blendMode = keepMode)
+            drawRect(Brush.linearGradient(*stops.toTypedArray(), start = Offset.Zero, end = Offset(w, h)), blendMode = keepMode)
             val glow = (0..BANDS).map { i -> val t = i / BANDS.toFloat(); t to accent.copy(alpha = sparkle(t, p) * 0.6f) }
-            drawRect(Brush.verticalGradient(*glow.toTypedArray()))
+            drawRect(Brush.linearGradient(*glow.toTypedArray(), start = Offset.Zero, end = Offset(w, h)))
             return
         }
-        val bandH = size.height / BANDS
+        // A point's place along the sweep is (x / w + y / h) / 2, so each band is the strip
+        // between two lines parallel to the top-right-to-bottom-left diagonal. Its corners can
+        // lie past the screen; drawing clips them. The dither cells stay on the screen grid.
+        fun band(a: Float, b: Float) = Path().apply {
+            moveTo(2f * a * w, 0f)
+            lineTo(2f * b * w, 0f)
+            lineTo(0f, 2f * b * h)
+            lineTo(0f, 2f * a * h)
+            close()
+        }
         for (i in 0 until BANDS) {
-            val t = (i + 0.5f) / BANDS
+            val a = i / BANDS.toFloat()
+            val b = (i + 1) / BANDS.toFloat()
+            val t = (a + b) / 2f
             val lit = Dither.steps(coverage(t, p))
-            val top = i * bandH
             val brush: Brush? = when {
                 // Entering keeps everything here; leaving keeps nothing.
                 lit >= Dither.STEPS -> if (entering) null else SolidColor(Color.Black)
@@ -92,16 +105,12 @@ object DitherTransition {
                 lit == 0 -> if (entering) SolidColor(Color.Transparent) else null
                 else -> with(Dither) { brush(Color.Black, lit, cellPx()) }
             }
-            if (brush != null) {
-                drawRect(brush, topLeft = Offset(0f, top), size = Size(size.width, bandH + 1f), blendMode = keepMode)
-            }
             val glitter = Dither.steps(sparkle(t, p))
-            if (glitter > 0) {
-                drawRect(
-                    with(Dither) { brush(accent, glitter, cellPx()) },
-                    topLeft = Offset(0f, top), size = Size(size.width, bandH + 1f),
-                )
-            }
+            if (brush == null && glitter == 0) continue
+            // About a pixel of overlap, so anti-aliased strip edges leave no visible seam.
+            val path = band(a, b + 1f / (w + h))
+            if (brush != null) drawPath(path, brush, blendMode = keepMode)
+            if (glitter > 0) drawPath(path, with(Dither) { brush(accent, glitter, cellPx()) })
         }
     }
 }

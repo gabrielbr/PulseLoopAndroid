@@ -2,80 +2,80 @@ package com.pulseloop.ui.components
 
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
-import com.pulseloop.R
+import com.pulseloop.ui.theme.ditherBrush
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
- * Ported from RingArtView.swift (iOS #48).
- * Renders a smart ring's product art on a light circular "platter" for the pairing carousel
- * and the Settings hero: a soft tinted glow behind a light gradient disc so black / gold /
- * rose-gold rings all read on the dark theme.
+ * A smart ring drawn in the app's own dither instead of a product photo: a band turning slowly
+ * about a tilted axis, its near side dense and its far side sparse, so the dots alone give it
+ * depth. Every ring looks the same here on purpose; the model's name says which one it is, and
+ * [tint] (the model's colour) is the only thing that varies.
+ *
+ * [imageRes] is accepted and ignored, so callers that still pass a model's photo keep compiling.
  */
 @Composable
 fun RingArtView(
     tint: Color,
     modifier: Modifier = Modifier,
     size: Float = 180f,
-    @DrawableRes imageRes: Int? = null,
+    @Suppress("UNUSED_PARAMETER") @DrawableRes imageRes: Int? = null,
 ) {
-    // Tint follows the selected model with a short cross-fade (iOS animates .easeInOut 0.25).
-    val animatedTint by animateColorAsState(tint, tween(250), label = "ringArtTint")
-
-    Box(
-        modifier = modifier.size(size.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        // Soft themed glow so the platter sits in the app's color world.
-        Box(
-            Modifier
-                .size(size.dp)
-                .blur((size * 0.13f).dp, BlurredEdgeTreatment.Unbounded)
-                .clip(CircleShape)
-                .background(animatedTint.copy(alpha = 0.22f)),
-        )
-
-        // Light platter: vertical white→light-gray gradient, subtle border, soft drop shadow.
-        Box(
-            Modifier
-                .size(size.dp)
-                .shadow((size * 0.05f).dp, CircleShape)
-                .clip(CircleShape)
-                .background(Brush.verticalGradient(listOf(Color.White, Color(0xFFE0E0E0))))
-                .border(1.dp, Color.Black.copy(alpha = 0.06f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(imageRes ?: FALLBACK_IMAGE_RES),
-                contentDescription = null,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding((size * 0.08f).dp),
-                contentScale = ContentScale.Fit,
-            )
+    // A black or gunmetal ring's colour would vanish on the dark page; those turn in the accent.
+    val visible = if (tint.luminance() < 0.25f) com.pulseloop.ui.theme.PulseColors.accent else tint
+    val color by animateColorAsState(visible, tween(250), label = "ringArtTint")
+    val spin by rememberInfiniteTransition(label = "ringSpin").animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * PI).toFloat(),
+        animationSpec = infiniteRepeatable(tween(6000, easing = LinearEasing), RepeatMode.Restart),
+        label = "ringAngle",
+    )
+    Canvas(modifier.size(size.dp)) {
+        val radius = this.size.minDimension * 0.34f
+        val band = this.size.minDimension * 0.075f
+        val center = Offset(this.size.width / 2, this.size.height / 2)
+        // The ring's own circle, turned about the vertical axis by [spin] and tipped towards
+        // the viewer, then flattened onto the screen. Depth (z) sets the dot density.
+        val tilt = 0.45f
+        val points = (0 until SEGMENTS).map { i ->
+            val a = 2 * PI * i / SEGMENTS
+            val x0 = cos(a).toFloat()
+            val y0 = sin(a).toFloat()
+            val x1 = x0 * cos(spin)
+            val z1 = x0 * sin(spin)
+            val y2 = y0 * cos(tilt) - z1 * sin(tilt)
+            val z2 = y0 * sin(tilt) + z1 * cos(tilt)
+            Triple(Offset(center.x + x1 * radius, center.y + y2 * radius), z2, a)
+        }
+        // Far side first, so the near side is drawn over it.
+        points.sortedBy { it.second }.forEach { (pos, z, _) ->
+            val near = (z + 1f) / 2f
+            val brush = ditherBrush(color, 0.25f + 0.75f * near) ?: return@forEach
+            drawCircle(brush, radius = band * (0.75f + 0.35f * near), center = pos)
+        }
+        // A highlight that stays put while the ring turns under it: a dense glint on the near rim.
+        points.filter { it.second > 0.55f }.forEach { (pos, _, _) ->
+            val brush = ditherBrush(Color.White, 0.3f) ?: return@forEach
+            drawCircle(brush, radius = band * 0.35f, center = pos)
         }
     }
 }
 
-/** Generic Colmi-style ring shown when no model-specific image is available. */
-private val FALLBACK_IMAGE_RES = R.drawable.ring_colmi_r09
+/** Dots around the ring; enough to read as a solid band at the largest size. */
+private const val SEGMENTS = 96

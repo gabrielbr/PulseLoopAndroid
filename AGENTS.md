@@ -1136,7 +1136,11 @@ clutter came from ignoring one of them:
   (incoming keeps the swept cells, outgoing keeps the rest), because the navigator puts the
   outgoing screen on top for a back press; a reveal drawn only on the incoming screen would be
   hidden there. NavHost's own fade (0.99 alpha) exists only to keep both screens composed for
-  `DURATION_MS`. Fairy mode uses a smooth gradient, like every other dither.
+  `DURATION_MS`. It sweeps diagonally, top-left to bottom-right, in 750 ms: 420 ms read as a flicker.
+  Fairy mode uses a smooth gradient, like every other dither.
+- **Rings are drawn, not photographed** (`RingArtView`): a dithered band turning about a tilted
+  axis, the same for every model. A dark model tint falls back to the accent, since it would
+  vanish on the page.
 - **In-screen motion uses `theme/Motion.kt`**: `sweepIn` for rings, gauges and bars (fill from empty
   on first show, glide between values) and `pressScale` for tappable cards. Collapsible sections
   expand with `AnimatedVisibility`. Prefer these over one-off specs, so the app moves one way.
