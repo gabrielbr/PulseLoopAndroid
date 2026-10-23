@@ -79,7 +79,6 @@ fun SettingsScreen(
         CoachProviderMode.BACKEND_PROXY -> tr("Backend proxy")
         else -> keyStore.model
     }
-    val notificationsTrailing = if (keyStore.notificationsEnabled) tr("On") else tr("Off")
     val openCheck by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
     val accuracyTrailing = openCheck?.let { c ->
         if (c.state == com.pulseloop.data.entity.AccuracyCheckEntity.STATE_RUNNING) {
@@ -126,19 +125,15 @@ fun SettingsScreen(
             onSetUp = { navigate("pairing") },
         )
 
-        // AI COACH — check-ins are a coach sub-feature, only shown once the coach is on.
+        // AI COACH. Notifications sit under General, not here: most of them (daily guidance,
+        // battery alerts) work without the coach and were unreachable while it was off.
         SettingsSection(
             title = tr("AI Coach"),
-            rows = buildList {
-                add(SettingsRowItem(Icons.Filled.AutoAwesome, PulseColors.accent, tr("AI Coach"), coachTrailing) {
+            rows = listOf(
+                SettingsRowItem(Icons.Filled.AutoAwesome, PulseColors.accent, tr("AI Coach"), coachTrailing) {
                     navigate("settings/coach")
-                })
-                if (coachEnabled) {
-                    add(SettingsRowItem(Icons.Filled.NotificationsActive, PulseColors.warning, tr("Coach Check-Ins"), notificationsTrailing) {
-                        navigate("settings/checkins")
-                    })
-                }
-            },
+                },
+            ),
         )
 
         // GENERAL — Physiology sits under User Profile (iOS SettingsView General group), feeding the
@@ -154,6 +149,9 @@ fun SettingsScreen(
                 })
                 add(SettingsRowItem(Icons.Filled.MonitorHeart, PulseColors.hrv, tr("Physiology")) {
                     navigate("settings/physiology")
+                })
+                add(SettingsRowItem(Icons.Filled.NotificationsActive, PulseColors.warning, tr("Notifications")) {
+                    navigate("settings/checkins")
                 })
                 add(SettingsRowItem(Icons.Filled.Language, PulseColors.info, tr("Language"), com.pulseloop.ui.i18n.L10n.language.let { if (it == com.pulseloop.ui.i18n.AppLanguage.SYSTEM) tr("System default") else it.label }) {
                     navigate("settings/language")

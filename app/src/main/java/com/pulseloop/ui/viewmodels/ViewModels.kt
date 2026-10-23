@@ -622,18 +622,19 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
         } catch (_: Exception) {}
     }
 
-    suspend fun saveGoals(steps: Int, activeMinutes: Int, sleepMinutes: Int, workoutsPerWeek: Int) {
+    /** Writes the goals and returns the saved row, for [com.pulseloop.service.GoalSync.afterManualSave]. */
+    suspend fun saveGoals(steps: Int, activeMinutes: Int, sleepMinutes: Int, workoutsPerWeek: Int): UserGoalEntity {
         val existing = try { db.userGoalDao().get() } catch (_: Exception) { null }
-        db.userGoalDao().upsert(
-            (existing ?: UserGoalEntity()).copy(
-                steps = steps,
-                activeMinutes = activeMinutes,
-                sleepMinutes = sleepMinutes,
-                workoutsPerWeek = workoutsPerWeek,
-                updatedAt = System.currentTimeMillis(),
-            ),
+        val saved = (existing ?: UserGoalEntity()).copy(
+            steps = steps,
+            activeMinutes = activeMinutes,
+            sleepMinutes = sleepMinutes,
+            workoutsPerWeek = workoutsPerWeek,
+            updatedAt = System.currentTimeMillis(),
         )
+        db.userGoalDao().upsert(saved)
         reloadGoals()
+        return saved
     }
 }
 
