@@ -211,6 +211,9 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
         }
 
         if (hasRing) AccuracyCorrectionsCard()
+        // The phone-steps comparison is the same question ("is my ring counting right?"), so it
+        // lives here rather than in My Health.
+        if (hasRing) StepCalibrationCard(db)
 
         val past = history.filter { it.state == AccuracyCheckEntity.STATE_DONE }
         if (past.isNotEmpty()) {

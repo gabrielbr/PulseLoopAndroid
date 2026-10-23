@@ -194,37 +194,23 @@ fun ActivityScreen(
                 ) {
                     Icon(Icons.Filled.CalendarMonth, tr("Workout history"), tint = PulseColors.textSecondary)
                 }
+                // Logging a forgotten workout used to be its own full-width card between the
+                // summary and the day's workouts; it is the same job as recording one.
+                Box(
+                    Modifier
+                        .size(60.dp)
+                        .clip(CircleShape)
+                        .background(PulseColors.card)
+                        .border(1.dp, PulseColors.borderSubtle, CircleShape)
+                        .clickable(role = Role.Button) { navController?.navigate("log_past_activity") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Filled.History, tr("Log Past Activity"), tint = PulseColors.textSecondary)
+                }
             }
         }
 
         item { DetectedActivityCard() }
-
-        item {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 68.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PulseColors.card)
-                    .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                    .clickable { navController?.navigate("log_past_activity") }
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    Modifier.size(40.dp).clip(CircleShape).dither(PulseColors.accent, 0.18f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Filled.History, null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(tr("Log Past Activity"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                    Text(tr("Add a workout you forgot to record"), fontSize = 12.sp, color = PulseColors.textMuted)
-                }
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = PulseColors.textMuted)
-            }
-        }
 
         item {
             Text(
@@ -259,6 +245,9 @@ fun ActivityScreen(
                 }
             }
         }
+
+        // Moved from My Health: today's load belongs beside today's activity.
+        if (state.dayOffset == 0) item { CardioLoadCard(state.workoutsLoaded to state.finishedWorkouts.size) }
 
         item { WeeklyGoalCard(state, days, onTap = { goalsOpen = true }) }
         // The blocks behind today's total, each removable (issue #70). Under the summary rather

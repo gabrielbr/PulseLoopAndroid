@@ -173,6 +173,49 @@ fun NutritionScreen(
                 }
             }
 
+            // Logging is why people open this screen, so its buttons sit under the day's total,
+            // not below every meal of the day.
+            // AI log actions (iOS logActions, NutritionView.swift:114-125): Photo opens the
+            // analysis sheet in camera mode, Describe in describe mode.
+            if (coachEnabled) {
+                item {
+                    // Half-width buttons: tighter padding and up to two lines for a long translation,
+                    // equal heights so a wrapped label doesn't leave the pair misaligned.
+                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(
+                            onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(tr("Photo"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        }
+                        OutlinedButton(
+                            onClick = { analysisRequest = AnalysisRequest(startWithCamera = false) },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                        ) {
+                            Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(tr("Describe"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        }
+                    }
+                }
+            }
+
+            // Add button
+            item {
+                OutlinedButton(
+                    onClick = { showAddDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(tr("Log Meal"))
+                }
+            }
+
             // Next-meal idea, once a third of the day's target is eaten (today only).
             val eatenToday = totals.sumOf { it.totalCal }
             val targetToday = goal?.intakeCalories ?: 2000.0
@@ -218,7 +261,7 @@ fun NutritionScreen(
                 val typeMeals = meals.filter { it.mealTypeRaw == type }
                 if (typeMeals.isNotEmpty()) {
                     item {
-                        Text(type.replaceFirstChar { it.uppercase() }, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PulseColors.textSecondary)
+                        Text(tr(type.replaceFirstChar { it.uppercase() }), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PulseColors.textSecondary)
                     }
                     items(typeMeals, key = { it.id }) { meal ->
                         Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
@@ -236,46 +279,6 @@ fun NutritionScreen(
                 }
             }
 
-            // AI log actions (iOS logActions, NutritionView.swift:114-125): Photo opens the
-            // analysis sheet in camera mode, Describe in describe mode.
-            if (coachEnabled) {
-                item {
-                    // Half-width buttons: tighter padding and up to two lines for a long translation,
-                    // equal heights so a wrapped label doesn't leave the pair misaligned.
-                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(tr("Photo"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                        }
-                        OutlinedButton(
-                            onClick = { analysisRequest = AnalysisRequest(startWithCamera = false) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(tr("Describe"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-                        }
-                    }
-                }
-            }
-
-            // Add button
-            item {
-                OutlinedButton(
-                    onClick = { showAddDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(tr("Log Meal"))
-                }
-            }
         }
     }
 

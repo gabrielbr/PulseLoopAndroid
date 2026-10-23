@@ -395,6 +395,11 @@ fun TodayScreen(
                 item { HiddenMetricsTray(hiddenCards) { editState.setHidden(it, false) } }
             }
 
+            // The long view ("how have I been this month?") starts from Today, not from inside Vitals.
+            if (!editState.editing && navController != null) {
+                item { MyHealthEntryCard { navController.navigate("my_health") } }
+            }
+
             item { Spacer(Modifier.height(64.dp)) }
         }
 

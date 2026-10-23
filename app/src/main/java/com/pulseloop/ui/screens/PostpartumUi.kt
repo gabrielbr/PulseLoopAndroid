@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -229,6 +230,10 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
             Text(tr("Postpartum"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            // Birth date and feeding live in Profile → Life stage; one tap from here to change them.
+            IconButton(onClick = onOpenProfile, modifier = Modifier.align(Alignment.CenterEnd)) {
+                Icon(Icons.Filled.Edit, tr("Edit life stage"), tint = PulseColors.textSecondary)
+            }
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -273,6 +278,29 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 }
             }
 
+            // Ordered by urgency, not by topic: what she may need right now first (alcohol, a
+            // check-in that is due or a worrying last score, warning signs and help), then how
+            // recovery is going, then reading for later.
+            // Mood check-in: the EPDS, the validated questionnaire. Answers stay on this phone.
+            val moodCard: @Composable () -> Unit = { Card {
+                Text(tr("MOOD CHECK-IN"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                val last = history.lastOrNull()
+                if (last != null) {
+                    Text(trf("Last check-in {0}: score {1} of 30", last.date, last.score), fontSize = 14.sp, color = PulseColors.textPrimary)
+                    EpdsGuidance(last.score, last.selfHarm)
+                } else {
+                    Text(tr("Ten quick questions about the last 7 days, used by health services worldwide to spot postpartum depression early."), fontSize = 13.sp, color = PulseColors.textSecondary)
+                }
+                Postpartum.nextCheckIn(birth, today, history)?.let { next ->
+                    Text(trf("Suggested next check-in: {0}", next.format(DateTimeFormatter.ofPattern("d MMM"))), fontSize = 12.sp, color = PulseColors.textMuted)
+                }
+                Button(onClick = { checkIn = true }) { Text(tr("Start check-in")) }
+                Text(tr("Your answers stay on this phone. They aren't in backups, diagnostics or Health Connect."), fontSize = 11.sp, color = PulseColors.textMuted)
+            } }
+            val lastEpds = history.lastOrNull()
+            val moodUrgent = Postpartum.nextCheckIn(birth, today, history)?.let { !it.minusDays(7).isAfter(today) } == true ||
+                (lastEpds != null && (lastEpds.score >= 10 || lastEpds.selfHarm > 0))
+            if (moodUrgent) moodCard()
             d?.lastNight?.let { n ->
                 Card {
                     Text(tr("LAST NIGHT"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
@@ -287,10 +315,12 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 }
             }
 
+            WarningSignsCard()
+            ResourcesCard(context)
             if (d != null && (d.restingHr.isNotEmpty() || d.hrv.isNotEmpty())) {
                 Card {
                     Text(tr("RECOVERY, WEEK BY WEEK"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-                    val weeksShown = (d.restingHr.map { it.first } + d.hrv.map { it.first }).distinct().sorted().takeLast(8)
+                    val weeksShown = (d.restingHr.map { it.first } + d.hrv.map { it.first }).distinct().sorted().takeLast(4)
                     weeksShown.forEach { w ->
                         val rhr = d.restingHr.firstOrNull { it.first == w }?.second
                         val hrv = d.hrv.firstOrNull { it.first == w }?.second
@@ -306,21 +336,15 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 }
             }
 
-            // Mood check-in: the EPDS, the validated questionnaire. Answers stay on this phone.
+            if (!moodUrgent) moodCard()
             Card {
-                Text(tr("MOOD CHECK-IN"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-                val last = history.lastOrNull()
-                if (last != null) {
-                    Text(trf("Last check-in {0}: score {1} of 30", last.date, last.score), fontSize = 14.sp, color = PulseColors.textPrimary)
-                    EpdsGuidance(last.score, last.selfHarm)
-                } else {
-                    Text(tr("Ten quick questions about the last 7 days, used by health services worldwide to spot postpartum depression early."), fontSize = 13.sp, color = PulseColors.textSecondary)
-                }
-                Postpartum.nextCheckIn(birth, today, history)?.let { next ->
-                    Text(trf("Suggested next check-in: {0}", next.format(DateTimeFormatter.ofPattern("d MMM"))), fontSize = 12.sp, color = PulseColors.textMuted)
-                }
-                Button(onClick = { checkIn = true }) { Text(tr("Start check-in")) }
-                Text(tr("Your answers stay on this phone. They aren't in backups, diagnostics or Health Connect."), fontSize = 11.sp, color = PulseColors.textMuted)
+                Text(tr("NUTRITION"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                val bonus = Postpartum.calorieBonus(birth, today, Postpartum.feeding)
+                if (bonus > 0) Text(trf("Breastfeeding uses about {0} kcal a day more; your intake goal includes it.", bonus), fontSize = 13.sp, color = PulseColors.textPrimary)
+                Text(
+                    tr("Drink to thirst and keep water where you feed. Ask your clinician about iodine, DHA and your baby's vitamin D. This is no time for a diet."),
+                    fontSize = 12.sp, color = PulseColors.textSecondary,
+                )
             }
 
             d?.lam?.let { lam ->
@@ -338,18 +362,6 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 }
             }
 
-            Card {
-                Text(tr("NUTRITION"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-                val bonus = Postpartum.calorieBonus(birth, today, Postpartum.feeding)
-                if (bonus > 0) Text(trf("Breastfeeding uses about {0} kcal a day more; your intake goal includes it.", bonus), fontSize = 13.sp, color = PulseColors.textPrimary)
-                Text(
-                    tr("Drink to thirst and keep water where you feed. Ask your clinician about iodine, DHA and your baby's vitamin D. This is no time for a diet."),
-                    fontSize = 12.sp, color = PulseColors.textSecondary,
-                )
-            }
-
-            WarningSignsCard()
-            ResourcesCard(context)
             Text(
                 tr("PulseLoop doesn't detect mastitis, fever, depression, preeclampsia, milk supply or returning fertility. The ring's numbers are context, not a diagnosis."),
                 fontSize = 11.sp, color = PulseColors.textMuted,

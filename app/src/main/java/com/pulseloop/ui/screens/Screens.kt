@@ -293,7 +293,9 @@ fun VitalsScreen(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(tr("Vitals"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
-                    Text(tr("Live measurements and trends"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // The answer first: is anything outside this person's usual range? The
+                    // cards below are the detail.
+                    VitalsStatusLine()
                     state.adjustedNote?.let { AdjustedCaption(it) }
                 }
                 // Measure button: combined (0x23) for 56ff/Jring, or sequential live
@@ -372,100 +374,64 @@ fun VitalsScreen(
                     // On-demand HRV / stress / temperature, one control each (issue #66's rule).
                     val spotVitals = coordinator.measurableSpotVitals
                     if (separateLegs) {
-                      // Stacked, not side by side: this sits in the header Row beside the title,
-                      // so a second Row here would be laid out horizontally and crush the title.
-                      // Bounded, with each group wrapping: the buttons are measured before the
-                      // weighted title, so three or four unbounded buttons ("PA e HRV", a running
-                      // "SpO₂ 45s") squeezed "Sinais vitais" to a letter or two per line.
-                      Column(
-                        Modifier.widthIn(max = 208.dp),
-                        horizontalAlignment = Alignment.End,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                      // One "Measure" button opening a list, instead of up to six buttons beside the
+                      // title: they were measured before the weighted title and crushed it.
+                      data class Option(val label: String, val title: String, val run: () -> Unit)
+                      val options = buildList {
+                          add(Option("HR", tr("Heart rate")) {
+                              runMeasurement(
+                                  coordinator.heartRateMeasureSeconds, "HR",
+                                  caption = tr("Keep still — measuring heart rate…"),
+                                  failed = { coordinator.hrState == failedState },
+                              ) { coordinator.measureHeartRateOnly() }
+                          })
+                          add(Option(tr("SpO₂"), tr("Blood oxygen")) {
+                              runMeasurement(
+                                  coordinator.spo2OnlyMeasureSeconds, tr("SpO₂"),
+                                  caption = tr("Keep still — measuring blood oxygen…"),
+                                  failed = { coordinator.spo2State == failedState },
+                              ) { coordinator.measureSpO2Only() }
+                          })
+                          if (remainingLegsLabel != null) add(Option(remainingLegsLabel, remainingLegsLabel) {
+                              runMeasurement(
+                                  coordinator.remainingLegsMeasureSeconds, remainingLegsLabel,
+                                  caption = trf("Keep still — measuring {0}…", remainingLegsLabel),
+                                  failed = {
+                                      (coordinator.canMeasureBloodPressure &&
+                                          coordinator.bloodPressureState == failedState) ||
+                                          (coordinator.canMeasureHrv && coordinator.hrvState == failedState)
+                                  },
+                              ) { coordinator.measureRemainingLegs() }
+                          })
+                          spotVitals.forEach { vital ->
+                              add(Option(vital.label, tr(vital.description.replaceFirstChar { it.uppercase() })) {
+                                  runMeasurement(
+                                      coordinator.spotVitalMeasureSeconds, vital.label,
+                                      caption = trf("Keep still — measuring {0}…", vital.description),
+                                      failed = { coordinator.vitalState(vital) == failedState },
+                                  ) { coordinator.measureVitalOnly(vital) }
+                              })
+                          }
+                      }
+                      var pickOpen by remember { mutableStateOf(false) }
+                      Button(
+                          enabled = !measuring,
+                          modifier = Modifier.widthIn(max = 160.dp),
+                          onClick = { pickOpen = true },
                       ) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Button(
-                                enabled = !measuring,
-                                onClick = {
-                                    runMeasurement(
-                                        coordinator.heartRateMeasureSeconds, "HR",
-                                        caption = tr("Keep still — measuring heart rate…"),
-                                        failed = { coordinator.hrState == failedState },
-                                    ) { coordinator.measureHeartRateOnly() }
-                                },
-                            ) {
-                                Text(
-                                    if (measuring && measuringLabel == "HR") "HR ${remaining}s" else "HR",
-                                    color = androidx.compose.ui.graphics.Color.Unspecified,
-                                )
-                            }
-                            Button(
-                                enabled = !measuring,
-                                onClick = {
-                                    runMeasurement(
-                                        coordinator.spo2OnlyMeasureSeconds, tr("SpO₂"),
-                                        caption = tr("Keep still — measuring blood oxygen…"),
-                                        failed = { coordinator.spo2State == failedState },
-                                    ) { coordinator.measureSpO2Only() }
-                                },
-                            ) {
-                                Text(
-                                    if (measuring && measuringLabel == "SpO₂") "SpO₂ ${remaining}s" else tr("SpO₂"),
-                                    color = androidx.compose.ui.graphics.Color.Unspecified,
-                                )
-                            }
-                            if (remainingLegsLabel != null) {
-                                Button(
-                                    enabled = !measuring,
-                                    onClick = {
-                                        runMeasurement(
-                                            coordinator.remainingLegsMeasureSeconds, remainingLegsLabel,
-                                            caption = trf("Keep still — measuring {0}…", remainingLegsLabel),
-                                            failed = {
-                                                (coordinator.canMeasureBloodPressure &&
-                                                    coordinator.bloodPressureState == failedState) ||
-                                                    (coordinator.canMeasureHrv && coordinator.hrvState == failedState)
-                                            },
-                                        ) { coordinator.measureRemainingLegs() }
-                                    },
-                                ) {
-                                    Text(
-                                        if (measuring && measuringLabel == remainingLegsLabel)
-                                            "$remainingLegsLabel ${remaining}s" else remainingLegsLabel,
-                                        color = androidx.compose.ui.graphics.Color.Unspecified,
-                                    )
-                                }
-                            }
-                        }
-                        if (spotVitals.isNotEmpty()) {
-                            FlowRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                for (vital in spotVitals) {
-                                    val label = vital.label
-                                    Button(
-                                        enabled = !measuring,
-                                        // Three to a row beside the title: tighter than the default 24 dp.
-                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                                        onClick = {
-                                            runMeasurement(
-                                                coordinator.spotVitalMeasureSeconds, label,
-                                                caption = trf("Keep still — measuring {0}…", vital.description),
-                                                failed = { coordinator.vitalState(vital) == failedState },
-                                            ) { coordinator.measureVitalOnly(vital) }
-                                        },
-                                    ) {
-                                        Text(
-                                            if (measuring && measuringLabel == label) "$label ${remaining}s" else label,
-                                            color = androidx.compose.ui.graphics.Color.Unspecified,
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                          Text(
+                              if (measuring) "$measuringLabel ${remaining}s" else tr("Measure"),
+                              color = androidx.compose.ui.graphics.Color.Unspecified,
+                              maxLines = 1,
+                              overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                          )
+                      }
+                      if (pickOpen) MeasurePickerSheet(
+                          titles = options.map { it.title },
+                          onDismiss = { pickOpen = false },
+                      ) { index ->
+                          pickOpen = false
+                          options[index].run()
                       }
                     } else {
                     Button(
@@ -536,9 +502,6 @@ fun VitalsScreen(
             Spacer(Modifier.height(8.dp))
         }
 
-        if (navController != null) {
-            item { MyHealthEntryCard { navController.navigate("my_health") } }
-        }
 
         // Card order mirrors VitalsView.swift (HR, SpO₂, BP, HRV, Stress, Fatigue, Glucose, Temp)
         // by default, but honors the user's per-metric visibility + order (iOS #64). Long-press a
@@ -1329,3 +1292,48 @@ private fun displayThresholds(
     )
 }
 
+
+/** What to measure, one row each; the measurement runs once a row is picked. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MeasurePickerSheet(titles: List<String>, onDismiss: () -> Unit, onPick: (Int) -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        containerColor = PulseColors.secondaryBackground,
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(tr("Measure"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(tr("Keep the ring snug and your hand still until it finishes."), fontSize = 13.sp, color = PulseColors.textSecondary)
+            titles.forEachIndexed { i, t ->
+                SheetOption(t, tr("Tap to start"), Icons.Filled.MonitorHeart) { onPick(i) }
+            }
+        }
+    }
+}
+
+/**
+ * One line under the Vitals title: last night against this person's usual range. Holds its line
+ * while loading so the cards below don't shift when it lands.
+ */
+@Composable
+private fun VitalsStatusLine() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
+    val guidance = rememberGuidance(db, Unit)
+    val off = guidance?.offSignals
+    Text(
+        when {
+            off == null -> " "
+            off.isEmpty() -> tr("Last night: all within your usual range")
+            else -> trf("Outside your usual last night: {0}", off.joinToString(", ") { it.title.lowercase() })
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = if (off.isNullOrEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else PulseColors.warning,
+        maxLines = 2,
+        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+    )
+}
