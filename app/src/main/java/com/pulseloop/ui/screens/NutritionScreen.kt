@@ -318,6 +318,8 @@ fun NutritionScreen(
                         servingGrams = save.servingGrams,
                         quantity = save.quantity,
                         userEdited = save.userEdited,
+                        confidenceRaw = save.confidenceRaw,
+                        notes = save.notes,
                     )
                     db.mealEntryDao().upsert(entry)
                     com.pulseloop.service.MealJournal.afterLog(db, entry)
@@ -366,6 +368,9 @@ data class MealLogSave(
     val quantity: Double = 1.0,
     /** Numbers changed after a database prefill — iOS flips userEdited (MealLogSheet.swift:611). */
     val userEdited: Boolean = false,
+    /** Set when the AI filled the numbers, as the photo flow stores them. */
+    val confidenceRaw: String? = null,
+    val notes: String? = null,
 )
 
 @Composable
@@ -408,6 +413,12 @@ fun MealLogDialog(
     var lookingUp by remember { mutableStateOf(false) }
     var scanNotice by remember { mutableStateOf<String?>(null) }
     var pendingProduct by remember { mutableStateOf<PendingBarcodeProduct?>(null) }
+    // The same estimate the photo and describe flows use, from the name typed here, so a meal
+    // added by hand doesn't need its numbers looked up elsewhere.
+    val aiAvailable = remember { ApiKeyStore(context).coachEnabled }
+    var estimating by remember { mutableStateOf(false) }
+    var aiEstimate by remember { mutableStateOf<MealAnalysisLogic.Estimate?>(null) }
+    var aiNotice by remember { mutableStateOf<String?>(null) }
 
     /** iOS ManualMealForm.fieldText (MealLogSheet.swift:582-584): whole or one decimal. */
     fun fieldText(value: Double): String =
@@ -447,6 +458,7 @@ fun MealLogDialog(
                         fat = scaled(product.fat100g),
                         servingDescription = product.servingSizeText ?: "${grams.roundToInt()} g",
                     )
+                    aiEstimate = null
                     name = if (product.brand != null) "${product.name} (${product.brand})" else product.name
                     cal = fieldText(scaled(product.energyKcal100g))
                     protein = fieldText(scaled(product.protein100g))
@@ -461,6 +473,28 @@ fun MealLogDialog(
             } finally {
                 lookingUp = false
             }
+        }
+    }
+
+
+    fun estimateWithAi() {
+        scope.launch {
+            estimating = true
+            aiNotice = null
+            when (val r = MealEstimator.estimate(context, name, null)) {
+                is MealEstimator.Result.Success -> {
+                    val e = r.estimate
+                    aiEstimate = e
+                    pendingProduct = null
+                    if (name.isBlank()) name = e.name
+                    cal = fieldText(e.calories)
+                    protein = fieldText(e.proteinG)
+                    carbs = fieldText(e.carbsG)
+                    fat = fieldText(e.fatG)
+                }
+                is MealEstimator.Result.Failure -> aiNotice = r.message
+            }
+            estimating = false
         }
     }
 
@@ -479,20 +513,43 @@ fun MealLogDialog(
                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
                     }
-                    TextButton(onClick = { showScanner = true }, enabled = !lookingUp) {
+                    TextButton(onClick = { showScanner = true }, enabled = !lookingUp && !estimating) {
                         Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(tr("Scan barcode"))
+                        Text(tr("Scan barcode"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 scanNotice?.let {
                     // iOS inlineNotice copy (MealLogSheet.swift:128-130 / :259).
                     Text(it, fontSize = 12.sp, color = PulseColors.warning)
                 }
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Name")) }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Name")) }, placeholder = { if (aiAvailable) Text(tr("e.g. rice, beans and a grilled chicken breast")) }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
+                if (aiAvailable) {
+                    OutlinedButton(
+                        onClick = { estimateWithAi() },
+                        enabled = name.isNotBlank() && !estimating && !lookingUp,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        if (estimating) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                        else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (estimating) tr("Estimating…") else tr("Estimate calories with AI"),
+                            maxLines = 2, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    aiNotice?.let { Text(it, fontSize = 12.sp, color = PulseColors.warning) }
+                    aiEstimate?.let { e ->
+                        Text(
+                            tr("AI estimate: check the numbers and adjust them if needed.") +
+                                e.assumptions.trim().takeIf { it.isNotEmpty() }?.let { " $it" }.orEmpty(),
+                            fontSize = 12.sp, color = PulseColors.textMuted,
+                        )
+                    }
+                }
                 FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("breakfast", "lunch", "dinner", "snack").forEach { t ->
-                        FilterChip(selected = type == t, onClick = { type = t }, label = { Text(t.replaceFirstChar { it.uppercase() }) })
+                        FilterChip(selected = type == t, onClick = { type = t }, label = { Text(tr(t.replaceFirstChar { it.uppercase() })) })
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -509,7 +566,19 @@ fun MealLogDialog(
             TextButton(onClick = {
                 val kcal = cal.toDoubleOrNull() ?: 0.0
                 val pp = pendingProduct
-                onSave(if (pp == null) {
+                val ai = aiEstimate
+                onSave(if (pp == null && ai != null) {
+                    // Stored as the photo flow stores an estimate, so the log shows its source.
+                    MealLogSave(
+                        name = name.trim(), type = type, calories = kcal,
+                        proteinG = protein.toDoubleOrNull() ?: 0.0,
+                        carbsG = carbs.toDoubleOrNull() ?: 0.0,
+                        fatG = fat.toDoubleOrNull() ?: 0.0,
+                        sourceRaw = NutritionTools.sourceRawLlmEstimate,
+                        confidenceRaw = MealAnalysisLogic.confidenceRaw(ai.confidence),
+                        notes = ai.assumptions.trim().takeIf { it.isNotEmpty() },
+                    )
+                } else if (pp == null) {
                     MealLogSave(
                         name = name.trim(), type = type, calories = kcal,
                         proteinG = protein.toDoubleOrNull() ?: 0.0,
