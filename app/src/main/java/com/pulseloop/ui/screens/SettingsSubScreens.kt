@@ -1225,6 +1225,24 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit,
                     Text(tr("Reset units to auto-detect"), style = MaterialTheme.typography.labelSmall)
                 }
             }
+            // Every unit on one screen: glucose used to sit on Physiology, away from the rest.
+            var glucoseUnit by remember { mutableStateOf(keyStore.preferredGlucoseUnit) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(tr("Glucose unit"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+                SingleChoiceSegmentedButtonRow {
+                    GlucoseUnit.entries.forEachIndexed { i, u ->
+                        SegmentedButton(
+                            selected = glucoseUnit == u,
+                            onClick = {
+                                glucoseUnit = u
+                                keyStore.preferredGlucoseUnit = u
+                                com.pulseloop.widgets.WidgetSnapshotPublisher.publish(context)
+                            },
+                            shape = SegmentedButtonDefaults.itemShape(i, GlucoseUnit.entries.size),
+                        ) { Text(u.label) }
+                    }
+                }
+            }
 
             Button(
                 onClick = {
@@ -1280,7 +1298,6 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
     }
     var betaBlockers by remember { mutableStateOf(keyStore.usesBetaBlockers) }
     var lungCondition by remember { mutableStateOf(keyStore.hasKnownLungCondition) }
-    var glucoseUnit by remember { mutableStateOf(keyStore.preferredGlucoseUnit) }
     var savedMsg by remember { mutableStateOf<String?>(null) }
 
     SettingsSubScreen(title = tr("Physiology"), onBack = onBack) {
@@ -1324,27 +1341,11 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
             TriStateRow(tr("Known lung condition"), lungCondition) { lungCondition = it; savedMsg = null }
         }
 
-        PhysiologyCard(title = tr("Units"), footer = null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Glucose unit"), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                SingleChoiceSegmentedButtonRow {
-                    GlucoseUnit.entries.forEachIndexed { i, u ->
-                        SegmentedButton(
-                            selected = glucoseUnit == u,
-                            onClick = { glucoseUnit = u; savedMsg = null },
-                            shape = SegmentedButtonDefaults.itemShape(i, GlucoseUnit.entries.size),
-                        ) { Text(u.label) }
-                    }
-                }
-            }
-        }
-
         Button(
             onClick = {
                 keyStore.athleteMode = athleteMode
                 keyStore.usesBetaBlockers = betaBlockers
                 keyStore.hasKnownLungCondition = lungCondition
-                keyStore.preferredGlucoseUnit = glucoseUnit
                 val entered = altitudeText.trim().toDoubleOrNull()
                 keyStore.altitudeMeters =
                     if (entered != null && entered > 0) (if (imperial) entered * 0.3048 else entered) else null
@@ -1551,7 +1552,7 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
         goalDraft = com.pulseloop.ui.onboarding.GoalDraft.from(db.userGoalDao().get(), goalUnits)
     }
 
-    SettingsSubScreen(title = tr("Goals"), onBack = onBack) {
+    SettingsSubScreen(title = tr("Goals & sleep"), onBack = onBack) {
         Text(
             tr("Daily and weekly targets behind the activity rings."),
             style = MaterialTheme.typography.bodySmall,
@@ -1587,6 +1588,8 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
         }
+        // Which hours count as sleep is a sleep setting, so it lives with the sleep goal.
+        QuietHoursCard()
     }
 }
 
@@ -1771,7 +1774,8 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
 /**
  * The opt-in quiet-hours gate (issue #79): sleep the ring opens outside the window is ignored on
  * import. The rationale lives on [QuietHoursPrefs]; this is just the controls — a switch and the
- * two window ends, on the Wearable screen because it governs what a sync is allowed to store.
+ * two window ends, on the Goals & sleep screen beside the sleep goal: people look for "which
+ * hours count as sleep" with sleep, not with the ring.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1994,7 +1998,7 @@ fun WearableSettingsScreen(
         ?.let { DeviceHeroStatus.relativeShort(it, System.currentTimeMillis()) }
         ?: tr("Not yet")
 
-    SettingsSubScreen(title = tr("Wearable"), onBack = onBack) {
+    SettingsSubScreen(title = tr("Ring & sync"), onBack = onBack) {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2087,9 +2091,6 @@ fun WearableSettingsScreen(
             BackgroundSyncCard()
         }
 
-        if (device != null) {
-            QuietHoursCard()
-        }
 
         if (device != null) {
             Card(Modifier.fillMaxWidth()) {
@@ -2470,7 +2471,7 @@ fun PrivacyDataSettingsScreen(
         }
     }
 
-    SettingsSubScreen(title = tr("Privacy & Data"), onBack = onBack) {
+    SettingsSubScreen(title = tr("Backup & data"), onBack = onBack) {
         // Data Backup — export/import full app data as JSON.
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
@@ -2538,21 +2539,11 @@ fun PrivacyDataSettingsScreen(
                 Text(tr("App Data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    tr("Destructive actions: unpair the ring, factory-reset app data, or both."),
+                    tr("Destructive actions: reset app data, or unpair the ring and reset. To only forget the ring, use Ring & sync."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedButton(
-                    onClick = { pendingReset = ResetAction.UnpairRing },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Icon(Icons.Filled.BluetoothDisabled, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(tr("Unpair Ring"))
-                }
-                Spacer(Modifier.height(8.dp))
                 OutlinedButton(
                     onClick = { pendingReset = ResetAction.ResetAppData },
                     modifier = Modifier.fillMaxWidth(),
@@ -2600,6 +2591,9 @@ fun PrivacyDataSettingsScreen(
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 var maskSensitive by remember { mutableStateOf(true) }
+                // The unmasked export is for protocol debugging: only offered once developer
+                // options are unlocked, so nobody shares raw health frames by accident.
+                val developer = remember { ApiKeyStore(context).developerUnlocked }
                 Text(tr("Diagnostics"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Text(
@@ -2608,7 +2602,7 @@ fun PrivacyDataSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                Row(Modifier.switchRow(checked = maskSensitive, onCheckedChange = { maskSensitive = it }), verticalAlignment = Alignment.CenterVertically) {
+                if (developer) Row(Modifier.switchRow(checked = maskSensitive, onCheckedChange = { maskSensitive = it }), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(tr("Anonymize export"), style = MaterialTheme.typography.bodyMedium)
                         Text(
@@ -3403,7 +3397,18 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         if (availability == HealthConnectAvailability.AVAILABLE && prefs.isConnected) {
             Card(Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Data Types"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    // Thirteen switches folded behind one row: most people set this once.
+                    var typesOpen by remember { mutableStateOf(false) }
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { typesOpen = !typesOpen },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(tr("Data Types"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(
+                            if (typesOpen) tr("Hide") else tr("Show"),
+                            style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                     Spacer(Modifier.height(4.dp))
                     Text(
                         tr("Exported only when switched on. A row stays dim until its permission is granted."),
@@ -3433,7 +3438,13 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         HealthConnectPermissions.DataTypeRow.VO2_MAX to "VO\u2082 max",
                         HealthConnectPermissions.DataTypeRow.RESTING_HEART_RATE to "Resting heart rate",
                     )
-                    for ((row, label) in rows) {
+                    if (!typesOpen) {
+                        Text(
+                            trf("{0} of {1} on", rows.count { (row, _) -> prefs.toggleFor(row) }, rows.size),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    if (typesOpen) for ((row, label) in rows) {
                         val rowPerms = HealthConnectPermissions.permissionsForRow(row)
                         val rowGranted = rowPerms.isEmpty() || rowPerms.any { it in granted }
                         Row(
@@ -3455,7 +3466,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Column(Modifier.weight(1f)) {
-                                Text(label, style = MaterialTheme.typography.bodyMedium)
+                                Text(tr(label), style = MaterialTheme.typography.bodyMedium)
                                 if (!rowGranted) {
                                     Text(
                                         tr("Awaiting permission"),
