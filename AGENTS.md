@@ -1127,3 +1127,18 @@ clutter came from ignoring one of them:
   Settings row (Drinks used to be one).
 - **A goal saved anywhere goes through `GoalSync.afterManualSave`** — it is what stops the field
   following the coach, sends the step goal to the ring and republishes the widget.
+
+## Motion: one transition, a small vocabulary
+
+- **Every navigation destination goes through `DitherTransitionBox`** (`theme/DitherTransition.kt`),
+  via `screen(...)` / `paddedComposable(...)` in `PulseLoopApp`. A new route registered with a bare
+  `composable(...)` skips the wipe and pops in. The wipe draws *both* screens from one Bayer mask
+  (incoming keeps the swept cells, outgoing keeps the rest), because the navigator puts the
+  outgoing screen on top for a back press; a reveal drawn only on the incoming screen would be
+  hidden there. NavHost's own fade (0.99 alpha) exists only to keep both screens composed for
+  `DURATION_MS`. Fairy mode uses a smooth gradient, like every other dither.
+- **In-screen motion uses `theme/Motion.kt`**: `sweepIn` for rings, gauges and bars (fill from empty
+  on first show, glide between values) and `pressScale` for tappable cards. Collapsible sections
+  expand with `AnimatedVisibility`. Prefer these over one-off specs, so the app moves one way.
+- All of it runs on Compose's clock, which honours the system "Remove animations" setting; don't
+  drive motion from a hand-rolled `delay` loop that would ignore it.

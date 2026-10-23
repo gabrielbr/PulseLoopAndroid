@@ -36,6 +36,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.pulseloop.ui.theme.DitherTransitionBox
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.pulseloop.AppServices
@@ -388,7 +389,13 @@ fun PulseLoopApp() {
         Scaffold(
             containerColor = com.pulseloop.ui.theme.PulseColors.background,
             floatingActionButton = {
-                if (showLogFab) {
+                // Pops in on the tabs that have it and out on the ones that don't, rather than
+                // blinking with the screen change.
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = showLogFab,
+                    enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut(),
+                ) {
                     ExtendedFloatingActionButton(
                         onClick = { LaunchRequests.openLog.value = com.pulseloop.ui.screens.LogStep.MENU },
                         icon = { Icon(Icons.Filled.Add, contentDescription = null) },
@@ -585,17 +592,26 @@ fun PulseLoopApp() {
                 route: String,
                 content: @Composable (androidx.navigation.NavBackStackEntry) -> Unit,
             ) = composable(route) { entry ->
-                Box(Modifier.fillMaxSize().padding(padding)) { content(entry) }
+                DitherTransitionBox { Box(Modifier.fillMaxSize().padding(padding)) { content(entry) } }
             }
+            // Every destination takes part in the dither wipe (theme/DitherTransition.kt).
+            fun androidx.navigation.NavGraphBuilder.screen(
+                route: String,
+                content: @Composable (androidx.navigation.NavBackStackEntry) -> Unit,
+            ) = composable(route) { entry -> DitherTransitionBox { content(entry) } }
             NavHost(
                 navController = navController,
                 startDestination = "today",
                 modifier = Modifier.hazeSource(hazeState),
+                enterTransition = { com.pulseloop.ui.theme.DitherTransition.enter },
+                exitTransition = { com.pulseloop.ui.theme.DitherTransition.exit },
+                popEnterTransition = { com.pulseloop.ui.theme.DitherTransition.enter },
+                popExitTransition = { com.pulseloop.ui.theme.DitherTransition.exit },
             ) {
-                composable("today") { TodayScreen(navController, todayVM, coordinator, vitalsVM, sleepVM, topBarPadding = topPad, bottomBarPadding = tabPad) }
-                composable("vitals") { VitalsScreen(navController = navController, viewModel = vitalsVM, coordinator = coordinator, topBarPadding = topPad, bottomBarPadding = tabPad) }
-                composable("sleep") { SleepScreen(navController = navController, viewModel = sleepVM, onOpen = { coordinator.syncSleepNow() }, topBarPadding = topPad, bottomBarPadding = tabPad) }
-                composable("activity") { ActivityScreen(navController = navController, viewModel = activityVM, liveWorkout = liveWorkout, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                screen("today") { TodayScreen(navController, todayVM, coordinator, vitalsVM, sleepVM, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                screen("vitals") { VitalsScreen(navController = navController, viewModel = vitalsVM, coordinator = coordinator, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                screen("sleep") { SleepScreen(navController = navController, viewModel = sleepVM, onOpen = { coordinator.syncSleepNow() }, topBarPadding = topPad, bottomBarPadding = tabPad) }
+                screen("activity") { ActivityScreen(navController = navController, viewModel = activityVM, liveWorkout = liveWorkout, topBarPadding = topPad, bottomBarPadding = tabPad) }
                 paddedComposable("activity_detail/{id}") { backStackEntry ->
                     val id = backStackEntry.arguments?.getString("id") ?: return@paddedComposable
                     WorkoutSummaryScreen(sessionId = id, onBack = { navController.popBackStack() })
@@ -612,7 +628,7 @@ fun PulseLoopApp() {
                 }
                 // Coach draws full-bleed under the glass top/bottom bars (like the other tabs), so
                 // the chat frosts under its header and the composer can clear the keyboard itself.
-                composable("coach") {
+                screen("coach") {
                     CoachScreen(
                         navController = navController,
                         viewModel = coachVM,

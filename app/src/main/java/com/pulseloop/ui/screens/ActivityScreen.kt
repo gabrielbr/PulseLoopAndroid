@@ -580,7 +580,7 @@ private fun ProgressRing(
     stroke: androidx.compose.ui.unit.Dp = 9.dp,
     center: @Composable () -> Unit,
 ) {
-    val progress = if (max <= 0) 0f else (value / max).coerceIn(0.0, 1.0).toFloat()
+    val progress = com.pulseloop.ui.theme.sweepIn(if (max <= 0) 0f else (value / max).coerceIn(0.0, 1.0).toFloat())
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(size)) {
         androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
             val strokePx = stroke.toPx()

@@ -62,6 +62,8 @@ fun ActivityRings(
         val name = labels.getOrNull(i) ?: trf("ring {0}", i + 1)
         if (ring.value == null) trf("{0} unavailable", name) else "$name ${(ring.progress * 100).toInt()}%"
     }.joinToString(", ")
+    // Each ring fills from empty on first show, then glides to new totals.
+    val shown = rings.map { com.pulseloop.ui.theme.sweepIn(it.progress.toFloat()) }
     Canvas(modifier.size(size).clearAndSetSemantics { contentDescription = description }) {
         val strokePx = strokeWidth.toPx()
         val spacingPx = ringSpacing.toPx()
@@ -90,7 +92,7 @@ fun ActivityRings(
                 style = stroke,
             )
             // Progress arc from 12 o'clock, clockwise.
-            val sweep = (360.0 * ring.progress).toFloat()
+            val sweep = 360f * shown[index]
             if (sweep > 0f) {
                 drawArc(
                     color = ring.color,

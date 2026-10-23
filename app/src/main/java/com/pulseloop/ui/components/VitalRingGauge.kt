@@ -77,6 +77,8 @@ fun VitalRingGauge(
         return ((v - domain.start) / span).coerceIn(0.0, 1.0)
     }
 
+    // The marker sweeps up from the bottom of the scale on first show, then glides between readings.
+    val shownValue = com.pulseloop.ui.theme.sweepIn(value.toFloat(), from = domain.start.toFloat()).toDouble()
     // One spoken summary for the whole gauge (value, unit, status), plus its position on the scale.
     val description = listOfNotNull(centerValue, centerUnit, centerStatus, subtitle).joinToString(" ")
     Box(
@@ -152,7 +154,7 @@ fun VitalRingGauge(
             zones.lastOrNull()?.let { drawRoundTip(tipCenter(1.0), 1.0, strokePx, it.colorToken.toColor().copy(alpha = 0.32f)) }
 
             // Value arc from the start up to the current value (rounded leading tip looks intentional).
-            val valueFraction = fraction(value)
+            val valueFraction = fraction(shownValue)
             if (valueFraction > 0) {
                 drawArc(
                     color = valueColor,

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.theme.pressScale
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
@@ -174,13 +175,15 @@ fun LastNightCard(
 @Composable
 internal fun SheetOption(title: String, subtitle: String, icon: ImageVector, onClick: () -> Unit) {
     val shape = RoundedCornerShape(8.dp)
+    val press = androidx.compose.runtime.remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     Row(
         Modifier
             .fillMaxWidth()
+            .pressScale(press)
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),

@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.animation.togetherWith
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.DrinkEntryEntity
 import com.pulseloop.service.DrinkPrefs
@@ -77,32 +78,47 @@ fun LogSheet(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            when (step) {
-                LogStep.MENU -> {
-                    Text(tr("Log"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    SheetOption(tr("Meal"), tr("Photo, barcode or by hand"), Icons.Filled.Restaurant) { step = LogStep.MEAL }
-                    SheetOption(tr("Drink"), tr("One tap for the usual ones"), Icons.Filled.LocalBar) { step = LogStep.DRINK }
-                    SheetOption(tr("Medication or supplement"), tr("Mark today's doses"), Icons.Filled.Medication, onMeds)
-                    SheetOption(tr("Period"), tr("Started or ended today, or a past one"), Icons.Filled.WaterDrop, onPeriod)
-                    SheetOption(tr("Tag your day"), tr("Alcohol, stress, a late meal…"), Icons.Filled.LocalOffer) { step = LogStep.TAGS }
-                    SheetOption(tr("Workout"), tr("Start one now"), Icons.Filled.DirectionsRun, onWorkout)
+            // Each step slides in from the side it was reached from, so the sheet reads as one
+            // place with pages rather than a panel that blinks.
+            androidx.compose.animation.AnimatedContent(
+                targetState = step,
+                transitionSpec = {
+                    val forward = targetState != LogStep.MENU
+                    (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
+                        androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(220)) { w -> if (forward) w / 6 else -w / 6 }) togetherWith
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150))
+                },
+                label = "logStep",
+            ) { shownStep ->
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when (shownStep) {
+                    LogStep.MENU -> {
+                        Text(tr("Log"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        SheetOption(tr("Meal"), tr("Photo, barcode or by hand"), Icons.Filled.Restaurant) { step = LogStep.MEAL }
+                        SheetOption(tr("Drink"), tr("One tap for the usual ones"), Icons.Filled.LocalBar) { step = LogStep.DRINK }
+                        SheetOption(tr("Medication or supplement"), tr("Mark today's doses"), Icons.Filled.Medication, onMeds)
+                        SheetOption(tr("Period"), tr("Started or ended today, or a past one"), Icons.Filled.WaterDrop, onPeriod)
+                        SheetOption(tr("Tag your day"), tr("Alcohol, stress, a late meal…"), Icons.Filled.LocalOffer) { step = LogStep.TAGS }
+                        SheetOption(tr("Workout"), tr("Start one now"), Icons.Filled.DirectionsRun, onWorkout)
+                    }
+                    LogStep.MEAL -> {
+                        Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onMeal("photo") }
+                        SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onMeal("barcode") }
+                        SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onMeal("add") }
+                    }
+                    LogStep.DRINK -> QuickDrinks(db, onMoreDrinks)
+                    LogStep.TAGS -> JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
+                        Text(
+                            tr("See what affects you"),
+                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+                            modifier = Modifier
+                                .heightIn(min = 48.dp)
+                                .clickable(role = Role.Button, onClick = onSeeEffects)
+                                .wrapContentHeight(Alignment.CenterVertically),
+                        )
+                    }
                 }
-                LogStep.MEAL -> {
-                    Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onMeal("photo") }
-                    SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onMeal("barcode") }
-                    SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onMeal("add") }
-                }
-                LogStep.DRINK -> QuickDrinks(db, onMoreDrinks)
-                LogStep.TAGS -> JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
-                    Text(
-                        tr("See what affects you"),
-                        fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-                        modifier = Modifier
-                            .heightIn(min = 48.dp)
-                            .clickable(role = Role.Button, onClick = onSeeEffects)
-                            .wrapContentHeight(Alignment.CenterVertically),
-                    )
                 }
             }
         }

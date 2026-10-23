@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -112,9 +113,16 @@ internal fun Section(
                         Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         if (!open) Text(summary!!, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
-                    Text(if (open) "⌃" else "⌄", fontSize = 18.sp, color = PulseColors.textMuted)
+                    val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "chevron")
+                    Text("⌄", fontSize = 18.sp, color = PulseColors.textMuted, modifier = Modifier.graphicsLayer { rotationZ = turn })
                 }
-                if (open) content()
+                androidx.compose.animation.AnimatedVisibility(
+                    visible = open,
+                    enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
+                    exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
+                }
             } else {
                 Text(title.uppercase(), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 content()
