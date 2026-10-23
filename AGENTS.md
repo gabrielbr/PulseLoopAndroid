@@ -1111,6 +1111,10 @@ clutter came from ignoring one of them:
 - **Inside a screen, summary first, detail on tap.** A screen leads with one summary and its
   primary action; everything else is a row that opens. A new section added inline at full weight
   is how My Health became a wall.
+- **One open section per screen.** Today shows two rows of tiles and folds the rest behind "Show
+  all metrics"; My Health keeps health areas open and folds Trends, Habits and Stress into
+  closed sections (`Section(summary = …)`), and the radar to one line unless it flags something.
+  A new card should usually be a closed section, not another open one.
 - **Repeat a figure only when the question differs.** Last night's sleep on Today (am I okay?) and
   on Sleep (why?) is fine; the same sleep three times on Today is not. The alcohol-clearance card
   on Postpartum stays even though Drinks has one: "can I feed now?" is asked on that screen.
