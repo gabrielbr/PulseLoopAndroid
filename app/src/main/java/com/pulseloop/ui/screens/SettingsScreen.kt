@@ -125,8 +125,56 @@ fun SettingsScreen(
             onSetUp = { navigate("pairing") },
         )
 
-        // AI COACH. Notifications sit under General, not here: most of them (daily guidance,
-        // battery alerts) work without the coach and were unreachable while it was off.
+        // Grouped by the job people arrive with (fix my ring, silence a reminder, change a goal,
+        // set up the coach, connect an app, edit my details, back up), each named as that job.
+        SettingsSection(
+            title = tr("My ring"),
+            rows = buildList {
+                add(SettingsRowItem(Icons.Filled.Watch, PulseColors.accent, tr("Ring & sync")) {
+                    navigate("settings/wearable")
+                })
+                if (capabilities.contains(WearableCapability.MEASUREMENT_INTERVAL)) {
+                    add(SettingsRowItem(Icons.Filled.Timer, PulseColors.spo2, tr("Measurement Frequency")) {
+                        navigate("settings/measurement")
+                    })
+                }
+                // Calibration is jring-only (Colmi rings measure neither BP nor blood sugar).
+                if (capabilities.contains(WearableCapability.BLOOD_PRESSURE) ||
+                    capabilities.contains(WearableCapability.BLOOD_SUGAR)
+                ) {
+                    add(SettingsRowItem(Icons.Filled.Tune, PulseColors.bloodPressure, tr("Calibration")) {
+                        navigate("settings/calibration")
+                    })
+                }
+                add(SettingsRowItem(Icons.Filled.Watch, PulseColors.info, tr("Use without a ring")) {
+                    navigate("settings/hc-source")
+                })
+            },
+        )
+
+        // Always reachable: most notifications (daily guidance, battery alerts) work without the
+        // coach, and gating this row on it once hid them all.
+        SettingsSection(
+            title = tr("Notifications"),
+            rows = listOf(
+                SettingsRowItem(Icons.Filled.NotificationsActive, PulseColors.warning, tr("Notifications")) {
+                    navigate("settings/checkins")
+                },
+            ),
+        )
+
+        SettingsSection(
+            title = tr("Goals & tracking"),
+            rows = listOf(
+                SettingsRowItem(Icons.Filled.TrackChanges, PulseColors.readiness, tr("Goals & sleep")) {
+                    navigate("settings/goals")
+                },
+                SettingsRowItem(Icons.Filled.RestaurantMenu, PulseColors.calories, tr("Nutrition")) {
+                    navigate("settings/nutrition")
+                },
+            ),
+        )
+
         SettingsSection(
             title = tr("AI Coach"),
             rows = listOf(
@@ -136,85 +184,51 @@ fun SettingsScreen(
             ),
         )
 
-        // GENERAL — Physiology sits under User Profile (iOS SettingsView General group), feeding the
-        // optional inputs that tune the vitals reference ranges. Measurement Frequency sits under
-        // Physiology — only rings that expose a configurable measurement interval (Colmi) declare
-        // MEASUREMENT_INTERVAL, so the generic 56ff jring never shows this row (iOS #74: dropped the
-        // old ring-only "Device" section for this since the row had no other members).
         SettingsSection(
-            title = tr("General"),
-            rows = buildList {
-                add(SettingsRowItem(Icons.Filled.AccountCircle, PulseColors.accent, tr("User Profile")) {
-                    navigate("settings/profile")
-                })
-                add(SettingsRowItem(Icons.Filled.MonitorHeart, PulseColors.hrv, tr("Physiology")) {
-                    navigate("settings/physiology")
-                })
-                add(SettingsRowItem(Icons.Filled.NotificationsActive, PulseColors.warning, tr("Notifications")) {
-                    navigate("settings/checkins")
-                })
-                add(SettingsRowItem(Icons.Filled.Language, PulseColors.info, tr("Language"), com.pulseloop.ui.i18n.L10n.language.let { if (it == com.pulseloop.ui.i18n.AppLanguage.SYSTEM) tr("System default") else it.label }) {
-                    navigate("settings/language")
-                })
-                if (capabilities.contains(WearableCapability.MEASUREMENT_INTERVAL)) {
-                    add(SettingsRowItem(Icons.Filled.Timer, PulseColors.spo2, tr("Measurement Frequency")) {
-                        navigate("settings/measurement")
-                    })
-                }
-            },
-        )
-
-        // METRICS
-        SettingsSection(
-            title = tr("Metrics"),
+            title = tr("Connected apps"),
             rows = listOf(
-                SettingsRowItem(Icons.Filled.TrackChanges, PulseColors.readiness, tr("Goals")) {
-                    navigate("settings/goals")
+                SettingsRowItem(Icons.Filled.Sync, PulseColors.success, tr("Health Connect")) {
+                    navigate("settings/health-connect")
                 },
-                SettingsRowItem(Icons.Filled.RestaurantMenu, PulseColors.calories, tr("Nutrition")) {
-                    navigate("settings/nutrition")
+                SettingsRowItem(Icons.Filled.TrendingUp, PulseColors.calories, tr("Strava")) {
+                    navigate("settings/strava")
                 },
-                SettingsRowItem(Icons.Filled.LocalBar, PulseColors.drinks, tr("Drinks")) {
-                    navigate("drinks")
+                SettingsRowItem(Icons.Filled.Verified, PulseColors.info, tr("Accuracy check"), accuracyTrailing) {
+                    navigate("settings/accuracy-check")
                 },
             ),
         )
 
-        // RESOURCES — Calibration is jring-only (Colmi rings measure neither BP nor blood
-        // sugar); Developer is hidden until unlocked by tapping the version 7× in About.
         SettingsSection(
-            title = tr("Resources"),
+            title = tr("Me"),
+            rows = listOf(
+                SettingsRowItem(Icons.Filled.AccountCircle, PulseColors.accent, tr("User Profile")) {
+                    navigate("settings/profile")
+                },
+                SettingsRowItem(Icons.Filled.MonitorHeart, PulseColors.hrv, tr("Physiology")) {
+                    navigate("settings/physiology")
+                },
+                SettingsRowItem(Icons.Filled.Language, PulseColors.info, tr("Language"), com.pulseloop.ui.i18n.L10n.language.let { if (it == com.pulseloop.ui.i18n.AppLanguage.SYSTEM) tr("System default") else it.label }) {
+                    navigate("settings/language")
+                },
+            ),
+        )
+
+        // Developer is hidden until unlocked by tapping the version 7× in About.
+        SettingsSection(
+            title = tr("Data & privacy"),
             rows = buildList {
-                if (capabilities.contains(WearableCapability.BLOOD_PRESSURE) ||
-                    capabilities.contains(WearableCapability.BLOOD_SUGAR)
-                ) {
-                    add(SettingsRowItem(Icons.Filled.Tune, PulseColors.bloodPressure, tr("Calibration")) {
-                        navigate("settings/calibration")
-                    })
-                }
+                add(SettingsRowItem(Icons.Filled.Shield, PulseColors.success, tr("Backup & data")) {
+                    navigate("settings/privacy")
+                })
+                add(SettingsRowItem(Icons.Filled.Info, PulseColors.textMuted, tr("About PulseLoop")) {
+                    navigate("settings/about")
+                })
                 if (developerUnlocked) {
                     add(SettingsRowItem(Icons.Filled.BugReport, PulseColors.danger, tr("Developer")) {
                         navigate("debug")
                     })
                 }
-                add(SettingsRowItem(Icons.Filled.Shield, PulseColors.success, tr("Privacy & Data")) {
-                    navigate("settings/privacy")
-                })
-                add(SettingsRowItem(Icons.Filled.TrendingUp, PulseColors.calories, tr("Strava")) {
-                    navigate("settings/strava")
-                })
-                add(SettingsRowItem(Icons.Filled.Sync, PulseColors.success, tr("Health Connect")) {
-                    navigate("settings/health-connect")
-                })
-                add(SettingsRowItem(Icons.Filled.Watch, PulseColors.info, tr("Use without a ring")) {
-                    navigate("settings/hc-source")
-                })
-                add(SettingsRowItem(Icons.Filled.Verified, PulseColors.info, tr("Accuracy check"), accuracyTrailing) {
-                    navigate("settings/accuracy-check")
-                })
-                add(SettingsRowItem(Icons.Filled.Info, PulseColors.textMuted, tr("About PulseLoop")) {
-                    navigate("settings/about")
-                })
             },
         )
 

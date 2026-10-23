@@ -160,7 +160,7 @@ days / 36 sleep sessions to zero. **iOS has no connect-time demo purge anywhere*
 deletion of seeded rows is user-initiated inside `SeedData`, and it handles the demo/real mix by
 *detecting* it (`isDemo`, `source == "mock"`, `DataFreshness.demo`) and adapting the UI. Demo data
 coexisting with a real ring is an expected state. Demo rows are retired only from
-Settings → Privacy & Data → Clear Demo Data.
+Settings → Backup & data → Clear Demo Data.
 
 `ConnectPurge` now has exactly **one** member, `NOTHING`, and the single-branch `when`s that switch
 on it in `EventPersistenceSubscriber` and `EventPersistenceIdentityTest` read as dead code but are
@@ -1116,5 +1116,10 @@ clutter came from ignoring one of them:
   on Postpartum stays even though Drinks has one: "can I feed now?" is asked on that screen.
 - **Notifications are reachable whether or not the coach is on.** Most of them (daily guidance,
   battery alerts) never needed it, and gating the row on the coach hid them all.
+- **Settings groups are jobs, named as jobs** (`SettingsScreen`): My ring, Notifications, Goals &
+  tracking, AI Coach, Connected apps, Me, Data & privacy. A new setting goes where someone
+  arriving with that job would look — sleep-hour rules sit with the sleep goal, every unit sits
+  on the profile, the ring is unpaired from Ring & sync only — and a content screen is never a
+  Settings row (Drinks used to be one).
 - **A goal saved anywhere goes through `GoalSync.afterManualSave`** — it is what stops the field
   following the coach, sends the step goal to the ring and republishes the widget.

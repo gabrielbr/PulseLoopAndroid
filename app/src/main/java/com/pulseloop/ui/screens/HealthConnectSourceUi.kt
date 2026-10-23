@@ -152,7 +152,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                 // Still reading the ring row and the grants: show neither the warning nor the button yet.
             } else if (hasRing && !enabled) {
                 Text(
-                    tr("A ring is paired. Forget it in Settings → Wearable first: the two would count the same steps and nights."),
+                    tr("A ring is paired. Forget it in Settings → Ring & sync first: the two would count the same steps and nights."),
                     fontSize = 12.sp, color = PulseColors.warning,
                 )
             } else if (!canRead) {
