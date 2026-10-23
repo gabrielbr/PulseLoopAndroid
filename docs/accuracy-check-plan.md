@@ -38,6 +38,21 @@ the screen (foreground) and from the worker when Health Connect allows backgroun
 **Scoring** (`AccuracyScorer`, foreground, re-read at most every 30 min unless "Recompute"):
 - Daily totals count only whole local days inside the window. A day is dropped when the reference
   has fewer than 500 steps or the ring has none (not worn on both).
+- **Wear coverage (added 2026-10-23).** A device that went flat or was charged partway through a
+  day passed the 500-step test, so the other device read as over-counting by everything after.
+  Each device's off stretches now come from the gaps in its own data: no heart rate, steps, sleep
+  or SpO₂ for over 90 min (`AccuracyComparison.offGaps`). Only a device that logs heart rate at
+  least every 75 min is judged (`judgeable`); otherwise it is taken as worn throughout, as before.
+  - A day with any off stretch is compared over the time both covered: the reference's step and
+    distance records and the ring's 15-minute buckets, each cut to the shared hours
+    (`amountWithin`). Active calories can't be cut (the ring keeps one daily figure), so a partly
+    worn day leaves them out. Under 12 shared hours the day doesn't count at all.
+  - A night either device stopped inside for 15 min or more (over the span both nights cover) is
+    dropped for sleep, resting heart rate and HRV.
+  - Heart rate and SpO₂ were already safe: they pair readings minutes apart, so time one device
+    was off simply yields no pairs.
+  - The day rows say which device was off and from when ("Fitbit stopped mid-night at 03:10"),
+    and a counted partial day says how many hours it was compared over.
 - A day is scored once the reference has delivered past its end, or 24 h after it ends. Until
   then it shows "waiting for <reference>".
 - Sleep: the ring's longest session per waking day vs the reference's, by time asleep, onset and

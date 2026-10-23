@@ -160,6 +160,87 @@ object AccuracyComparison {
         return out
     }
 
+    // ── Wear coverage ──────────────────────────────────────────────────────────────────────
+    //
+    // A device that goes flat, charges or comes off mid-day keeps a day "worn" by the step test
+    // (it walked 500 steps before it stopped) while its totals stop counting, so the other
+    // device seems to over-count by everything after. Each device's off stretches are found from
+    // the gaps in its own data, and a day is compared only over the time both covered.
+
+    /** No data for longer than this, from a device that otherwise logs heart rate, means it was off. */
+    const val OFF_GAP_MS = 90 * 60_000L
+
+    /** A device is judged only if it logs heart rate at least this often; sparser data can't show a gap. */
+    const val MAX_JUDGED_CADENCE_MS = 75 * 60_000L
+
+    /**
+     * Stretches within [from, to] longer than [maxGapMs] with no [evidence] from a device: taken
+     * as the device being off. The edges count too: no data until two hours in is a gap.
+     */
+    fun offGaps(evidence: List<Long>, from: Long, to: Long, maxGapMs: Long = OFF_GAP_MS): List<LongRange> {
+        val out = mutableListOf<LongRange>()
+        var prev = from
+        for (t in evidence.filter { it in from..to }.sorted()) {
+            if (t - prev > maxGapMs) out += prev..t
+            prev = t
+        }
+        if (to - prev > maxGapMs) out += prev..to
+        return out
+    }
+
+    /** [ranges] sorted and with overlaps joined. */
+    fun merge(ranges: List<LongRange>): List<LongRange> {
+        val out = mutableListOf<LongRange>()
+        for (r in ranges.filter { it.last > it.first }.sortedBy { it.first }) {
+            val last = out.lastOrNull()
+            if (last != null && r.first <= last.last) out[out.size - 1] = last.first..maxOf(last.last, r.last)
+            else out += r
+        }
+        return out
+    }
+
+    /** How much of [from, to) the [gaps] take up. */
+    fun gapMs(gaps: List<LongRange>, from: Long, to: Long): Long =
+        merge(gaps).sumOf { (minOf(it.last, to) - maxOf(it.first, from)).coerceAtLeast(0L) }
+
+    /** The gaps that touch [from, to), clipped to it. */
+    fun gapsWithin(gaps: List<LongRange>, from: Long, to: Long): List<LongRange> =
+        merge(gaps).mapNotNull { g ->
+            val a = maxOf(g.first, from)
+            val b = minOf(g.last, to)
+            if (b > a) a..b else null
+        }
+
+    /**
+     * The part of [items] that falls in [from, to) outside every gap, each interval counted in
+     * proportion to its overlap. An instant (end <= start) counts whole or not at all.
+     */
+    fun amountWithin(items: List<IntervalAmount>, from: Long, to: Long, gaps: List<LongRange>): Double {
+        val off = gapsWithin(gaps, from, to)
+        var total = 0.0
+        for (it in items) {
+            if (it.end <= it.start) {
+                if (it.start in from until to && off.none { g -> it.start in g }) total += it.amount
+                continue
+            }
+            val a = maxOf(it.start, from)
+            val b = minOf(it.end, to)
+            if (b <= a) continue
+            val outside = (b - a) - gapMs(off, a, b)
+            total += it.amount * outside / (it.end - it.start).toDouble()
+        }
+        return total
+    }
+
+    /** Whether a device's data is dense enough to tell "off" from "quiet". */
+    fun judgeable(heartRateTimes: List<Long>): Boolean {
+        if (heartRateTimes.size < 12) return false
+        val sorted = heartRateTimes.sorted()
+        val gaps = sorted.zipWithNext { a, b -> b - a }.filter { it > 0 }.sorted()
+        if (gaps.isEmpty()) return false
+        return gaps[gaps.size / 2] <= MAX_JUDGED_CADENCE_MS
+    }
+
     // ── Sleep ──────────────────────────────────────────────────────────────────────────────
 
     data class StageAgreement(val overlapMinutes: Int, val agreeMinutes: Int, val confusion: Map<Pair<Stage, Stage>, Int>) {
