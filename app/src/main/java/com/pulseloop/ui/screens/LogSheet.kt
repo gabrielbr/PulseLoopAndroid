@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -55,8 +54,10 @@ enum class LogStep { MENU, MEAL, DRINK, TAGS }
  * every tab. Logging is the most frequent thing people do in the app, and it used to live on six
  * different screens; the coach moved here when Nutrition took its tab.
  *
- * An earlier day is part of the menu, not hidden in a screen: a meal goes to the Nutrition tab,
- * whose day arrows choose the day it is saved to, and a past workout opens its own form.
+ * Everything here is for now. Adding something to an earlier day happens on that thing's own
+ * screen (the Nutrition tab's day arrows, Activity's "Log Past Activity", Cycle's past period),
+ * so the sheet stays one short list. Meal, drink and medicine share one row of icons because
+ * they are the same kind of entry; Period is offered only to a profile set to female.
  *
  * Meals, drinks and day tags are logged inside the sheet. Medications, periods and workouts open
  * their own screens, whose first block is the action, because they need more than one tap.
@@ -69,8 +70,6 @@ fun LogSheet(
     onDismiss: () -> Unit,
     onCoach: () -> Unit,
     onMeal: (start: String) -> Unit,
-    onEarlierMeal: () -> Unit,
-    onPastWorkout: () -> Unit,
     onMoreDrinks: () -> Unit,
     onMeds: () -> Unit,
     onPeriod: () -> Unit,
@@ -78,6 +77,9 @@ fun LogSheet(
     onSeeEffects: () -> Unit,
 ) {
     var step by remember(start) { mutableStateOf(start) }
+    // Unknown until the profile is read, and hidden meanwhile: a row that appears late is better
+    // than one that vanishes under the user's thumb.
+    val isFemale by produceState(false, db) { value = db.userProfileDao().get()?.sex == "female" }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -104,20 +106,20 @@ fun LogSheet(
                     LogStep.MENU -> {
                         Text(tr("Actions"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         SheetOption(tr("Ask the coach"), tr("About your day, a plan, a meal idea"), Icons.Filled.AutoAwesome, onCoach)
-                        SheetOption(tr("Meal"), tr("Photo, barcode or by hand"), Icons.Filled.Restaurant) { step = LogStep.MEAL }
-                        SheetOption(tr("Drink"), tr("One tap for the usual ones"), Icons.Filled.LocalBar) { step = LogStep.DRINK }
-                        SheetOption(tr("Medication or supplement"), tr("Mark today's doses"), Icons.Filled.Medication, onMeds)
-                        SheetOption(tr("Period"), tr("Started or ended today, or a past one"), Icons.Filled.WaterDrop, onPeriod)
+                        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            IconAction(tr("Meal"), Icons.Filled.Restaurant, PulseColors.calories) { step = LogStep.MEAL }
+                            IconAction(tr("Drink"), Icons.Filled.LocalBar, PulseColors.drinks) { step = LogStep.DRINK }
+                            IconAction(tr("Medicine"), Icons.Filled.Medication, PulseColors.info, onMeds)
+                        }
+                        if (isFemale) SheetOption(tr("Period"), tr("Started or ended today"), Icons.Filled.WaterDrop, onPeriod)
                         SheetOption(tr("Tag your day"), tr("Alcohol, stress, a late meal…"), Icons.Filled.LocalOffer) { step = LogStep.TAGS }
                         SheetOption(tr("Workout"), tr("Start one now"), Icons.Filled.DirectionsRun, onWorkout)
-                        SheetOption(tr("Past workout"), tr("One you already did, with its time and length"), Icons.Filled.History, onPastWorkout)
                     }
                     LogStep.MEAL -> {
                         Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onMeal("photo") }
                         SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onMeal("barcode") }
                         SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onMeal("add") }
-                        SheetOption(tr("For an earlier day"), tr("Pick the day in Nutrition, then add it there"), Icons.Filled.History, onEarlierMeal)
                     }
                     LogStep.DRINK -> QuickDrinks(db, onMoreDrinks)
                     LogStep.TAGS -> JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
@@ -134,6 +136,24 @@ fun LogSheet(
                 }
             }
         }
+    }
+}
+
+/** One of the icon-and-word buttons that share the top row: the same kind of entry, side by side. */
+@Composable
+private fun RowScope.IconAction(label: String, icon: androidx.compose.ui.graphics.vector.ImageVector, tint: androidx.compose.ui.graphics.Color, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(8.dp)
+    Column(
+        Modifier.weight(1f).fillMaxHeight().heightIn(min = 72.dp).clip(shape)
+            .background(PulseColors.card)
+            .border(1.dp, PulseColors.borderSubtle, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+    ) {
+        Icon(icon, null, tint = tint, modifier = Modifier.size(26.dp))
+        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

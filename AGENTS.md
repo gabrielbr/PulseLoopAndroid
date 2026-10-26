@@ -1111,6 +1111,30 @@ sources: `docs/postpartum-breastfeeding-research.md`.
   switching off takes exactly that back.
 - **No F*cking Health jokes here**: postpartum text is on the voice's safety list.
 
+## The design files and the app move together, both ways
+
+**Every change to the app's UI updates the design files in the same piece of work, and every
+change agreed on the design files is built into the app.** The owner reviews and annotates the
+app on a Claude Design canvas, so a canvas that drifts from the app sends feedback against
+screens that no longer exist, and an app change missing from the canvas is invisible in review.
+
+- **The canvas:** https://claude.ai/artifact/CUizVK8X1fJsNQ7kxUeiEg — one artboard per screen
+  (`project/<Screen>.dc.html`), rows grouped by user journey with "how you get here" notes, and a
+  `FlowMap.dc.html` artboard whose lanes and arrows follow the navigation. A new screen gets a
+  board, a slot in its journey's row, a note, and a card in the flow map; a removed or renamed
+  screen loses or renames all four. Links between boards (`<a href="X.dc.html">`) follow the
+  app's real navigation.
+- **The design system:** https://claude.ai/artifact/P1nRuiJhuffYq9pnNbHe5q — tokens from
+  `ui/theme/PulseColors.kt`, the Bayer dither from `ui/theme/Dither.kt`, Ubuntu Mono, and the
+  web components the canvas mounts. A token, colour, type size or dither coverage changed in
+  `ui/theme/` is changed there too, and the canvas's copy (`project/ds/pulseloop/`) is refreshed.
+- **Design → app:** an annotation or design edit the owner agrees to is implemented in Compose,
+  released through the normal flow, and only then reported as done.
+- **Read before writing.** The owner edits the canvas by hand; read the boards you will change
+  from the canvas first and edit those, never republish an older local copy over them.
+- If a session cannot reach the canvas, say so in the PR description instead of skipping it
+  silently.
+
 ## Where things live: intent first, then overview → detail
 
 **Read this before adding a card, a row or a screen.** The app is organised in two layers, and most
@@ -1119,9 +1143,14 @@ clutter came from ignoring one of them:
 - **Where a thing lives follows what the user came to do.** Logging (meal, drink, dose, period,
   tags, workout) is one job, so it has one door: the "Actions" button on every tab
   (`LogSheet`, opened through `LaunchRequests.openLog`). Today's Meal/Drink chips open the same
-  sheet at a step; don't grow a second logging path on a new screen. Earlier days belong to the
-  same door: "For an earlier day" sends a meal to the Nutrition tab's day arrows, "Past workout"
-  opens the past-activity form.
+  sheet at a step; don't grow a second logging path on a new screen. The sheet is for **now**:
+  Ask the coach, then meal, drink and medicine as one row of icons (the same kind of entry, so
+  side by side), Period only for a profile whose sex is `"female"`, tags, and starting a workout.
+- **A past entry is added on its own screen, never from the Actions sheet.** A past workout comes
+  from Activity's "Log Past Activity", a past meal from the Nutrition tab's day arrows, a past
+  period from Cycle. The owner asked for exactly this after the sheet briefly grew "For an earlier
+  day" and "Past workout" rows: the sheet stops being one short list the moment it grows a "past"
+  twin of each action.
 - **The tabs are Today, Vitals, Activity, Sleep, Nutrition.** Nutrition took the Coach's tab
   because seeing and back-filling meals was buried; the coach is the first row of the Actions
   sheet and a pushed screen with its own back arrow. Don't put it back on the bar to "restore" it. Programs the user switched on
