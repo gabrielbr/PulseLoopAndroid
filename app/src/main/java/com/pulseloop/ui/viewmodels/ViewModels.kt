@@ -152,6 +152,10 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                 ) }
             }
         }
+        // The four polls below stamp [TodayState.lastUpdated] only when their reading changed.
+        // Today keys its readiness, guidance, food and drinks loaders on that stamp, so stamping it
+        // on every pass re-ran them all about once a second while the screen sat still, and the
+        // redraws read as flicker under the frosted header.
         // Reactive HR — poll latest every 2s, resilient to DB errors.
         // Also derive resting HR from the last 24h of samples (low-percentile estimate).
         viewModelScope.launch {
@@ -164,7 +168,10 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                         .range(MeasurementKind.HEART_RATE.name, nowMs - 24 * 3600_000L, nowMs)
                         .map { corrections.heartRate(it.value) }
                     val resting = com.pulseloop.service.HeartRateZones.restingHeartRate(samples)
-                    _state.update { it.copy(heartRate = hr?.toInt(), restingHR = resting, lastUpdated = nowMs) }
+                    _state.update {
+                        if (it.heartRate == hr?.toInt() && it.restingHR == resting) it
+                        else it.copy(heartRate = hr?.toInt(), restingHR = resting, lastUpdated = nowMs)
+                    }
                 } catch (_: Exception) {}
                 kotlinx.coroutines.delay(2000)
             }
@@ -174,7 +181,10 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
             while (true) {
                 try {
                     val spo2 = db.measurementDao().latest(MeasurementKind.SPO2.name)?.let(AccuracyCorrections.load(db)::spo2)
-                    _state.update { it.copy(spo2 = spo2?.toInt(), lastUpdated = System.currentTimeMillis()) }
+                    _state.update {
+                        if (it.spo2 == spo2?.toInt()) it
+                        else it.copy(spo2 = spo2?.toInt(), lastUpdated = System.currentTimeMillis())
+                    }
                 } catch (_: Exception) {}
                 kotlinx.coroutines.delay(2000)
             }
@@ -185,11 +195,16 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                 try {
                     val sys = db.measurementDao().latest(MeasurementKind.BLOOD_PRESSURE_SYSTOLIC.name)
                     val dia = db.measurementDao().latest(MeasurementKind.BLOOD_PRESSURE_DIASTOLIC.name)
-                    _state.update { it.copy(
-                        bloodPressureSystolic = sys?.toInt()?.plus(apiKeyStore?.bpAdjustSystolic ?: 0),
-                        bloodPressureDiastolic = dia?.toInt()?.plus(apiKeyStore?.bpAdjustDiastolic ?: 0),
-                        lastUpdated = System.currentTimeMillis()
-                    ) }
+                    val systolic = sys?.toInt()?.plus(apiKeyStore?.bpAdjustSystolic ?: 0)
+                    val diastolic = dia?.toInt()?.plus(apiKeyStore?.bpAdjustDiastolic ?: 0)
+                    _state.update {
+                        if (it.bloodPressureSystolic == systolic && it.bloodPressureDiastolic == diastolic) it
+                        else it.copy(
+                            bloodPressureSystolic = systolic,
+                            bloodPressureDiastolic = diastolic,
+                            lastUpdated = System.currentTimeMillis(),
+                        )
+                    }
                 } catch (_: Exception) {}
                 kotlinx.coroutines.delay(5000)
             }
@@ -201,7 +216,10 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                     // Raw ring glucose + app-side calibration offset (see ApiKeyStore.glucoseOffsetMgdl).
                     val glucose = db.measurementDao().latest(MeasurementKind.BLOOD_SUGAR.name)
                         ?.plus(apiKeyStore?.glucoseOffsetMgdl ?: 0.0)
-                    _state.update { it.copy(bloodSugar = glucose, lastUpdated = System.currentTimeMillis()) }
+                    _state.update {
+                        if (it.bloodSugar == glucose) it
+                        else it.copy(bloodSugar = glucose, lastUpdated = System.currentTimeMillis())
+                    }
                 } catch (_: Exception) {}
                 kotlinx.coroutines.delay(5000)
             }

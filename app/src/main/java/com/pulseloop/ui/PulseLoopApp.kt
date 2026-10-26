@@ -491,12 +491,17 @@ fun PulseLoopApp() {
                                 sourceLabel = hcSource?.let { com.pulseloop.health.source.HealthConnectSource.label(context, it) + tr(" · Health Connect") },
                             )
                             // Thin sync-progress accent under the greeting while history streams in.
+                            // Its 2dp are always reserved: appearing and disappearing changed the
+                            // header's height, so every sync (each reconnect, every half hour)
+                            // shifted the whole tab down and back up.
                             val syncPct = coordinator.syncProgress.collectAsState().value
-                            if (syncPct != null) {
-                                LinearProgressIndicator(
-                                    progress = { (syncPct.coerceIn(0, 100)) / 100f },
-                                    modifier = Modifier.fillMaxWidth().height(2.dp),
-                                )
+                            Box(Modifier.fillMaxWidth().height(2.dp)) {
+                                if (syncPct != null) {
+                                    LinearProgressIndicator(
+                                        progress = { (syncPct.coerceIn(0, 100)) / 100f },
+                                        modifier = Modifier.fillMaxSize(),
+                                    )
+                                }
                             }
                         }
                     }

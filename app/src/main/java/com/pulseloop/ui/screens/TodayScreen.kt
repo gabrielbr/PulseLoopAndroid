@@ -138,18 +138,20 @@ fun TodayScreen(
         // An accuracy-check steps correction supersedes the phone factor: applying both would
         // correct the same undercount twice.
         val accuracySteps = com.pulseloop.health.accuracy.AccuracyCorrections.load(db).has(com.pulseloop.health.accuracy.ComparisonMetric.STEPS)
-        value = if (accuracySteps || !com.pulseloop.service.StepCalibration.isApplied(context)) null else runCatching {
-            val zone = java.time.ZoneId.systemDefault()
-            val ring = db.activityDailyDao().recentReal(60).associate { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate() to it.steps }
-            com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())?.factor
-        }.getOrNull()
+        value = if (accuracySteps || !com.pulseloop.service.StepCalibration.isApplied(context)) null else kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+            runCatching {
+                val zone = java.time.ZoneId.systemDefault()
+                val ring = db.activityDailyDao().recentReal(60).associate { java.time.Instant.ofEpochMilli(it.date).atZone(zone).toLocalDate() to it.steps }
+                com.pulseloop.service.StepCalibration.factor(com.pulseloop.service.StepCalibration.phoneDays(context), ring, java.time.LocalDate.now())?.factor
+            }.getOrNull()
+        }
     }
     // Drinks, when the user tracks them: the tile and the morning-after line on Last night.
     var drinkTick by remember { mutableIntStateOf(0) }
     var drinksLoaded by remember { mutableStateOf(false) }
     val accuracyOpen by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
     val drinks by produceState<com.pulseloop.service.DrinksRepository.Snapshot?>(null, state.lastUpdated, sleep.lastNight?.id, drinkTick, logOpen) {
-        value = if (com.pulseloop.service.DrinkPrefs.enabled) runCatching { com.pulseloop.service.DrinksRepository.load(db) }.getOrNull() else null
+        value = if (com.pulseloop.service.DrinkPrefs.enabled) kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { com.pulseloop.service.DrinksRepository.load(db) }.getOrNull() } else null
         drinksLoaded = true
     }
 
