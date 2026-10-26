@@ -53,6 +53,8 @@ fun NutritionScreen(
     start: String? = null,
     /** Opens the coach with a message, to discuss the next-meal idea. Null hides that button. */
     onDiscuss: ((String) -> Unit)? = null,
+    /** Shown as a tab: the app header sits above it, so no bar or back arrow of its own. */
+    asTab: Boolean = false,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -117,7 +119,7 @@ fun NutritionScreen(
         // Insets are already applied by the route wrapper (see SettingsSubScreen).
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
+            if (!asTab) TopAppBar(
                 title = { Text(tr("Nutrition")) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -132,8 +134,12 @@ fun NutritionScreen(
         LazyColumn(
             Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = PaddingValues(16.dp),
+            // As a tab, the last card scrolls clear of the Actions button.
+            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (asTab) 88.dp else 16.dp),
         ) {
+            if (asTab) item {
+                Text(tr("Nutrition"), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            }
             // Day navigation — left goes to older dates (higher offset), right goes to today (offset 0).
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {

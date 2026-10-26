@@ -306,8 +306,9 @@ fun PulseLoopApp() {
         }
 
         // ── Navigation ───────────────────────────────────────────────────
-        // Tab order + icons mirror iOS MainTab (AppTheme.swift): Today (circle.circle),
-        // Vitals (heart), Activity (waveform.path.ecg), Sleep (moon), Coach (sparkles).
+        // Tabs: Today, Vitals, Activity, Sleep, Nutrition. Nutrition took the Coach's place: seeing
+        // what you ate, and adding a meal to an earlier day, used to be three taps deep. The coach
+        // is one tap from every tab instead, at the top of the Actions sheet.
         val navController = rememberNavController()
 
         // First-launch gate (iOS #48): show the onboarding flow until it's completed.
@@ -341,7 +342,7 @@ fun PulseLoopApp() {
             Tab("vitals", tr("Vitals"), Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder),
             Tab("activity", tr("Activity"), Icons.Filled.MonitorHeart, Icons.Outlined.MonitorHeart),
             Tab("sleep", tr("Sleep"), Icons.Filled.Bedtime, Icons.Outlined.Bedtime),
-            Tab("coach", tr("Coach"), Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
+            Tab("nutrition", tr("Nutrition"), Icons.Filled.Restaurant, Icons.Outlined.Restaurant),
         )
 
         // ── Self-update: release-only. Checked on every return to foreground (ON_START also
@@ -394,10 +395,10 @@ fun PulseLoopApp() {
             noiseFactor = 0.02f,
         )
 
-        // "+ Log" on every tab but Coach: recording something is the most frequent job in the
-        // app, so it sits in the same place whichever tab is open.
+        // "Actions" on every tab: recording something is the most frequent job in the app, so it
+        // sits in the same place whichever tab is open, and the coach is the sheet's first row.
         val fabEntry by navController.currentBackStackEntryAsState()
-        val showLogFab = fabEntry?.destination?.route.let { it in tabRoutes && it != "coach" }
+        val showLogFab = fabEntry?.destination?.route in tabRoutes
         Scaffold(
             containerColor = com.pulseloop.ui.theme.PulseColors.background,
             floatingActionButton = {
@@ -411,7 +412,7 @@ fun PulseLoopApp() {
                     ExtendedFloatingActionButton(
                         onClick = { LaunchRequests.openLog.value = com.pulseloop.ui.screens.LogStep.MENU },
                         icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                        text = { Text(tr("Log"), maxLines = 1) },
+                        text = { Text(tr("Actions"), maxLines = 1) },
                         containerColor = com.pulseloop.ui.theme.PulseColors.accent,
                         contentColor = com.pulseloop.ui.theme.PulseColors.onAccent,
                     )
@@ -422,7 +423,8 @@ fun PulseLoopApp() {
                 // routes only; pushed screens (settings, details, pairing) bring their own bars.
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val route = navBackStackEntry?.destination?.route
-                val onTabRoute = route in tabRoutes
+                // The coach is no longer a tab but keeps the frosted header it had as one.
+                val onTabRoute = route in tabRoutes || route == "coach"
                 if (onTabRoute && !isLandscape) {
                     Column(
                         Modifier
@@ -442,6 +444,7 @@ fun PulseLoopApp() {
                             // (owner choice, issue #22).
                             var showCoachUsage by remember { mutableStateOf(false) }
                             CoachHeader(
+                                onBack = { navController.popBackStack() },
                                 onNewChat = { coachVM.newConversation() },
                                 onOpenUsage = { showCoachUsage = true },
                             )
@@ -598,7 +601,7 @@ fun PulseLoopApp() {
             // bars as an opaque floor/ceiling via this per-route padding wrapper.
             val topPad = padding.calculateTopPadding()
             val barPad = padding.calculateBottomPadding()
-            // The four tabs with the "+ Log" button scroll their last card clear of it.
+            // The tabs scroll their last card clear of the Actions button.
             val tabPad = barPad + 72.dp
             fun androidx.navigation.NavGraphBuilder.paddedComposable(
                 route: String,
@@ -714,8 +717,9 @@ fun PulseLoopApp() {
                     com.pulseloop.ui.LaunchRequests.coachMessage.value = msg
                     navController.navigate("coach") { launchSingleTop = true }
                 } else null
+                // A tab: the shared header above it, and no back arrow of its own.
                 paddedComposable("nutrition") {
-                    NutritionScreen(onBack = { navController.popBackStack() }, onDiscuss = discussMeal)
+                    NutritionScreen(onBack = { navController.popBackStack() }, onDiscuss = discussMeal, asTab = true)
                 }
                 // Straight into a way of logging (Today's food card, the "Log meal" shortcut).
                 listOf("photo", "barcode", "add").forEach { start ->
@@ -872,7 +876,16 @@ fun PulseLoopApp() {
                 db = db,
                 start = step,
                 onDismiss = ::close,
+                onCoach = { close(); navController.navigate("coach") { launchSingleTop = true } },
                 onMeal = { start -> close(); navController.navigate("nutrition/$start") },
+                onEarlierMeal = {
+                    close()
+                    navController.navigate("nutrition") {
+                        popUpTo(navController.graph.startDestinationId)
+                        launchSingleTop = true
+                    }
+                },
+                onPastWorkout = { close(); navController.navigate("log_past_activity") },
                 onMoreDrinks = { close(); navController.navigate("drinks") },
                 onMeds = { close(); navController.navigate("meds") },
                 onPeriod = { close(); navController.navigate("cycle") },
