@@ -878,14 +878,6 @@ fun PulseLoopApp() {
                 onDismiss = ::close,
                 onCoach = { close(); navController.navigate("coach") { launchSingleTop = true } },
                 onMeal = { start -> close(); navController.navigate("nutrition/$start") },
-                onEarlierMeal = {
-                    close()
-                    navController.navigate("nutrition") {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
-                },
-                onPastWorkout = { close(); navController.navigate("log_past_activity") },
                 onMoreDrinks = { close(); navController.navigate("drinks") },
                 onMeds = { close(); navController.navigate("meds") },
                 onPeriod = { close(); navController.navigate("cycle") },
