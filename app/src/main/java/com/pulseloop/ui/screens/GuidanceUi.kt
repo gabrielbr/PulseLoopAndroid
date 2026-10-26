@@ -32,7 +32,8 @@ data class GuidanceState(
 @Composable
 fun rememberGuidance(db: PulseLoopDatabase, key: Any?): GuidanceState? {
     val state by produceState<GuidanceState?>(initialValue = null, db, key) {
-        value = runCatching {
+        // Off the main thread: it reads and scores every recent night.
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching {
             val inputs = ReadinessRepository.loadInputs(db)
             val nights = inputs.history + listOfNotNull(inputs.lastNight)
             GuidanceState(
@@ -40,7 +41,7 @@ fun rememberGuidance(db: PulseLoopDatabase, key: Any?): GuidanceState? {
                 bedtime = BedtimeGuidance.compute(nights, inputs.sleepGoalMinutes),
                 sleepGoalMinutes = inputs.sleepGoalMinutes,
             )
-        }.getOrNull()
+        }.getOrNull() }
     }
     return state
 }

@@ -74,7 +74,8 @@ data class ScoreLoad<T>(val loaded: Boolean, val value: T?)
 @Composable
 fun rememberReadinessLoad(db: PulseLoopDatabase, key: Any?): ScoreLoad<Readiness.Result> {
     val result by produceState(initialValue = ScoreLoad<Readiness.Result>(false, null), db, key) {
-        value = ScoreLoad(true, runCatching { ReadinessRepository.compute(db) }.getOrNull())
+        // Off the main thread: the computation walks the past nights.
+        value = ScoreLoad(true, kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { ReadinessRepository.compute(db) }.getOrNull() })
     }
     return result
 }
@@ -364,7 +365,7 @@ private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> 
 @Composable
 fun rememberActivityScoreLoad(db: PulseLoopDatabase, key: Any?): ScoreLoad<com.pulseloop.service.ActivityScore.Result> {
     val result by produceState(initialValue = ScoreLoad<com.pulseloop.service.ActivityScore.Result>(false, null), db, key) {
-        value = ScoreLoad(true, runCatching { com.pulseloop.service.ActivityScore.load(db) }.getOrNull())
+        value = ScoreLoad(true, kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { runCatching { com.pulseloop.service.ActivityScore.load(db) }.getOrNull() })
     }
     return result
 }
