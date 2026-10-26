@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
@@ -185,14 +186,20 @@ fun CoachScreen(
  * chat then scrolls under it.
  */
 @Composable
-fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null) {
+fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null, onBack: (() -> Unit)? = null) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(start = if (onBack != null) 4.dp else 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        // The coach opens from the Actions sheet now, not a tab, so it needs a way back.
+        if (onBack != null) {
+            androidx.compose.material3.IconButton(onClick = onBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), tint = PulseColors.textPrimary)
+            }
+        }
         Box(
             Modifier
                 .size(44.dp)

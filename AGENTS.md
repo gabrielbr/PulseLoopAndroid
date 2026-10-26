@@ -1117,9 +1117,14 @@ sources: `docs/postpartum-breastfeeding-research.md`.
 clutter came from ignoring one of them:
 
 - **Where a thing lives follows what the user came to do.** Logging (meal, drink, dose, period,
-  tags, workout) is one job, so it has one door: the "+ Log" button on every tab but Coach
+  tags, workout) is one job, so it has one door: the "Actions" button on every tab
   (`LogSheet`, opened through `LaunchRequests.openLog`). Today's Meal/Drink chips open the same
-  sheet at a step; don't grow a second logging path on a new screen. Programs the user switched on
+  sheet at a step; don't grow a second logging path on a new screen. Earlier days belong to the
+  same door: "For an earlier day" sends a meal to the Nutrition tab's day arrows, "Past workout"
+  opens the past-activity form.
+- **The tabs are Today, Vitals, Activity, Sleep, Nutrition.** Nutrition took the Coach's tab
+  because seeing and back-filling meals was buried; the coach is the first row of the Actions
+  sheet and a pushed screen with its own back arrow. Don't put it back on the bar to "restore" it. Programs the user switched on
   (cycle, meds, postpartum) surface on Today (`ProgramsRow`), and Rest Mode is offered where
   "I'm unwell" happens (`RestModeLine`), not only in a menu.
 - **Inside a screen, summary first, detail on tap.** A screen leads with one summary and its

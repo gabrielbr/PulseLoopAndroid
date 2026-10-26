@@ -19,6 +19,8 @@ import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
@@ -43,14 +45,18 @@ import com.pulseloop.ui.theme.PulseColors
 import kotlinx.coroutines.launch
 
 /**
- * Where a "+ Log" sheet opens. [MENU] lists everything; the others jump straight to one step, for
+ * Where the Actions sheet opens. [MENU] lists everything; the others jump straight to one step, for
  * the shortcuts on Today.
  */
 enum class LogStep { MENU, MEAL, DRINK, TAGS }
 
 /**
- * One place to record anything, reached the same way from every tab: logging is the most frequent
- * thing people do in the app, and it used to live on six different screens.
+ * The Actions sheet: one place to record anything, or ask the coach, reached the same way from
+ * every tab. Logging is the most frequent thing people do in the app, and it used to live on six
+ * different screens; the coach moved here when Nutrition took its tab.
+ *
+ * An earlier day is part of the menu, not hidden in a screen: a meal goes to the Nutrition tab,
+ * whose day arrows choose the day it is saved to, and a past workout opens its own form.
  *
  * Meals, drinks and day tags are logged inside the sheet. Medications, periods and workouts open
  * their own screens, whose first block is the action, because they need more than one tap.
@@ -61,7 +67,10 @@ fun LogSheet(
     db: PulseLoopDatabase,
     start: LogStep,
     onDismiss: () -> Unit,
+    onCoach: () -> Unit,
     onMeal: (start: String) -> Unit,
+    onEarlierMeal: () -> Unit,
+    onPastWorkout: () -> Unit,
     onMoreDrinks: () -> Unit,
     onMeds: () -> Unit,
     onPeriod: () -> Unit,
@@ -93,19 +102,22 @@ fun LogSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (shownStep) {
                     LogStep.MENU -> {
-                        Text(tr("Log"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Actions"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        SheetOption(tr("Ask the coach"), tr("About your day, a plan, a meal idea"), Icons.Filled.AutoAwesome, onCoach)
                         SheetOption(tr("Meal"), tr("Photo, barcode or by hand"), Icons.Filled.Restaurant) { step = LogStep.MEAL }
                         SheetOption(tr("Drink"), tr("One tap for the usual ones"), Icons.Filled.LocalBar) { step = LogStep.DRINK }
                         SheetOption(tr("Medication or supplement"), tr("Mark today's doses"), Icons.Filled.Medication, onMeds)
                         SheetOption(tr("Period"), tr("Started or ended today, or a past one"), Icons.Filled.WaterDrop, onPeriod)
                         SheetOption(tr("Tag your day"), tr("Alcohol, stress, a late meal…"), Icons.Filled.LocalOffer) { step = LogStep.TAGS }
                         SheetOption(tr("Workout"), tr("Start one now"), Icons.Filled.DirectionsRun, onWorkout)
+                        SheetOption(tr("Past workout"), tr("One you already did, with its time and length"), Icons.Filled.History, onPastWorkout)
                     }
                     LogStep.MEAL -> {
                         Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onMeal("photo") }
                         SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onMeal("barcode") }
                         SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onMeal("add") }
+                        SheetOption(tr("For an earlier day"), tr("Pick the day in Nutrition, then add it there"), Icons.Filled.History, onEarlierMeal)
                     }
                     LogStep.DRINK -> QuickDrinks(db, onMoreDrinks)
                     LogStep.TAGS -> JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
