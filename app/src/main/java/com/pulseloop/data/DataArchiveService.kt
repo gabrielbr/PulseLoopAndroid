@@ -33,7 +33,8 @@ object DataArchiveService {
     private fun insertRaw(db: PulseLoopDatabase, table: String, cv: ContentValues): Long =
         db.openHelper.writableDatabase.insert(table, SQLiteDatabase.CONFLICT_NONE, cv)
 
-    suspend fun exportArchive(db: PulseLoopDatabase): PulseArchive = withContext(Dispatchers.Default) {
+    /** [context] reads the preferences the archive carries ([ArchivedSettings]); null leaves them out. */
+    suspend fun exportArchive(db: PulseLoopDatabase, context: Context? = null): PulseArchive = withContext(Dispatchers.Default) {
         val counts = mutableMapOf<String, Int>()
 
         fun <T> collect(table: String, mapper: (Cursor) -> T): List<T> {
@@ -356,6 +357,7 @@ object DataArchiveService {
                     computedAt = c.long("computedAt"),
                 )
             },
+            settings = context?.let { ArchivedSettings.export(it) } ?: emptyMap(),
             accuracyCorrections = collect("accuracy_corrections") { c ->
                 AccuracyCorrectionDTO(
                     deviceKey = c.str("deviceKey"), metric = c.str("metric"), kind = c.str("kind"),
@@ -395,12 +397,12 @@ object DataArchiveService {
     }
 
     /** The whole archive as JSON, the same text a manual export writes. */
-    suspend fun exportJson(db: PulseLoopDatabase): String = withContext(Dispatchers.Default) {
-        json.encodeToString(PulseArchive.serializer(), exportArchive(db))
+    suspend fun exportJson(db: PulseLoopDatabase, context: Context? = null): String = withContext(Dispatchers.Default) {
+        json.encodeToString(PulseArchive.serializer(), exportArchive(db, context))
     }
 
     suspend fun exportToFile(context: Context, db: PulseLoopDatabase): Uri? = withContext(Dispatchers.Default) {
-        val archive = exportArchive(db)
+        val archive = exportArchive(db, context)
         val jsonStr = json.encodeToString(PulseArchive.serializer(), archive)
         val name = "pulseloop-export-${dateFmt.format(Date())}.json"
         val file = java.io.File(context.cacheDir, name)
@@ -770,6 +772,12 @@ object DataArchiveService {
                 ))
             }
         }
+
+        // After the database, so a failed restore leaves this phone's preferences as they were.
+        ArchivedSettings.restore(context, archive.settings)
+        // An archive written before settings were carried brings drinks without their switch.
+        com.pulseloop.service.DrinkPrefs.init(context)
+        com.pulseloop.service.DrinkPrefs.adoptRestoredHistory(db)
 
         // Phase 6 (iOS DataArchiveService.refreshSharedStores parity): importing history must not
         // trigger a surprise full re-export into Health Connect. If the export is enabled, stamp

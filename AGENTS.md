@@ -802,6 +802,26 @@ not a history write) but never adopts the ring's copy. That is the same ±90 s a
 **Known limit, worth stating when a user asks:** a reading already exported to Health Connect stays
 there. The export doesn't retain HC record ids, so there is nothing to delete against.
 
+## A preference that holds the user's data must ride in the archive
+
+**The backup archive is the only way data reaches a new phone**: `android:allowBackup` is off, so
+nothing in SharedPreferences moves with Android's own backup. Room tables go through
+`DataArchiveService`; preferences go through `ArchivedSettings`, an allowlist of files.
+
+Drinks is why this exists. Its entries were archived, but its on/off switch was a preference that
+defaults to off, so after a phone change every drinks surface hid itself and the history looked
+lost, and the plan, start date and AUDIT-C result were gone. `DrinkPrefs.adoptRestoredHistory`
+repairs phones already restored that way (entries present, Drinks never switched on there).
+
+- **A new preference that holds what the user entered or chose about their data** (a switch that
+  decides whether data shows, a plan, a log kept as JSON) **goes on the `ArchivedSettings`
+  allowlist in the same change.** Device state stays off it: ring pairing, Health Connect grants
+  and watermarks, notification scheduling, algorithm and scoring versions.
+- **The EPDS answers are deliberately not carried** (`postpartum`'s `epds` key; see postpartum
+  mode). The life stage is.
+- `body_measurements` and `findings` are deliberately not in the archive either: Health Connect
+  re-imports the first, and the second is recomputed.
+
 ## Deleting an activity bucket needs the tombstone *and* the day's deficit (issue #70)
 
 `ActivityBucketDeletion` is the tombstone rule applied to intraday step blocks, and it has one more

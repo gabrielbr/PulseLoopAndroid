@@ -42,6 +42,10 @@ class PulseLoopApplication : Application() {
         appScope.launch { DataRepairs.runIfNeeded(this@PulseLoopApplication) }
         appScope.launch { DataRepairs.repairSleepDurationsIfNeeded(this@PulseLoopApplication) }
         appScope.launch { DataRepairs.repairLuckRingActivityIfNeeded(this@PulseLoopApplication) }
+        // Phones already restored from an archive without settings: drinks there, Drinks off.
+        appScope.launch {
+            runCatching { com.pulseloop.service.DrinkPrefs.adoptRestoredHistory(PulseLoopDatabase.getInstance(this@PulseLoopApplication)) }
+        }
 
         // Home-screen widgets (iOS #44): publish the snapshot on every foreground/background
         // edge (the iOS scene-phase triggers — catches goal/unit/profile edits that don't run

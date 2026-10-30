@@ -956,6 +956,10 @@ interface DrinkDao {
     @Query("SELECT * FROM drink_entries ORDER BY timestamp DESC LIMIT 1")
     suspend fun latest(): DrinkEntryEntity?
 
+    /** The local start of the earliest evening with a drink; null when there are none. */
+    @Query("SELECT MIN(day) FROM drink_entries")
+    suspend fun earliestDay(): Long?
+
     @Upsert
     suspend fun upsert(entry: DrinkEntryEntity)
 
