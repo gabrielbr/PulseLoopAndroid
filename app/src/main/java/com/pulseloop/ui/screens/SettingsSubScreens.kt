@@ -2482,6 +2482,13 @@ fun PrivacyDataSettingsScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
+                Spacer(Modifier.height(8.dp))
+                // The archive carries the coach's API keys (data/ArchivedSettings.kt) in plain JSON.
+                Text(
+                    tr("Backups include your AI coach setup and its API keys, readable by anyone with the file. Keep backup files private."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = com.pulseloop.ui.theme.PulseColors.warning,
+                )
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(

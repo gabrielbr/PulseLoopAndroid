@@ -817,6 +817,12 @@ repairs phones already restored that way (entries present, Drinks never switched
   decides whether data shows, a plan, a log kept as JSON) **goes on the `ArchivedSettings`
   allowlist in the same change.** Device state stays off it: ring pairing, Health Connect grants
   and watermarks, notification scheduling, algorithm and scoring versions.
+- **The encrypted store `pulseloop_secure` rides by key, not by file** (`SECURE_KEYS`): it mixes
+  the user's choices with this phone's state. The coach's whole setup is carried at the owner's
+  request, **API keys included** (every provider's key and model, and the custom API's address,
+  key and model), plus calibration, physiology, units and check-in hours. The archive is plain
+  JSON, so the Backup screen warns that the file exposes those keys. Don't drop the keys to make
+  the file "safer" without asking: losing the coach setup on a phone change is what was reported.
 - **The EPDS answers are deliberately not carried** (`postpartum`'s `epds` key; see postpartum
   mode). The life stage is.
 - `body_measurements` and `findings` are deliberately not in the archive either: Health Connect
