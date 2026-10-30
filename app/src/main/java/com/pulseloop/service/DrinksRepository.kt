@@ -36,6 +36,22 @@ object DrinkPrefs {
         e.apply()
     }
 
+    /**
+     * Drinks history with Drinks never switched on here, which only a restore from an archive
+     * written before [com.pulseloop.data.ArchivedSettings] produces: the entries came back but the
+     * switch, a preference, did not, so every drinks surface hid them. Switches Drinks on with its
+     * start on the first evening logged, so those days count as tracked rather than unknown.
+     * Leaves a user who switched Drinks off alone: switching on is what sets [trackedSince], and
+     * switching off keeps it.
+     */
+    suspend fun adoptRestoredHistory(db: com.pulseloop.data.PulseLoopDatabase, zone: ZoneId = ZoneId.systemDefault()) {
+        val p = p() ?: return
+        if (p.getBoolean("enabled", false) || p.getString("trackedSince", null) != null) return
+        val first = db.drinkDao().earliestDay() ?: return
+        val firstDay = java.time.Instant.ofEpochMilli(first).atZone(zone).toLocalDate()
+        p.edit().putBoolean("enabled", true).putString("trackedSince", firstDay.toString()).apply()
+    }
+
     /** The first day drinks were tracked; days before it are unknown rather than dry. */
     val trackedSince: LocalDate
         get() = p()?.getString("trackedSince", null)?.let { runCatching { LocalDate.parse(it) }.getOrNull() } ?: LocalDate.now()

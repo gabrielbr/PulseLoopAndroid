@@ -63,6 +63,12 @@ data class PulseArchive(
     val accuracyPausedUnits: List<AccuracyPausedUnitDTO> = emptyList(),
     val accuracyCheckDays: List<AccuracyCheckDayDTO> = emptyList(),
     val accuracyCorrections: List<AccuracyCorrectionDTO> = emptyList(),
+    /**
+     * The user's data and choices kept in SharedPreferences ([ArchivedSettings]): the Drinks
+     * switch and plan, life stage, breathing sessions, step calibration. Empty in archives written
+     * before it existed, and a restore then leaves this phone's own values alone.
+     */
+    val settings: Map<String, Map<String, PrefValue>> = emptyMap(),
 )
 
 @Serializable data class AccuracyCheckDTO(

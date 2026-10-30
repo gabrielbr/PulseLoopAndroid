@@ -78,7 +78,7 @@ object AutoBackup {
             val name = PREFIX + SimpleDateFormat("yyyy-MM-dd-HHmm", Locale.US).format(Date()) + ".json"
             val doc = DocumentsContract.createDocument(resolver, parent, "application/json", name)
                 ?: return fail(ctx, "Couldn't create a file in the backup folder")
-            val text = DataArchiveService.exportJson(PulseLoopDatabase.getInstance(ctx))
+            val text = DataArchiveService.exportJson(PulseLoopDatabase.getInstance(ctx), ctx)
             resolver.openOutputStream(doc, "w")?.use { it.write(text.toByteArray()) }
                 ?: return fail(ctx, "Couldn't write to the backup folder")
             prune(ctx, tree, parentId)
