@@ -43,10 +43,51 @@ object ArchivedSettings {
         "rest_mode" to emptySet(),
     )
 
+    /**
+     * The encrypted store (`pulseloop_secure`, shared by `ApiKeyStore` and
+     * `CoachProviderSettingsStore`). It mixes the user's choices with this phone's own state, so
+     * only these keys are carried, and a restore writes only these keys.
+     *
+     * The coach's setup is here at the owner's request, **its API keys included**: the provider,
+     * every provider's key and model, and the custom (local / own server) API's address, key,
+     * model and options. The archive is plain JSON, so those keys are readable by anyone holding
+     * the backup file; the Backup screen says so.
+     */
+    private const val SECURE_FILE = "pulseloop_secure"
+    private val SECURE_KEYS: Set<String> = setOf(
+        // AI coach: switches, provider, keys, models, the custom API.
+        "coach_enabled", "coach_model", "openai_api_key", "coach_provider_mode",
+        "gemini_api_key", "gemini_model", "openrouter_api_key", "openrouter_model",
+        "minimax_api_key", "minimax_model", "openrouter_privacy_routing", "openrouter_provider_sort",
+        "coach_reasoning_effort", "coach_image_input_enabled", "web_search_enabled",
+        "write_tools_enabled", "environment_context_enabled",
+        "local_llm_base_url", "local_llm_api_key", "local_llm_model", "local_llm_tool_calling",
+        "local_llm_structured_output", "local_llm_max_tokens", "local_llm_timeout_seconds",
+        // Coach check-ins and their hours.
+        "notifications_enabled", "morning_hour", "evening_hour",
+        // Calibration and physiology change how stored readings are read.
+        "bp_adjust_systolic", "bp_adjust_diastolic", "glucose_offset_mgdl", "glucose_ref_mgdl",
+        "athlete_mode", "altitude_meters", "uses_beta_blockers", "has_known_lung_condition",
+        // Units and the other switches the user set.
+        "unit_system", "preferred_glucose_unit", "battery_alerts_enabled", "live_measurements_enabled",
+    )
+
     fun export(context: Context): Map<String, Map<String, PrefValue>> =
-        FILES.mapValues { (file, skipped) ->
+        (FILES.mapValues { (file, skipped) ->
             prefs(context, file).all.filterKeys { it !in skipped }.mapNotNull { (k, v) -> encode(v)?.let { k to it } }.toMap()
-        }.filterValues { it.isNotEmpty() }
+        } + (SECURE_FILE to secureValues(context))).filterValues { it.isNotEmpty() }
+
+    private fun secureValues(context: Context): Map<String, PrefValue> = runCatching {
+        secure(context).all.filterKeys { it in SECURE_KEYS }.mapNotNull { (k, v) -> encode(v)?.let { k to it } }.toMap()
+    }.getOrDefault(emptyMap())
+
+    private fun secure(context: Context): SharedPreferences = androidx.security.crypto.EncryptedSharedPreferences.create(
+        SECURE_FILE,
+        androidx.security.crypto.MasterKeys.getOrCreate(androidx.security.crypto.MasterKeys.AES256_GCM_SPEC),
+        context.applicationContext,
+        androidx.security.crypto.EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+        androidx.security.crypto.EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+    )
 
     /**
      * Writes the archive's values back. Only files on the allowlist are touched, and each is
@@ -61,6 +102,16 @@ object ArchivedSettings {
             p.all.keys.filter { it !in skipped }.forEach { e.remove(it) }
             values.filterKeys { it !in skipped }.forEach { (k, v) -> put(e, k, v) }
             e.commit()
+        }
+        // The secure file keeps this phone's own keys: only the carried ones are replaced.
+        settings[SECURE_FILE]?.let { values ->
+            runCatching {
+                val p = secure(context)
+                val e = p.edit()
+                SECURE_KEYS.filter { it in p.all && it !in values }.forEach { e.remove(it) }
+                values.filterKeys { it in SECURE_KEYS }.forEach { (k, v) -> put(e, k, v) }
+                e.commit()
+            }
         }
     }
 
