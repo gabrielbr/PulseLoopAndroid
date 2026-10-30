@@ -56,8 +56,10 @@ import com.pulseloop.data.entity.*
         AccuracyPausedUnitEntity::class,
         AccuracyCheckDayEntity::class,
         AccuracyCorrectionEntity::class,
+        LabReportEntity::class,
+        LabResultEntity::class,
     ],
-    version = 36,
+    version = 37,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -105,6 +107,8 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun foodProductDao(): FoodProductDao
     /** Journal tags for "what affects you" insights. */
     abstract fun journalDao(): JournalDao
+    /** Lab reports the user added as PDFs, and the markers read from them (v37). */
+    abstract fun labDao(): LabDao
 
     /**
      * Empty every table, atomically. Goes through Room's [withTransaction] rather than a raw
@@ -149,6 +153,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             "periods",
             "meds", "med_doses",
             "accuracy_checks", "accuracy_paused_units", "accuracy_check_days", "accuracy_corrections",
+            "lab_reports", "lab_results",
         )
 
         @Volatile private var INSTANCE: PulseLoopDatabase? = null
@@ -691,6 +696,26 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** v36 → v37: lab reports added as PDFs, and the markers read from them. */
+        private val MIGRATION_36_37 = object : Migration(36, 37) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `lab_reports` (`id` TEXT NOT NULL, `collectedDay` INTEGER NOT NULL, " +
+                        "`lab` TEXT, `kindsCsv` TEXT NOT NULL, `fileName` TEXT, `pdfFile` TEXT, `pageCount` INTEGER NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lab_reports_collectedDay` ON `lab_reports` (`collectedDay`)")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `lab_results` (`id` TEXT NOT NULL, `reportId` TEXT NOT NULL, `panel` TEXT NOT NULL, " +
+                        "`name` TEXT NOT NULL, `markerKey` TEXT NOT NULL, `valueNum` REAL, `valueText` TEXT, `unit` TEXT, " +
+                        "`refLow` REAL, `refHigh` REAL, `refText` TEXT, `flag` TEXT NOT NULL, `position` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`id`), FOREIGN KEY(`reportId`) REFERENCES `lab_reports`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lab_results_reportId` ON `lab_results` (`reportId`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_lab_results_markerKey` ON `lab_results` (`markerKey`)")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -793,6 +818,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_33_34,
                         MIGRATION_34_35,
                         MIGRATION_35_36,
+                        MIGRATION_36_37,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

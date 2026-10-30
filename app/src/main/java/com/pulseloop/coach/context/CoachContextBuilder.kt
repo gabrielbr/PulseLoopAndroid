@@ -111,6 +111,7 @@ object CoachContextBuilder {
             primaryGoal = runCatching { com.pulseloop.service.GoalPlan.load(db, now) }.getOrNull(),
             drinks = com.pulseloop.service.DrinksContext.build(db, now),
             postpartum = com.pulseloop.service.PostpartumContext.build(),
+            labs = runCatching { com.pulseloop.service.LabContext.build(db) }.getOrNull(),
         )
     }
 

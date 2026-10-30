@@ -1106,3 +1106,33 @@ interface AccuracyDao {
     @Query("DELETE FROM accuracy_corrections WHERE deviceKey = :deviceKey AND metric = :metric")
     suspend fun deleteCorrection(deviceKey: String, metric: String)
 }
+
+@Dao
+interface LabDao {
+    @Query("SELECT * FROM lab_reports ORDER BY collectedDay DESC, createdAt DESC")
+    fun reportsFlow(): Flow<List<LabReportEntity>>
+
+    @Query("SELECT * FROM lab_reports ORDER BY collectedDay DESC, createdAt DESC")
+    suspend fun reports(): List<LabReportEntity>
+
+    @Query("SELECT * FROM lab_reports WHERE id = :id")
+    suspend fun report(id: String): LabReportEntity?
+
+    @Query("SELECT * FROM lab_results ORDER BY position ASC")
+    fun resultsFlow(): Flow<List<LabResultEntity>>
+
+    @Query("SELECT * FROM lab_results")
+    suspend fun results(): List<LabResultEntity>
+
+    @Query("SELECT * FROM lab_results WHERE markerKey = :key")
+    suspend fun resultsFor(key: String): List<LabResultEntity>
+
+    @Upsert
+    suspend fun upsertReport(report: LabReportEntity)
+
+    @Upsert
+    suspend fun upsertResults(results: List<LabResultEntity>)
+
+    @Query("DELETE FROM lab_reports WHERE id = :id")
+    suspend fun deleteReport(id: String)
+}
