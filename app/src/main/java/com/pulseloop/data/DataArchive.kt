@@ -69,6 +69,22 @@ data class PulseArchive(
      * before it existed, and a restore then leaves this phone's own values alone.
      */
     val settings: Map<String, Map<String, PrefValue>> = emptyMap(),
+    /** Lab reports (v37), each with its PDF as base64 so a new phone can open it again. */
+    val labReports: List<LabReportDTO> = emptyList(),
+    val labResults: List<LabResultDTO> = emptyList(),
+)
+
+@Serializable data class LabReportDTO(
+    val id: String, val collectedDay: Long, val lab: String? = null, val kindsCsv: String = "",
+    val fileName: String? = null, val pdfFile: String? = null, val pageCount: Int = 0, val createdAt: Long,
+    val pdfBase64: String? = null,
+)
+
+@Serializable data class LabResultDTO(
+    val id: String, val reportId: String, val panel: String, val name: String, val markerKey: String,
+    val valueNum: Double? = null, val valueText: String? = null, val unit: String? = null,
+    val refLow: Double? = null, val refHigh: Double? = null, val refText: String? = null,
+    val flag: String = "UNKNOWN", val position: Int = 0,
 )
 
 @Serializable data class AccuracyCheckDTO(

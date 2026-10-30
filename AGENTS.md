@@ -1137,6 +1137,30 @@ sources: `docs/postpartum-breastfeeding-research.md`.
   switching off takes exactly that back.
 - **No F*cking Health jokes here**: postpartum text is on the voice's safety list.
 
+## Lab reports: read once, checked by the user, never a diagnosis
+
+**Read this before touching `service/LabReports.kt`, `ui/screens/LabReportsUi.kt` or the coach's
+`labs` block.** Any lab report (blood, urine, hormones, anything) is added as a PDF from
+My Health → Lab reports, and every marker is charted exam by exam.
+
+- **Pages go to the model as images, not as a PDF** (`PdfRenderer`, 1600 px, up to 10 pages), so
+  every coach provider reads them, the custom/local one included. The PDF is sent once, when the
+  user adds it; afterwards the coach reads the stored values (`LabContext`), never the file.
+- **Nothing is saved until the user checks it.** The read lands on a review screen where every
+  value, unit and range is editable and rows can be removed. Don't add an auto-save path.
+- **The flag is computed, not taken from the model**: a numeric value with a printed range is judged
+  against that range (`LabReports.flagFor`); the model's marking only stands when there is no number
+  or no range. The range is the lab's own and is stored per result, because labs and methods differ.
+- **One marker, one key, across labs and languages** (`markerKey`, from the model's snake_case
+  English `key`, normalised). The chart follows the key, so a key change splits a marker's history.
+- **It never diagnoses.** No condition named, no value called fine or dangerous beyond "inside / outside
+  the lab's range", anything outside the range or trending badly goes to "your doctor", and never a
+  medication, supplement or dose. The coach's `LabContext.note` and its prompt line say the same; keep
+  them in step. Goals change only through `set_goal` after the user agrees to the exact numbers.
+- **The coach's use of the results is a switch on the Lab reports screen** (`LabPrefs.coachUses`).
+- **Reports, results and each PDF (as base64) ride in the backup archive**, and the switch rides in
+  `ArchivedSettings`. Deleting a report removes its results (FK cascade) and its PDF file.
+
 ## The design files and the app move together, both ways
 
 **Every change to the app's UI updates the design files in the same piece of work, and every

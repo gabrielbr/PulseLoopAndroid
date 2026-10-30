@@ -358,6 +358,26 @@ object DataArchiveService {
                 )
             },
             settings = context?.let { ArchivedSettings.export(it) } ?: emptyMap(),
+            labReports = collect("lab_reports") { c ->
+                val pdf = c.strOrNull("pdfFile")
+                LabReportDTO(
+                    id = c.str("id"), collectedDay = c.long("collectedDay"), lab = c.strOrNull("lab"),
+                    kindsCsv = c.strOrNull("kindsCsv") ?: "", fileName = c.strOrNull("fileName"), pdfFile = pdf,
+                    pageCount = c.intOrNull("pageCount") ?: 0, createdAt = c.long("createdAt"),
+                    pdfBase64 = if (context != null && pdf != null) runCatching {
+                        com.pulseloop.service.LabReports.pdfFile(context, pdf).takeIf { it.exists() }
+                            ?.readBytes()?.let { android.util.Base64.encodeToString(it, android.util.Base64.NO_WRAP) }
+                    }.getOrNull() else null,
+                )
+            },
+            labResults = collect("lab_results") { c ->
+                LabResultDTO(
+                    id = c.str("id"), reportId = c.str("reportId"), panel = c.str("panel"), name = c.str("name"),
+                    markerKey = c.str("markerKey"), valueNum = c.dblOrNull("valueNum"), valueText = c.strOrNull("valueText"),
+                    unit = c.strOrNull("unit"), refLow = c.dblOrNull("refLow"), refHigh = c.dblOrNull("refHigh"),
+                    refText = c.strOrNull("refText"), flag = c.strOrNull("flag") ?: "UNKNOWN", position = c.intOrNull("position") ?: 0,
+                )
+            },
             accuracyCorrections = collect("accuracy_corrections") { c ->
                 AccuracyCorrectionDTO(
                     deviceKey = c.str("deviceKey"), metric = c.str("metric"), kind = c.str("kind"),
@@ -516,6 +536,27 @@ object DataArchiveService {
             for (p in archive.periods) {
                 db.periodDao().upsert(PeriodEntity(id = p.id, startDay = p.startDay, endDay = p.endDay, createdAt = p.createdAt))
             }
+            for (r in archive.labReports) {
+                // The PDF goes back to the app's own storage before its row points at it.
+                val b64 = r.pdfBase64
+                val name = r.pdfFile
+                val pdf = if (b64 != null && name != null) runCatching {
+                    com.pulseloop.service.LabReports.pdfFile(context, name)
+                        .writeBytes(android.util.Base64.decode(b64, android.util.Base64.NO_WRAP))
+                    name
+                }.getOrNull() else null
+                db.labDao().upsertReport(LabReportEntity(
+                    id = r.id, collectedDay = r.collectedDay, lab = r.lab, kindsCsv = r.kindsCsv,
+                    fileName = r.fileName, pdfFile = pdf, pageCount = r.pageCount, createdAt = r.createdAt,
+                ))
+            }
+            if (archive.labResults.isNotEmpty()) db.labDao().upsertResults(archive.labResults.map { x ->
+                LabResultEntity(
+                    id = x.id, reportId = x.reportId, panel = x.panel, name = x.name, markerKey = x.markerKey,
+                    valueNum = x.valueNum, valueText = x.valueText, unit = x.unit, refLow = x.refLow,
+                    refHigh = x.refHigh, refText = x.refText, flag = x.flag, position = x.position,
+                )
+            })
             for (d in archive.drinks) {
                 db.drinkDao().upsert(DrinkEntryEntity(
                     id = d.id, timestamp = d.timestamp, day = d.day, type = d.type, volumeMl = d.volumeMl,

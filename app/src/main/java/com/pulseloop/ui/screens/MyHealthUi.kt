@@ -167,7 +167,7 @@ private fun Sparkline(values: List<Double>, color: Color, modifier: Modifier = M
 }
 
 @Composable
-fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}, onPostpartum: () -> Unit = {}) {
+fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}, onPostpartum: () -> Unit = {}, onLabReports: () -> Unit = {}) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -248,6 +248,18 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     Column(Modifier.weight(1f)) {
                         Text(tr("What changed"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         Text(tr("Your nights against your own normal, kept as a log"), fontSize = 12.sp, color = PulseColors.textMuted)
+                    }
+                    Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                }
+                // Lab reports (LabReportsUi.kt): the PDFs the user added, every marker charted by exam.
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+                        .clickable(onClick = onLabReports).padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(tr("Lab reports"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Blood, urine and any other lab report, charted exam by exam"), fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                     Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
                 }

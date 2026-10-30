@@ -1,6 +1,7 @@
 package com.pulseloop.ui
 
 import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
 
 import android.content.res.Configuration
 import androidx.compose.foundation.layout.*
@@ -780,6 +781,28 @@ fun PulseLoopApp() {
                         onCycle = { navController.navigate("cycle") },
                         onMeds = { navController.navigate("meds") },
                         onPostpartum = { navController.navigate("postpartum") },
+                        onLabReports = { navController.navigate("lab_reports") },
+                    )
+                }
+                paddedComposable("lab_reports") {
+                    com.pulseloop.ui.screens.LabReportsScreen(
+                        onBack = { navController.popBackStack() },
+                        onMarker = { key -> navController.navigate("lab_reports/marker/$key") },
+                        onAskCoach = {
+                            com.pulseloop.ui.LaunchRequests.coachMessage.value = tr("Make me a plan from my lab reports.")
+                            navController.navigate("coach") { launchSingleTop = true }
+                        },
+                    )
+                }
+                paddedComposable("lab_reports/marker/{key}") { entry ->
+                    val key = entry.arguments?.getString("key") ?: return@paddedComposable
+                    com.pulseloop.ui.screens.LabMarkerScreen(
+                        markerKey = key,
+                        onBack = { navController.popBackStack() },
+                        onAskCoach = { name ->
+                            com.pulseloop.ui.LaunchRequests.coachMessage.value = trf("Make me a plan from my lab reports, starting with {0}.", name)
+                            navController.navigate("coach") { launchSingleTop = true }
+                        },
                     )
                 }
                 paddedComposable("postpartum") {

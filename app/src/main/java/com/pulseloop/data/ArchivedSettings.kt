@@ -41,6 +41,8 @@ object ArchivedSettings {
         "activity_detection" to emptySet(),
         // Rest Mode, while it lasts.
         "rest_mode" to emptySet(),
+        // Whether the coach may use the lab results.
+        "lab_reports" to emptySet(),
     )
 
     /**
