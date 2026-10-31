@@ -129,7 +129,8 @@ class WidgetSnapshotTest {
     fun colorHexBridgeRoundTrips() {
         val original = ZonePalette.ZoneMint
         assertEquals(original, colorFromHex(colorToHex(original)))
-        assertEquals("#43F3B7", colorToHex(ZonePalette.ZoneMint))
+        // The in-range zone is the success green now, not the brand mint (PulseColors.zoneMint).
+        assertEquals("#4CC97A", colorToHex(ZonePalette.ZoneMint))
     }
 
     // ── 3. Zone payload reconstruction ──
