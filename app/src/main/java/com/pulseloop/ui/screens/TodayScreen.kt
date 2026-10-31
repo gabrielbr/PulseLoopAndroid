@@ -406,10 +406,8 @@ fun TodayScreen(
                 item { HiddenMetricsTray(hiddenCards) { editState.setHidden(it, false) } }
             }
 
-            // The long view ("how have I been this month?") starts from Today, not from inside Vitals.
-            if (!editState.editing && navController != null) {
-                item { MyHealthEntryCard { navController.navigate("my_health") } }
-            }
+            // The long view ("how have I been this month?") is the header's health line now,
+            // on every tab, so Today no longer ends with its own My Health card.
 
             item { Spacer(Modifier.height(64.dp)) }
         }

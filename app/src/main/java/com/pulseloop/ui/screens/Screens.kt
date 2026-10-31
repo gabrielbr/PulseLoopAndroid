@@ -525,6 +525,13 @@ fun VitalsScreen(
             item { HiddenMetricsTray(hiddenCards) { editState.setHidden(it, false) } }
         }
 
+        // In-context door to My Health: after today's readings, how they moved and the exams.
+        if (!editState.editing && navController != null) item {
+            MyHealthEntryCard(tr("Trends & lab reports"), tr("How your vitals moved, and your exams, in My Health")) {
+                navController.navigate("my_health") { launchSingleTop = true }
+            }
+        }
+
         item { Spacer(Modifier.height(32.dp)) }
     }
 }

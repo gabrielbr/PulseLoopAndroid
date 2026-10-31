@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
@@ -379,6 +380,26 @@ fun PulseLoopApp() {
             LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
         val tabRoutes = remember(tabs) { tabs.map { it.route }.toSet() }
 
+        // The header's health line (HealthHeadline). Held here, not in the top bar, so it
+        // survives the coach screen swapping the header out; read off the main thread every
+        // few minutes and again when lab results change. The last line stays up while the
+        // next is read, so the header never blanks.
+        var headline by remember { mutableStateOf<com.pulseloop.service.HealthHeadline.Headline?>(null) }
+        val labsKey by remember(db) {
+            kotlinx.coroutines.flow.combine(db.labDao().reportsFlow(), db.labDao().resultsFlow()) { reports, results ->
+                com.pulseloop.service.HealthHeadline.labsOutside(reports, results) * 100_000 + reports.size
+            }
+        }.collectAsState(initial = -1)
+        LaunchedEffect(labsKey) {
+            while (true) {
+                runCatching { com.pulseloop.service.HealthHeadline.load(db) }.getOrNull()?.let { headline = it }
+                delay(5 * 60_000L)
+            }
+        }
+        val profileName by remember(db) {
+            db.userProfileDao().getFlow().map { it?.name }
+        }.collectAsState(initial = null)
+
         // iOS-style frosted tab bar (.ultraThinMaterial parity): the scrollable tabs
         // render UNDER the bar (hazeSource on the NavHost) and the bar blurs whatever
         // is behind it. Real RenderEffect blur on Android 12+, scrim fallback below.
@@ -490,6 +511,9 @@ fun PulseLoopApp() {
                                 onOpenSettings = { navController.navigate("settings") },
                                 idle = ble.idleSince != null,
                                 sourceLabel = hcSource?.let { com.pulseloop.health.source.HealthConnectSource.label(context, it) + tr(" · Health Connect") },
+                                name = profileName,
+                                headline = headline,
+                                onOpenHeadline = { target -> navController.navigate(target) { launchSingleTop = true } },
                             )
                             // Thin sync-progress accent under the greeting while history streams in.
                             // Its 2dp are always reserved: appearing and disappearing changed the
