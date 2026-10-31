@@ -55,6 +55,9 @@ fun NutritionScreen(
     onDiscuss: ((String) -> Unit)? = null,
     /** Shown as a tab: the app header sits above it, so no bar or back arrow of its own. */
     asTab: Boolean = false,
+    /** As a tab: the glass bars' heights, so the list scrolls under them like the other tabs. */
+    topBarPadding: androidx.compose.ui.unit.Dp = 0.dp,
+    bottomBarPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val scope = rememberCoroutineScope()
@@ -135,11 +138,12 @@ fun NutritionScreen(
             Modifier.fillMaxSize().padding(padding),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             // As a tab, the last card scrolls clear of the Actions button.
-            contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = if (asTab) 88.dp else 16.dp),
+            contentPadding = PaddingValues(
+                start = 16.dp, top = 16.dp + topBarPadding, end = 16.dp,
+                bottom = if (asTab) 16.dp + bottomBarPadding else 16.dp,
+            ),
         ) {
-            if (asTab) item {
-                Text(tr("Nutrition"), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            }
+            // No title as a tab: the tab bar names the screen, as on the other four tabs.
             // Day navigation — left goes to older dates (higher offset), right goes to today (offset 0).
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -183,42 +187,26 @@ fun NutritionScreen(
             // not below every meal of the day.
             // AI log actions (iOS logActions, NutritionView.swift:114-125): Photo opens the
             // analysis sheet in camera mode, Describe in describe mode.
-            if (coachEnabled) {
-                item {
-                    // Half-width buttons: tighter padding and up to two lines for a long translation,
-                    // equal heights so a wrapped label doesn't leave the pair misaligned.
-                    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
-                            onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(tr("Photo"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+            // One logging row for the day shown (the Actions button logs "now"; this one also
+            // reaches the earlier days the arrows open): Log meal, plus the AI ways in as icons.
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = { showAddDialog = true },
+                        modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                    ) {
+                        Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text(tr("Log Meal"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                    if (coachEnabled) {
+                        FilledTonalIconButton(onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Filled.PhotoCamera, tr("Photo"))
                         }
-                        OutlinedButton(
-                            onClick = { analysisRequest = AnalysisRequest(startWithCamera = false) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
-                        ) {
-                            Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text(tr("Describe"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+                        FilledTonalIconButton(onClick = { analysisRequest = AnalysisRequest(startWithCamera = false) }, modifier = Modifier.size(48.dp)) {
+                            Icon(Icons.Filled.AutoAwesome, tr("Describe"))
                         }
                     }
-                }
-            }
-
-            // Add button
-            item {
-                OutlinedButton(
-                    onClick = { showAddDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(tr("Log Meal"))
                 }
             }
 
@@ -385,7 +373,7 @@ private fun MacroBar(label: String, value: Double, goal: Double, color: Color, m
     // Equal thirds, so a long translated macro name ellipsizes instead of crowding its neighbours.
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(label, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text("${value.roundToInt()}g", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        Text("${value.roundToInt()}g", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         LinearProgressIndicator(
             progress = { pct.toFloat() },
             modifier = Modifier.width(60.dp).height(4.dp),
@@ -664,22 +652,22 @@ private fun NextMealCard(
         border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors.accent),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), fontSize = 11.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+            Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.accent)
             if (idea.items.isEmpty()) {
                 Text(idea.note ?: "", fontSize = 14.sp, color = PulseColors.textPrimary)
             } else {
                 idea.items.forEach { item ->
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(item.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                            Text(item.name, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
                             Text("${item.english} · ${item.portion}", fontSize = 12.sp, color = PulseColors.textMuted)
                         }
-                        Text("${item.kcal} kcal", fontSize = 13.sp, color = PulseColors.textSecondary)
+                        Text("${item.kcal} kcal", fontSize = 14.sp, color = PulseColors.textSecondary)
                     }
                 }
                 Text(
                     trf("≈ {0} kcal · {1} g protein · leaves {2} kcal", idea.totalKcal, idea.totalProteinG, idea.leavesKcal),
-                    fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
+                    fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
                 )
                 if (idea.fromPreferences.isNotEmpty()) {
                     Text(tr("Your preference: ") + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.accent)

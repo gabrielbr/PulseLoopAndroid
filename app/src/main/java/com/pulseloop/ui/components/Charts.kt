@@ -433,7 +433,7 @@ fun TrendChart(
                 return best
             }
 
-            val labelStyle = TextStyle(fontSize = 11.sp, color = axisColor)
+            val labelStyle = TextStyle(fontSize = 12.sp, color = axisColor)
 
             // No zone-band background: the iOS detail chart plots on a clean card, with the
             // zone-split line + the REFERENCE ZONES card carrying the range context.
@@ -538,8 +538,8 @@ fun TrendChart(
                 else valueFormatter(points[idx])
                 val timeText = timestamps.getOrNull(idx)?.let { tooltipTimeFormatter?.invoke(it) }
                     ?: labels.getOrNull(idx) ?: ""
-                val valStyle = TextStyle(fontSize = 13.sp, color = onSurfaceColor, fontWeight = FontWeight.Bold)
-                val timeStyle = TextStyle(fontSize = 10.sp, color = axisColor)
+                val valStyle = TextStyle(fontSize = 14.sp, color = onSurfaceColor, fontWeight = FontWeight.Bold)
+                val timeStyle = TextStyle(fontSize = 12.sp, color = axisColor)
                 val valTl = textMeasurer.measure(valueText, valStyle)
                 val timeTl = if (timeText.isNotEmpty()) textMeasurer.measure(timeText, timeStyle) else null
                 val padPx = 8.dp.toPx()

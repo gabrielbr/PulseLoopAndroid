@@ -40,12 +40,14 @@ fun RingArtView(
     // A black or gunmetal ring's colour would vanish on the dark page; those turn in the accent.
     val visible = if (tint.luminance() < 0.25f) com.pulseloop.ui.theme.PulseColors.accent else tint
     val color by animateColorAsState(visible, tween(250), label = "ringArtTint")
-    val spin by rememberInfiniteTransition(label = "ringSpin").animateFloat(
+    // Looping decoration holds still under "Remove animations" (A11y.kt), like the header pill.
+    val still = rememberReduceMotion()
+    val spin = if (still) 0.6f else rememberInfiniteTransition(label = "ringSpin").animateFloat(
         initialValue = 0f,
         targetValue = (2 * PI).toFloat(),
         animationSpec = infiniteRepeatable(tween(6000, easing = LinearEasing), RepeatMode.Restart),
         label = "ringAngle",
-    )
+    ).value
     Canvas(modifier.size(size.dp)) {
         val radius = this.size.minDimension * 0.34f
         val band = this.size.minDimension * 0.075f

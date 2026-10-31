@@ -222,7 +222,7 @@ private fun SessionHero(session: SleepSessionEntity, blocks: List<SleepStageBloc
         SleepHeroCard(
             label = tr("Last Sleep"),
             value = SleepFormat.duration(session.totalMinutes),
-            support = "${clockTime(session.startAt)} to ${clockTime(session.endAt)}",
+            support = trf("{0} to {1}", clockTime(session.startAt), clockTime(session.endAt)),
             score = score.score,
             scoreLabel = qualityText(score.label),
         )
@@ -255,9 +255,8 @@ private fun SleepCarousel(
             val blocks = blocksBySession[s.id] ?: emptyList()
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    "${page + 1} of ${sessions.size} · ${clockTime(s.startAt)}–${clockTime(s.endAt)}".uppercase(),
-                    fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                    letterSpacing = 0.8.sp, color = PulseColors.textSecondary,
+                    (trf("{0} of {1}", page + 1, sessions.size) + " · ${clockTime(s.startAt)}–${clockTime(s.endAt)}").uppercase(),
+                    style = com.pulseloop.ui.theme.PulseType.eyebrow,  color = PulseColors.textSecondary,
                 )
                 SessionHero(s, blocks, goalMinutes)
                 VisualizationCard(eyebrow = tr("Stages"), title = tr("Sleep architecture"), legend = true) {
@@ -359,40 +358,10 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
 @Composable
 private fun SleepRangeSelector(selection: SleepRangeKey, onSelect: (SleepRangeKey) -> Unit) {
     val options = listOf(
-        SleepRangeKey.DAY to "Day", SleepRangeKey.WEEK to "Week",
-        SleepRangeKey.MONTH to "Month", SleepRangeKey.YEAR to "Year",
+        SleepRangeKey.DAY to tr("Day"), SleepRangeKey.WEEK to tr("Week"),
+        SleepRangeKey.MONTH to tr("Month"), SleepRangeKey.YEAR to tr("Year"),
     )
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(CircleShape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, CircleShape)
-            .padding(4.dp)
-            .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        options.forEach { (key, label) ->
-            val active = selection == key
-            Text(
-                label,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = if (active) PulseColors.textPrimary else PulseColors.textMuted,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 48.dp)
-                    .clip(CircleShape)
-                    .then(if (active) Modifier.dither(PulseColors.accent, 0.15f) else Modifier)
-                    .border(1.dp, if (active) PulseColors.accent.copy(alpha = 0.4f) else Color.Transparent, CircleShape)
-                    .selectable(selected = active, role = Role.Tab) { onSelect(key) }
-                    .padding(vertical = 6.dp)
-                    .wrapContentHeight(),
-            )
-        }
-    }
+    com.pulseloop.ui.components.PulseSegmented(options, selection, onSelect)
 }
 
 /** LAST SLEEP hero: duration left, big purple score + rating word right (SleepHeroCardView). */
@@ -419,8 +388,7 @@ private fun SleepHeroCard(
         Column(Modifier.weight(1f)) {
             Text(
                 label.uppercase(),
-                fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                letterSpacing = 1.8.sp, color = PulseColors.textMuted,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
             )
             Text(
                 value,
@@ -475,8 +443,7 @@ private fun VisualizationCard(
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     eyebrow.uppercase(),
-                    fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.8.sp, color = PulseColors.textMuted,
+                    style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
                 )
                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             }
@@ -501,9 +468,9 @@ private fun VisualizationCard(
 
 @Composable
 private fun LegendItem(label: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Box(Modifier.size(6.dp).clip(CircleShape).background(color))
-        Text(label, fontSize = 11.sp, color = PulseColors.textSecondary)
+        Text(label, fontSize = 12.sp, color = PulseColors.textSecondary)
     }
 }
 
@@ -597,7 +564,7 @@ private fun SleepHypnogram(
         return "$stage · $startTime – $endTime"
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
             Modifier
                 .fillMaxWidth()
@@ -718,7 +685,7 @@ private fun SleepHypnogram(
                             val labelY = yFrac * plotHeightPx
                             Text(
                                 stage,
-                                fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
+                                fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                                 // Not the stage colour: DEEP's is 2.4:1 on the card. The bars and
                                 // legend swatches carry the colour.
                                 letterSpacing = 1.4.sp, color = PulseColors.textSecondary,
@@ -755,11 +722,11 @@ private fun SleepHypnogram(
                         androidx.compose.foundation.layout.Box(
                             Modifier
                                 .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                         ) {
                             Text(
                                 readoutText(block),
-                                fontSize = 11.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 color = Color.White,
                             )
@@ -773,7 +740,7 @@ private fun SleepHypnogram(
             Modifier.fillMaxWidth().padding(start = plotInsets.x, end = plotTrailing),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            ticks.forEach { Text(it, fontSize = 11.sp, color = PulseColors.textMuted) }
+            ticks.forEach { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         }
     }
 }
@@ -802,14 +769,13 @@ private fun StageStat(label: String, value: String, color: Color, modifier: Modi
             Box(Modifier.size(8.dp).clip(CircleShape).background(color))
             Text(
                 label.uppercase(),
-                fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                letterSpacing = 0.6.sp, color = PulseColors.textMuted,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
             )
         }
         Text(
             value,
-            fontSize = 22.sp, fontWeight = FontWeight.SemiBold,
+            fontSize = 24.sp, fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
             modifier = Modifier.padding(top = 12.dp),
         )
@@ -843,7 +809,7 @@ private fun SleepDurationHistogram(
             (goalMin?.takeIf { it > 0 }?.let { trf(", goal {0}", SleepFormat.duration(it)) } ?: "")
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Canvas(Modifier.fillMaxWidth().height(height - 24.dp).semantics { contentDescription = summary }) {
             val slotW = size.width / bars.size
             val barW = if (slim) 7.dp.toPx() else (slotW * 0.7f).coerceAtMost(30.dp.toPx())
@@ -883,7 +849,7 @@ private fun SleepDurationHistogram(
             bars.forEachIndexed { i, bar ->
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     if (i % labelInterval == 0) {
-                        Text(bar.label, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
+                        Text(bar.label, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 1)
                     }
                 }
             }
@@ -911,8 +877,8 @@ private fun SleepDayNavHeader(state: SleepViewModel.SleepState, viewModel: Sleep
             Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(4.dp))
-                .clickable { showPicker = true }
-                .padding(vertical = 6.dp),
+                .clickable(role = Role.Button) { showPicker = true }
+                .padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -922,8 +888,7 @@ private fun SleepDayNavHeader(state: SleepViewModel.SleepState, viewModel: Sleep
             val sub = daySubLabel(state.shownDayMillis)
             Text(
                 sub.ifEmpty { " " },
-                fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                letterSpacing = 0.5.sp, color = PulseColors.textSecondary,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,  color = PulseColors.textSecondary,
             )
         }
         NavChevron(Icons.Filled.ChevronRight, tr("Next day"), canNewer) { viewModel?.stepDay(older = false) }
@@ -1087,12 +1052,12 @@ private fun SleepRecordsCard(
             else trf("The ring recorded this night in {0} parts", runs.size),
         legend = false,
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             runs.forEachIndexed { index, run ->
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "${index + 1}",
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = PulseColors.textMuted,
                         modifier = Modifier.width(18.dp),
                     )
@@ -1139,7 +1104,7 @@ private fun SleepRecordsCard(
                         trf("Awake {0} between", SleepFormat.duration(gapMinutes)),
                         fontSize = 12.sp,
                         color = PulseColors.textMuted,
-                        modifier = Modifier.padding(start = 18.dp),
+                        modifier = Modifier.padding(start = 16.dp),
                     )
                 }
             }

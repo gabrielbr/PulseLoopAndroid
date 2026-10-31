@@ -1236,6 +1236,26 @@ clutter came from ignoring one of them:
 - **A goal saved anywhere goes through `GoalSync.afterManualSave`** — it is what stops the field
   following the coach, sends the step goal to the ring and republishes the widget.
 
+## Type, colour and chrome: one of each role (audit, v2.11.52)
+
+- **Type sizes come from `PulseType.SCALE`** (12, 14, 16, 20, 24, 28, 32, 40). 12sp is the floor
+  for anything that carries meaning; `PulseTypeScaleTest` fails on any other inline size in the
+  main screens. The tracked caps label over a card or section is `PulseType.eyebrow` (12sp,
+  1sp tracking, `textSecondary`) everywhere — don't hand-roll another letter-spacing.
+- **Mint is the brand and the thing to tap, nothing else.** `success` (good, in range,
+  connected) is its own green, REM is cyan, connecting is amber. The readiness ring keeps the
+  brand colour on purpose: it is the headline score.
+- **One card radius: 8dp.** Tiles and vital cards used to be 20/30dp.
+- **One filled accent per screen**: the Actions button. A screen's own primary action is a tonal
+  button (Activity's Record).
+- **Landscape keeps the header** (compact, one row): it is the only route to Settings and the
+  ring. From 600dp the tabs move to a `NavigationRail` and tab content caps at 720dp.
+- **The ring pill opens the ring's screen** (`settings/wearable`); the gear opens Settings.
+- **Tabs have no title of their own**: the tab bar names the screen. Pushed screens use
+  `CenterAlignedTopAppBar`, and a row's trailing arrow is `Chevron()`, never a "›" glyph.
+- **The window theme is dark** (`Theme.PulseLoop`), so cold start doesn't flash white, and
+  predictive Back is on (`enableOnBackInvokedCallback`).
+
 ## Motion: one transition, a small vocabulary
 
 - **Every navigation destination goes through `DitherTransitionBox`** (`theme/DitherTransition.kt`),

@@ -18,6 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.pulseloop.service.HealthHeadline
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import com.pulseloop.ui.theme.PulseType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -56,15 +58,19 @@ fun AppHeader(
     /** The health line under the greeting (`HealthHeadline`); null while it is first read. */
     headline: HealthHeadline.Headline? = null,
     onOpenHeadline: (String) -> Unit = {},
+    /** The pill opens the ring's own screen; the gear beside it opens the Settings hub. */
+    onOpenRing: () -> Unit = onOpenSettings,
+    /** Landscape: one row, no greeting, so the short viewport keeps its height for content. */
+    compact: Boolean = false,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             // No opaque background: the caller layers this header on the glass
             // top bar (hazeEffect in PulseLoopApp), which supplies the material.
-            .padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 6.dp),
+            .padding(start = 12.dp, end = 8.dp, top = if (compact) 0.dp else 4.dp, bottom = if (compact) 0.dp else 4.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         // The greeting is the eyebrow now; the line below it is the door to My Health.
         // Both are one line, ellipsised, so a long translation or a new headline never
@@ -75,7 +81,7 @@ fun AppHeader(
         Column(
             modifier = Modifier
                 .weight(1f)
-                .heightIn(min = 44.dp)
+                .heightIn(min = 48.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(
                     onClickLabel = tr("Open My Health"),
@@ -84,12 +90,10 @@ fun AppHeader(
                 .padding(horizontal = 8.dp, vertical = 2.dp),
             verticalArrangement = Arrangement.Center,
         ) {
-            Text(
+            if (!compact) Text(
                 greeting,
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.2.sp,
-                color = PulseColors.textMuted,
+                style = PulseType.eyebrow,
+                color = PulseColors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -98,19 +102,19 @@ fun AppHeader(
                     headline == null -> PulseColors.textMuted
                     headline.attention -> PulseColors.warning
                     headline.kind == HealthHeadline.Kind.LEARNING || headline.kind == HealthHeadline.Kind.NONE -> PulseColors.textMuted
-                    else -> PulseColors.accent
+                    else -> PulseColors.success
                 }
                 Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
                 Text(
                     line,
-                    fontSize = 15.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                Text("›", fontSize = 18.sp, color = PulseColors.textMuted, maxLines = 1)
+                Chevron()
             }
         }
         ConnectionStatusPill(
@@ -120,11 +124,16 @@ fun AppHeader(
             sourceLabel = sourceLabel,
             // Bounded: the pill is measured before the weighted greeting, so an unbounded
             // "Falha na sincronização" or "Oura · Health Connect" squeezed the greeting to nothing.
-            modifier = Modifier.widthIn(max = 168.dp).clickable(
-                onClickLabel = tr("Open ring settings"),
-                role = Role.Button,
-                onClick = onOpenSettings,
-            ),
+            // The capsule stays its size; the 48dp box around it is the touch target.
+            modifier = Modifier.widthIn(max = 168.dp),
+            touchModifier = Modifier
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    onClickLabel = tr("Open ring settings"),
+                    role = Role.Button,
+                    onClick = onOpenRing,
+                ),
         )
         IconButton(onClick = onOpenSettings) {
             Icon(Icons.Outlined.Settings, tr("Settings"), tint = PulseColors.textSecondary)
@@ -145,6 +154,8 @@ fun ConnectionStatusPill(
     /** Disconnected because the ring idled out after a sync — shown neutral, not as an error. */
     idle: Boolean = false,
     sourceLabel: String? = null,
+    /** Wraps the capsule; give it the click and the 48dp target so the capsule can stay small. */
+    touchModifier: Modifier = Modifier,
 ) {
     val idleNow = idle && state == RingConnectionState.DISCONNECTED
     // Holds still under "Remove animations"; the label already says "Connecting…".
@@ -152,7 +163,9 @@ fun ConnectionStatusPill(
         !rememberReduceMotion()
     val dotColor = if (sourceLabel != null) PulseColors.success else when (state) {
         RingConnectionState.CONNECTED -> PulseColors.success
-        RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> PulseColors.accent
+        // Connecting is amber, not the connected colour: without the pulse (Remove
+        // animations) the two would otherwise be identical.
+        RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> PulseColors.warning
         else -> if (idleNow) PulseColors.textMuted else PulseColors.danger  // scanning/failed/idle/disconnected all read "not connected"
     }
     val label = sourceLabel ?: when (state) {
@@ -174,14 +187,15 @@ fun ConnectionStatusPill(
         ).value
     } else 1f
 
+    Box(touchModifier, contentAlignment = Alignment.Center) {
     Row(
         modifier = modifier
             .clip(CircleShape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, CircleShape)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box(
             Modifier
@@ -199,6 +213,18 @@ fun ConnectionStatusPill(
             overflow = TextOverflow.Ellipsis,
         )
     }
+    }
+}
+
+/** A row's trailing "open" mark: a mirrored Material arrow, not a "›" glyph that RTL can't flip. */
+@Composable
+fun Chevron(tint: Color = PulseColors.textMuted, modifier: Modifier = Modifier) {
+    Icon(
+        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = null,
+        tint = tint,
+        modifier = modifier.size(24.dp),
+    )
 }
 
 /** Time-of-day greeting, mirroring RootViews.swift `greetingForHour()`. */
@@ -236,9 +262,7 @@ fun CardEyebrow(
         // rather than pushing the trailing slot off the card; the slot is bounded for the same reason.
         Text(
             label.uppercase(),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 1.sp,
+            style = PulseType.eyebrow,
             color = PulseColors.textSecondary,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -254,9 +278,9 @@ fun SectionHeaderCaps(title: String, modifier: Modifier = Modifier, action: (@Co
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             title.uppercase(),
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.8.sp,
+            letterSpacing = 1.sp,
             color = PulseColors.textSecondary,
             // Takes the free width (instead of a Spacer) so a long title wraps beside the action.
             modifier = Modifier.weight(1f),

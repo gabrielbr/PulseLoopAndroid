@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import androidx.compose.ui.semantics.Role
 import com.pulseloop.ui.i18n.tr
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
@@ -51,7 +52,7 @@ fun VitalCard(
     onTap: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(if (compact) 24.dp else 30.dp)
+    val shape = RoundedCornerShape(8.dp) // one card radius app-wide (was 24/30dp)
     val footerText = footerOverride ?: state.lastUpdatedText
 
     Surface(
@@ -59,7 +60,7 @@ fun VitalCard(
             .fillMaxWidth()
             .clip(shape)
             .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), shape)
-            .then(if (onTap != null) Modifier.clickable(onClick = onTap) else Modifier),
+            .then(if (onTap != null) Modifier.clickable(role = Role.Button, onClick = onTap) else Modifier),
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceVariant,
     ) {
@@ -98,9 +99,8 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
         // used to be unweighted, so a long translated title could squeeze the footer to nothing.
         Text(
             state.title.uppercase(),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 1.sp,
+            style = com.pulseloop.ui.theme.PulseType.eyebrow,
+            
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -111,7 +111,7 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
         if (footerText != null && !compact && !state.isEstimated) {
             Text(
                 footerText,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -126,14 +126,14 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
 private fun EstimatedChip() {
     Text(
         tr("ESTIMATED"),
-        fontSize = 11.sp,
+        style = com.pulseloop.ui.theme.PulseType.eyebrow,
         fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.8.sp,
+        
         color = ZonePalette.ZoneAmber,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
             .dither(ZonePalette.ZoneAmber, 0.14f)
-            .padding(horizontal = 8.dp, vertical = 3.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
     )
 }
 
@@ -141,11 +141,11 @@ private fun EstimatedChip() {
 
 @Composable
 private fun ValueRow(state: VitalCardState) {
-    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 state.valueText,
-                fontSize = 36.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = com.pulseloop.ui.theme.UbuntuMono,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -153,34 +153,34 @@ private fun ValueRow(state: VitalCardState) {
             if (state.unitText != null) {
                 Text(
                     state.unitText!!,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(bottom = 6.dp),
+                    modifier = Modifier.padding(bottom = 8.dp),
                 )
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
                 state.statusText.uppercase(),
-                fontSize = 11.sp,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,
                 fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.8.sp,
+                
                 color = state.statusToken.toColor(),
                 // Wraps beside the trend instead of pushing it off the card.
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (state.trend.deltaText != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text(
                         state.trend.symbol,
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Text(
                         state.trend.deltaText!!,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

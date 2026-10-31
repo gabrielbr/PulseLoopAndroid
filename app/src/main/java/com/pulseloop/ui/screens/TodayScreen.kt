@@ -15,6 +15,8 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.semantics.Role
@@ -338,7 +340,7 @@ fun TodayScreen(
                         ) {
                             Text(
                                 tr("See what affects you"),
-                                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
+                                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
                                 modifier = Modifier
                                     .heightIn(min = 48.dp)
                                     .clickable(role = Role.Button) { navController?.navigate("journal") }
@@ -442,9 +444,9 @@ private fun ActivityTileFor(
             ActivityRing(state.calories, state.caloriesGoal.toDouble(), PulseColors.calories),
         ),
         values = buildList {
-            steps?.let { add(ActivityTileValue(if (stepFactor != null) "≈ STEPS" else "STEPS", Formats.count(it), PulseColors.steps)) }
+            steps?.let { add(ActivityTileValue(if (stepFactor != null) "≈ " + tr("Steps") else tr("Steps"), Formats.count(it), PulseColors.steps)) }
             distText?.let { add(ActivityTileValue(UnitConverter.distanceUnit(units), it, PulseColors.distance)) }
-            state.calories?.let { add(ActivityTileValue("CAL", Formats.count(it.toInt()), PulseColors.calories)) }
+            state.calories?.let { add(ActivityTileValue(tr("kcal"), Formats.count(it.toInt()), PulseColors.calories)) }
         },
         modifier = modifier,
         onTap = onTap,
@@ -471,14 +473,14 @@ private fun ChartTile(card: VitalCardState, values: List<Double>, modifier: Modi
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 card.valueText,
-                fontSize = 22.sp,
+                fontSize = 24.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary,
                 maxLines = 1,
             )
             card.unitText?.let {
                 Text(
-                    it, fontSize = 11.sp, fontWeight = FontWeight.Medium,
+                    it, fontSize = 12.sp, fontWeight = FontWeight.Medium,
                     color = PulseColors.textMuted, maxLines = 1,
                     modifier = Modifier.padding(bottom = 4.dp),
                 )
@@ -520,16 +522,27 @@ private fun GaugeTile(card: VitalCardState, modifier: Modifier, onTap: () -> Uni
                 // inside a Box pinned to it — a fixed ring with growing text overflows its own
                 // ring. The tile is no longer fixed-height, so a taller ring just makes it taller.
                 val gaugeScale = TodayTileMetrics.fontScale
-                VitalRingGauge(
-                    value = card.latestValue,
-                    domain = card.yDomain,
-                    zones = card.zones,
-                    valueColor = card.statusToken.toColor(),
-                    centerValue = card.valueText,
-                    centerStatus = card.statusText,
-                    size = 88.dp * gaugeScale,
-                    lineWidth = 9.dp * gaugeScale,
-                )
+                // The zone verdict sits under the ring at the label size: inside an 88dp ring it
+                // came out at 7sp, the most meaningful word on the tile and the least readable.
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    VitalRingGauge(
+                        value = card.latestValue,
+                        domain = card.yDomain,
+                        zones = card.zones,
+                        valueColor = card.statusToken.toColor(),
+                        centerValue = card.valueText,
+                        centerStatus = null,
+                        size = 88.dp * gaugeScale,
+                        lineWidth = 9.dp * gaugeScale,
+                    )
+                    Text(
+                        card.statusText.uppercase(),
+                        style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                        color = card.statusToken.toColor(),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
         }
     }
@@ -552,9 +565,9 @@ private fun BloodPressureTile(
             } else {
                 val sysZones = VitalsThresholdEngine.zones(MetricKind.BLOOD_PRESSURE, vitals.profile)
                 val diaZones = VitalsThresholdEngine.diastolicReferenceZones()
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    BpRingColumn("SYS", sys, 80.0..190.0, sysZones, PulseColors.bloodPressure, Modifier.weight(1f))
-                    BpRingColumn("DIA", dia, 50.0..130.0, diaZones, PulseColors.bloodPressure.copy(alpha = 0.7f), Modifier.weight(1f))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    BpRingColumn(tr("SYS"), sys, 80.0..190.0, sysZones, PulseColors.bloodPressure, Modifier.weight(1f))
+                    BpRingColumn(tr("DIA"), dia, 50.0..130.0, diaZones, PulseColors.bloodPressure.copy(alpha = 0.7f), Modifier.weight(1f))
                 }
             }
         }
@@ -573,7 +586,7 @@ private fun BpRingColumn(
     val valueColor = zones.firstOrNull {
         (it.lower ?: Double.NEGATIVE_INFINITY) <= value && value < (it.upper ?: Double.POSITIVE_INFINITY)
     }?.colorToken?.toColor() ?: fallback
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         VitalRingGauge(
             value = value,
             domain = domain,
@@ -585,8 +598,8 @@ private fun BpRingColumn(
             lineWidth = 6.dp * TodayTileMetrics.fontScale,
         )
         Text(
-            title, fontSize = 10.sp, fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.8.sp, color = PulseColors.textMuted,
+            title, style = com.pulseloop.ui.theme.PulseType.eyebrow, fontWeight = FontWeight.SemiBold,
+            color = PulseColors.textSecondary,
         )
     }
 }
@@ -686,8 +699,8 @@ private fun NutritionTile(food: FoodTotals?, loaded: Boolean, modifier: Modifier
 private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) {
     val kcal = food?.kcal ?: 0.0
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(Formats.count(kcal.toInt()), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
-        Text("kcal", fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text(Formats.count(kcal.toInt()), fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
+        Text("kcal", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
     }
     val goal = food?.goalKcal?.takeIf { it > 0 }
     if (goal != null) {
@@ -695,22 +708,24 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
         Box(Modifier.fillMaxWidth().height(6.dp).clip(shape).dither(PulseColors.calories, 0.25f)) {
             Box(Modifier.fillMaxWidth((kcal / goal).toFloat().coerceIn(0f, 1f)).fillMaxHeight().background(PulseColors.calories))
         }
-        Text(trf("of {0}", Formats.count(goal.toInt())), fontSize = 11.sp, color = PulseColors.textMuted)
+        Text(trf("of {0}", Formats.count(goal.toInt())), fontSize = 12.sp, color = PulseColors.textMuted)
     }
     Spacer(Modifier.weight(1f))
     if (food != null && food.meals > 0) {
         Text(
             "P ${food.proteinG.toInt()} · C ${food.carbsG.toInt()} · F ${food.fatG.toInt()} g",
-            fontSize = 11.sp, color = PulseColors.textSecondary, maxLines = 1,
+            fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 1,
         )
     } else {
-        Text(tr("Nothing logged yet"), fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1)
+        Text(tr("Nothing logged yet"), fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 1)
     }
-    Text(
-        tr("+ Log meal"),
-        fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-        // No min height here: it would stretch the tile and its row. Compose already widens a
-        // small clickable's hit area towards 48dp.
-        modifier = Modifier.clickable(role = Role.Button, onClick = onLog).padding(vertical = 2.dp),
-    )
+    // A real button, so it gets the 48dp target Material gives its components (a bare
+    // clickable does not). It makes the tile a little taller; the row grows to match.
+    TextButton(
+        onClick = onLog,
+        contentPadding = PaddingValues(horizontal = 0.dp),
+        modifier = Modifier.heightIn(min = 48.dp),
+    ) {
+        Text(tr("+ Log meal"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent)
+    }
 }

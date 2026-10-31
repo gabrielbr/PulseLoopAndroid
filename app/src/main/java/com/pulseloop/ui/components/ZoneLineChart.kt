@@ -172,12 +172,12 @@ fun ZoneLineChart(
             }
             if (showAxes) {
                 Column(
-                    Modifier.width(34.dp).fillMaxHeight().padding(start = 6.dp),
+                    Modifier.width(34.dp).fillMaxHeight().padding(start = 8.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
                     horizontalAlignment = Alignment.End,
                 ) {
                     listOf(yDomain.endInclusive, (yDomain.start + yDomain.endInclusive) / 2, yDomain.start).forEach {
-                        Text("${it.toInt()}", fontSize = 11.sp, color = PulseColors.textMuted)
+                        Text("${it.toInt()}", fontSize = 12.sp, color = PulseColors.textMuted)
                     }
                 }
             }
@@ -188,7 +188,7 @@ fun ZoneLineChart(
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 listOf(minTs, (minTs + maxTs) / 2, maxTs).forEach {
-                    Text(timeLabel(it, span), fontSize = 11.sp, color = PulseColors.textMuted)
+                    Text(timeLabel(it, span), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
         }
