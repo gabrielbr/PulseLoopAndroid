@@ -104,7 +104,7 @@ fun LogSheet(
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     when (shownStep) {
                     LogStep.MENU -> {
-                        Text(tr("Actions"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Actions"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         SheetOption(tr("Ask the coach"), tr("About your day, a plan, a meal idea"), Icons.Filled.AutoAwesome, onCoach)
                         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             IconAction(tr("Meal"), Icons.Filled.Restaurant, PulseColors.calories) { step = LogStep.MEAL }
@@ -116,7 +116,7 @@ fun LogSheet(
                         SheetOption(tr("Workout"), tr("Start one now"), Icons.Filled.DirectionsRun, onWorkout)
                     }
                     LogStep.MEAL -> {
-                        Text(tr("Log a meal"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(tr("Log a meal"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         SheetOption(tr("Photo"), tr("Snap your plate; the AI estimates it"), Icons.Filled.CameraAlt) { onMeal("photo") }
                         SheetOption(tr("Barcode"), tr("Scan a packaged food"), Icons.Filled.QrCodeScanner) { onMeal("barcode") }
                         SheetOption(tr("Add by hand"), tr("Type the name and calories"), Icons.Filled.Add) { onMeal("add") }
@@ -125,7 +125,7 @@ fun LogSheet(
                     LogStep.TAGS -> JournalTagsCard(db, java.time.LocalDate.now(), tr("Tag your day"), allowYesterday = true) {
                         Text(
                             tr("See what affects you"),
-                            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+                            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
                             modifier = Modifier
                                 .heightIn(min = 48.dp)
                                 .clickable(role = Role.Button, onClick = onSeeEffects)
@@ -150,10 +150,10 @@ private fun RowScope.IconAction(label: String, icon: androidx.compose.ui.graphic
             .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 4.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterVertically),
+        verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
     ) {
         Icon(icon, null, tint = tint, modifier = Modifier.size(26.dp))
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -168,7 +168,7 @@ private fun QuickDrinks(db: PulseLoopDatabase, onMore: () -> Unit) {
     }
     var logged by remember { mutableStateOf<Pair<String, List<DrinkEntryEntity>>?>(null) }
 
-    Text(tr("Log a drink"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+    Text(tr("Log a drink"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         types.forEach { t ->
             val shape = RoundedCornerShape(8.dp)
@@ -176,15 +176,15 @@ private fun QuickDrinks(db: PulseLoopDatabase, onMore: () -> Unit) {
                 Modifier.weight(1f).fillMaxHeight().clip(shape)
                     .background(PulseColors.card)
                     .border(1.dp, PulseColors.borderSubtle, shape)
-                    .clickable {
+                    .clickable(role = Role.Button) {
                         scope.launch { logged = t.short to DrinksRepository.log(db, t) }
                     }
                     .padding(horizontal = 4.dp, vertical = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Icon(t.icon, null, tint = PulseColors.drinks, modifier = Modifier.size(24.dp))
-                Text(t.short, fontSize = 11.sp, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(t.short, fontSize = 12.sp, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -193,18 +193,16 @@ private fun QuickDrinks(db: PulseLoopDatabase, onMore: () -> Unit) {
         val last = logged
         Text(
             if (last != null) trf("Logged {0}", last.first.lowercase()) else "",
-            fontSize = 13.sp, color = PulseColors.accent, modifier = Modifier.weight(1f),
+            fontSize = 14.sp, color = PulseColors.accent, modifier = Modifier.weight(1f),
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
         if (last != null) {
-            Text(
-                tr("Undo"),
-                fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
-                maxLines = 1,
-                modifier = Modifier.clickable {
-                    scope.launch { last.second.forEach { DrinksRepository.delete(db, it) }; logged = null }
-                }.padding(12.dp),
-            )
+            androidx.compose.material3.TextButton(
+                onClick = { scope.launch { last.second.forEach { DrinksRepository.delete(db, it) }; logged = null } },
+                modifier = Modifier.heightIn(min = 48.dp),
+            ) {
+                Text(tr("Undo"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
+            }
         }
     }
     SheetOption(tr("More drinks"), tr("Other types, several at once, or earlier tonight"), Icons.Filled.LocalBar, onMore)

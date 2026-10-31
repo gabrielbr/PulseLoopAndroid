@@ -292,7 +292,7 @@ fun VitalsScreen(
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("Vitals"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                    // No title: the tab bar names the screen, as on the other tabs.
                     // The answer first: is anything outside this person's usual range? The
                     // cards below are the detail.
                     VitalsStatusLine()
@@ -622,10 +622,9 @@ private fun BpGaugeColumn(
         )
         Text(
             title.uppercase(),
-            fontSize = 11.sp,
+            style = com.pulseloop.ui.theme.PulseType.eyebrow,
             fontWeight = FontWeight.SemiBold,
-            letterSpacing = 0.8.sp,
-            color = PulseColors.textMuted,
+            color = PulseColors.textSecondary,
         )
     }
 }
@@ -682,7 +681,7 @@ fun VitalDetailScreen(
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 40.dp),
-                verticalArrangement = Arrangement.spacedBy(18.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 // 1. Period selector — Today · Week · Month (iOS segmented picker)
                 item {
@@ -699,7 +698,7 @@ fun VitalDetailScreen(
                             .clip(cardShape)
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, cardShape)
-                            .padding(horizontal = 14.dp, vertical = 10.dp),
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         // Date navigator row: unit label leading (iOS), pager trailing
@@ -743,7 +742,7 @@ fun VitalDetailScreen(
                             ) {
                                 Text(
                                     tr("Not enough data for this period."),
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
                                     color = PulseColors.textMuted,
                                 )
                             }
@@ -771,9 +770,9 @@ fun VitalDetailScreen(
                             if (state.usualRange != null) {
                                 Text(
                                     tr("Shaded: your usual range over the last 30 days"),
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     color = PulseColors.textMuted,
-                                    modifier = Modifier.padding(top = 6.dp),
+                                    modifier = Modifier.padding(top = 8.dp),
                                 )
                             }
                         }
@@ -789,7 +788,7 @@ fun VitalDetailScreen(
                             .clip(cardShape)
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, cardShape)
-                            .padding(horizontal = 10.dp, vertical = 14.dp),
+                            .padding(horizontal = 12.dp, vertical = 16.dp),
                         // Bottom, so the values stay on one line when a translated title
                         // ("MAIS RECENTE") wraps to two; the dividers stay centred.
                         verticalAlignment = Alignment.Bottom,
@@ -836,15 +835,14 @@ fun VitalDetailScreen(
                         ) {
                             Text(
                                 tr("REFERENCE ZONES"),
-                                fontSize = 11.sp,
+                                style = com.pulseloop.ui.theme.PulseType.eyebrow,
                                 fontWeight = FontWeight.SemiBold,
-                                letterSpacing = 1.sp,
-                                color = PulseColors.textMuted,
+                                color = PulseColors.textSecondary,
                             )
                             state.engineZones.forEach { zone ->
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 ) {
                                     Box(
                                         Modifier
@@ -855,7 +853,7 @@ fun VitalDetailScreen(
                                     // translated zone label wraps beside its range.
                                     Text(
                                         tr(zone.label),
-                                        fontSize = 13.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = PulseColors.textPrimary,
                                         modifier = Modifier.weight(1f),
@@ -881,18 +879,17 @@ fun VitalDetailScreen(
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, cardShape)
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             tr("WHAT THIS MEANS"),
-                            fontSize = 11.sp,
+                            style = com.pulseloop.ui.theme.PulseType.eyebrow,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp,
-                            color = PulseColors.textMuted,
+                            color = PulseColors.textSecondary,
                         )
                         Text(
                             metricExplainer(metric),
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             lineHeight = 18.sp,
                             color = PulseColors.textSecondary,
                         )
@@ -912,7 +909,7 @@ fun VitalDetailScreen(
                                 .dither(ZonePalette.ZoneAmber, 0.10f)
                                 .border(1.dp, ZonePalette.ZoneAmber.copy(alpha = 0.30f), cardShape)
                                 .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Icon(
                                 Icons.Filled.Warning, null,
@@ -984,17 +981,16 @@ private fun ReadingsCard(
         ) {
             Text(
                 tr("READINGS"),
-                fontSize = 11.sp,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,
                 fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp,
-                color = PulseColors.textMuted,
+                color = PulseColors.textSecondary,
             )
             Spacer(Modifier.weight(1f))
             Text(
                 readings.size.toString(),
                 fontSize = 12.sp,
                 color = PulseColors.textMuted,
-                modifier = Modifier.padding(end = 6.dp),
+                modifier = Modifier.padding(end = 8.dp),
             )
             Icon(
                 if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
@@ -1009,25 +1005,25 @@ private fun ReadingsCard(
             // scrollers in the same axis crashes Compose. Bounded by [visibleCount] instead.
             readings.take(visibleCount).forEach { reading ->
                 Row(
-                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 6.dp, bottom = 4.dp),
+                    Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         tooltipTime(reading.timestamp, period),
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         color = PulseColors.textSecondary,
                         modifier = Modifier.weight(1f),
                     )
                     Text(
                         readingText(reading),
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                         color = PulseColors.textPrimary,
                     )
                     if (unitLabel.isNotEmpty()) {
                         Text(
                             " $unitLabel",
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             color = PulseColors.textMuted,
                         )
                     }
@@ -1046,7 +1042,7 @@ private fun ReadingsCard(
                     onClick = { visibleCount += READINGS_PAGE_SIZE },
                     modifier = Modifier.padding(start = 8.dp),
                 ) {
-                    Text(trf("Show {0} more", minOf(READINGS_PAGE_SIZE, readings.size - visibleCount)), fontSize = 13.sp)
+                    Text(trf("Show {0} more", minOf(READINGS_PAGE_SIZE, readings.size - visibleCount)), fontSize = 14.sp)
                 }
             }
             Spacer(Modifier.height(8.dp))
@@ -1092,38 +1088,7 @@ private const val READINGS_PAGE_SIZE = 50
 /** iOS-style segmented control for Today/Week/Month. */
 @Composable
 private fun PeriodSegmentedControl(selected: Period, onSelect: (Period) -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(4.dp))
-            .background(PulseColors.cardSoft)
-            .padding(2.dp)
-            .selectableGroup(),
-    ) {
-        Period.entries.forEach { p ->
-            val isSelected = selected == p
-            Box(
-                Modifier
-                    .weight(1f)
-                    .heightIn(min = 48.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .then(if (isSelected) Modifier.dither(PulseColors.textPrimary, 0.16f) else Modifier)
-                    .selectable(selected = isSelected, role = Role.Tab) { onSelect(p) }
-                    .padding(vertical = 7.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    p.label,
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (isSelected) PulseColors.textPrimary else PulseColors.textSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 4.dp),
-                )
-            }
-        }
-    }
+    com.pulseloop.ui.components.PulseSegmented(Period.entries.map { it to it.label }, selected, onSelect)
 }
 
 /** One column of the LATEST/AVERAGE/MIN/MAX strip. */
@@ -1136,10 +1101,8 @@ private fun DetailStat(title: String, value: String, modifier: Modifier = Modifi
     ) {
         Text(
             title.uppercase(),
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Medium,
-            letterSpacing = 0.6.sp,
-            color = PulseColors.textMuted,
+            style = com.pulseloop.ui.theme.PulseType.eyebrow,
+            color = PulseColors.textSecondary,
             // A quarter of the card: "MAIS RECENTE" doesn't fit one line, so it wraps centred.
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
@@ -1312,8 +1275,8 @@ private fun MeasurePickerSheet(titles: List<String>, onDismiss: () -> Unit, onPi
             Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(tr("Measure"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(tr("Keep the ring snug and your hand still until it finishes."), fontSize = 13.sp, color = PulseColors.textSecondary)
+            Text(tr("Measure"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(tr("Keep the ring snug and your hand still until it finishes."), fontSize = 14.sp, color = PulseColors.textSecondary)
             titles.forEachIndexed { i, t ->
                 SheetOption(t, tr("Tap to start"), Icons.Filled.MonitorHeart) { onPick(i) }
             }

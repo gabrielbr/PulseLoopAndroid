@@ -4,6 +4,7 @@ import com.pulseloop.ui.i18n.tr
 import com.pulseloop.ui.i18n.trf
 
 import android.content.res.Configuration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -378,6 +379,10 @@ fun PulseLoopApp() {
 
         val isLandscape =
             LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+        // From 600dp (landscape phones, tablets, unfolded foldables) the tabs move to a
+        // NavigationRail at the side, as Material's adaptive navigation asks; the bottom bar
+        // stays for compact portrait.
+        val useRail = LocalConfiguration.current.screenWidthDp >= 600
         val tabRoutes = remember(tabs) { tabs.map { it.route }.toSet() }
 
         // The header's health line (HealthHeadline). Held here, not in the top bar, so it
@@ -447,7 +452,9 @@ fun PulseLoopApp() {
                 val route = navBackStackEntry?.destination?.route
                 // The coach is no longer a tab but keeps the frosted header it had as one.
                 val onTabRoute = route in tabRoutes || route == "coach"
-                if (onTabRoute && !isLandscape) {
+                // Landscape keeps the header (compact, one row): it is the only route to
+                // Settings and the ring, so dropping it stranded them.
+                if (onTabRoute) {
                     Column(
                         Modifier
                             // iOS-style scroll-under: blur strongest at the status bar,
@@ -509,6 +516,10 @@ fun PulseLoopApp() {
                                     else storedDevice?.state ?: ble.connectionState,
                                 batteryPercent = ble.batteryPercent ?: storedDevice?.batteryPercent,
                                 onOpenSettings = { navController.navigate("settings") },
+                                // The pill says what the ring is doing, so it opens the ring's
+                                // screen; the gear beside it is the Settings hub.
+                                onOpenRing = { navController.navigate("settings/wearable") { launchSingleTop = true } },
+                                compact = isLandscape,
                                 idle = ble.idleSince != null,
                                 sourceLabel = hcSource?.let { com.pulseloop.health.source.HealthConnectSource.label(context, it) + tr(" · Health Connect") },
                                 name = profileName,
@@ -545,14 +556,19 @@ fun PulseLoopApp() {
                         launchSingleTop = true
                     }
                 }
-                if (currentDestination?.route == "onboarding") {
-                    // The onboarding flow is full-screen chrome of its own — no tab bar.
+                // Blur only where content scrolls under the bar (the tabs); a pushed screen sits
+                // above an opaque bar anyway, so a per-frame blur there bought nothing.
+                val barGlass = if (currentDestination?.route in tabRoutes) Modifier.hazeEffect(state = hazeState, style = glassStyle)
+                    else Modifier.background(com.pulseloop.ui.theme.PulseColors.background)
+                if (currentDestination?.route == "onboarding" || useRail) {
+                    // The onboarding flow is full-screen chrome of its own — no tab bar; on wide
+                    // windows the tabs live in the rail beside the content instead.
                 } else if (isLandscape) {
                     // Landscape: a compact icon-only bar at ~half the standard height,
                     // so the short viewport keeps more room for content.
                     Surface(
                         color = Color.Transparent,
-                        modifier = Modifier.hazeEffect(state = hazeState, style = glassStyle),
+                        modifier = barGlass,
                     ) {
                         Row(
                             modifier = Modifier
@@ -586,7 +602,7 @@ fun PulseLoopApp() {
                         HorizontalDivider(thickness = 1.dp, color = com.pulseloop.ui.theme.PulseColors.borderSubtle)
                         NavigationBar(
                             containerColor = Color.Transparent,
-                            modifier = Modifier.hazeEffect(state = hazeState, style = glassStyle),
+                            modifier = barGlass,
                         ) {
                             tabs.forEach { tab ->
                                 val selected = isSelected(tab)
@@ -598,13 +614,13 @@ fun PulseLoopApp() {
                                             contentDescription = null,
                                         )
                                     },
-                                    // One line, a touch smaller than labelMedium: "Sinais vitais" wrapped to two
-                                    // lines and pushed its icon up out of line with the others. Items already
+                                    // One line at the 12sp label size. Portuguese says "Vitais" here: "Sinais vitais"
+                                    // wrapped to two lines and pushed its icon out of line. Items already
                                     // share the width equally (NavigationBarItem weights itself 1f).
                                     label = {
                                         Text(
                                             tab.label,
-                                            fontSize = 11.sp,
+                                            fontSize = 12.sp,
                                             maxLines = 1,
                                             softWrap = false,
                                             overflow = TextOverflow.Ellipsis,
@@ -643,11 +659,50 @@ fun PulseLoopApp() {
             fun androidx.navigation.NavGraphBuilder.screen(
                 route: String,
                 content: @Composable (androidx.navigation.NavBackStackEntry) -> Unit,
-            ) = composable(route) { entry -> DitherTransitionBox { content(entry) } }
+            ) = composable(route) { entry ->
+                DitherTransitionBox {
+                    // On a tablet or a landscape phone a single column of cards stretched across
+                    // the whole window; it is capped at 720dp and centred instead.
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                        Box(Modifier.widthIn(max = 720.dp).fillMaxSize()) { content(entry) }
+                    }
+                }
+            }
+            val railEntry by navController.currentBackStackEntryAsState()
+            val railDestination = railEntry?.destination
+            Row(Modifier.fillMaxSize()) {
+            if (useRail && railDestination?.route != "onboarding") {
+                NavigationRail(
+                    containerColor = com.pulseloop.ui.theme.PulseColors.background,
+                    modifier = Modifier.fillMaxHeight().padding(top = topPad, bottom = barPad),
+                ) {
+                    tabs.forEach { tab ->
+                        val selected = railDestination?.hierarchy?.any { it.route == tab.route } == true
+                        NavigationRailItem(
+                            selected = selected,
+                            onClick = {
+                                if (!selected) navController.navigate(tab.route) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
+                            },
+                            icon = { Icon(if (selected) tab.selectedIcon else tab.unselectedIcon, contentDescription = null) },
+                            label = { Text(tab.label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis) },
+                            colors = NavigationRailItemDefaults.colors(
+                                selectedIconColor = com.pulseloop.ui.theme.PulseColors.onAccent,
+                                selectedTextColor = com.pulseloop.ui.theme.PulseColors.textPrimary,
+                                unselectedIconColor = com.pulseloop.ui.theme.PulseColors.textMuted,
+                                unselectedTextColor = com.pulseloop.ui.theme.PulseColors.textMuted,
+                                indicatorColor = com.pulseloop.ui.theme.PulseColors.accent,
+                            ),
+                        )
+                    }
+                }
+            }
             NavHost(
                 navController = navController,
                 startDestination = "today",
-                modifier = Modifier.hazeSource(hazeState),
+                modifier = Modifier.weight(1f).hazeSource(hazeState),
                 enterTransition = { com.pulseloop.ui.theme.DitherTransition.enter },
                 exitTransition = { com.pulseloop.ui.theme.DitherTransition.exit },
                 popEnterTransition = { com.pulseloop.ui.theme.DitherTransition.enter },
@@ -748,8 +803,12 @@ fun PulseLoopApp() {
                     navController.navigate("coach") { launchSingleTop = true }
                 } else null
                 // A tab: the shared header above it, and no back arrow of its own.
-                paddedComposable("nutrition") {
-                    NutritionScreen(onBack = { navController.popBackStack() }, onDiscuss = discussMeal, asTab = true)
+                // Scrolls under the glass bars like the other four tabs, with the same paddings.
+                screen("nutrition") {
+                    NutritionScreen(
+                        onBack = { navController.popBackStack() }, onDiscuss = discussMeal, asTab = true,
+                        topBarPadding = topPad, bottomBarPadding = tabPad,
+                    )
                 }
                 // Straight into a way of logging (Today's food card, the "Log meal" shortcut).
                 listOf("photo", "barcode", "add").forEach { start ->
@@ -919,6 +978,7 @@ fun PulseLoopApp() {
                     )
                 }
             }
+            } // Row: rail + content
         }
 
         val logStep by LaunchRequests.openLog.collectAsState()

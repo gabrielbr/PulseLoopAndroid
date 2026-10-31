@@ -187,7 +187,7 @@ fun VitalRingGauge(
             if (centerUnit != null) {
                 Text(
                     centerUnit,
-                    fontSize = (size.value * 0.08f).sp,
+                    fontSize = maxOf(12f, size.value * 0.08f).sp,
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -195,7 +195,7 @@ fun VitalRingGauge(
             if (centerStatus != null) {
                 Text(
                     centerStatus.uppercase(),
-                    fontSize = (size.value * 0.08f).sp,
+                    fontSize = maxOf(12f, size.value * 0.08f).sp,
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp,
                     color = valueColor,
@@ -209,7 +209,7 @@ fun VitalRingGauge(
             if (subtitle != null) {
                 Text(
                     subtitle,
-                    fontSize = (size.value * 0.065f).sp,
+                    fontSize = maxOf(12f, size.value * 0.065f).sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines = 2,

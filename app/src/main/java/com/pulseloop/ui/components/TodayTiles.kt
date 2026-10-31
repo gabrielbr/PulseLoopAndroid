@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import androidx.compose.ui.semantics.Role
 import com.pulseloop.ui.theme.pressScale
 import com.pulseloop.ui.i18n.trf
 
@@ -54,7 +55,8 @@ import kotlin.math.roundToInt
 
 /** Shared sizing so every Today tile is identical (TodayTileMetrics in Swift). */
 object TodayTileMetrics {
-    val corner = 20.dp
+    // One card radius across the app (the theme's medium shape); tiles used to be 20dp.
+    val corner = 8.dp
 
     /**
      * The tile height *floor*, not a fixed height. Tiles grow past it to fit their own contents.
@@ -122,7 +124,7 @@ fun TodayTile(
             .border(1.dp, PulseColors.borderSubtle, shape)
             .then(if (onTap != null) Modifier.clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, onClick = onTap) else Modifier)
             .padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
@@ -134,10 +136,8 @@ fun TodayTile(
             )
             Text(
                 label.uppercase(),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.6.sp,
-                color = PulseColors.textMuted,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                color = PulseColors.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -166,7 +166,7 @@ fun ActivityTile(
         Row(
             Modifier.weight(1f).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             ActivityRings(
                 rings = rings,
@@ -191,12 +191,12 @@ fun ActivityTile(
             // if the tile ends up shorter anyway, the column is scaled down to fit instead of
             // being cut off. The rings already shrink to the height they get.
             ScaleDownToFit(Modifier.weight(1f)) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 values.forEach { value ->
                     Column {
                         Text(
                             value.label.uppercase(),
-                            fontSize = 10.sp,
+                            fontSize = 12.sp,
                             lineHeight = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                             letterSpacing = 0.8.sp,
@@ -260,10 +260,10 @@ fun buildSleepStageSegments(
     val byStage = blocks.groupBy { it.stageRaw }
         .mapValues { (_, stageBlocks) -> stageBlocks.sumOf { it.durationMinutes }.toDouble() }
     return listOf(
-        SleepStageSegment(byStage["DEEP"] ?: 0.0, PulseColors.stageDeep, "DEEP"),
-        SleepStageSegment(byStage["LIGHT"] ?: 0.0, PulseColors.stageLight, "LIGHT"),
-        SleepStageSegment(byStage["REM"] ?: 0.0, PulseColors.stageRem, "REM"),
-        SleepStageSegment(byStage["AWAKE"] ?: 0.0, PulseColors.stageAwake, "AWK"),
+        SleepStageSegment(byStage["DEEP"] ?: 0.0, PulseColors.stageDeep, tr("Deep")),
+        SleepStageSegment(byStage["LIGHT"] ?: 0.0, PulseColors.stageLight, tr("Light")),
+        SleepStageSegment(byStage["REM"] ?: 0.0, PulseColors.stageRem, tr("REM")),
+        SleepStageSegment(byStage["AWAKE"] ?: 0.0, PulseColors.stageAwake, tr("Awake")),
     ).filter { it.minutes > 0 }
 }
 
@@ -275,24 +275,20 @@ fun buildSleepStageSegments(
 fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifier) {
     val total = segments.sumOf { it.minutes }.coerceAtLeast(1.0)
     val measurer = rememberTextMeasurer()
-    val labelStyle = TextStyle(
-        fontSize = 10.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.5.sp,
-    )
+    val labelStyle = com.pulseloop.ui.theme.PulseType.eyebrow.copy(fontWeight = FontWeight.SemiBold)
     // Measured rather than subcomposed: BoxWithConstraints would give the per-segment width
     // directly, but it is a SubcomposeLayout and the Today grid measures these tiles with
     // IntrinsicSize.Min, which subcomposition can't answer. onSizeChanged keeps intrinsics intact.
     var barWidthPx by remember { mutableIntStateOf(0) }
     // Labels drop out when a segment is too narrow, and the bar itself says nothing to TalkBack,
     // so the whole bar speaks one summary instead.
-    val spoken = segments.joinToString(", ") { "${stageName(it.label)} ${it.minutes.roundToInt()} min" }
+    val spoken = segments.joinToString(", ") { "${it.label.lowercase()} ${it.minutes.roundToInt()} ${tr("min")}" }
     Column(
         modifier = modifier
             .fillMaxWidth()
             .onSizeChanged { barWidthPx = it.width }
             .clearAndSetSemantics { contentDescription = trf("Sleep stages: {0}", spoken) },
-        verticalArrangement = Arrangement.spacedBy(3.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Row(Modifier.fillMaxWidth().height(12.dp), horizontalArrangement = Arrangement.spacedBy(2.dp)) {
             segments.forEach { seg ->
@@ -315,10 +311,13 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
                     // "DEE" at 2.0. A truncated stage name reads as a different stage, so drop the
                     // label instead of clipping it — the colored segment still carries the meaning.
                     // The measurer picks up the current density and font scale on its own.
-                    val labelPx = measurer.measure(seg.label, labelStyle).size.width
+                    val caption = seg.label.uppercase()
+                    // Measured once per label, density and scale, not on every recomposition.
+                    val density = androidx.compose.ui.platform.LocalDensity.current
+                    val labelPx = remember(caption, labelStyle, density) { measurer.measure(caption, labelStyle).size.width }
                     if (barWidthPx > 0 && labelPx <= barWidthPx * fraction) {
                         Text(
-                            seg.label,
+                            caption,
                             style = labelStyle,
                             // Deep's indigo is ~2.4:1 on the card: legible as a bar, not as text.
                             color = if (seg.color == PulseColors.stageDeep) PulseColors.textSecondary else seg.color,
@@ -332,11 +331,6 @@ fun SleepStageBar(segments: List<SleepStageSegment>, modifier: Modifier = Modifi
     }
 }
 
-private fun stageName(label: String) = when (label) {
-    "AWK" -> "awake"
-    "REM" -> "REM"
-    else -> label.lowercase()
-}
 
 /** Sleep tile: duration on top, stage distribution bar, score below (SleepTileView in Swift). */
 @Composable
@@ -359,20 +353,19 @@ fun SleepTile(
                 )
                 SleepStageBar(segments)
                 if (score != null) {
-                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             "$score",
-                            fontSize = 22.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PulseColors.textPrimary,
                         )
                         Text(
                             tr("SCORE"),
-                            fontSize = 10.sp,
+                            style = com.pulseloop.ui.theme.PulseType.eyebrow,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 1.sp,
-                            color = PulseColors.textMuted,
-                            modifier = Modifier.padding(bottom = 3.dp),
+                            color = PulseColors.textSecondary,
+                            modifier = Modifier.padding(bottom = 4.dp),
                         )
                     }
                 }
@@ -391,7 +384,7 @@ fun SleepTile(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     tr("No sleep recorded"),
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PulseColors.textPrimary,
                 )
@@ -443,7 +436,7 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
         Text(title, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Text(
             summary,
-            fontSize = 15.sp,
+            fontSize = 16.sp,
             lineHeight = 21.sp,
             color = PulseColors.textSecondary,
             modifier = Modifier.padding(top = 8.dp),
@@ -452,8 +445,8 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
             // Wraps: three translated chips ("Linha de base pendente", …) overflow one line.
             FlowRow(
                 Modifier.padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 chips.forEach { chip ->
                     Text(
@@ -467,7 +460,7 @@ fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modif
                             .clip(CircleShape)
                             .dither(chip.tone.ditherColor(), if (chip.tone == ChipTone.NEUTRAL) 0.10f else 0.15f)
                             .border(1.dp, chip.tone.border(), CircleShape)
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
                     )
                 }
             }
@@ -492,10 +485,10 @@ fun CoachMessageCard(
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .then(if (onTap != null) Modifier.clickable(onClick = onTap) else Modifier)
+            .then(if (onTap != null) Modifier.clickable(role = Role.Button, onClick = onTap) else Modifier)
             .padding(20.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(
                 Modifier
                     .size(6.dp)
@@ -505,10 +498,8 @@ fun CoachMessageCard(
             )
             Text(
                 tr("COACH"),
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.8.sp,
-                color = PulseColors.textMuted,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                color = PulseColors.textSecondary,
             )
         }
         Text(
@@ -516,26 +507,26 @@ fun CoachMessageCard(
             fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
-            modifier = Modifier.padding(top = 6.dp),
+            modifier = Modifier.padding(top = 8.dp),
         )
         Text(
             body,
             fontSize = 14.sp,
             lineHeight = 20.sp,
             color = PulseColors.textSecondary,
-            modifier = Modifier.padding(top = 6.dp),
+            modifier = Modifier.padding(top = 8.dp),
         )
         if (chips.isNotEmpty()) {
             // Wraps rather than ellipsising the third chip to nothing on a narrow phone.
             FlowRow(
-                Modifier.padding(top = 10.dp),
+                Modifier.padding(top = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 chips.take(3).forEach { chip ->
                     Text(
                         chip,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = PulseColors.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -543,7 +534,7 @@ fun CoachMessageCard(
                             .clip(CircleShape)
                             .background(PulseColors.cardSoft)
                             .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
                     )
                 }
             }

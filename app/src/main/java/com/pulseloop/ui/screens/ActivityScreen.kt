@@ -34,6 +34,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -167,44 +169,22 @@ fun ActivityScreen(
         item { DailyActivitySummaryCard(state, units) }
 
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    tr("+ Record Activity"),
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PulseColors.onAccent,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(60.dp)
-                        .clip(CircleShape)
-                        .background(PulseColors.accent)
-                        .clickable(role = Role.Button) { pickerOpen = true }
-                        .wrapContentHeight(),
-                )
-                Box(
-                    Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                        .clickable(role = Role.Button) { historyOpen = true },
-                    contentAlignment = Alignment.Center,
+            // Tonal, not filled mint: the Actions button is the screen's one filled accent, and
+            // two filled CTAs side by side left no primary action to find.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                FilledTonalButton(
+                    onClick = { pickerOpen = true },
+                    modifier = Modifier.weight(1f).height(56.dp),
                 ) {
-                    Icon(Icons.Filled.CalendarMonth, tr("Workout history"), tint = PulseColors.textSecondary)
+                    Text(tr("+ Record Activity"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                }
+                FilledTonalIconButton(onClick = { historyOpen = true }, modifier = Modifier.size(56.dp)) {
+                    Icon(Icons.Filled.CalendarMonth, tr("Workout history"))
                 }
                 // Logging a forgotten workout used to be its own full-width card between the
                 // summary and the day's workouts; it is the same job as recording one.
-                Box(
-                    Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                        .clickable(role = Role.Button) { navController?.navigate("log_past_activity") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(Icons.Filled.History, tr("Log Past Activity"), tint = PulseColors.textSecondary)
+                FilledTonalIconButton(onClick = { navController?.navigate("log_past_activity") }, modifier = Modifier.size(56.dp)) {
+                    Icon(Icons.Filled.History, tr("Log Past Activity"))
                 }
             }
         }
@@ -214,8 +194,7 @@ fun ActivityScreen(
         item {
             Text(
                 tr("TODAY"),
-                fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                letterSpacing = 1.4.sp, color = PulseColors.textMuted,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
             )
         }
         if (todayWorkouts.isEmpty()) {
@@ -279,7 +258,7 @@ fun ActivityScreen(
                         "You can allow it in Android Settings › Apps › PulseLoop › Permissions."),
                 )
             },
-            confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text("OK") } },
+            confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text(tr("OK")) } },
         )
     }
     if (pickerOpen) {
@@ -419,14 +398,14 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(18.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Row {
                 SummaryMetric(tr("Steps"), today?.steps?.let { Formats.count(it) } ?: "—", null, PulseColors.steps, Modifier.weight(1f))
                 SummaryMetric(tr("Distance"), distValue ?: "—", if (distValue != null) UnitConverter.distanceUnit(units) else null, PulseColors.distance, Modifier.weight(1f))
             }
             // The same figure the Today screen shows, not the row's raw `calories` (issue #101).
             val calories = state.dayCalories
-            SummaryMetric(tr("Calories"), calories?.let { Formats.count(it.toInt()) } ?: "—", if (calories != null) "cal" else null, PulseColors.calories)
+            SummaryMetric(tr("Calories"), calories?.let { Formats.count(it.toInt()) } ?: "—", if (calories != null) tr("kcal") else null, PulseColors.calories)
         }
         ActivityRings(
             rings = listOf(
@@ -444,11 +423,10 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
 
 @Composable
 private fun SummaryMetric(label: String, value: String, unit: String?, color: Color, modifier: Modifier = Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(
             label.uppercase(),
-            fontSize = 15.sp, fontWeight = FontWeight.Bold,
-            letterSpacing = 0.6.sp, color = color, maxLines = 1,
+            style = com.pulseloop.ui.theme.PulseType.eyebrow, color = color, maxLines = 1,
         )
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             // weight(fill = false): bounded so the unit beside it is never squeezed off.
@@ -458,7 +436,7 @@ private fun SummaryMetric(label: String, value: String, unit: String?, color: Co
                 modifier = Modifier.weight(1f, fill = false),
             )
             if (unit != null) {
-                Text(unit, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 5.dp))
+                Text(unit, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
             }
         }
     }
@@ -478,7 +456,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(onClick = onTap)
+            .clickable(role = Role.Button, onClick = onTap)
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -492,7 +470,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
         ) {
             Icon(ActivityMeta.icon(session.type), null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
         }
-        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // The label takes the weight (not a Spacer) so a long translated type name
                 // ellipsizes instead of squeezing the start time.
@@ -502,7 +480,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Text(SleepFormat.clockTime(session.startedAt), fontSize = 11.sp, color = PulseColors.textMuted)
+                Text(SleepFormat.clockTime(session.startedAt), fontSize = 12.sp, color = PulseColors.textMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (durationSec != null) {
@@ -543,7 +521,7 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(onClick = onTap)
+            .clickable(role = Role.Button, onClick = onTap)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
@@ -555,24 +533,18 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$activeMinutes", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                    Text("MIN", fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = PulseColors.textMuted)
+                    Text(tr("MIN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     tr("WEEKLY GOAL"),
-                    fontSize = 11.sp, fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.4.sp, color = PulseColors.textMuted,
+                    style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
                 )
                 Text(trf("{0} of 7 active days", activeDayCount), fontSize = 16.sp, color = PulseColors.textPrimary)
             }
         }
         WeeklyPillCalendar(days)
-        Text(
-            tr("TAP TO EDIT GOALS"),
-            fontSize = 11.sp, fontWeight = FontWeight.Medium,
-            letterSpacing = 1.sp, color = PulseColors.textMuted,
-        )
     }
 }
 
@@ -616,7 +588,7 @@ private fun WeeklyPillCalendar(days: List<WeeklyDay>) {
             Column(
                 Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Box(
                     Modifier
@@ -636,13 +608,13 @@ private fun WeeklyPillCalendar(days: List<WeeklyDay>) {
                 ) {
                     Text(
                         if (day.completed) "✓" else if (day.isToday) "•" else "",
-                        fontSize = 10.sp, fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp, fontWeight = FontWeight.Medium,
                         color = if (day.completed) PulseColors.steps else PulseColors.textPrimary,
                     )
                 }
                 Text(
                     day.label,
-                    fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.5.sp,
+                    style = com.pulseloop.ui.theme.PulseType.eyebrow, 
                     color = if (day.isToday) PulseColors.textPrimary else PulseColors.textMuted,
                 )
             }
@@ -673,14 +645,14 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
                                 .clip(RoundedCornerShape(4.dp))
                                 .then(if (active) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
                                 .selectable(selected = active, role = Role.RadioButton) { selected = type }
-                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
                             Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(18.dp))
                             Column {
                                 Text(ActivityMeta.label(type), fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                                Text(ActivityMeta.helper(type), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                Text(ActivityMeta.helper(type), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }
@@ -741,10 +713,8 @@ private fun WorkoutHistoryDialog(
                         item(key = "header-$day") {
                             Text(
                                 header(day),
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                letterSpacing = 1.4.sp,
-                                color = PulseColors.textMuted,
+                                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                                color = PulseColors.textSecondary,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = if (index == 0) 0.dp else 8.dp),
@@ -852,12 +822,12 @@ private fun ActivityRecordsCard(
         ) {
             Text(
                 "RECORDS",
-                fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.sp, color = PulseColors.textMuted,
+                style = com.pulseloop.ui.theme.PulseType.eyebrow, fontWeight = FontWeight.SemiBold,
+                color = PulseColors.textSecondary,
             )
             Spacer(Modifier.weight(1f))
             buckets?.let {
-                Text(it.size.toString(), fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(end = 6.dp))
+                Text(it.size.toString(), fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(end = 8.dp))
             }
             Icon(
                 if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
@@ -872,34 +842,34 @@ private fun ActivityRecordsCard(
             when {
                 rows == null -> Text(
                     tr("Loading…"),
-                    fontSize = 13.sp, color = PulseColors.textMuted,
+                    fontSize = 14.sp, color = PulseColors.textMuted,
                     modifier = Modifier.padding(start = 16.dp, bottom = 12.dp),
                 )
                 rows.isEmpty() -> Text(
                     trf("No activity records synced for {0} yet.", dayLabel),
-                    fontSize = 13.sp, color = PulseColors.textMuted,
+                    fontSize = 14.sp, color = PulseColors.textMuted,
                     modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp),
                 )
                 else -> {
                     // Not a nested LazyColumn — this card already sits inside one.
                     rows.take(visibleCount).forEach { bucket ->
                         Row(
-                            Modifier.fillMaxWidth().padding(start = 16.dp, end = 6.dp, bottom = 4.dp),
+                            Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
                                 timeOf(bucket.startEpoch),
-                                fontSize = 13.sp, color = PulseColors.textSecondary,
+                                fontSize = 14.sp, color = PulseColors.textSecondary,
                                 modifier = Modifier.weight(1f),
                             )
                             Text(
                                 trf("{0} steps", Formats.count(bucket.steps)),
-                                fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
+                                fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
                             )
                             if (bucket.distanceMeters > 0) {
                                 Text(
                                     tr(" · %.2f %s").format(UnitConverter.distance(bucket.distanceMeters, units), UnitConverter.distanceUnit(units)),
-                                    fontSize = 11.sp, color = PulseColors.textMuted,
+                                    fontSize = 12.sp, color = PulseColors.textMuted,
                                 )
                             }
                             IconButton(onClick = { pending = bucket }) {
@@ -917,7 +887,7 @@ private fun ActivityRecordsCard(
                             onClick = { visibleCount += ACTIVITY_RECORDS_PAGE_SIZE },
                             modifier = Modifier.padding(start = 8.dp),
                         ) {
-                            Text(trf("Show {0} more", minOf(ACTIVITY_RECORDS_PAGE_SIZE, rows.size - visibleCount)), fontSize = 13.sp)
+                            Text(trf("Show {0} more", minOf(ACTIVITY_RECORDS_PAGE_SIZE, rows.size - visibleCount)), fontSize = 14.sp)
                         }
                     }
                     Spacer(Modifier.height(8.dp))
@@ -975,7 +945,7 @@ private fun DetectedActivityCard() {
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr("DETECTED · REVIEW"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("DETECTED · REVIEW"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
         proposals.forEach { p ->
             val defaultType = when (p.kind) {
                 com.pulseloop.service.ActivityDetection.Proposal.Kind.WALK -> "walk"
@@ -984,17 +954,17 @@ private fun DetectedActivityCard() {
             }
             var type by remember(p.key) { mutableStateOf(defaultType) }
             val isNap = p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     (if (isNap) tr("Possible nap") else trf("Possible {0}", ActivityMeta.label(type).lowercase())) + " · ${p.minutes} min",
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                    fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 )
                 Text(
                     "${java.time.Instant.ofEpochMilli(p.startAt).atZone(zone).format(fmt)} · ${p.detail}",
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
                 if (p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.CARDIO) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("cycle", "gym", "sport", "dance", "other").forEach { t ->
                             val on = t == type
                             Text(
@@ -1002,7 +972,7 @@ private fun DetectedActivityCard() {
                                 color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
                                 modifier = Modifier.clip(RoundedCornerShape(16.dp))
                                     .background(if (on) PulseColors.accent else PulseColors.cardSoft)
-                                    .clickable { type = t }.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    .clickable(role = Role.Button) { type = t }.padding(horizontal = 12.dp, vertical = 8.dp),
                             )
                         }
                     }
@@ -1010,14 +980,14 @@ private fun DetectedActivityCard() {
                 // FlowRow: the two translated actions wrap rather than overflow the card.
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Text(
-                        if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-                        modifier = Modifier.clickable {
+                        if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+                        modifier = Modifier.clickable(role = Role.Button) {
                             scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
                         }.padding(vertical = 4.dp),
                     )
                     Text(
-                        tr("Not this"), fontSize = 13.sp, color = PulseColors.textMuted,
-                        modifier = Modifier.clickable { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }.padding(vertical = 4.dp),
+                        tr("Not this"), fontSize = 14.sp, color = PulseColors.textMuted,
+                        modifier = Modifier.clickable(role = Role.Button) { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }.padding(vertical = 4.dp),
                     )
                 }
             }

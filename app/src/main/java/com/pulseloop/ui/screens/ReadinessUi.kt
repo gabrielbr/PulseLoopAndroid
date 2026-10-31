@@ -137,17 +137,18 @@ private fun HeaderRing(
     onTap: () -> Unit,
     modifier: Modifier,
     centerText: String = value?.toString() ?: "—",
+    ringSize: androidx.compose.ui.unit.Dp = 84.dp,
 ) {
     Column(
-        modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onTap).padding(vertical = 8.dp),
+        modifier.clip(RoundedCornerShape(8.dp)).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onTap).padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ScoreRing(value = value, color = color, size = 84.dp, stroke = 7.dp, centerText = centerText)
+        ScoreRing(value = value, color = color, size = ringSize, stroke = 7.dp, centerText = centerText, centerSize = if (ringSize >= 100.dp) 28 else 20)
         // One line each, ellipsised: three rings share the row, and a voice's caption
         // ("Ainda sem sono. Óbvio.") is wider than a third of a phone.
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Text(caption, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(caption, fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -171,7 +172,19 @@ fun ScoreHeader(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly, verticalAlignment = Alignment.CenterVertically) {
+            // Readiness is the headline score: the larger ring in the centre, with sleep and
+            // activity as the two smaller rings that feed it, so the card has one entry point.
+            HeaderRing(
+                label = tr("Sleep"),
+                value = sleepScore,
+                caption = sleepScore?.let { Readiness.Band.of(it).label } ?: if (sleepLoaded) tr("No data") else " ",
+                color = PulseColors.sleep,
+                onTap = onSleep,
+                modifier = Modifier.weight(1f),
+                ringSize = 72.dp,
+                centerText = sleepScore?.toString() ?: if (sleepLoaded) "—" else "",
+            )
             HeaderRing(
                 label = tr("Readiness"),
                 value = score?.value,
@@ -184,18 +197,10 @@ fun ScoreHeader(
                 },
                 color = score?.let { bandColor(it.band) } ?: PulseColors.readiness,
                 onTap = onReadiness,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1.3f),
+                ringSize = 108.dp,
                 // null is still loading (as the blank caption above): no "no score" dash yet.
                 centerText = score?.value?.toString() ?: if (readiness == null) "" else "—",
-            )
-            HeaderRing(
-                label = tr("Sleep"),
-                value = sleepScore,
-                caption = sleepScore?.let { Readiness.Band.of(it).label } ?: if (sleepLoaded) tr("No data") else " ",
-                color = PulseColors.sleep,
-                onTap = onSleep,
-                modifier = Modifier.weight(1f),
-                centerText = sleepScore?.toString() ?: if (sleepLoaded) "—" else "",
             )
             HeaderRing(
                 label = tr("Activity"),
@@ -204,6 +209,7 @@ fun ScoreHeader(
                 color = PulseColors.steps,
                 onTap = onActivity,
                 modifier = Modifier.weight(1f),
+                ringSize = 72.dp,
                 centerText = activity?.value?.toString() ?: if (activityLoaded) "—" else "",
             )
         }
@@ -237,21 +243,19 @@ private fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modi
 }
 
 /** Readiness detail: score, sentence, coverage caution, contributors, and what's missing. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     val load = rememberReadinessLoad(db, Unit)
     val result = load.value
 
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
-            }
-            Text(
-                tr("Readiness"), modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-            )
-        }
+        androidx.compose.material3.CenterAlignedTopAppBar(
+            title = { Text(tr("Readiness"), style = com.pulseloop.ui.theme.PulseType.title) },
+            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) } },
+            windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = PulseColors.background),
+        )
 
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -277,7 +281,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                 }
                 if (result != null) {
                     Text(
-                        ReadinessCopy.headline(result), fontSize = 15.sp, color = PulseColors.textSecondary,
+                        ReadinessCopy.headline(result), fontSize = 16.sp, color = PulseColors.textSecondary,
                         textAlign = TextAlign.Center,
                     )
                 }
@@ -288,7 +292,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
 
             score?.let { ReadinessCopy.coverageNote(it) }?.let { note ->
                 Text(
-                    note, fontSize = 13.sp, color = PulseColors.warning,
+                    note, fontSize = 14.sp, color = PulseColors.warning,
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
                         .dither(PulseColors.warning, 0.12f).padding(12.dp),
                 )
@@ -307,10 +311,10 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
             if (result is Readiness.Result.Withheld) {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(tr("Why there's no score today"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
-                    result.reasons.forEach { Text("• $it", fontSize = 13.sp, color = PulseColors.textSecondary) }
+                    Text(tr("Why there's no score today"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+                    result.reasons.forEach { Text("• $it", fontSize = 14.sp, color = PulseColors.textSecondary) }
                 }
             }
 
@@ -328,7 +332,7 @@ fun ContributorsCard(contributors: List<ScoreContributor>, title: String = tr("C
     if (contributors.isEmpty()) return
     var expanded by remember(contributors) { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+        Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)) {
             contributors.forEachIndexed { i, c ->
                 ContributorRow(c, expanded == c.title) { expanded = if (expanded == c.title) null else c.title }
@@ -347,16 +351,16 @@ private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> 
             .clickable(role = Role.Button, onClick = onTap)
             .semantics { stateDescription = if (expanded) tr("Expanded") else tr("Collapsed") }
             .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(c.title, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
-            Text(c.band.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = bandColor(c.band))
+            Text(c.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+            Text(c.band.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = bandColor(c.band))
         }
         ProgressBar(c.score / 100f, bandColor(c.band))
         Text(c.detail, fontSize = 12.sp, color = PulseColors.textSecondary)
         if (expanded) {
-            Text(c.explanation, fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 4.dp))
+            Text(c.explanation, fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
@@ -408,7 +412,7 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
                     // Blank while loading: activityHeadline(null) is the "no activity yet" copy,
                     // which flashed before every real score.
                     if (load.loaded) activityHeadline(result) else " ",
-                    fontSize = 15.sp, color = PulseColors.textSecondary,
+                    fontSize = 16.sp, color = PulseColors.textSecondary,
                     textAlign = TextAlign.Center,
                 )
             }
@@ -452,11 +456,11 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
             .clickable { open = !open }.padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Data behind this score"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
-            Text(if (open) tr("Hide") else tr("Show"), fontSize = 13.sp, color = PulseColors.accent)
+            Text(if (open) tr("Hide") else tr("Show"), fontSize = 14.sp, color = PulseColors.accent)
         }
         if (open) {
             val night = inputs?.lastNight
@@ -474,8 +478,8 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
             }
             rows.forEach { (k, v) ->
                 Row(Modifier.fillMaxWidth()) {
-                    Text(k, fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
-                    Text(v, fontSize = 13.sp, color = PulseColors.textPrimary)
+                    Text(k, fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+                    Text(v, fontSize = 14.sp, color = PulseColors.textPrimary)
                 }
             }
             night?.withheld?.values?.forEach { Text(trf("Withheld: {0}.", it), fontSize = 12.sp, color = PulseColors.warning) }

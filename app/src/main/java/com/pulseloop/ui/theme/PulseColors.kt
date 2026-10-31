@@ -27,7 +27,11 @@ object PulseColors {
     val accentSoft: Color get() = if (FairyMode.on) FairyMode.Palette.accentSoft else Color(0x2E43F3B7)   // accent @ 18%
     /** Text and icons on a mint fill (GMind ON_MINT, 9:1 on mint). Never white on mint. */
     val onAccent: Color get() = if (FairyMode.on) FairyMode.Palette.onAccent else Color(0xFF033423)
-    val success: Color get() = accent
+    /**
+     * "Good / in range / done". Its own green, not the mint: mint is the brand and the thing
+     * to tap, and when it also meant success, connected and REM it stopped saying "act here".
+     */
+    val success = Color(0xFF4CC97A)
     val warning = Color(0xFFFFC46B)
     val danger = Color(0xFFFF7A70)     // GMind coral (dark)
     val info = Color(0xFF5AD8F0)
@@ -52,7 +56,8 @@ object PulseColors {
     // Vitals reference-zone colors (AppTheme.swift zone*) — aliased by
     // ZonePalette (fine iOS-parity palette) and [MetricColors] (coarse semantic palette)
     val zoneBlue = Color(0xFF5BA8FF)
-    val zoneMint = Color(0xFF43F3B7)
+    /** The in-range zone. Named for its old mint; it is the [success] green now. */
+    val zoneMint = Color(0xFF4CC97A)
     val zoneCyan = Color(0xFF5AD8F0)
     val zoneAmber = Color(0xFFFFC46B)
     val zoneSoftAmber = Color(0xFFFFDDA6)
@@ -61,9 +66,11 @@ object PulseColors {
     val zoneCritical = Color(0xFFFF4B3E)
 
     // Sleep stage colors (DesignSystem/Charts.swift SleepStageColors)
-    val stageDeep = Color(0xFF4B3BD6)
+    /** 3.3:1 on [card]: deep is the stage people look for, and #4B3BD6 was 2.4:1. */
+    val stageDeep = Color(0xFF6352F0)
     val stageLight = Color(0xFF9A8CFF)
-    val stageRem: Color get() = if (FairyMode.on) FairyMode.Palette.rem else MINT
+    /** Cyan rather than the brand mint, so REM doesn't read as "tap here" (see [success]). */
+    val stageRem: Color get() = if (FairyMode.on) FairyMode.Palette.rem else Color(0xFF5AD8F0)
     val stageAwake = Color(0xFFFFC46B)
 
     val borderSubtle = Color(0xFF2C2B30)  // GMind hairline (LINE, dark)
