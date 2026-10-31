@@ -296,7 +296,6 @@ fun VitalsScreen(
                     // The answer first: is anything outside this person's usual range? The
                     // cards below are the detail.
                     VitalsStatusLine()
-                    state.adjustedNote?.let { AdjustedCaption(it) }
                 }
                 // Measure button: combined (0x23) for 56ff/Jring, or sequential live
                 // HR + SpO₂ (0x69) for Colmi. Hidden for rings that support neither.

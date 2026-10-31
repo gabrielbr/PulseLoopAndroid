@@ -109,7 +109,6 @@ fun SleepScreen(
         item {
             SleepRangeSelector(state.range) { viewModel?.setRange(it) }
         }
-        state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
         // Every rebuild stamps shownDayMillis, so 0 means the first one hasn't landed yet: render
         // nothing rather than flash "No sleep recorded" (and a 1970 date header) for a frame.
         val loaded = viewModel == null || state.shownDayMillis != 0L

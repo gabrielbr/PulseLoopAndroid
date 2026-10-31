@@ -109,7 +109,6 @@ fun TodayScreen(
     val vitalsLoaded = vitalsViewModel == null || vitals.loaded
     val guidance = rememberGuidance(db, listOf(state.lastUpdated, sleep.lastNight?.id, sleep.lastNight?.updatedAt))
     var briefSheet by remember { mutableStateOf(false) }
-    var showAllTiles by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     // The "+ Log" sheet is app-wide (PulseLoopApp); Today's shortcuts open it at a step, and
     // its closing is what refreshes the food and drinks numbers here.
     val logOpen by com.pulseloop.ui.LaunchRequests.openLog.collectAsState()
@@ -244,7 +243,8 @@ fun TodayScreen(
 
             // Accuracy check in progress (docs/accuracy-check-plan.md): say so, since it pauses export.
             accuracyOpen?.let { c -> item { AccuracyCheckBanner(c) { navController?.navigate("settings/accuracy-check") } } }
-            state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
+            // The accuracy-check correction note lives in Settings → Accuracy check, not here:
+            // on Today it was a line shown on every visit for something set once.
 
             // Glance: one line of what today means, and an alert line only when something is off.
             item {
@@ -362,9 +362,9 @@ fun TodayScreen(
             // No tiles until vitals and sleep have loaded: before that every supports* flag is
             // false (the HRV/temperature tiles appear later and reflow the grid) and the tiles
             // say "No sleep recorded" / "No data" for data that is merely still being read.
-            // Two rows of tiles, the user's first choices, and the rest behind one tap: twelve tiles
-            // at equal weight turned Today into a wall. Editing shows them all.
-            val shown = if (editState.editing || showAllTiles) visibleOrdered else visibleOrdered.take(columns * 2)
+            // Every visible card, always: the owner wants Today's cards present without a
+            // "Show all" tap. Hide or reorder them with Customize cards.
+            val shown = visibleOrdered
             val rows = if (vitalsLoaded && sleepLoaded) shown.chunked(columns) else emptyList()
             // Keyed by the cards in the row so a reorder in edit mode moves rows rather than
             // recomposing every row in place.
@@ -387,21 +387,6 @@ fun TodayScreen(
                 }
             }
 
-            val more = visibleOrdered.size - columns * 2
-            if (!editState.editing && more > 0 && vitalsLoaded && sleepLoaded) {
-                item {
-                    Text(
-                        if (showAllTiles) tr("Show fewer") else trf("Show all metrics ({0} more)", more),
-                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 48.dp)
-                            .clickable(role = Role.Button) { showAllTiles = !showAllTiles }
-                            .wrapContentHeight(Alignment.CenterVertically),
-                    )
-                }
-            }
             if (editState.editing) {
                 item { HiddenMetricsTray(hiddenCards) { editState.setHidden(it, false) } }
             }

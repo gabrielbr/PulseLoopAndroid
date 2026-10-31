@@ -1027,8 +1027,11 @@ because breaking it fails silently:
   `estimatedActiveCalories` (raw, exported) vs `estimatedActiveCaloriesAdjusted` (shown), and
   `hrRestingBaseline` (raw, exported) vs `Corrections.baseline()` at read time. The display
   helpers (`DailyCalorieEstimator.displayActiveCalories` / `displayCalories`) must not be used
-  by an exporter. A screen showing corrected figures carries the `AdjustedCaption` (a widget tile,
-  its `adjusted` flag). The coach reads through the corrections too and is told so; a workout's
+  by an exporter. The caption saying figures are corrected lives in Settings, not on the tabs
+  (owner's call: on Today it was a line shown on every visit for something set once). The
+  Accuracy check row reads "Adjusting your ring" while corrections are on, and its screen lists
+  them; the detail screens (vital detail, workout summary) keep the `AdjustedCaption`, and a
+  widget tile its `adjusted` flag. The coach reads through the corrections too and is told so; a workout's
   stored samples and summary stay raw because Health Connect and Strava get them.
 - **Corrections belong to one ring (BLE address) and only exist after a consistent-bias
   verdict.** Don't widen them to "Inconsistent": a slider that moves the average of an erratic
@@ -1216,8 +1219,8 @@ clutter came from ignoring one of them:
   It points at what to look at and never names a condition. It is one line, ellipsised, and keeps
   its last text while the next is read, so the header never changes height or blanks. Sleep,
   Vitals and Activity each end with one in-context row into My Health; Today has none.
-- **One open section per screen.** Today shows two rows of tiles and folds the rest behind "Show
-  all metrics"; My Health keeps health areas open and folds Trends, Habits and Stress into
+- **One open section per screen.** Today shows every card the user kept, always, with no "Show
+  all" fold (owner's call); trimming Today is Customize cards' job. My Health keeps health areas open and folds Trends, Habits and Stress into
   closed sections (`Section(summary = …)`), and the radar to one line unless it flags something.
   A new card should usually be a closed section, not another open one.
 - **Repeat a figure only when the question differs.** Last night's sleep on Today (am I okay?) and
