@@ -250,6 +250,12 @@ fun ActivityScreen(
         if (state.dayOffset == 0) item { CardioLoadCard(state.workoutsLoaded to state.finishedWorkouts.size) }
 
         item { WeeklyGoalCard(state, days, onTap = { goalsOpen = true }) }
+        // In-context door to My Health: after the week's goal, how the month went.
+        if (navController != null) item {
+            MyHealthEntryCard(tr("How the month went"), tr("Your activity trend and habits, in My Health")) {
+                navController.navigate("my_health") { launchSingleTop = true }
+            }
+        }
         // The blocks behind today's total, each removable (issue #70). Under the summary rather
         // than beside it: it answers "why is that number wrong", which is a question you only ask
         // after reading the number.

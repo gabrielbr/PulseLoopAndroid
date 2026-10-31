@@ -14,6 +14,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import com.pulseloop.service.HealthHeadline
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
@@ -36,9 +38,9 @@ import com.pulseloop.ui.theme.PulseColors
 import java.util.Calendar
 
 /**
- * Fixed top header shared by every tab — ported from RootViews.swift `AppHeader`:
- * small uppercase brand over a time-based greeting on the left; the connection-status
- * pill plus a settings gear on the right.
+ * Fixed top header shared by every tab: the greeting as a small uppercase eyebrow over a
+ * one-line health status that opens My Health (or the screen the status is about); the
+ * connection-status pill plus a settings gear on the right.
  */
 @Composable
 fun AppHeader(
@@ -49,32 +51,67 @@ fun AppHeader(
     idle: Boolean = false,
     /** Set while Health Connect stands in for a ring ("Oura · Health Connect"); replaces the BLE state. */
     sourceLabel: String? = null,
+    /** The profile's first name, added to the greeting. */
+    name: String? = null,
+    /** The health line under the greeting (`HealthHeadline`); null while it is first read. */
+    headline: HealthHeadline.Headline? = null,
+    onOpenHeadline: (String) -> Unit = {},
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             // No opaque background: the caller layers this header on the glass
             // top bar (hazeEffect in PulseLoopApp), which supplies the material.
-            .padding(start = 20.dp, end = 8.dp, top = 2.dp, bottom = 6.dp),
+            .padding(start = 12.dp, end = 8.dp, top = 2.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        // The greeting is the eyebrow now; the line below it is the door to My Health.
+        // Both are one line, ellipsised, so a long translation or a new headline never
+        // changes the header's height.
+        val firstName = name?.trim()?.substringBefore(' ')?.takeIf { it.isNotEmpty() }
+        val greeting = (if (firstName != null) "${greetingForHour()}, $firstName" else greetingForHour()).uppercase()
+        val line = headline?.text ?: tr("My Health")
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .heightIn(min = 44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(
+                    onClickLabel = tr("Open My Health"),
+                    role = Role.Button,
+                ) { onOpenHeadline(headline?.route ?: "my_health") }
+                .padding(horizontal = 8.dp, vertical = 2.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
             Text(
-                "PULSELOOP",
+                greeting,
                 fontSize = 10.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 1.2.sp,
                 color = PulseColors.textMuted,
-            )
-            Text(
-                greetingForHour(),
-                fontSize = 17.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PulseColors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                val dot = when {
+                    headline == null -> PulseColors.textMuted
+                    headline.attention -> PulseColors.warning
+                    headline.kind == HealthHeadline.Kind.LEARNING || headline.kind == HealthHeadline.Kind.NONE -> PulseColors.textMuted
+                    else -> PulseColors.accent
+                }
+                Box(Modifier.size(8.dp).clip(CircleShape).background(dot))
+                Text(
+                    line,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = PulseColors.textPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
+                )
+                Text("›", fontSize = 18.sp, color = PulseColors.textMuted, maxLines = 1)
+            }
         }
         ConnectionStatusPill(
             state = state,

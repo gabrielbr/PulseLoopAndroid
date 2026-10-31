@@ -1209,6 +1209,13 @@ clutter came from ignoring one of them:
 - **Inside a screen, summary first, detail on tap.** A screen leads with one summary and its
   primary action; everything else is a row that opens. A new section added inline at full weight
   is how My Health became a wall.
+- **My Health's door is the header, on every tab** (`AppHeader` + `service/HealthHeadline.kt`).
+  The greeting is the eyebrow; under it one line says the most important thing first: lab
+  markers outside their range in the latest report (opens Lab reports), then a radar sign (opens
+  What changed), then "Learning you" before the 14-night baseline, then the weakest health area.
+  It points at what to look at and never names a condition. It is one line, ellipsised, and keeps
+  its last text while the next is read, so the header never changes height or blanks. Sleep,
+  Vitals and Activity each end with one in-context row into My Health; Today has none.
 - **One open section per screen.** Today shows two rows of tiles and folds the rest behind "Show
   all metrics"; My Health keeps health areas open and folds Trends, Habits and Stress into
   closed sections (`Section(summary = …)`), and the radar to one line unless it flags something.

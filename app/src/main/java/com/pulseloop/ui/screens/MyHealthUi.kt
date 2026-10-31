@@ -595,18 +595,21 @@ fun BreatheScreen(onBack: () -> Unit) {
 private const val BREATH_CYCLE_MS = 10_000L
 private const val INHALE_MS = 4_000L
 
-/** The way into [MyHealthScreen] from Vitals: one row, with Rest Mode shown while it is on. */
+/**
+ * A tab's shortcut into [MyHealthScreen], worded for the question that tab raises
+ * ("See your last 90 days" on Sleep, "Trends & lab reports" on Vitals, "How the month went"
+ * on Activity). The header's health line is the main door; this is the in-context one.
+ */
 @Composable
-fun MyHealthEntryCard(onClick: () -> Unit) {
-    // Rest Mode has its own line on Today now, so this row only says what is behind it.
+fun MyHealthEntryCard(title: String, subtitle: String, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
             .clickable(onClick = onClick).padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(tr("My Health & Trends"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(tr("How your last months went: health areas, trends and habits"), fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(subtitle, fontSize = 12.sp, color = PulseColors.textMuted)
         }
         Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
     }

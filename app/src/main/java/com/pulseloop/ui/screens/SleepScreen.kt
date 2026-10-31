@@ -116,6 +116,12 @@ fun SleepScreen(
         if (loaded) {
             if (state.range == SleepRangeKey.DAY) dayItems(state, navController, viewModel)
             else aggregateItems(state, navController)
+            // In-context door to My Health: after the night, the question is the longer run.
+            if (navController != null) item {
+                MyHealthEntryCard(tr("See your last 90 days"), tr("Your sleep trend and what moves it, in My Health")) {
+                    navController.navigate("my_health") { launchSingleTop = true }
+                }
+            }
         }
         item { Spacer(Modifier.height(64.dp)) }
     }
