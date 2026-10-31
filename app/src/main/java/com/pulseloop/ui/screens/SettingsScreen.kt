@@ -80,12 +80,15 @@ fun SettingsScreen(
         else -> keyStore.model
     }
     val openCheck by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
+    // The tabs no longer carry the "Adjusted by your accuracy check" caption; this row is
+    // where the user sees that corrections are on, and the screen behind it lists them.
+    val accuracyCorrections = rememberAccuracyCorrections()
     val accuracyTrailing = openCheck?.let { c ->
         if (c.state == com.pulseloop.data.entity.AccuracyCheckEntity.STATE_RUNNING) {
             val (day, total) = AccuracyUiText.dayOf(c)
             trf("Day {0} of {1}", day, total)
         } else tr("Report ready")
-    }
+    } ?: tr("Adjusting your ring").takeIf { !accuracyCorrections.isEmpty }
 
     fun navigate(route: String) {
         navController?.navigate(route)
