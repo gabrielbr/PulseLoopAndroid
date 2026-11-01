@@ -1177,10 +1177,17 @@ screens that no longer exist, and an app change missing from the canvas is invis
   board, a slot in its journey's row, a note, and a card in the flow map; a removed or renamed
   screen loses or renames all four. Links between boards (`<a href="X.dc.html">`) follow the
   app's real navigation.
-- **The design system:** https://claude.ai/artifact/P1nRuiJhuffYq9pnNbHe5q — tokens from
-  `ui/theme/PulseColors.kt`, the Bayer dither from `ui/theme/Dither.kt`, Ubuntu Mono, and the
-  web components the canvas mounts. A token, colour, type size or dither coverage changed in
-  `ui/theme/` is changed there too, and the canvas's copy (`project/ds/pulseloop/`) is refreshed.
+- **The design system's source of truth is a repo:**
+  [gabrielbr/Gabriel-Deisgn-System](https://github.com/gabrielbr/Gabriel-Deisgn-System), shared
+  with GVoice/GMind and audited on every change. Its `pulseloop` layer generates
+  `ui/theme/GTokens.kt`, and `PulseColors` / `FairyMode.Palette` read every colour from it: no
+  `Color(0x…)` literals there. A token, colour, type size or dither value changes in that repo
+  first; then copy the generated `GTokens.kt` in and run its
+  `scripts/drift.py --pulseloop <this repo>` until it reports 0 differences.
+- **The design-system artifact:** https://claude.ai/artifact/P1nRuiJhuffYq9pnNbHe5q — the tokens
+  above, the Bayer dither from `ui/theme/Dither.kt`, Ubuntu Mono, and the web components the
+  canvas mounts. A token changed in the repo is changed there too, and the canvas's copy
+  (`project/ds/pulseloop/`) is refreshed.
 - **Design → app:** an annotation or design edit the owner agrees to is implemented in Compose,
   released through the normal flow, and only then reported as done.
 - **Read before writing.** The owner edits the canvas by hand; read the boards you will change
