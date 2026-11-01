@@ -64,10 +64,10 @@ object FairyMode {
 
     /** Her palette: a soft rose pink with deep plum ink on it (7.7:1). */
     object Palette {
-        val accent = Color(0xFFFF8FC7)
-        val accentSoft = Color(0x2EFF8FC7)
-        val onAccent = Color(0xFF3D0A26)
-        val rem = Color(0xFFFFB3DA)
+        val accent = GTokens.Colors.fairyAccent
+        val accentSoft = GTokens.Colors.fairyAccentSoft
+        val onAccent = GTokens.Colors.fairyOnAccent
+        val rem = GTokens.Colors.fairyRem
         /** Sparkle colours: pinks, a little gold and white. */
         val sparkles = listOf(
             Color(0xFFFF8FC7), Color(0xFFFFB3DA), Color(0xFFFF5FA8), Color(0xFFFFD6EC),
