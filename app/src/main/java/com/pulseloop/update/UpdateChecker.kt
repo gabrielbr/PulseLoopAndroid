@@ -11,7 +11,11 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
+import java.security.MessageDigest
+import java.util.Locale
 import java.util.concurrent.TimeUnit
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.ensureActive
 
 @Serializable
 data class GithubRelease(
@@ -39,7 +43,18 @@ data class UpdateInfo(
     val apkUrl: String,
     val apkSize: Long,
     val htmlUrl: String,
+    val apkName: String = "",
+    /** Where the release's SHA256SUMS.txt is, if it has one. */
+    val sumsUrl: String? = null,
+    /** The APK's SHA-256 from that file (lowercase hex). No sum, no update. */
+    val sha256: String = "",
 )
+
+/** Outcome of [UpdateChecker.download]: the verified file, or why there is none (an English key for `tr`). */
+sealed class DownloadResult {
+    data class Ready(val file: File) : DownloadResult()
+    data class Failed(val reason: String) : DownloadResult()
+}
 
 /**
  * Outcome of an update check. Failures are distinct from "no update" so the UI never
@@ -50,6 +65,7 @@ sealed class UpdateCheckResult {
     data object UpToDate : UpdateCheckResult()
     /** Unsupported build (debug / non-release id), or inside the auto-check throttle window. */
     data object Skipped : UpdateCheckResult()
+    /** [reason] is a fixed English phrase, translated where it's shown. */
     data class Failed(val reason: String) : UpdateCheckResult()
 }
 
@@ -128,7 +144,7 @@ object UpdateChecker {
         val response = try {
             client.newCall(request).execute()
         } catch (_: Exception) {
-            return@withContext UpdateCheckResult.Failed("network error")
+            return@withContext UpdateCheckResult.Failed(REASON_OFFLINE)
         }
 
         response.use { resp ->
@@ -140,13 +156,35 @@ object UpdateChecker {
                 }
                 else -> {
                     edit.apply()
-                    return@withContext UpdateCheckResult.Failed("GitHub returned ${resp.code}")
+                    return@withContext UpdateCheckResult.Failed(
+                        if (resp.code == 403 || resp.code == 429) REASON_RATE_LIMITED else REASON_NO_ANSWER,
+                    )
                 }
             }
             edit.apply()
-            if (bodyText == null) return@withContext UpdateCheckResult.Failed("empty response")
-            evaluate(bodyText)
+            if (bodyText == null) return@withContext UpdateCheckResult.Failed(REASON_BAD_REPLY)
+            withChecksum(evaluate(bodyText))
         }
+    }
+
+    /**
+     * Fills in the APK's SHA-256 from the release's SHA256SUMS.txt (Gabriel Design System,
+     * docs/self-update.md: no published sum, no install). A release without the file, or without a
+     * line for this APK, is not offered: the check fails with a reason a manual check shows.
+     */
+    private fun withChecksum(result: UpdateCheckResult): UpdateCheckResult {
+        if (result !is UpdateCheckResult.UpdateAvailable) return result
+        val info = result.info
+        val sumsUrl = info.sumsUrl ?: return UpdateCheckResult.Failed(REASON_NO_CHECKSUM)
+        val text = try {
+            client.newCall(Request.Builder().url(sumsUrl).build()).execute().use { r ->
+                if (!r.isSuccessful || !r.request.url.isHttps) null else r.body?.string()
+            }
+        } catch (_: Exception) {
+            return UpdateCheckResult.Failed(REASON_OFFLINE)
+        } ?: return UpdateCheckResult.Failed(REASON_NO_CHECKSUM)
+        val sum = parseSums(text)[info.apkName] ?: return UpdateCheckResult.Failed(REASON_NO_CHECKSUM)
+        return UpdateCheckResult.UpdateAvailable(info.copy(sha256 = sum))
     }
 
     /** Compare a releases-API response body against the installed build. */
@@ -154,7 +192,7 @@ object UpdateChecker {
         val release = try {
             json.decodeFromString(GithubRelease.serializer(), bodyText)
         } catch (_: Exception) {
-            return UpdateCheckResult.Failed("unexpected response from GitHub")
+            return UpdateCheckResult.Failed(REASON_BAD_REPLY)
         }
         if (release.draft || release.prerelease) return UpdateCheckResult.UpToDate
 
@@ -162,11 +200,9 @@ object UpdateChecker {
             ?: return UpdateCheckResult.UpToDate    // tag not in the v<name>+<code> scheme
         if (remoteCode <= BuildConfig.VERSION_CODE) return UpdateCheckResult.UpToDate
 
-        val apks = release.assets.filter { it.name.endsWith(".apk", ignoreCase = true) }
-        val apk = apks.firstOrNull { it.name.contains("universal", ignoreCase = true) }
-            ?: apks.firstOrNull { a -> Build.SUPPORTED_ABIS.any { a.name.contains(it, ignoreCase = true) } }
-            ?: apks.firstOrNull()
-            ?: return UpdateCheckResult.Failed("release has no APK asset")
+        val apk = chooseApk(release.assets, Build.SUPPORTED_ABIS.toList())
+            ?: return UpdateCheckResult.UpToDate    // nothing this phone can install: not an error to show
+        val sums = release.assets.firstOrNull { it.name == SUMS_FILE }
 
         return UpdateCheckResult.UpdateAvailable(UpdateInfo(
             versionName = versionNameFromTag(release.tagName),
@@ -175,41 +211,78 @@ object UpdateChecker {
             apkUrl = apk.browserDownloadUrl,
             apkSize = apk.size,
             htmlUrl = release.htmlUrl ?: "",
+            apkName = apk.name,
+            sumsUrl = sums?.browserDownloadUrl?.takeIf { it.startsWith("https://") },
         ))
     }
 
+    const val SUMS_FILE = "SHA256SUMS.txt"
+    const val REASON_OFFLINE = "no connection"
+    const val REASON_RATE_LIMITED = "GitHub is busy, try again in an hour"
+    const val REASON_NO_ANSWER = "GitHub didn't answer"
+    const val REASON_BAD_REPLY = "unexpected reply from GitHub"
+    const val REASON_NO_CHECKSUM = "the release has no checksum"
+    const val DOWNLOAD_FAILED = "Download failed. Try again."
+    const val CHECKSUM_MISMATCH = "The download didn't match the release's checksum, so it wasn't installed."
+    const val NOT_THIS_APP = "The download isn't signed like this app, so it wasn't installed."
+
+    /** Universal APK first, then one for this phone's ABI, then any APK; HTTPS links only. */
+    fun chooseApk(assets: List<GithubAsset>, abis: List<String>): GithubAsset? {
+        val apks = assets.filter { it.name.endsWith(".apk", ignoreCase = true) && it.browserDownloadUrl.startsWith("https://") }
+        return apks.firstOrNull { it.name.contains("universal", ignoreCase = true) }
+            ?: apks.firstOrNull { a -> abis.any { a.name.contains(it, ignoreCase = true) } }
+            ?: apks.firstOrNull()
+    }
+
+    /** `sha256sum` output ("<64 hex>  name" or "<64 hex> *name") → file name → lowercase hex. */
+    fun parseSums(text: String): Map<String, String> = text.lineSequence().mapNotNull { line ->
+        val m = SUM_LINE.matchEntire(line.trim()) ?: return@mapNotNull null
+        m.groupValues[2].trim() to m.groupValues[1].lowercase(Locale.ROOT)
+    }.toMap()
+
+    private val SUM_LINE = Regex("([0-9a-fA-F]{64})\\s+\\*?(.+)")
+
+    /** "38 MB" for the Update button. */
+    fun sizeLabel(bytes: Long): String =
+        if (bytes >= 1_000_000_000L) String.format(Locale.ROOT, "%.1f GB", bytes / 1e9)
+        else "${maxOf(1L, Math.round(bytes / 1e6))} MB"
+
     /**
-     * Download the APK to cacheDir/updates, reporting progress in 0f..1f. Returns the file, or
-     * null if the download failed or arrived short.
+     * Downloads the APK to cacheDir/updates, reporting progress in 0f..1f, and checks it before
+     * anything is installed (Gabriel Design System, docs/self-update.md): HTTPS only, the whole file,
+     * its SHA-256 against the release's SHA256SUMS.txt, and the same package and signing key as this
+     * app. Cancelling the calling coroutine stops the download and deletes the part.
      *
-     * The short-file check is the important one: a body that ends early without throwing (a
-     * dropped connection on a chunked reply, a captive portal cutting in) leaves a truncated
-     * APK, and the system package installer reports that as "There was a problem parsing the
-     * package" — which reads as a broken release rather than a failed download. Better to fail
-     * the download honestly and let the user retry.
+     * The short-file check matters: a body that ends early without throwing (a dropped connection on
+     * a chunked reply, a captive portal cutting in) leaves a truncated APK, and the system installer
+     * reports that as "There was a problem parsing the package", which reads as a broken release.
      */
     suspend fun download(
         context: Context,
         info: UpdateInfo,
         onProgress: (Float) -> Unit,
-    ): File? = withContext(Dispatchers.IO) {
+    ): DownloadResult = withContext(Dispatchers.IO) {
+        if (info.sha256.isEmpty()) return@withContext DownloadResult.Failed(CHECKSUM_MISMATCH)
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val out = File(dir, "pulseloop-${info.versionCode}.apk")
         try {
             downloadClient.newCall(Request.Builder().url(info.apkUrl).build()).execute().use { resp ->
-                if (!resp.isSuccessful) return@withContext null
-                val body = resp.body ?: return@withContext null
+                if (!resp.isSuccessful || !resp.request.url.isHttps) return@withContext DownloadResult.Failed(DOWNLOAD_FAILED)
+                val body = resp.body ?: return@withContext DownloadResult.Failed(DOWNLOAD_FAILED)
                 val stream = body.byteStream()
                 val total = body.contentLength().takeIf { it > 0 } ?: info.apkSize
 
                 dir.listFiles()?.forEach { it.delete() }   // drop any stale download
 
+                val sha = MessageDigest.getInstance("SHA-256")
                 var downloaded = 0L
                 out.outputStream().use { fos ->
                     val buf = ByteArray(64 * 1024)
                     var read: Int
                     while (stream.read(buf).also { read = it } != -1) {
+                        coroutineContext.ensureActive()        // Cancel in the dialog
                         fos.write(buf, 0, read)
+                        sha.update(buf, 0, read)
                         downloaded += read
                         if (total > 0) onProgress((downloaded.toFloat() / total).coerceIn(0f, 1f))
                     }
@@ -218,13 +291,26 @@ object UpdateChecker {
 
                 if (total > 0 && downloaded != total) {
                     out.delete()
-                    return@withContext null
+                    return@withContext DownloadResult.Failed(DOWNLOAD_FAILED)
                 }
-                out
+                if (hex(sha.digest()) != info.sha256) {
+                    out.delete()
+                    return@withContext DownloadResult.Failed(CHECKSUM_MISMATCH)
+                }
+                if (!ApkInstaller.sameAppAndKey(context, out)) {
+                    out.delete()
+                    return@withContext DownloadResult.Failed(NOT_THIS_APP)
+                }
+                DownloadResult.Ready(out)
             }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            out.delete()
+            throw cancelled
         } catch (_: Exception) {
             out.delete()
-            null
+            DownloadResult.Failed(DOWNLOAD_FAILED)
         }
     }
+
+    fun hex(bytes: ByteArray): String = bytes.joinToString("") { String.format(Locale.ROOT, "%02x", it) }
 }

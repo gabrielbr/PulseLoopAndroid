@@ -18,33 +18,46 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pulseloop.BuildConfig
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import com.pulseloop.ui.components.MarkdownLite
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
- * "Update available" dialog: shows the changelog, then downloads the APK with a progress bar
- * and hands it to the system installer. Reused by the on-launch check and the Settings button.
+ * "Update available" dialog (Gabriel Design System, docs/self-update.md): the changelog, then
+ * Update · size downloads the APK with a progress bar, checks it, and hands it to the system
+ * installer. While it downloads, Later becomes Cancel and the dialog can't be dismissed by accident.
+ * Reused by the foreground check and the About screen's button.
  */
 @Composable
 fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var downloading by remember { mutableStateOf(false) }
+    var job by remember { mutableStateOf<Job?>(null) }
+    val downloading = job != null
     var progress by remember { mutableFloatStateOf(0f) }
     var error by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = { if (!downloading) onDismiss() },
-        title = { Text("Update available — ${info.versionName}") },
+        title = { Text(trf("Update available · {0}", info.versionName)) },
         text = {
             Column {
                 if (downloading) {
-                    Text("Downloading… ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        trf("Downloading… {0}%", (progress * 100).toInt()),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    )
                     Spacer(Modifier.height(8.dp))
                     LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 } else {
                     MarkdownLite(
-                        info.changelog,
+                        tr(info.changelog),   // GitHub's notes stay as written; the fallback line translates
                         modifier = Modifier
                             .heightIn(max = 320.dp)
                             .verticalScroll(rememberScrollState()),
@@ -58,7 +71,12 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                     )
                     error?.let {
                         Spacer(Modifier.height(8.dp))
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                        )
                     }
                 }
             }
@@ -69,34 +87,45 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                 onClick = {
                     // Require the per-app "install unknown apps" grant first.
                     if (!ApkInstaller.canInstall(context)) {
+                        error = tr("Allow installs from this app, then tap Update again.")
                         context.startActivity(ApkInstaller.installPermissionIntent(context))
                         return@TextButton
                     }
-                    downloading = true
                     error = null
-                    scope.launch {
-                        val file = UpdateChecker.download(context, info) { progress = it }
-                        downloading = false
-                        if (file != null) {
-                            ApkInstaller.install(context, file)
-                            onDismiss()
-                        } else {
-                            error = "Download failed. Please try again."
+                    progress = 0f
+                    job = scope.launch {
+                        val result = UpdateChecker.download(context, info) { progress = it }
+                        job = null
+                        when (result) {
+                            is DownloadResult.Ready -> {
+                                ApkInstaller.install(context, result.file)
+                                onDismiss()
+                            }
+                            is DownloadResult.Failed -> error = tr(result.reason)
                         }
                     }
                 },
-            ) { Text(if (downloading) "Downloading…" else "Update") }
+            ) {
+                Text(
+                    if (info.apkSize > 0) trf("Update · {0}", UpdateChecker.sizeLabel(info.apkSize))
+                    else tr("Update"),
+                )
+            }
         },
         dismissButton = {
-            TextButton(enabled = !downloading, onClick = onDismiss) { Text("Later") }
+            if (downloading) {
+                TextButton(onClick = { job?.cancel(); job = null }) { Text(tr("Cancel")) }
+            } else {
+                TextButton(onClick = onDismiss) { Text(tr("Later")) }
+            }
         },
     )
 }
 
 /**
- * Self-contained "Check for updates" control for the Settings screen: a button that runs a
- * forced check and shows the result (up-to-date / error / the update dialog). On a debug or
- * non-release build, self-update isn't possible, so it shows a short explanation instead.
+ * Self-contained "Check for updates" control for the About screen: a button that runs a forced
+ * check and shows the result (up to date / couldn't check / the update dialog). A debug or
+ * non-release build can't update itself, so it says that instead.
  */
 @Composable
 fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
@@ -109,8 +138,7 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
     Column(modifier) {
         if (!UpdateChecker.isSupported()) {
             Text(
-                "Self-update is available in the release build only " +
-                    "(current: ${BuildConfig.VERSION_NAME} / ${BuildConfig.APPLICATION_ID}).",
+                trf("Self-update works in the release build only ({0} / {1}).", BuildConfig.VERSION_NAME, BuildConfig.APPLICATION_ID),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -125,17 +153,22 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
                     when (val result = UpdateChecker.check(context, force = true)) {
                         is UpdateCheckResult.UpdateAvailable -> update = result.info
                         is UpdateCheckResult.Failed ->
-                            status = "Couldn't check for updates (${result.reason}). Please try again."
-                        else -> status = "You're on the latest version (${BuildConfig.VERSION_NAME})."
+                            status = trf("Couldn't check for updates ({0}). Try again.", tr(result.reason))
+                        else -> status = trf("You're on the latest version ({0}).", BuildConfig.VERSION_NAME)
                     }
                     checking = false
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (checking) "Checking…" else "Check for updates") }
+        ) { Text(if (checking) tr("Checking…") else tr("Check for updates")) }
         status?.let {
             Spacer(Modifier.height(8.dp))
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
         }
     }
 
