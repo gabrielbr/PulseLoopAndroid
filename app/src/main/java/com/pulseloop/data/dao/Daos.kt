@@ -607,6 +607,10 @@ interface MealEntryDao {
     @Query("SELECT * FROM meal_entries WHERE id = :id LIMIT 1")
     suspend fun byId(id: String): MealEntryEntity?
 
+    /** The user's own past meals, newest first, for suggesting a food again (FoodHistory). */
+    @Query("SELECT * FROM meal_entries WHERE sourceRaw NOT IN ('demo','mock') ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun recentReal(limit: Int = 1000): List<MealEntryEntity>
+
     @Upsert
     suspend fun upsert(entry: MealEntryEntity)
 

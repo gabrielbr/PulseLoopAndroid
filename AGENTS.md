@@ -1236,6 +1236,15 @@ clutter came from ignoring one of them:
 - **A goal saved anywhere goes through `GoalSync.afterManualSave`** — it is what stops the field
   following the coach, sends the step goal to the ring and republishes the widget.
 
+## Logging a food again: suggestions come from the user's own history
+
+Typing a meal's name in the Log Meal form offers foods logged before (`service/FoodHistory.kt`,
+`MealEntryDao.recentReal`): one per food, names compared without case or accents, with the
+numbers from its newest log; names starting with the text first, then most-logged, then most
+recent. Nothing under two letters, and demo rows never appear. A pick fills name, meal type and
+macros, all still editable, and the saved meal keeps the original's provenance (barcode code,
+serving, AI-estimate source); changing a number marks it `userEdited`, as a barcode pick does.
+
 ## Type, colour and chrome: one of each role (audit, v2.11.52)
 
 - **Type sizes come from `PulseType.SCALE`** (12, 14, 16, 20, 24, 28, 32, 40). 12sp is the floor
