@@ -4,6 +4,8 @@ import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.ChevronLeft
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
@@ -24,6 +27,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -413,6 +417,16 @@ fun MealLogDialog(
     var estimating by remember { mutableStateOf(false) }
     var aiEstimate by remember { mutableStateOf<MealAnalysisLogic.Estimate?>(null) }
     var aiNotice by remember { mutableStateOf<String?>(null) }
+    // Foods logged before, offered as the name is typed (FoodHistory). The pick is kept so the
+    // saved meal carries the original's provenance (barcode, AI estimate, serving) while its
+    // numbers are unchanged.
+    val history by androidx.compose.runtime.produceState(emptyList<com.pulseloop.data.entity.MealEntryEntity>()) {
+        value = runCatching { db.mealEntryDao().recentReal() }.getOrDefault(emptyList())
+    }
+    var reused by remember { mutableStateOf<com.pulseloop.data.entity.MealEntryEntity?>(null) }
+    val suggestions = remember(history, name, reused) {
+        if (reused != null) emptyList() else com.pulseloop.service.FoodHistory.suggest(history, name)
+    }
 
     /** iOS ManualMealForm.fieldText (MealLogSheet.swift:582-584): whole or one decimal. */
     fun fieldText(value: Double): String =
@@ -517,7 +531,43 @@ fun MealLogDialog(
                     // iOS inlineNotice copy (MealLogSheet.swift:128-130 / :259).
                     Text(it, fontSize = 12.sp, color = PulseColors.warning)
                 }
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(tr("Name")) }, placeholder = { if (aiAvailable) Text(tr("e.g. rice, beans and a grilled chicken breast")) }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
+                OutlinedTextField(value = name, onValueChange = { name = it; if (reused != null && it != reused?.name) reused = null }, label = { Text(tr("Name")) }, placeholder = { if (aiAvailable) Text(tr("e.g. rice, beans and a grilled chicken breast")) }, modifier = Modifier.fillMaxWidth(), maxLines = 3, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(capitalization = androidx.compose.ui.text.input.KeyboardCapitalization.Sentences))
+                // "Log it again": the user's own earlier foods matching what was typed. A tap fills
+                // the name and the numbers from the food's latest log; every field stays editable.
+                suggestions.forEach { sug ->
+                    val e = sug.entry
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PulseColors.cardSoft)
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClickLabel = tr("Use this food")) {
+                                reused = e
+                                pendingProduct = null
+                                aiEstimate = null
+                                name = e.name
+                                type = e.mealTypeRaw
+                                cal = fieldText(e.calories)
+                                protein = fieldText(e.proteinG)
+                                carbs = fieldText(e.carbsG)
+                                fat = fieldText(e.fatG)
+                            }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Icon(Icons.Filled.History, null, tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(e.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(
+                                trf("{0} kcal · P {1} · C {2} · F {3}", e.calories.roundToInt(), e.proteinG.roundToInt(), e.carbsG.roundToInt(), e.fatG.roundToInt()) +
+                                    if (sug.count > 1) " · " + trf("logged {0} times", sug.count) else "",
+                                fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
                 if (aiAvailable) {
                     OutlinedButton(
                         onClick = { estimateWithAi() },
@@ -571,6 +621,26 @@ fun MealLogDialog(
                         sourceRaw = NutritionTools.sourceRawLlmEstimate,
                         confidenceRaw = MealAnalysisLogic.confidenceRaw(ai.confidence),
                         notes = ai.assumptions.trim().takeIf { it.isNotEmpty() },
+                    )
+                } else if (pp == null && reused != null) {
+                    // A food logged again keeps where its numbers came from (barcode, AI
+                    // estimate, serving); changing them marks it edited, as a barcode pick does.
+                    val r = reused!!
+                    val p = protein.toDoubleOrNull() ?: 0.0
+                    val c = carbs.toDoubleOrNull() ?: 0.0
+                    val f = fat.toDoubleOrNull() ?: 0.0
+                    val edited = kcal != r.calories || p != r.proteinG || c != r.carbsG || f != r.fatG
+                    MealLogSave(
+                        name = name.trim(), type = type, calories = kcal,
+                        proteinG = p, carbsG = c, fatG = f,
+                        sourceRaw = r.sourceRaw,
+                        offProductCode = r.offProductCode,
+                        servingDescription = r.servingDescription,
+                        servingGrams = r.servingGrams,
+                        quantity = r.quantity,
+                        userEdited = r.userEdited || edited,
+                        confidenceRaw = r.confidenceRaw,
+                        notes = r.notes,
                     )
                 } else if (pp == null) {
                     MealLogSave(
