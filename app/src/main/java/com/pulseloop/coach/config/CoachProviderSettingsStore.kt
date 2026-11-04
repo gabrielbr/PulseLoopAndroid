@@ -47,6 +47,17 @@ class CoachProviderSettingsStore(context: Context) {
 
     val hasMinimaxKey: Boolean get() = minimaxApiKey.isNotBlank()
 
+    var anthropicApiKey: String
+        get() = prefs.getString(KEY_ANTHROPIC_API_KEY, "") ?: ""
+        set(value) { prefs.edit().putString(KEY_ANTHROPIC_API_KEY, value.trim()).apply() }
+
+    val hasAnthropicKey: Boolean get() = anthropicApiKey.isNotBlank()
+
+    /** Claude model id (see [ClaudeModel] presets, or one from the live list). */
+    var anthropicModel: String
+        get() = prefs.getString(KEY_ANTHROPIC_MODEL, ClaudeModel.DEFAULT.slug) ?: ClaudeModel.DEFAULT.slug
+        set(value) { prefs.edit().putString(KEY_ANTHROPIC_MODEL, value).apply() }
+
     /** Gemini model slug (see [GeminiModel] presets). Retired 2.x slugs are remapped to the
      *  current rolling alias on read so no one stays stuck on a deprecated model (issue #22). */
     var geminiModel: String
@@ -142,6 +153,7 @@ class CoachProviderSettingsStore(context: Context) {
         geminiModel = geminiModel,
         openRouterModel = openRouterModel,
         minimaxModel = minimaxModel,
+        anthropicModel = anthropicModel,
         orPrivacyRouting = orPrivacyRouting,
         orProviderSort = orProviderSort,
         reasoningEffort = reasoningEffort,
@@ -159,6 +171,9 @@ class CoachProviderSettingsStore(context: Context) {
         private const val KEY_GEMINI_API_KEY = "gemini_api_key"
         private const val KEY_OPENROUTER_API_KEY = "openrouter_api_key"
         private const val KEY_MINIMAX_API_KEY = "minimax_api_key"
+        // Both ride in the backup (ArchivedSettings.SECURE_KEYS), like every provider's key.
+        private const val KEY_ANTHROPIC_API_KEY = "anthropic_api_key"
+        private const val KEY_ANTHROPIC_MODEL = "anthropic_model"
         private const val KEY_GEMINI_MODEL = "gemini_model"
         private const val KEY_OPENROUTER_MODEL = "openrouter_model"
         private const val KEY_MINIMAX_MODEL = "minimax_model"

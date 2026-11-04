@@ -63,7 +63,8 @@ object ArchivedSettings {
         // AI coach: switches, provider, keys, models, the custom API.
         "coach_enabled", "coach_model", "openai_api_key", "coach_provider_mode",
         "gemini_api_key", "gemini_model", "openrouter_api_key", "openrouter_model",
-        "minimax_api_key", "minimax_model", "openrouter_privacy_routing", "openrouter_provider_sort",
+        "minimax_api_key", "minimax_model", "anthropic_api_key", "anthropic_model",
+        "openrouter_privacy_routing", "openrouter_provider_sort",
         "coach_reasoning_effort", "coach_image_input_enabled", "web_search_enabled",
         "write_tools_enabled", "environment_context_enabled",
         "local_llm_base_url", "local_llm_api_key", "local_llm_model", "local_llm_tool_calling",

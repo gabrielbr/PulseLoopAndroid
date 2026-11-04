@@ -1,5 +1,6 @@
 package com.pulseloop.coach.config
 
+import com.pulseloop.coach.anthropic.AnthropicClient
 import com.pulseloop.coach.gemini.GeminiClient
 import com.pulseloop.coach.local.LocalEndpoint
 import com.pulseloop.coach.local.LocalOpenAICompatClient
@@ -42,6 +43,7 @@ object CoachClientResolver {
         openRouterKey: String?,
         minimaxKey: String? = null,
         localKey: String? = null,
+        anthropicKey: String? = null,
         openAIClientFactory: (String) -> ResponsesClient = { OpenAIResponsesClient(it) },
         /** On-device only: whether the model file is on the phone. Passed in so this stays pure-JVM. */
         onDeviceReady: Boolean = false,
@@ -63,6 +65,10 @@ object CoachClientResolver {
         CoachProviderMode.USER_MINIMAX_KEY -> {
             val key = minimaxKey?.takeIf { it.isNotBlank() }
             Resolution(key, MiniMaxClient(apiKey = key ?: "", model = settings.resolvedMinimaxModel))
+        }
+        CoachProviderMode.USER_ANTHROPIC_KEY -> {
+            val key = anthropicKey?.takeIf { it.isNotBlank() }
+            Resolution(key, AnthropicClient(apiKey = key ?: "", model = settings.resolvedAnthropicModel))
         }
         CoachProviderMode.LOCAL_OPENAI_COMPAT -> {
             // Readiness is a base URL that would actually work — `validate`, not `isNotBlank`.
@@ -118,6 +124,7 @@ object CoachClientResolver {
             openRouterKey = store.openRouterApiKey,
             minimaxKey = store.minimaxApiKey,
             localKey = store.localApiKey,
+            anthropicKey = store.anthropicApiKey,
             openAIClientFactory = openAIClientFactory,
             onDeviceReady = onDevice?.isReady() == true,
             onDeviceEngine = onDevice ?: NoOnDeviceEngine,
@@ -169,6 +176,7 @@ object CoachClientResolver {
             CoachProviderMode.USER_GEMINI_KEY -> settings.geminiModel
             CoachProviderMode.USER_OPENROUTER_KEY -> settings.resolvedOpenRouterModel
             CoachProviderMode.USER_MINIMAX_KEY -> settings.resolvedMinimaxModel
+            CoachProviderMode.USER_ANTHROPIC_KEY -> settings.resolvedAnthropicModel
             // Reported verbatim for attribution — including blank, which is a valid llama.cpp
             // setup. `CoachPricingCatalog` prices this provider at $0 regardless of the string.
             CoachProviderMode.LOCAL_OPENAI_COMPAT -> settings.resolvedLocalModel

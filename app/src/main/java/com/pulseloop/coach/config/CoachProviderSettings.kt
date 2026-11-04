@@ -14,6 +14,8 @@ enum class CoachProviderMode(val rawValue: String, val label: String) {
     USER_GEMINI_KEY("userGeminiKey", "Gemini (your key)"),
     USER_OPENROUTER_KEY("userOpenRouterKey", "OpenRouter (your key)"),
     USER_MINIMAX_KEY("userMiniMaxKey", "MiniMax (your key)"),
+    /** Claude through Anthropic's Messages API, with the user's own key (`AnthropicClient`). */
+    USER_ANTHROPIC_KEY("userAnthropicKey", "Claude (your key)"),
     /** Any OpenAI-Chat-Completions-compatible server the user runs themselves — Ollama,
      *  llama.cpp, vLLM, SGLang, LM Studio. The API key is optional here; the readiness sentinel
      *  is the base URL. See `docs/local-llm-coach.md`. */
@@ -45,6 +47,8 @@ data class CoachProviderSettings(
     val openRouterModel: String = OpenRouterModel.DEFAULT.slug,
     /** MiniMax model slug (see [MiniMaxModel] presets). */
     val minimaxModel: String = MiniMaxModel.DEFAULT.slug,
+    /** Claude model id (see [ClaudeModel] presets). */
+    val anthropicModel: String = ClaudeModel.DEFAULT.slug,
     /** OpenRouter-only: route only through providers that don't log/train on
      *  prompts (sends `provider.data_collection = "deny"`). */
     val orPrivacyRouting: Boolean = false,
@@ -81,6 +85,10 @@ data class CoachProviderSettings(
      *  the stored slug is blank. */
     val resolvedMinimaxModel: String
         get() = minimaxModel.trim().ifEmpty { MiniMaxModel.DEFAULT.slug }
+
+    /** The Claude model id to use; the default preset when the stored one is blank. */
+    val resolvedAnthropicModel: String
+        get() = anthropicModel.trim().ifEmpty { ClaudeModel.DEFAULT.slug }
 
     /** The local base URL with surrounding whitespace gone; blank when unconfigured. There's no
      *  default to fall back to — every engine listens on a different port. */

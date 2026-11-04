@@ -26,6 +26,8 @@ object ReasoningEfforts {
                 OpenRouterModel.entries.firstOrNull { it.slug == slug }?.reasoningEfforts ?: live?.reasoningEfforts
             CoachProviderMode.USER_GEMINI_KEY ->
                 GeminiModel.entries.firstOrNull { it.slug == slug }?.reasoningEfforts ?: geminiLevels(slug)
+            CoachProviderMode.USER_ANTHROPIC_KEY ->
+                ClaudeModel.entries.firstOrNull { it.slug == slug }?.reasoningEfforts ?: live?.reasoningEfforts
             // Neither client sends a `reasoning` field (MiniMax reasons inline; see the local
             // client's header), so there is nothing to choose.
             // The on-device model has no effort setting either.
