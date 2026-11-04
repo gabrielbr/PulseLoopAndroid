@@ -8,6 +8,12 @@ import org.junit.Test
  * right CRP frames. Mirrors the vendor's connect flow (set clock, then user info).
  */
 class CRPSyncEngineTest {
+    /** A fixed midday, far from the 20:00 sleep-day guard, so the expected opcodes never depend on
+     *  when the suite runs. */
+    private val middayClock: () -> java.time.Instant = {
+        java.time.LocalDate.now().atTime(12, 0).atZone(java.time.ZoneId.systemDefault()).toInstant()
+    }
+
     private class FakeWriter : RingCommandWriter {
         val sent = mutableListOf<ByteArray>()
         override fun enqueue(command: ByteArray) { sent.add(command) }
@@ -37,7 +43,7 @@ class CRPSyncEngineTest {
     @Test
     fun `runStartup sends set-time, the connection queries, user info, default monitor enables, then the history pull`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup()
         // set-time, then the once-per-connection self-description queries (firmware + read-backs),
         // the default-on monitor enables, then the history pull.
@@ -69,7 +75,7 @@ class CRPSyncEngineTest {
         // Issue #43. The poll pass only ever asks daysAgo=0, so without this the app could only ever
         // accumulate one night per day going forward and never recover what the ring already holds.
         val w = FakeWriter()
-        CRPSyncEngine(w).runStartup()
+        CRPSyncEngine(w, now = middayClock).runStartup()
         val sleepFrames = w.sent.filter { (it[4].toInt() to it[5].toInt()) == (2 to 14) }
         // Today, then one frame per prior day, each carrying its own daysAgo in the payload.
         assertEquals(1 + 6, sleepFrames.size)
@@ -88,7 +94,7 @@ class CRPSyncEngineTest {
     @Test
     fun `connection queries are sent once per connection, not once per poll pass`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup()
         assertTrue(w.opcodes().containsAll(connectionQueries))
 
@@ -101,7 +107,7 @@ class CRPSyncEngineTest {
 
         // A new connection builds a new engine, which asks again.
         val reconnected = FakeWriter()
-        CRPSyncEngine(reconnected).runStartup()
+        CRPSyncEngine(reconnected, now = middayClock).runStartup()
         assertTrue(reconnected.opcodes().containsAll(connectionQueries))
     }
 
@@ -111,7 +117,7 @@ class CRPSyncEngineTest {
         // as the sensor roster gated beside it, and fdd2 is the scarce channel (a spot SpO2 needs
         // ~48 s of it).
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup()
         assertTrue("firmware asked on the first pass", (3 to 3) in w.opcodes())
 
@@ -121,14 +127,14 @@ class CRPSyncEngineTest {
 
         // A new connection builds a new engine, which asks again.
         val reconnected = FakeWriter()
-        CRPSyncEngine(reconnected).runStartup()
+        CRPSyncEngine(reconnected, now = middayClock).runStartup()
         assertTrue((3 to 3) in reconnected.opcodes())
     }
 
     @Test
     fun `runStartup honours a saved config, disabling the vitals the user turned off`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.setMeasurementSettings(
             MeasurementSettings(
                 hrEnabled = true, hrIntervalMinutes = 10,
@@ -150,7 +156,7 @@ class CRPSyncEngineTest {
     @Test
     fun `heart rate start and stop enqueue group1 cmd9`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.startHeartRate()
         engine.stopHeartRate()
         assertEquals(listOf(1 to 9, 1 to 9), w.opcodes())
@@ -161,7 +167,7 @@ class CRPSyncEngineTest {
     @Test
     fun `findDevice and factoryReset enqueue their commands`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.findDevice()
         engine.factoryReset()
         assertEquals(listOf(9 to 2, 3 to 0), w.opcodes())
@@ -170,7 +176,7 @@ class CRPSyncEngineTest {
     @Test
     fun `a timing-history frame drives the next-frame pull until the vital's terminal frame`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         // Clear the send buffer of the startup queries so we only see follow-ups.
         engine.runStartup(); w.sent.clear()
 
@@ -186,7 +192,7 @@ class CRPSyncEngineTest {
     @Test
     fun `HRV walks four frames, others two`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup(); w.sent.clear()
         // HRV finalizes at frame 3: frames 0,1,2 each pull the next; frame 3 stops.
         for (idx in 0..2) {
@@ -204,7 +210,7 @@ class CRPSyncEngineTest {
     @Test
     fun `temperature walks four frames like HRV`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup(); w.sent.clear()
         for (idx in 0..2) {
             engine.handle(RingDecodedEvent.TimingHistoryFrame(CRPCommands.CMD_QUERY_HISTORY_TEMP, 0, idx))
@@ -219,7 +225,7 @@ class CRPSyncEngineTest {
     @Test
     fun `a repeated frame does not spam duplicate follow-up requests`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup(); w.sent.clear()
         // The ring re-sends HR frame 0 several times in one poll pass — only one frame-1 pull fires.
         repeat(5) { engine.handle(RingDecodedEvent.TimingHistoryFrame(CRPCommands.CMD_QUERY_TIMING_HR, 0, 0)) }
@@ -236,7 +242,7 @@ class CRPSyncEngineTest {
         // timing vitals get the same backfill, a key without `day` would silently swallow day 1's
         // frame-1 follow-up. A different day must be a different follow-up.
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.runStartup(); w.sent.clear()
         engine.handle(RingDecodedEvent.TimingHistoryFrame(cmd = CRPCommands.CMD_QUERY_TIMING_HR, day = 0, frameIndex = 0))
         engine.handle(RingDecodedEvent.TimingHistoryFrame(cmd = CRPCommands.CMD_QUERY_TIMING_HR, day = 1, frameIndex = 0))
@@ -249,7 +255,7 @@ class CRPSyncEngineTest {
     @Test
     fun `applyUserProfile pushes user info immediately`() {
         val w = FakeWriter()
-        val engine = CRPSyncEngine(w)
+        val engine = CRPSyncEngine(w, now = middayClock)
         engine.applyUserProfile(
             UserProfileValues(metric = true, gender = 0u, age = 25u, heightCm = 165u, weightKg = 60u),
         )
