@@ -226,11 +226,19 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                 // not a key, so the old key-only check told a correctly-configured user their
                 // "API key" was missing.
                 val isLocal = providerStore.providerMode == CoachProviderMode.LOCAL_OPENAI_COMPAT
-                val ready = if (isLocal) providerStore.hasLocalBaseUrl else keyStore.apiKey.isNotBlank()
+                val isOnDevice = providerStore.providerMode == CoachProviderMode.ON_DEVICE
+                val onDeviceState by com.pulseloop.coach.ondevice.OnDeviceModelStore.get(context).state.collectAsState()
+                val ready = when {
+                    isOnDevice -> onDeviceState is com.pulseloop.coach.ondevice.ModelState.Ready
+                    isLocal -> providerStore.hasLocalBaseUrl
+                    else -> keyStore.apiKey.isNotBlank()
+                }
                 val activeModel = if (isLocal) providerStore.localModel.ifBlank { "local server" }
+                    else if (isOnDevice) trf("On this phone · {0}", com.pulseloop.coach.ondevice.ModelDownload.DISPLAY_NAME)
                     else selectedModel
                 Text(
                     if (coachEnabled && ready) trf("Active — {0}", activeModel)
+                    else if (coachEnabled && isOnDevice) tr("Model download needed")
                     else if (coachEnabled && isLocal) tr("Server address needed")
                     else if (coachEnabled) tr("API key needed")
                     else tr("Disabled"),
@@ -313,6 +321,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                         CoachProviderMode.USER_OPENROUTER_KEY to "OpenRouter (100+ models)",
                         CoachProviderMode.USER_MINIMAX_KEY to "MiniMax",
                         CoachProviderMode.LOCAL_OPENAI_COMPAT to "Local / self-hosted (no key needed)",
+                        CoachProviderMode.ON_DEVICE to tr("On this phone (no key, works offline)"),
                     )
                     val providerLabel = providerOptions.firstOrNull { it.first == providerMode }?.second ?: tr("OpenAI")
 
@@ -328,7 +337,12 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             providerOptions.forEach { (mode, label) ->
                                 DropdownMenuItem(
                                     text = { Text(label) },
-                                    onClick = { providerMode = mode; providerStore.providerMode = mode; providerExpanded = false },
+                                    onClick = {
+                                        // Leaving the on-device model frees the memory its engine holds.
+                                        if (providerMode == CoachProviderMode.ON_DEVICE && mode != CoachProviderMode.ON_DEVICE)
+                                            com.pulseloop.coach.ondevice.OnDeviceModelStore.get(context).closeEngine()
+                                        providerMode = mode; providerStore.providerMode = mode; providerExpanded = false
+                                    },
                                 )
                             }
                         }
@@ -706,6 +720,8 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                 modifier = Modifier.padding(top = 4.dp),
                             )
                         }
+                        // The model on this phone: its download, its file, its licence (OnDeviceModelUi.kt).
+                        CoachProviderMode.ON_DEVICE -> OnDeviceModelSection()
                         else -> {
                             // OpenAI (and legacy modes): the model picker + key field.
                             CoachModelPicker(
@@ -724,12 +740,14 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             )
                         }
                     }
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        tr("Stored securely in Android Keystore. Never leaves your device except to call the model. Provider changes apply from your next message."),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (providerMode != CoachProviderMode.ON_DEVICE) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            tr("Stored securely in Android Keystore. Never leaves your device except to call the model. Provider changes apply from your next message."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
 
                     // Reasoning effort / Gemini thinking level (iOS #140). The levels differ per model
                     // (GPT-6 Sol rejects None, DeepSeek has no Medium), so the picker lists only what
@@ -738,6 +756,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     val effortProvider = if (providerMode in setOf(
                             CoachProviderMode.USER_GEMINI_KEY, CoachProviderMode.USER_OPENROUTER_KEY,
                             CoachProviderMode.USER_MINIMAX_KEY, CoachProviderMode.LOCAL_OPENAI_COMPAT,
+                            CoachProviderMode.ON_DEVICE,
                         )) providerMode else CoachProviderMode.USER_OPENAI_KEY
                     val effortModel = when (effortProvider) {
                         CoachProviderMode.USER_GEMINI_KEY -> geminiModel
@@ -757,8 +776,11 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                         ) { providerStore.reasoningEffort = it.takeIf { s -> s != "default" }; reasoningEffort = providerStore.reasoningEffort }
                     }
 
+                    // The model on this phone reads text, runs no tools and writes nothing, so
+                    // image, web-search, write and measurement switches don't apply to it.
+                    val toolsApply = providerMode != CoachProviderMode.ON_DEVICE
                     // Image attachments (iOS #31): gates the attach button in the coach chat.
-                    Row(Modifier.fillMaxWidth()
+                    if (toolsApply) Row(Modifier.fillMaxWidth()
                         .switchRow(checked = imageInput, onCheckedChange = { imageInput = it; providerStore.imageInputEnabled = it }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
                             Text(tr("Image attachments"))
@@ -772,7 +794,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     // Tool toggles. Neither MiniMax's compat endpoint nor any self-hosted engine
                     // has a hosted web search, so hide the toggle for both (each client drops the
                     // tool anyway — this is the UI half).
-                    if (providerMode != CoachProviderMode.USER_MINIMAX_KEY &&
+                    if (toolsApply && providerMode != CoachProviderMode.USER_MINIMAX_KEY &&
                         providerMode != CoachProviderMode.LOCAL_OPENAI_COMPAT) {
                         Row(Modifier.fillMaxWidth()
                             .switchRow(checked = webSearch, onCheckedChange = {
@@ -785,7 +807,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             Switch(checked = webSearch, onCheckedChange = null)
                         }
                     }
-                    Row(Modifier.fillMaxWidth()
+                    if (toolsApply) Row(Modifier.fillMaxWidth()
                         .switchRow(checked = writeTools, onCheckedChange = {
                             writeTools = it; keyStore.writeToolsEnabled = it
                         }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -795,7 +817,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                         }
                         Switch(checked = writeTools, onCheckedChange = null)
                     }
-                    Row(Modifier.fillMaxWidth()
+                    if (toolsApply) Row(Modifier.fillMaxWidth()
                         .switchRow(checked = liveMeasurements, onCheckedChange = {
                             liveMeasurements = it; keyStore.liveMeasurementsEnabled = it
                         }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

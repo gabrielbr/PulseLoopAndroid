@@ -20,8 +20,8 @@ data class CoachModelPrice(
  * longest matching key prefix, so a custom slug like `openai/gpt-5.5-preview`
  * still prices off `openai/gpt-5.5`.
  *
- * Unlike iOS there's no Apple on-device provider on Android, so [freeModels] only
- * carries `offline-stub`.
+ * [freeModels] carries `offline-stub` and the on-device model's slug (`ModelDownload.MODEL_SLUG`),
+ * both free on every turn.
  */
 object CoachPricingCatalog {
     /** Normalized-key → published list price, standard (non-batch) tier, as of
@@ -79,7 +79,7 @@ object CoachPricingCatalog {
     )
 
     /** The model strings that always cost $0 (local / scripted). */
-    private val freeModels: Set<String> = setOf("offline-stub")
+    private val freeModels: Set<String> = setOf("offline-stub", com.pulseloop.coach.ondevice.ModelDownload.MODEL_SLUG)
 
     /**
      * Cost for a turn, given the provider that ran it. A self-hosted model costs the user nothing
@@ -91,7 +91,8 @@ object CoachPricingCatalog {
      * values fall through to the catalog.
      */
     fun cost(model: String, usage: CoachTokenUsage, providerRaw: String?): Double? =
-        if (providerRaw == com.pulseloop.coach.config.CoachProviderMode.LOCAL_OPENAI_COMPAT.rawValue) 0.0
+        if (providerRaw == com.pulseloop.coach.config.CoachProviderMode.LOCAL_OPENAI_COMPAT.rawValue ||
+            providerRaw == com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE.rawValue) 0.0
         else cost(model, usage)
 
     /** The estimated USD cost of [usage] for [model]. Returns 0 for offline

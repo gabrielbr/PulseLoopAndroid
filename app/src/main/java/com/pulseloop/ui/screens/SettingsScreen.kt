@@ -77,12 +77,14 @@ fun SettingsScreen(
         CoachProviderMode.LOCAL_OPENAI_COMPAT ->
             providerStore.localModel.ifBlank { tr("Local") }
         CoachProviderMode.BACKEND_PROXY -> tr("Backend proxy")
+        CoachProviderMode.ON_DEVICE -> tr("On this phone")
         else -> keyStore.model
     }
     val openCheck by remember(db) { db.accuracyDao().openFlow() }.collectAsState(initial = null)
     // The tabs no longer carry the "Adjusted by your accuracy check" caption; this row is
     // where the user sees that corrections are on, and the screen behind it lists them.
     val accuracyCorrections = rememberAccuracyCorrections()
+    val mcpStatus by com.pulseloop.mcp.McpService.status.collectAsState()
     val accuracyTrailing = openCheck?.let { c ->
         if (c.state == com.pulseloop.data.entity.AccuracyCheckEntity.STATE_RUNNING) {
             val (day, total) = AccuracyUiText.dayOf(c)
@@ -201,6 +203,9 @@ fun SettingsScreen(
                 },
                 SettingsRowItem(Icons.Filled.Verified, PulseColors.info, tr("Accuracy check"), accuracyTrailing) {
                     navigate("settings/accuracy-check")
+                },
+                SettingsRowItem(Icons.Filled.Wifi, PulseColors.info, tr("AI tools on your network"), if (mcpStatus.running) tr("On") else null) {
+                    navigate("settings/mcp")
                 },
             ),
         )

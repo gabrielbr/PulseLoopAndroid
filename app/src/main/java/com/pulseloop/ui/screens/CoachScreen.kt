@@ -199,7 +199,13 @@ fun CoachScreen(
  * chat then scrolls under it.
  */
 @Composable
-fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null, onBack: (() -> Unit)? = null) {
+fun CoachHeader(
+    onNewChat: () -> Unit,
+    onOpenUsage: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
+    /** Replaces "Using your latest ring sync", e.g. "On this phone · Gemma 3 1B". */
+    subtitle: String? = null,
+) {
     Row(
         Modifier
             .fillMaxWidth()
@@ -230,7 +236,7 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null, onBack
         }
         Column(Modifier.weight(1f)) {
             Text(tr("PulseLoop Coach"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-            Text(tr("Using your latest ring sync"), fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(subtitle ?: tr("Using your latest ring sync"), fontSize = 12.sp, color = PulseColors.textMuted)
         }
         if (onOpenUsage != null) {
             RoundIconTarget(visualSize = 36.dp, onClick = onOpenUsage) {
@@ -354,7 +360,12 @@ private fun Composer(
     onSend: (String, List<CoachAttachmentRef>) -> Unit,
 ) {
     val ctx = LocalContext.current
-    val imageInputEnabled = remember { com.pulseloop.coach.config.CoachProviderSettingsStore(ctx).imageInputEnabled }
+    // The model on this phone reads text only, so it offers no attach button.
+    val imageInputEnabled = remember {
+        com.pulseloop.coach.config.CoachProviderSettingsStore(ctx).let {
+            it.imageInputEnabled && it.providerMode != com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE
+        }
+    }
     // Staged (not yet sent) attachments — persisted to the store on pick, sent with the
     // next message. Image-only sends are allowed (iOS #31).
     var staged by remember { mutableStateOf(listOf<CoachAttachmentRef>()) }

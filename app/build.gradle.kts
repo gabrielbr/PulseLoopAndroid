@@ -199,6 +199,11 @@ dependencies {
     // stub, which strips the class at compile time. Full guava restores it.
     implementation("com.google.guava:guava:33.3.1-android")
 
+    // The on-device coach (docs/on-device-model-and-mcp-plan.md, Part 1): MediaPipe LLM Inference
+    // runs a downloaded Gemma 3 1B `.task` file on the CPU. No permissions; the model itself is
+    // never in the APK. The same version Cochilo ships; LiteRT-LM waits for the Kotlin bump.
+    implementation("com.google.mediapipe:tasks-genai:0.10.35")
+
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 

@@ -28,3 +28,13 @@
 -keepclasseswithmembers class com.pulseloop.update.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
+
+# On-device coach (MediaPipe LLM Inference, docs/on-device-model-and-mcp-plan.md): its classes are
+# reached from native code and its options are protobuf messages, so R8 must leave them whole.
+-keep class com.google.mediapipe.** { *; }
+-dontwarn com.google.mediapipe.**
+-keep class com.google.protobuf.** { *; }
+-dontwarn com.google.protobuf.**
+# AutoValue / annotation-processing references inside MediaPipe that aren't on Android.
+-dontwarn javax.lang.model.**
+-dontwarn com.google.auto.value.**

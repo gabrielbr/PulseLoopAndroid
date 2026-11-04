@@ -151,6 +151,12 @@ object LabReports {
                 tr("Reading a report needs the coach enabled with a configured provider (Settings → AI Coach)."),
             )
         }
+        // The model on this phone can't read a report (its client refuses any schema but the coach's).
+        if (providerStore.providerMode == com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE) {
+            return@withContext ReadResult.Failure(
+                tr("The coach on this phone can't read lab reports. Pick a cloud or self-hosted coach in Settings → AI Coach."),
+            )
+        }
         val (pages, pageCount) = try {
             renderPages(file)
         } catch (e: Exception) {

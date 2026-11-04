@@ -33,6 +33,9 @@
          missing entirely, so every workout start crashed on API 34+. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+    <!-- "AI tools on your network" (mcp/McpService): the read-only MCP server runs as a dataSync
+         foreground service while the user has it on. docs/mcp-threat-model.md -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
     <!-- Self-update: fetch the GitHub release manifest/APK and install it -->
@@ -158,6 +161,13 @@
         <service
             android:name=".service.WorkoutForegroundService"
             android:foregroundServiceType="health"
+            android:exported="false" />
+
+        <!-- Read-only MCP server for paired AI tools on the user's own network. Not exported:
+             only PulseLoop's settings screen starts it. docs/mcp-threat-model.md -->
+        <service
+            android:name=".mcp.McpService"
+            android:foregroundServiceType="dataSync"
             android:exported="false" />
 
         <!-- Home-screen widgets (iOS #44): three Glance app widgets + the shared configure

@@ -13,6 +13,8 @@ import androidx.security.crypto.MasterKeys
  * this store only adds the new multi-provider keys alongside them.
  */
 class CoachProviderSettingsStore(context: Context) {
+    /** For the on-device provider's model store (`CoachClientResolver.resolve`). */
+    val appContext: Context = context.applicationContext
     private val masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
     private val prefs = EncryptedSharedPreferences.create(
         "pulseloop_secure",

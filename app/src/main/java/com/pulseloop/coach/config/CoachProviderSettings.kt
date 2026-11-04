@@ -5,7 +5,8 @@ package com.pulseloop.coach.config
  * Where the coach's "brain" runs. `USER_OPENAI_KEY`, `USER_GEMINI_KEY` and
  * `USER_OPENROUTER_KEY` are the shipping cloud providers; `BACKEND_PROXY` is
  * reserved for a future public build and is treated as disabled until
- * implemented. iOS's `appleOnDevice` has no Android equivalent and is not ported.
+ * implemented. iOS's `appleOnDevice` has no Android equivalent and is not ported; Android's own
+ * on-device provider is [ON_DEVICE].
  */
 enum class CoachProviderMode(val rawValue: String, val label: String) {
     OFFLINE_STUB("offlineStub", "Offline"),
@@ -17,6 +18,9 @@ enum class CoachProviderMode(val rawValue: String, val label: String) {
      *  llama.cpp, vLLM, SGLang, LM Studio. The API key is optional here; the readiness sentinel
      *  is the base URL. See `docs/local-llm-coach.md`. */
     LOCAL_OPENAI_COMPAT("localOpenAICompat", "Local / self-hosted"),
+    /** A small model on the phone itself (Gemma 3 1B through MediaPipe): grounded, no tools, no
+     *  key. Readiness is the downloaded model file. See `docs/on-device-model-and-mcp-plan.md`. */
+    ON_DEVICE("onDevice", "On this phone"),
     BACKEND_PROXY("backendProxy", "Backend proxy");
 
     companion object {

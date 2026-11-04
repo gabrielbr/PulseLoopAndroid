@@ -44,6 +44,8 @@ object ArchivedSettings {
         "rest_mode" to emptySet(),
         // Whether the coach may use the lab results.
         "lab_reports" to emptySet(),
+        // Never "mcp_server": the network server's switch and paired-tool tokens are device state
+        // and security material, so a restore starts off with nothing paired (docs/mcp-threat-model.md).
     )
 
     /**
