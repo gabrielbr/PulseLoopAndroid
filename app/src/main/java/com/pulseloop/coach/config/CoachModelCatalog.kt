@@ -19,6 +19,7 @@ import kotlinx.serialization.json.*
  * | Gemini     | `GET …/v1beta/models` (paged)              | display name, `generateContent` only |
  * | OpenRouter | `GET openrouter.ai/api/v1/models`          | name, reasoning levels, expiry date  |
  * | MiniMax    | `GET api.minimax.io/v1/models`             | ids only                             |
+ * | Claude     | `GET api.anthropic.com/v1/models`          | display name                         |
  *
  * OpenRouter is the only one that says which reasoning levels a model accepts
  * (`reasoning.supported_efforts`) or when it is being retired (`expiration_date`); for the others
@@ -86,6 +87,10 @@ object CoachModelCatalog {
                 CoachProviderMode.USER_OPENAI_KEY -> parseOpenAI(get(url, mapOf("Authorization" to "Bearer $apiKey")))
                 CoachProviderMode.USER_OPENROUTER_KEY -> parseOpenRouter(get(url, mapOf("Authorization" to "Bearer $apiKey")))
                 CoachProviderMode.USER_MINIMAX_KEY -> parseIds(get(url, mapOf("Authorization" to "Bearer $apiKey")))
+                CoachProviderMode.USER_ANTHROPIC_KEY -> parseAnthropic(get("$url?limit=1000", mapOf(
+                    "x-api-key" to apiKey,
+                    "anthropic-version" to com.pulseloop.coach.anthropic.AnthropicClient.API_VERSION,
+                )))
                 else -> emptyList()
             }
             if (entries.isEmpty()) return Result.Failure("The provider listed no usable models.")
@@ -165,6 +170,13 @@ object CoachModelCatalog {
     internal fun parseIds(body: String): List<Entry> =
         dataArray(body).mapNotNull { (it as? JsonObject)?.string("id") }.distinct().sorted().map { Entry(it) }
 
+    /** Anthropic's `{"data":[{"id","display_name"}]}`; only `claude-` ids, newest listed first. */
+    internal fun parseAnthropic(body: String): List<Entry> =
+        dataArray(body).mapNotNull { it as? JsonObject }.mapNotNull { m ->
+            val id = m.string("id")?.takeIf { it.startsWith("claude-") } ?: return@mapNotNull null
+            Entry(id, name = m.string("display_name"))
+        }.distinctBy { it.id }
+
     // ── Internals ────────────────────────────────────────────────────────
 
     private suspend fun fetchGemini(url: String, apiKey: String): List<Entry> {
@@ -205,6 +217,7 @@ object CoachModelCatalog {
         CoachProviderMode.USER_OPENROUTER_KEY to "https://openrouter.ai/api/v1/models",
         // Global host, as MiniMaxClient uses.
         CoachProviderMode.USER_MINIMAX_KEY to "https://api.minimax.io/v1/models",
+        CoachProviderMode.USER_ANTHROPIC_KEY to "https://api.anthropic.com/v1/models",
     )
 
     private val JSON = Json { ignoreUnknownKeys = true }

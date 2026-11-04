@@ -73,6 +73,7 @@ fun SettingsScreen(
         CoachProviderMode.USER_GEMINI_KEY -> providerStore.geminiModel
         CoachProviderMode.USER_OPENROUTER_KEY -> providerStore.openRouterModel
         CoachProviderMode.USER_MINIMAX_KEY -> providerStore.minimaxModel
+        CoachProviderMode.USER_ANTHROPIC_KEY -> providerStore.anthropicModel
         // Local: the model name, or just "Local" for a server (llama.cpp) that ignores the field.
         CoachProviderMode.LOCAL_OPENAI_COMPAT ->
             providerStore.localModel.ifBlank { tr("Local") }

@@ -49,6 +49,11 @@ object CoachPricingCatalog {
         "gemini-4-argon" to CoachModelPrice(2.00, 0.10, 10.00),
         "gemini-2.5-flash" to CoachModelPrice(0.30, 0.03, 2.50),
         "gemini-2.5-pro" to CoachModelPrice(1.25, 0.125, 10.00), // <=200k-token tier; >200k bills 2x
+        // Claude (native, Anthropic's own ids). Cached = cache-read rate.
+        "claude-opus-5-5" to CoachModelPrice(4.00, 0.20, 20.00),
+        "claude-sonnet-5-5" to CoachModelPrice(2.00, 0.20, 10.00),
+        "claude-haiku-5-5" to CoachModelPrice(0.10, 0.01, 0.50), // <=100k-token tier
+        "claude-fable-5-1" to CoachModelPrice(10.00, 0.25, 50.00),
         // OpenRouter (vendor/model slugs). List prices match the vendors';
         // cached rates use the vendor cache-read price.
         "anthropic/claude-sonnet-5.5" to CoachModelPrice(2.00, 0.10, 10.00),

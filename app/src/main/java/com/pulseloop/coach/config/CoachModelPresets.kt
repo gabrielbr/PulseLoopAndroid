@@ -113,6 +113,21 @@ enum class MiniMaxModel(val slug: String, val blurb: String) {
 }
 
 /**
+ * Claude models for the coach on the user's own Anthropic key. All three take effort `low`
+ * through `max` in `output_config.effort` and think adaptively; the live `/v1/models` list in
+ * [CoachModelCatalog] adds any newer one.
+ */
+enum class ClaudeModel(val slug: String, val blurb: String, val reasoningEfforts: List<ReasoningEffort>) {
+    OPUS("claude-opus-5-5", "Most capable (default)", ReasoningEffort.LOW_TO_MAX),
+    SONNET("claude-sonnet-5-5", "Balanced, half the price", ReasoningEffort.LOW_TO_MAX),
+    HAIKU("claude-haiku-5-5", "Fastest and cheapest", ReasoningEffort.LOW_TO_MAX);
+
+    companion object {
+        val DEFAULT = OPUS
+    }
+}
+
+/**
  * Ported from [CoachModel] in CoachSettings.swift.
  * Preset OpenAI model choices. The stored model (`ApiKeyStore.model`) is a free
  * string (so a new model can be typed/served without a code change); these are

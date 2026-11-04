@@ -1117,6 +1117,23 @@ and each one fails silently if broken:
 
 It is exclusive with a paired ring: a `DeviceIdentified` turns it off.
 
+## Claude as the coach: the Messages API, translated
+
+**Read this before touching `coach/anthropic/`.** `AnthropicClient` runs the coach on Claude with
+the user's own key, translating the app's Responses-shaped request the way the other adapters do.
+Each rule below is a 400 on every turn if broken:
+
+- **No sampling parameters, no prefill, no forced `tool_choice`** (API version `2026-10-21`, and
+  the 5.5 models reject forced tool use). Effort goes in `output_config.effort`.
+- **Claude's reply goes back unchanged**, thinking blocks included: the 5.5 models tie thinking to
+  the conversation. The client stores each reply's whole `content` and replays it before its tool
+  results; don't rebuild it from the parsed text.
+- **Structured-output schemas go through `claudeSafeSchema`**: `additionalProperties: false` on
+  every object, no numeric, length or array-size constraints. A caller's own schema (meal estimate,
+  lab report, summary) is sent the same way.
+- Web search isn't sent, and Settings hides its switch for Claude. Its key and model ride in the
+  backup with the other providers' keys (`ArchivedSettings.SECURE_KEYS`).
+
 ## MCP on your network: read-only, paired, private addresses only
 
 **Read this before touching `mcp/` or `ui/screens/McpSettingsUi.kt`.** Threat model:

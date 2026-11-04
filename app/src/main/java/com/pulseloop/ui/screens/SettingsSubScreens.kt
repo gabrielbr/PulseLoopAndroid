@@ -287,6 +287,9 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     var orKeyVisible by remember { mutableStateOf(false) }
                     var minimaxKey by remember { mutableStateOf(providerStore.minimaxApiKey) }
                     var minimaxKeyVisible by remember { mutableStateOf(false) }
+                    var anthropicKey by remember { mutableStateOf(providerStore.anthropicApiKey) }
+                    var anthropicKeyVisible by remember { mutableStateOf(false) }
+                    var anthropicModel by remember { mutableStateOf(providerStore.anthropicModel) }
                     var geminiModel by remember { mutableStateOf(providerStore.geminiModel) }
                     var orModel by remember { mutableStateOf(providerStore.openRouterModel) }
                     var minimaxModel by remember { mutableStateOf(providerStore.minimaxModel) }
@@ -317,6 +320,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
 
                     val providerOptions = listOf(
                         CoachProviderMode.USER_OPENAI_KEY to "OpenAI",
+                        CoachProviderMode.USER_ANTHROPIC_KEY to "Claude (Anthropic)",
                         CoachProviderMode.USER_GEMINI_KEY to "Google Gemini",
                         CoachProviderMode.USER_OPENROUTER_KEY to "OpenRouter (100+ models)",
                         CoachProviderMode.USER_MINIMAX_KEY to "MiniMax",
@@ -493,6 +497,28 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                 onValue = { minimaxKey = it }, onVisibility = { minimaxKeyVisible = !minimaxKeyVisible },
                                 onSave = { providerStore.minimaxApiKey = minimaxKey; keySaves++ },
                                 onRemove = { minimaxKey = ""; providerStore.minimaxApiKey = ""; keySaves++ },
+                            )
+                        }
+                        CoachProviderMode.USER_ANTHROPIC_KEY -> {
+                            CoachModelPicker(
+                                provider = providerMode, providerName = tr("Claude"), selected = anthropicModel,
+                                presets = com.pulseloop.coach.config.ClaudeModel.entries.map { it.slug to tr(it.blurb) },
+                                savedKey = keySaves.let { providerStore.anthropicApiKey },
+                                onPick = { anthropicModel = it; providerStore.anthropicModel = it },
+                                onListing = { liveListing = it },
+                            )
+                            KeyField(
+                                label = tr("Claude API Key"), value = anthropicKey, visible = anthropicKeyVisible,
+                                saved = providerStore.hasAnthropicKey,
+                                onValue = { anthropicKey = it }, onVisibility = { anthropicKeyVisible = !anthropicKeyVisible },
+                                onSave = { providerStore.anthropicApiKey = anthropicKey; keySaves++ },
+                                onRemove = { anthropicKey = ""; providerStore.anthropicApiKey = ""; keySaves++ },
+                            )
+                            Text(
+                                tr("Create a key at console.anthropic.com. Usage is billed to your Anthropic account."),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
                             )
                         }
                         CoachProviderMode.LOCAL_OPENAI_COMPAT -> {
@@ -756,11 +782,12 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     val effortProvider = if (providerMode in setOf(
                             CoachProviderMode.USER_GEMINI_KEY, CoachProviderMode.USER_OPENROUTER_KEY,
                             CoachProviderMode.USER_MINIMAX_KEY, CoachProviderMode.LOCAL_OPENAI_COMPAT,
-                            CoachProviderMode.ON_DEVICE,
+                            CoachProviderMode.ON_DEVICE, CoachProviderMode.USER_ANTHROPIC_KEY,
                         )) providerMode else CoachProviderMode.USER_OPENAI_KEY
                     val effortModel = when (effortProvider) {
                         CoachProviderMode.USER_GEMINI_KEY -> geminiModel
                         CoachProviderMode.USER_OPENROUTER_KEY -> orModel
+                        CoachProviderMode.USER_ANTHROPIC_KEY -> anthropicModel
                         CoachProviderMode.USER_OPENAI_KEY -> selectedModel
                         else -> ""
                     }
@@ -791,11 +818,12 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
 
                     HorizontalDivider()
 
-                    // Tool toggles. Neither MiniMax's compat endpoint nor any self-hosted engine
-                    // has a hosted web search, so hide the toggle for both (each client drops the
+                    // Tool toggles. Neither MiniMax's compat endpoint, any self-hosted engine nor the Claude client
+                    // sends a hosted web search, so hide the toggle for them (each client drops the
                     // tool anyway — this is the UI half).
                     if (toolsApply && providerMode != CoachProviderMode.USER_MINIMAX_KEY &&
-                        providerMode != CoachProviderMode.LOCAL_OPENAI_COMPAT) {
+                        providerMode != CoachProviderMode.LOCAL_OPENAI_COMPAT &&
+                        providerMode != CoachProviderMode.USER_ANTHROPIC_KEY) {
                         Row(Modifier.fillMaxWidth()
                             .switchRow(checked = webSearch, onCheckedChange = {
                                 webSearch = it; keyStore.webSearchEnabled = it
