@@ -161,7 +161,7 @@ private fun MessageBreakdownRow(message: CoachMessageEntity) {
     val tokens = trf("{0} in · {1} out", message.inputTokens ?: 0, message.outputTokens ?: 0)
     val cost = message.costUSD?.let { "$" + "%.4f".format(it) } ?: "—"
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(preview.ifEmpty { "(no text)" }, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1)
+        Text(preview.ifEmpty { tr("(no text)") }, fontSize = 12.sp, color = PulseColors.textPrimary, maxLines = 1)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(tokens, fontSize = 12.sp, color = PulseColors.textMuted)
             Text(cost, fontSize = 12.sp, color = PulseColors.textMuted)

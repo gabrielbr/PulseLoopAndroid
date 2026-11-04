@@ -414,7 +414,7 @@ private fun WeekHero(s: DrinksRepository.Snapshot) {
                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (over) PulseColors.warning else PulseColors.textPrimary)
                 Text(sub, fontSize = 14.sp, color = PulseColors.textSecondary)
                 if (s.streaks.current >= 2) {
-                    Text(trf("{0} dry days in a row", s.streaks.current), fontSize = 14.sp, color = PulseColors.accent)
+                    Text(trf("{0} dry days in a row", s.streaks.current), fontSize = 14.sp, color = PulseColors.success)
                 }
             }
         }
@@ -452,7 +452,7 @@ private fun WeekStrip(s: DrinksRepository.Snapshot) {
                                 isToday -> PulseColors.textPrimary
                                 drank -> dotColor
                                 future || !known -> PulseColors.borderSubtle
-                                else -> PulseColors.accent
+                                else -> PulseColors.success
                             },
                             shape = CircleShape,
                         ),
@@ -460,7 +460,7 @@ private fun WeekStrip(s: DrinksRepository.Snapshot) {
                 ) {
                     when {
                         drank -> Text(std(DrinkInsights.standardDrinks(grams, s.gramsPerStandard)), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PulseColors.onAccent, maxLines = 1, softWrap = false)
-                        !future && known && !isToday -> Icon(Icons.Filled.Check, tr("Dry"), tint = PulseColors.accent, modifier = Modifier.size(16.dp))
+                        !future && known && !isToday -> Icon(Icons.Filled.Check, tr("Dry"), tint = PulseColors.success, modifier = Modifier.size(16.dp))
                     }
                 }
             }
@@ -483,7 +483,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
         Text(
             tr("More"),
             fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-            modifier = Modifier.clickable { more = true }.padding(4.dp),
+            modifier = Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { more = true }.wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 8.dp),
         )
     }) {
         // Equal-height buttons whose labels may take two lines: a translated or voice name
@@ -513,14 +513,14 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
         }
         lastLogged?.let { (text, ids) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(trf("Logged {0}", text), fontSize = 14.sp, color = PulseColors.accent, modifier = Modifier.weight(1f))
+                Text(trf("Logged {0}", text), fontSize = 14.sp, color = PulseColors.success, modifier = Modifier.weight(1f))
                 Text(
                     tr("Undo"),
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = 120.dp).clickable {
+                    modifier = Modifier.widthIn(max = 120.dp).heightIn(min = 48.dp).clickable(role = Role.Button) {
                         scope.launch { ids.forEach { DrinksRepository.delete(db, it) }; lastLogged = null; onChange() }
-                    }.padding(4.dp),
+                    }.wrapContentHeight(Alignment.CenterVertically).padding(horizontal = 8.dp),
                 )
             }
         }
@@ -660,7 +660,7 @@ private fun MoreDrinkSheet(onLog: (DrinkType, Int, Long, Double?) -> Unit) {
         Stepper(tr("How many"), "$count", { count = (count - 1).coerceAtLeast(1) }, { count = (count + 1).coerceAtMost(12) })
         FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             listOf(0L to "Now", 1L to "1 h ago", 3L to "3 h ago", 12L to "Last night").forEach { (h, l) ->
-                Pill(l, hoursAgo == h, PulseColors.drinks) { hoursAgo = h }
+                Pill(tr(l), hoursAgo == h, PulseColors.drinks) { hoursAgo = h }
             }
         }
         OutlinedTextField(
@@ -743,9 +743,9 @@ private fun TrendsTab(s: DrinksRepository.Snapshot) {
     val completed = tracked.dropLast(1)
     val avg = completed.takeIf { it.isNotEmpty() }?.map { it.second }?.average()
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Stat(avg?.let { std(it) } ?: "—", "average week", Modifier.weight(1f).fillMaxHeight())
-        Stat("${s.streaks.best}", "best dry streak", Modifier.weight(1f).fillMaxHeight())
-        Stat("${s.streaks.current}", "dry days now", Modifier.weight(1f).fillMaxHeight())
+        Stat(avg?.let { std(it) } ?: "—", tr("average week"), Modifier.weight(1f).fillMaxHeight())
+        Stat("${s.streaks.best}", tr("best dry streak"), Modifier.weight(1f).fillMaxHeight())
+        Stat("${s.streaks.current}", tr("dry days now"), Modifier.weight(1f).fillMaxHeight())
     }
     DrinkCard(tr("Last 8 weeks")) {
         WeeksChart(s)
@@ -757,9 +757,9 @@ private fun TrendsTab(s: DrinksRepository.Snapshot) {
     s.savings?.takeIf { it.drinksAvoided >= 0.5 }?.let { sv ->
         DrinkCard(tr("Compared with your typical week")) {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Stat(std(sv.drinksAvoided), "fewer drinks", Modifier.weight(1f).fillMaxHeight())
-                sv.money?.let { Stat("%.0f".format(it), "saved", Modifier.weight(1f).fillMaxHeight()) }
-                Stat("%,d".format(sv.kcal.roundToInt()), "kcal not drunk", Modifier.weight(1f).fillMaxHeight())
+                Stat(std(sv.drinksAvoided), tr("fewer drinks"), Modifier.weight(1f).fillMaxHeight())
+                sv.money?.let { Stat("%.0f".format(it), tr("saved"), Modifier.weight(1f).fillMaxHeight()) }
+                Stat("%,d".format(sv.kcal.roundToInt()), tr("kcal not drunk"), Modifier.weight(1f).fillMaxHeight())
             }
         }
     } ?: run {
@@ -858,7 +858,7 @@ private fun AuditCard(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
             Spacer(Modifier.height(64.dp))
         } else if (score != null) {
             val level = AuditC.level(score, sex)
-            Text(level.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (level == AuditC.Level.LOW) PulseColors.accent else PulseColors.warning)
+            Text(level.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (level == AuditC.Level.LOW) PulseColors.success else PulseColors.warning)
             Text(AuditC.advice(level), fontSize = 14.sp, color = PulseColors.textSecondary)
             Text(trf("Score {0} of 12 · {1}", score, DrinkPrefs.auditDate), fontSize = 12.sp, color = PulseColors.textMuted)
         } else {
@@ -979,6 +979,6 @@ fun ColumnScope.DrinksTileContent(week: DrinkInsights.Week?, limit: Double, dryT
     Text(
         "+ ${DrinkPrefs.lastType.label}",
         fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, maxLines = 1, overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.clickable(role = Role.Button, onClick = onAdd).padding(vertical = 2.dp),
+        modifier = Modifier.heightIn(min = 48.dp).clickable(role = Role.Button, onClick = onAdd).wrapContentHeight(Alignment.CenterVertically),
     )
 }

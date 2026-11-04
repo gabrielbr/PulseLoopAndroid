@@ -2690,7 +2690,7 @@ fun PrivacyDataSettingsScreen(
                 title = { Text(tr("Error")) },
                 text = { Text(msg) },
                 confirmButton = {
-                    PulseButton(PulseButtonStyle.Text, onClick = { statusMessage = null }) { Text("OK") }
+                    PulseButton(PulseButtonStyle.Text, onClick = { statusMessage = null }) { Text(tr("OK")) }
                 },
             )
         }
@@ -2700,7 +2700,7 @@ fun PrivacyDataSettingsScreen(
             title = { Text(tr("Import Complete")) },
             text = { Text(tr("Your data has been restored from the backup.")) },
             confirmButton = {
-                PulseButton(PulseButtonStyle.Text, onClick = { showImportSuccess = false }) { Text("OK") }
+                PulseButton(PulseButtonStyle.Text, onClick = { showImportSuccess = false }) { Text(tr("OK")) }
             },
         )
 

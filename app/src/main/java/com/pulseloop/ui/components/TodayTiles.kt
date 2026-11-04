@@ -25,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
@@ -130,7 +129,6 @@ fun TodayTile(
             Box(
                 Modifier
                     .size(8.dp)
-                    .shadow(5.dp, CircleShape, ambientColor = color.copy(alpha = 0.7f), spotColor = color.copy(alpha = 0.7f))
                     .clip(CircleShape)
                     .background(color),
             )
@@ -492,7 +490,6 @@ fun CoachMessageCard(
             Box(
                 Modifier
                     .size(6.dp)
-                    .shadow(5.dp, CircleShape, ambientColor = PulseColors.accent, spotColor = PulseColors.accent)
                     .clip(CircleShape)
                     .background(PulseColors.accent),
             )

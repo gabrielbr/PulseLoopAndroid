@@ -7,9 +7,14 @@ Read this before touching ring/BLE hardware code (`app/src/main/java/com/pulselo
 
 **The owner's standing instruction (2026-11-04): open a PR for every change and, once it's verified
 (CI green, the repo's own tests and checks run, no unresolved review threads), merge it yourself;
-don't leave it waiting.** Use a merge commit, the way `main`'s history does. A release is a separate
-step: the Release workflow (`release.yml`, `workflow_dispatch`) with the next `v{name}+{code}` tag,
-run when the owner asks for one. The same rule is in the Gabriel Design System's AGENTS.md.
+don't leave it waiting.** Use a merge commit, the way `main`'s history does.
+
+**Then release, every time** (owner's correction, 2026-11-04: an earlier "only when asked" was a
+mistake). After each merge to `main`, run the Release workflow (`release.yml`,
+`workflow_dispatch`) with the next `v{name}+{code}` tag: check the releases list first, since
+another session may have taken the next number, and confirm the release carries both the APK and
+`SHA256SUMS.txt`. The merge rule is also in the Gabriel Design System's AGENTS.md; this release
+rule is PulseLoop's.
 
 ## Commits carry no agent attribution
 
@@ -1313,8 +1318,8 @@ serving, AI-estimate source); changing a number marks it `userEdited`, as a barc
 ## Type, colour and chrome: one of each role (audit, v2.11.52)
 
 - **Type sizes come from `PulseType.SCALE`** (12, 14, 16, 20, 24, 28, 32, 40). 12sp is the floor
-  for anything that carries meaning; `PulseTypeScaleTest` fails on any other inline size in the
-  main screens. The tracked caps label over a card or section is `PulseType.eyebrow` (12sp,
+  for anything that carries meaning; `PulseTypeScaleTest` fails on any other inline size in any
+  source file. The tracked caps label over a card or section is `PulseType.eyebrow` (12sp,
   1sp tracking, `textSecondary`) everywhere — don't hand-roll another letter-spacing.
 - **Mint is the brand and the thing to tap, nothing else.** `success` (good, in range,
   connected) is its own green, REM is cyan, connecting is amber. The readiness ring keeps the

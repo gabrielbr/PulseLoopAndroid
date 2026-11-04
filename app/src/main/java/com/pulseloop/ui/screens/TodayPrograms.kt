@@ -54,7 +54,7 @@ fun ProgramsRow(db: PulseLoopDatabase, onCycle: () -> Unit, onMeds: () -> Unit, 
 
     val chips = buildList {
         if (Postpartum.active()) Postpartum.birthDate?.let { birth ->
-            add(Chip(Icons.Filled.ChildCare, PulseColors.accent, trf("Postpartum · week {0}", Postpartum.weeksSince(birth, today)), onPostpartum))
+            add(Chip(Icons.Filled.ChildCare, PulseColors.bloodPressure, trf("Postpartum · week {0}", Postpartum.weeksSince(birth, today)), onPostpartum))
         }
         Cycle.status(periods!!.map { it.toPeriod() }, today)?.let { s ->
             add(Chip(Icons.Filled.WaterDrop, PulseColors.danger, trf("Cycle · day {0}", s.cycleDay), onCycle))

@@ -1,6 +1,7 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
 import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.theme.dither
@@ -237,7 +238,7 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
             DurationStepButton(Icons.Filled.Remove, tr("Decrease duration by 5 minutes"), enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(durationText(minutes), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("DURATION", fontSize = 12.sp, letterSpacing = 1.1.sp, color = PulseColors.textMuted)
+                Text(tr("DURATION"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
             }
             DurationStepButton(Icons.Filled.Add, tr("Increase duration by 5 minutes"), enabled = true) { onChange(minutes + 5) }
         }
@@ -288,8 +289,8 @@ private fun durationText(minutes: Int): String {
     val hours = minutes / 60
     val remaining = minutes % 60
     return when {
-        hours == 0 -> "$remaining min"
-        remaining == 0 -> "$hours hr"
-        else -> "$hours hr $remaining min"
+        hours == 0 -> trf("{0} min", remaining)
+        remaining == 0 -> trf("{0} hr", hours)
+        else -> trf("{0} hr {1} min", hours, remaining)
     }
 }

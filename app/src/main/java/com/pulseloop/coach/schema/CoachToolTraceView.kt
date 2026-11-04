@@ -44,7 +44,7 @@ fun CoachToolTraceDisclosure(messageId: String, viewModel: CoachViewModel?) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.clickable { expanded = !expanded },
+            modifier = Modifier.heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = !expanded },
         ) {
             Icon(Icons.Filled.Build, null, tint = PulseColors.textMuted, modifier = Modifier.size(11.dp))
             Text(
@@ -74,7 +74,7 @@ fun CoachToolTraceDisclosure(messageId: String, viewModel: CoachViewModel?) {
 }
 
 private fun collapsedLabel(calls: List<CoachToolCallEntity>): String {
-    if (calls.size > 2) return "Used ${calls.size} tools"
+    if (calls.size > 2) return com.pulseloop.ui.i18n.trf("Used {0} tools", calls.size)
     return calls.joinToString(" → ") { displayLabel(it) }
 }
 
@@ -93,12 +93,7 @@ private fun ToolTraceRow(call: CoachToolCallEntity) {
         )
         Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
             Text(displayLabel(call), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PulseColors.textSecondary)
-            if (call.outputJSON?.isNotBlank() == true) {
-                Text(
-                    call.outputJSON, fontSize = 12.sp, color = PulseColors.textMuted,
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                )
-            }
+            // The raw tool output (JSON) is a log, not a state: it stays in the usage sheet's data.
         }
     }
 }

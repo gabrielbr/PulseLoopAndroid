@@ -141,6 +141,16 @@ fun CoachScreen(
             // Persisted rows key by id; the greeting and this session's unsaved turns have none.
             items(state.messages.size, key = { idx -> state.messages[idx].id ?: "local-$idx" }) { idx ->
                 MessageBubble(state.messages[idx], viewModel)
+                // The coach's proposed changes wait here for a yes; nothing runs without it.
+                state.messages[idx].pendingActions.forEach { action ->
+                    Box(Modifier.widthIn(max = 360.dp).padding(top = 8.dp)) {
+                        com.pulseloop.coach.schema.CoachActionCardView(
+                            action = action,
+                            onConfirm = { viewModel?.confirmAction(idx, action) },
+                            onCancel = { viewModel?.cancelAction(idx, action) },
+                        )
+                    }
+                }
             }
             if (state.isThinking) {
                 item {

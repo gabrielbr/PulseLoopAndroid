@@ -219,7 +219,7 @@ private fun MetricCard(
                 fontSize = 12.sp, color = verdictColor(summary.verdict),
                 maxLines = 2, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(start = 8.dp).widthIn(max = 140.dp)
-                    .clip(RoundedCornerShape(10.dp)).background(PulseColors.cardSoft).padding(horizontal = 8.dp, vertical = 3.dp),
+                    .clip(RoundedCornerShape(16.dp)).background(PulseColors.cardSoft).padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
         Text(AccuracyReportText.reading(summary, check.referenceLabel), fontSize = 12.sp, color = PulseColors.textSecondary)
@@ -227,7 +227,7 @@ private fun MetricCard(
             correction?.invoke(summary)
         }
         if (!expanded) {
-            Text(tr("Details"), fontSize = 12.sp, color = PulseColors.accent, modifier = Modifier.clickable(onClick = onToggle))
+            com.pulseloop.ui.components.PulseButton(com.pulseloop.ui.components.PulseButtonStyle.Text, onClick = onToggle) { Text(tr("Details")) }
             return@AccuracyCard
         }
         if (m.kind != ComparisonMetric.Kind.STAGES && summary.validDays > 0) {

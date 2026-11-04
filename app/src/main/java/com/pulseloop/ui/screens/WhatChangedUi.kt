@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.CheckCircle
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
@@ -50,10 +52,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
     val fmt = remember { DateTimeFormatter.ofPattern("EEE d MMM") }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("What changed"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
+        com.pulseloop.ui.components.PulseTopBar(tr("What changed"), onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -62,9 +61,9 @@ fun WhatChangedScreen(onBack: () -> Unit) {
             val recent = rows.filter { it.day >= recentKey }
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(tr("LAST 3 DAYS"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("LAST 3 DAYS"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
                 if (rowsLoaded == null) {
                     Spacer(Modifier.height(48.dp))
                 } else if (recent.isEmpty()) {
@@ -76,11 +75,11 @@ fun WhatChangedScreen(onBack: () -> Unit) {
             }
             val older = rows.filter { it.day < recentKey }.groupBy { it.day }
             if (older.isNotEmpty()) {
-                Text(tr("EARLIER"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("EARLIER"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
                 older.forEach { (day, list) ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(FindingsRepository.dateOf(day, zone).format(fmt), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
                         list.forEach { FindingRow(it) }
@@ -99,10 +98,13 @@ fun WhatChangedScreen(onBack: () -> Unit) {
 
 @Composable
 private fun FindingRow(f: FindingEntity) {
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Box(
-            Modifier.padding(top = 6.dp).size(8.dp).clip(CircleShape)
-                .background(if (f.positive) PulseColors.accent else PulseColors.warning),
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        // An icon as well as a colour, so "good" and "look at this" don't rest on hue alone.
+        androidx.compose.material3.Icon(
+            if (f.positive) androidx.compose.material.icons.Icons.Filled.CheckCircle else androidx.compose.material.icons.Icons.Filled.Info,
+            contentDescription = if (f.positive) tr("Good sign") else tr("Worth a look"),
+            tint = if (f.positive) PulseColors.success else PulseColors.warning,
+            modifier = Modifier.size(22.dp),
         )
         Column(Modifier.weight(1f)) {
             Text(f.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)

@@ -387,8 +387,8 @@ object NutritionTools {
             ctx.pendingActions.add(PendingAction(
                 kind = PendingActionKind.UPDATE_MEAL_ENTRY,
                 activityId = mealId,
-                summary = "Update \"${entry.name}\" from ${CoachDataAccess.localDateString(entry.timestamp)}?",
-                confirmLabel = "Save changes",
+                summary = com.pulseloop.ui.i18n.trf("Update \"{0}\" from {1}?", entry.name, CoachDataAccess.localDateString(entry.timestamp)),
+                confirmLabel = com.pulseloop.ui.i18n.tr("Save changes"),
                 mealUpdates = updates,
             ))
             ToolResult("""{"ok":true,"needs_confirmation":true,"summary":"Awaiting your confirmation to edit that meal."}""")
@@ -425,8 +425,8 @@ object NutritionTools {
         ctx.pendingActions.add(PendingAction(
             kind = PendingActionKind.DELETE_MEAL_ENTRY,
             activityId = mealId,
-            summary = "Delete \"${entry.name}\" (${entry.calories.roundToLong()} kcal) from ${CoachDataAccess.localDateString(entry.timestamp)}?",
-            confirmLabel = "Delete",
+            summary = com.pulseloop.ui.i18n.trf("Delete \"{0}\" ({1} kcal) from {2}?", entry.name, entry.calories.roundToLong(), CoachDataAccess.localDateString(entry.timestamp)),
+            confirmLabel = com.pulseloop.ui.i18n.tr("Delete"),
         ))
         ToolResult("""{"ok":true,"needs_confirmation":true,"summary":"Awaiting your confirmation to delete that meal."}""")
     }

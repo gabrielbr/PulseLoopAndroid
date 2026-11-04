@@ -28,6 +28,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 object Motion {
     /** A ring filling, a number counting up: long enough to see, short enough not to wait for. */
     const val FILL_MS = 900
+    /** The design system's standard duration: small state changes. */
+    const val STANDARD_MS = 150
+    /** The design system's emphasised duration: something appearing or moving into place. */
+    const val EMPHASIS_MS = 250
+    /** The one ease (quick out, gentle in). No springs that overshoot: the system has no bounce. */
+    val ease: androidx.compose.animation.core.Easing = androidx.compose.animation.core.FastOutSlowInEasing
 }
 
 /**

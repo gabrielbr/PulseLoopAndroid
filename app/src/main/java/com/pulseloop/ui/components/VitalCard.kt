@@ -23,7 +23,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,8 +65,8 @@ fun VitalCard(
     ) {
         Column(
             modifier = Modifier.padding(
-                horizontal = if (compact) 16.dp else 22.dp,
-                vertical = if (compact) 16.dp else 20.dp,
+                horizontal = if (compact) 16.dp else 24.dp,
+                vertical = 16.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
         ) {
@@ -91,7 +90,6 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
         Box(
             Modifier
                 .size(8.dp)
-                .shadow(5.dp, CircleShape, ambientColor = accent, spotColor = accent)
                 .clip(CircleShape)
                 .background(accent),
         )

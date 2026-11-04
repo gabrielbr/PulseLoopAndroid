@@ -896,8 +896,8 @@ object ActionTools {
             ctx.pendingActions.add(com.pulseloop.coach.orchestration.PendingAction(
                 kind = com.pulseloop.coach.orchestration.PendingActionKind.UPDATE_ACTIVITY_SESSION,
                 activityId = activityId,
-                summary = "Update your ${session.type} session from ${CoachDataAccess.localDateString(session.startedAt)}?",
-                confirmLabel = "Save changes",
+                summary = com.pulseloop.ui.i18n.trf("Update your {0} session from {1}?", session.type, CoachDataAccess.localDateString(session.startedAt)),
+                confirmLabel = com.pulseloop.ui.i18n.tr("Save changes"),
                 updates = updates,
             ))
             ToolResult("""{"ok":true,"needs_confirmation":true,"summary":"Awaiting your confirmation to edit that workout."}""")
@@ -933,8 +933,8 @@ object ActionTools {
         ctx.pendingActions.add(com.pulseloop.coach.orchestration.PendingAction(
             kind = com.pulseloop.coach.orchestration.PendingActionKind.DELETE_ACTIVITY_SESSION,
             activityId = activityId,
-            summary = "Delete your ${session.type} session from ${CoachDataAccess.localDateString(session.startedAt)}? This can't be undone.",
-            confirmLabel = "Delete",
+            summary = com.pulseloop.ui.i18n.trf("Delete your {0} session from {1}? This can't be undone.", session.type, CoachDataAccess.localDateString(session.startedAt)),
+            confirmLabel = com.pulseloop.ui.i18n.tr("Delete"),
         ))
         ToolResult("""{"ok":true,"needs_confirmation":true,"summary":"Awaiting your confirmation to delete that workout."}""")
     }

@@ -217,7 +217,7 @@ fun VitalsScreen(
                     Text(tr("No blood pressure data yet."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (measuring) {
-                    Text(tr("Measuring… updates when complete"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Text(tr("Measuring… updates when complete"), fontSize = 12.sp, color = PulseColors.textSecondary)
                 }
             }
             DashboardCard.HRV -> VitalCard(
@@ -416,6 +416,7 @@ fun VitalsScreen(
                       }
                       var pickOpen by remember { mutableStateOf(false) }
                       PulseButton(
+                          PulseButtonStyle.Tonal,
                           enabled = !measuring,
                           modifier = Modifier.widthIn(max = 160.dp),
                           onClick = { pickOpen = true },
@@ -436,6 +437,7 @@ fun VitalsScreen(
                       }
                     } else {
                     PulseButton(
+                        PulseButtonStyle.Tonal,
                         enabled = !measuring,
                         // Same reason as the bound above: the title is weighted, this isn't.
                         modifier = Modifier.widthIn(max = 208.dp),
@@ -563,9 +565,14 @@ private fun VitalGaugeCardItem(
     VitalCard(
         state = card,
         showsValueRow = false,
-        footerOverride = footnote ?: gaugeFooter(card),
+        footerOverride = gaugeFooter(card),
         onTap = onTap,
     ) {
+        // Its own wrapping line, never the one-line header slot: there it was cut to a couple
+        // of words, and the card stopped saying the number is derived (issue #67).
+        footnote?.let {
+            Text(it, fontSize = 12.sp, color = PulseColors.warning)
+        }
         if (hasReading) {
             Box(
                 Modifier.fillMaxWidth().padding(vertical = 4.dp),
@@ -587,7 +594,7 @@ private fun VitalGaugeCardItem(
             Text(emptyText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (measuring) {
-            Text(tr("Measuring… updates when complete"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Text(tr("Measuring… updates when complete"), fontSize = 12.sp, color = PulseColors.textSecondary)
         }
     }
 }

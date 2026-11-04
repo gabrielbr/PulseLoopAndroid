@@ -996,7 +996,34 @@ class CoachViewModel(
         /** The persisted row's id, null for the client-side-only greeting. Lets
          *  [CoachToolTraceDisclosure] (iOS #65c) query `coach_tool_calls` by messageId. */
         val id: String? = null,
+        /** Changes the coach proposed in this turn and hasn't made: each waits for the user's
+         *  Confirm on its card (`CoachActionCardView`). Nothing runs until then. In memory only:
+         *  a proposal left unanswered when the screen goes away is dropped, never applied. */
+        val pendingActions: List<com.pulseloop.coach.orchestration.PendingAction> = emptyList(),
     )
+
+    /** The user confirmed a proposed change: run it, then say what happened as a coach line. */
+    fun confirmAction(messageIndex: Int, action: com.pulseloop.coach.orchestration.PendingAction) {
+        dropAction(messageIndex, action)
+        viewModelScope.launch {
+            val outcome = runCatching { com.pulseloop.coach.orchestration.PendingActionExecutor.execute(action, db) }
+                .getOrElse { tr("Couldn't make that change. Nothing was changed.") }
+            _state.update { it.copy(messages = it.messages + ChatMessage("assistant", outcome)) }
+        }
+    }
+
+    /** The user said no: the card goes and nothing changes. */
+    fun cancelAction(messageIndex: Int, action: com.pulseloop.coach.orchestration.PendingAction) {
+        dropAction(messageIndex, action)
+    }
+
+    private fun dropAction(messageIndex: Int, action: com.pulseloop.coach.orchestration.PendingAction) {
+        _state.update { s ->
+            s.copy(messages = s.messages.mapIndexed { i, m ->
+                if (i == messageIndex) m.copy(pendingActions = m.pendingActions - action) else m
+            })
+        }
+    }
 
     private val greeting = ChatMessage("assistant",
         tr("Hi! I'm your PulseLoop coach. I can answer questions about your sleep, heart rate, activity, and recovery. What would you like to know?"))
@@ -1113,7 +1140,10 @@ class CoachViewModel(
                 val reply = if (turnError != null) {
                     ChatMessage("assistant", turnError.plainText, isError = true, id = assistantMessageId)
                 } else {
-                    ChatMessage("assistant", result.assistant.plainText, id = assistantMessageId)
+                    ChatMessage("assistant", result.assistant.plainText, id = assistantMessageId,
+                        // Shown as confirm cards under the reply (it used to be dropped here, so a
+                        // proposed edit or delete never reached the user and never ran).
+                        pendingActions = result.pendingActions)
                 }
                 // The red error bubble (above) already carries the code + reason; don't also set
                 // `error`, or CoachScreen renders a duplicate "Error: <code>" footer for the same
@@ -1162,9 +1192,11 @@ class CoachViewModel(
                 // "+" tap mid-turn already moved `currentConversation` on to a newer one.
                 if (currentConversation.id == conversationId) currentConversation = touched
             } catch (e: Exception) {
+                // A state, not a log: the exception text goes to logcat, not into the chat.
+                android.util.Log.w("CoachViewModel", "Coach turn failed", e)
                 _state.update { it.copy(
-                    messages = it.messages + ChatMessage("assistant", trf("Sorry, something went wrong: {0}", e.message)),
-                    isThinking = false, error = e.message,
+                    messages = it.messages + ChatMessage("assistant", tr("Couldn't reach the coach. Try again."), isError = true),
+                    isThinking = false, error = null,
                 ) }
             }
         }

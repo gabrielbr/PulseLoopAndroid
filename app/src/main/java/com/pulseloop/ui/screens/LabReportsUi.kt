@@ -79,7 +79,7 @@ private fun shortDay(ms: Long): String =
         .format(DateTimeFormatter.ofPattern("MMM yy"))
 
 private fun flagColor(flag: String): Color =
-    if (LabReports.isOutside(flag)) PulseColors.warning else if (flag == "NORMAL") PulseColors.accent else PulseColors.textMuted
+    if (LabReports.isOutside(flag)) PulseColors.warning else if (flag == "NORMAL") PulseColors.success else PulseColors.textMuted
 
 private fun flagLabel(flag: String): String = when (flag) {
     "HIGH" -> tr("High")
@@ -444,19 +444,19 @@ private fun LabChart(m: LabReports.Marker) {
         if (l.refLow != null || l.refHigh != null) {
             val bandTop = l.refHigh?.let { y(it) } ?: top
             val bandBottom = l.refLow?.let { y(it) } ?: bottom
-            ditherBrush(PulseColors.accent, 0.14f)?.let {
+            ditherBrush(PulseColors.info, 0.14f)?.let {
                 drawRect(it, Offset(0f, bandTop), Size(size.width, (bandBottom - bandTop).coerceAtLeast(1f)))
             }
         }
         if (pts.size >= 2) {
             val path = Path()
             pts.forEachIndexed { i, p -> if (i == 0) path.moveTo(x(i), y(p.valueNum!!)) else path.lineTo(x(i), y(p.valueNum!!)) }
-            drawPath(path, PulseColors.accent, style = Stroke(width = 2.dp.toPx()))
+            drawPath(path, PulseColors.info, style = Stroke(width = 2.dp.toPx()))
         }
         pts.forEachIndexed { i, p ->
             val c = Offset(x(i), y(p.valueNum!!))
             drawCircle(PulseColors.background, 6.dp.toPx(), c)
-            drawCircle(if (LabReports.isOutside(p.flag)) PulseColors.warning else PulseColors.accent, 4.5.dp.toPx(), c)
+            drawCircle(if (LabReports.isOutside(p.flag)) PulseColors.warning else PulseColors.info, 4.5.dp.toPx(), c)
             val v = measurer.measure(LabReports.valueLabel(p.valueNum, null), label)
             drawText(v, topLeft = Offset(c.x - v.size.width / 2, c.y - v.size.height - 8.dp.toPx()))
             val d = measurer.measure(shortDay(p.day), tick)

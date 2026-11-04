@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pulseloop.coach.orchestration.PendingAction
 import com.pulseloop.coach.orchestration.PendingActionKind
 
@@ -37,32 +38,28 @@ fun CoachActionCardView(
         modifier = Modifier
             .fillMaxWidth()
             .dither(tone, 0.08f, RoundedCornerShape(8.dp))
-            .padding(14.dp),
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Warning, null, tint = tone, modifier = Modifier.size(14.dp))
-            Text(
-                "Confirm action",
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Warning, null, tint = tone, modifier = Modifier.size(22.dp))
+            Text(com.pulseloop.ui.i18n.tr("CONFIRM CHANGE"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
         }
 
-        Text(action.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
+        Text(action.summary, fontSize = 14.sp, color = PulseColors.textPrimary)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PulseButton(PulseButtonStyle.Outlined,
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Cancel")
+                Text(com.pulseloop.ui.i18n.tr("Cancel"))
             }
-            PulseButton(
+            // Tonal, tinted by the risk: the tab's one filled accent stays the Actions button.
+            PulseButton(PulseButtonStyle.Tonal,
                 onClick = onConfirm,
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(containerColor = tone),
+                colors = ButtonDefaults.filledTonalButtonColors(containerColor = tone.copy(alpha = 0.22f), contentColor = tone),
             ) {
                 Text(action.confirmLabel)
             }

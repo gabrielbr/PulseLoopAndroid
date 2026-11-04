@@ -599,7 +599,7 @@ fun MealLogDialog(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(value = cal, onValueChange = { cal = decimalInput(it) ?: cal }, label = { Text("kcal", maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
+                    OutlinedTextField(value = cal, onValueChange = { cal = decimalInput(it) ?: cal }, label = { Text(tr("kcal"), maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                     OutlinedTextField(value = protein, onValueChange = { protein = decimalInput(it) ?: protein }, label = { Text(tr("Protein (g)"), maxLines = 1, overflow = TextOverflow.Ellipsis) }, modifier = Modifier.weight(1f), singleLine = true, keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal))
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -747,7 +747,7 @@ private fun NextMealCard(
                 idea.note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textSecondary) }
                 // Same treatment as the Photo/Describe pair: two lines allowed, equal heights.
                 Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PulseButton(onClick = onLog, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                    PulseButton(PulseButtonStyle.Tonal, onClick = onLog, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
                         Text(tr("Log this"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                     }
                     if (onDiscuss != null) {

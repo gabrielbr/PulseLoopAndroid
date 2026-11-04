@@ -634,7 +634,7 @@ private fun SleepHypnogram(
                         val cur = sorted[i]
                         val cx = xForMinute(cur.startMinute, size.width)
                         drawLine(
-                            color = Color(0xFFD2CDFF).copy(alpha = 0.46f),
+                            color = PulseColors.sleep.copy(alpha = 0.46f),
                             start = Offset(cx, laneY(prev.stageRaw, size.height)),
                             end = Offset(cx, laneY(cur.stageRaw, size.height)),
                             strokeWidth = 1.2.dp.toPx(),
@@ -749,9 +749,9 @@ private fun SleepHypnogram(
 @Composable
 private fun SleepStageSummaryCards(prefix: String = "", deep: String, light: String, awake: String) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        StageStat("${prefix}Deep", deep, PulseColors.stageDeep, Modifier.weight(1f))
-        StageStat("${prefix}Light", light, PulseColors.stageLight, Modifier.weight(1f))
-        StageStat("${prefix}Awake", awake, PulseColors.stageAwake, Modifier.weight(1f))
+        StageStat(prefix + tr("Deep"), deep, PulseColors.stageDeep, Modifier.weight(1f))
+        StageStat(prefix + tr("Light"), light, PulseColors.stageLight, Modifier.weight(1f))
+        StageStat(prefix + tr("Awake"), awake, PulseColors.stageAwake, Modifier.weight(1f))
     }
 }
 
@@ -832,7 +832,7 @@ private fun SleepDurationHistogram(
                     drawPath(barPath, PulseColors.stageDeep)
                     drawDitherFade(barPath, PulseColors.stageLight, 1f, 0.12f, top, size.height)
                 } else {
-                    drawDither(barPath, PulseColors.accent, 0.06f)
+                    drawDither(barPath, PulseColors.textMuted, 0.06f)
                 }
             }
             if (goalMin != null && goalMin > 0) {

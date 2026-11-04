@@ -74,7 +74,7 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("BEDTIME", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PulseColors.sleep)
+            Text(tr("BEDTIME"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.sleep)
             Text(
                 "${BedtimeGuidance.fmt(g.windowStart)}–${BedtimeGuidance.fmt(g.windowEnd)}",
                 fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,

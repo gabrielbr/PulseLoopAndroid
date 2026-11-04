@@ -140,7 +140,7 @@ fun WorkoutSummaryScreen(
                                     putExtra(android.content.Intent.EXTRA_STREAM, uri)
                                     addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
                                 }
-                                context.startActivity(android.content.Intent.createChooser(intent, "Export route (GPX)"))
+                                context.startActivity(android.content.Intent.createChooser(intent, tr("Export route (GPX)")))
                             }
                         }
                     })
@@ -179,7 +179,7 @@ fun WorkoutSummaryScreen(
         AlertDialog(
             onDismissRequest = { confirmDelete = false },
             title = { Text(tr("Delete workout?")) },
-            text = { Text("This removes the session and its recorded route. This can't be undone.") },
+            text = { Text(tr("This removes the session and its recorded route. This can't be undone.")) },
             confirmButton = {
                 PulseButton(PulseButtonStyle.Text, onClick = {
                     confirmDelete = false
@@ -476,18 +476,18 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
                 val parts = ActivityMeta.speedParts(s.distanceMeters, durationSec, units)
                 M(parts?.first ?: "—", parts?.second ?: "SPEED", PulseColors.accent)
             }
-            else -> M(s.calories?.let { "${it.toInt()}" } ?: "—", "CALORIES", PulseColors.calories)
+            else -> M(s.calories?.let { "${it.toInt()}" } ?: "—", tr("CALORIES"), PulseColors.calories)
         }
         listOf(
             M(dist ?: "—", UnitConverter.distanceUnit(units).uppercase(java.util.Locale.ROOT), PulseColors.distance),
-            M(dur, "DURATION", PulseColors.textPrimary),
+            M(dur, tr("DURATION"), PulseColors.textPrimary),
             third,
         )
     } else {
         listOf(
-            M(dur, "DURATION", PulseColors.textPrimary),
-            M(durationSec?.let { "${it / 60}" } ?: "—", "ACTIVE MIN", PulseColors.success),
-            M(s.calories?.let { "${it.toInt()}" } ?: "—", "CALORIES", PulseColors.calories),
+            M(dur, tr("DURATION"), PulseColors.textPrimary),
+            M(durationSec?.let { "${it / 60}" } ?: "—", tr("ACTIVE MIN"), PulseColors.success),
+            M(s.calories?.let { "${it.toInt()}" } ?: "—", tr("CALORIES"), PulseColors.calories),
         )
     }
     val shape = RoundedCornerShape(8.dp)
@@ -519,10 +519,10 @@ private fun StatsGrid(s: ActivitySessionEntity) {
     val corrections = rememberAccuracyCorrections()
     fun hr(v: Double?) = v?.let { "${corrections.heartRate(it).toInt()}" } ?: "—"
     val stats = buildList {
-        if (s.useGps) add("Calories" to (s.calories?.let { "${it.toInt()}" } ?: "—"))
-        add("Avg HR" to hr(s.avgHeartRate))
-        add("Max HR" to hr(s.maxHeartRate))
-        add("Min HR" to hr(s.minHeartRate))
+        if (s.useGps) add(tr("Calories") to (s.calories?.let { "${it.toInt()}" } ?: "—"))
+        add(tr("Avg HR") to hr(s.avgHeartRate))
+        add(tr("Max HR") to hr(s.maxHeartRate))
+        add(tr("Min HR") to hr(s.minHeartRate))
         add("SpO₂" to (s.latestSpO2?.let { "${corrections.spo2(it).toInt()}%" } ?: "—"))
     }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -576,7 +576,7 @@ private fun SplitsCard(points: List<ActivityGpsPointEntity>, units: UnitSystem, 
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("SPLITS", fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = PulseColors.textMuted)
+        Text(tr("SPLITS"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
         splits.forEachIndexed { index, seconds ->
             val isFastest = seconds == fastest
             val frac = if (slowest > fastest) (seconds - fastest) / (slowest - fastest) else 0.0

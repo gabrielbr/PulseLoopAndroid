@@ -195,7 +195,8 @@ object LabReports {
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            ReadResult.Failure(trf("Reading failed: {0}", e.message ?: e.javaClass.simpleName))
+            android.util.Log.w("LabReports", "Reading the report failed", e)
+            ReadResult.Failure(tr("Couldn't read the report. Check your connection and try again."))
         }
     }
 

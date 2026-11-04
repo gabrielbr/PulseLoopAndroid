@@ -51,6 +51,7 @@ fun CycleScreen(onBack: () -> Unit) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
+    var pendingDelete by remember { mutableStateOf<String?>(null) }
     // null until Room answers: read as empty, the card said "log your period to start" and the
     // button offered "period started today" to someone mid-period, then both changed a frame later.
     val periodsLoaded by remember { db.periodDao().allFlow() }.collectAsState(initial = null)
@@ -137,7 +138,8 @@ fun CycleScreen(onBack: () -> Unit) {
                             )
                             next?.let { Text(trf("Cycle of {0} days", it - p.startDay), fontSize = 12.sp, color = PulseColors.textMuted) }
                         }
-                        IconButton(onClick = { scope.launch { db.periodDao().delete(p.id) } }) {
+                        // Asks first: one tap used to delete a logged period with no way back.
+                        IconButton(onClick = { pendingDelete = p.id }) {
                             Icon(Icons.Filled.Delete, tr("Delete"), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
                         }
                     }
@@ -174,5 +176,21 @@ fun CycleScreen(onBack: () -> Unit) {
             Text(if (picking == "start") tr("When did it start?") else tr("When did it end?"), modifier = Modifier.padding(start = 24.dp, top = 16.dp), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             DatePicker(state = state, showModeToggle = false)
         }
+    }
+    pendingDelete?.let { id ->
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text(tr("Delete this period?")) },
+            text = { Text(tr("Your cycle predictions are worked out again without it.")) },
+            confirmButton = {
+                com.pulseloop.ui.components.PulseButton(com.pulseloop.ui.components.PulseButtonStyle.Text, onClick = {
+                    scope.launch { db.periodDao().delete(id) }
+                    pendingDelete = null
+                }) { Text(tr("Delete"), color = PulseColors.danger) }
+            },
+            dismissButton = {
+                com.pulseloop.ui.components.PulseButton(com.pulseloop.ui.components.PulseButtonStyle.Text, onClick = { pendingDelete = null }) { Text(tr("Cancel")) }
+            },
+        )
     }
 }
