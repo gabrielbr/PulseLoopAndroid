@@ -6,6 +6,30 @@ Date: YYYY-MM-DD · PR: #<n> · Auditor: <who/what>
 
 What changed (tokens old → new, rules, components, assets).
 
+## ux-user-flows (§13 flow review checklist)
+
+The flow, if one changes (Mermaid plus the step table), or one line saying none does.
+
+| # | Question | Result |
+|---|---|---|
+| 1 | Job | |
+| 2 | Entries | |
+| 3 | Happy path | |
+| 4 | Branches | |
+| 5 | States | |
+| 6 | Errors | |
+| 7 | Control | |
+| 8 | Progress and resume | |
+| 9 | Memory | |
+| 10 | Exits | |
+| 11 | Conventions | |
+| 12 | Speed | |
+| 13 | Accessibility | |
+| 14 | Ethics | |
+| 15 | Evidence | |
+
+Issues (critical / important / polish), each with the principle and the fix.
+
 ## graphic-design-fundamentals (§13 checklist)
 
 | # | Question | Result |
