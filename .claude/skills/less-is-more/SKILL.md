@@ -1,6 +1,6 @@
 ---
 name: less-is-more
-description: Use when designing, reviewing or changing any screen, flow, sheet, notification or widget in an app built on the Gabriel Design System, or when asked to reduce clutter. A checklist for removing what doesn't earn its place, for someone using the phone one-handed and in a hurry. Pairs with the impeccable and graphic-design-fundamentals audits; all three run on every screen and flow.
+description: Use when designing, reviewing or changing any screen, flow, sheet, notification or widget in an app built on the Gabriel Design System, or when asked to reduce clutter. A checklist for removing what doesn't earn its place, for someone using the phone one-handed and in a hurry. Pairs with ux-user-flows and the impeccable and graphic-design-fundamentals audits; all four run on every screen and flow.
 ---
 
 # Less is more

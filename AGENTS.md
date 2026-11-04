@@ -1203,21 +1203,26 @@ screens that no longer exist, and an app change missing from the canvas is invis
 - If a session cannot reach the canvas, say so in the PR description instead of skipping it
   silently.
 
-## The design system's rules apply here (Gabriel Design System 0.30.0)
+## The design system's rules apply here (Gabriel Design System 0.31.0)
 
 PulseLoop is one of the apps the design-system repo governs (its `pulseloop` layer). Its AGENTS.md
 "Rules every design decision follows" bind this app; where PulseLoop still differs, the
 difference is recorded in that repo's `docs/divergences.md` (D-4 dark only, D-11 update
 checksum, …), not here. Don't add a divergence in the app: add it there first, with its plan.
 
-- **Three skills on every screen and flow.** Every new or changed screen, flow, sheet,
-  notification or widget is designed with, and then audited against, all three skills in
-  `.claude/skills/`:
-  1. **impeccable**: shape, critique and polish while designing, then its native `audit` and
+- **Four skills on every screen and flow.** Every new or changed screen, flow, sheet,
+  notification or widget is designed with, and then audited against, all four skills in
+  `.claude/skills/`, in this order:
+  1. **ux-user-flows**: first, decide what happens and in what order. Write the flow (entry
+     points, steps, branches, every state, exits) and run its §13 flow review checklist.
+  2. **impeccable**: shape, critique and polish while designing, then its native `audit` and
      `critique`, with the five dimensions scored and findings P0–P3.
-  2. **graphic-design-fundamentals**: plan with it, then its §13 checklist.
-  3. **less-is-more**: the five questions on every element; what was cut; taps on common actions
+  3. **graphic-design-fundamentals**: plan with it, then its §13 checklist.
+  4. **less-is-more**: the five questions on every element; what was cut; taps on common actions
      never rise.
+
+  Where a skill's general advice and this design system differ (target sizes, the one mint
+  action, the frame), the design system wins.
 
   Use them while working, not only at the end. If a skill won't load, read its `SKILL.md` and
   references and apply it by hand, and say so. The audit file has one section per skill. Fix any
