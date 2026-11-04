@@ -115,7 +115,7 @@ fun CapabilityChips(blurb: String, modifier: Modifier = Modifier) {
         chips.forEach { chip ->
             Text(
                 chip,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = PulseColors.textSecondary,
                 modifier = Modifier

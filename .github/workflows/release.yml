@@ -102,6 +102,9 @@ jobs:
           # installs (must keep "universal" in the name so the updater's asset selector picks it).
           # End users get diagnostics from the in-app export, so no debug APK is distributed.
           cp app/build/outputs/apk/release/app-universal-release.apk "dist/pulseloop-${V}-universal.apk"
+          # The in-app updater installs a download only when its SHA-256 matches this file
+          # (design system docs/self-update.md): no published sum, no install.
+          (cd dist && sha256sum *.apk > SHA256SUMS.txt && cat SHA256SUMS.txt)
           ls -la dist
 
       - name: Create / update release and attach APKs
@@ -112,4 +115,6 @@ jobs:
           name: PulseLoop ${{ steps.ver.outputs.name }} (${{ steps.ver.outputs.code }})
           prerelease: ${{ steps.ver.outputs.prerelease }}
           generate_release_notes: true
-          files: dist/*.apk
+          files: |
+            dist/*.apk
+            dist/SHA256SUMS.txt

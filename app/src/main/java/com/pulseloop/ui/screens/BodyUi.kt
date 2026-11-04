@@ -111,7 +111,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
                     else { enabled = false; HealthConnectBodyImport.setEnabled(context, false) }
                 }), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("Sync from your scale"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Sync from your scale"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
                     tr("Weight, height and body composition from Health Connect (Fitdays and other scale apps)."),
                     fontSize = 12.sp, color = PulseColors.textSecondary,
@@ -137,9 +137,9 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
                 s.leanMassKg?.let { add(trf("Lean {0} {1}", "%.1f".format(UnitConverter.weight(it, units)), unit)) }
                 s.heightCm?.takeIf { it > 0 }?.let { h -> add(trf("BMI {0}", "%.1f".format(w.value / ((h / 100) * (h / 100))))) }
             }
-            if (facts.isNotEmpty()) Text(facts.joinToString(" · "), fontSize = 13.sp, color = PulseColors.textSecondary)
+            if (facts.isNotEmpty()) Text(facts.joinToString(" · "), fontSize = 14.sp, color = PulseColors.textSecondary)
             if (s.trend.size >= 2) WeightLine(s.trend, units)
-            Text(trf("From {0}", w.source), fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(trf("From {0}", w.source), fontSize = 12.sp, color = PulseColors.textMuted)
         }
         note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         if (enabled) {
@@ -170,11 +170,11 @@ private fun WeightLine(points: List<BodyMeasurementEntity>, units: UnitSystem) {
         drawPath(path, PulseColors.accent, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
     }
     Row(Modifier.fillMaxWidth()) {
-        Text(shown(points.first().value), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
+        Text(shown(points.first().value), fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
         val delta = UnitConverter.weight(points.last().value - points.first().value, units)
         Text(
             trf("{0}{1} {2} in 90 days", if (delta >= 0) "+" else "", (delta * 10).roundToInt() / 10.0, unit),
-            fontSize = 11.sp, color = PulseColors.textMuted,
+            fontSize = 12.sp, color = PulseColors.textMuted,
         )
     }
 }

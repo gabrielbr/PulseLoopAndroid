@@ -55,9 +55,9 @@ fun UnusualSignalsCard(signals: List<OffSignal>) {
             .dither(PulseColors.warning, 0.12f).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(tr("Some signals look unusual"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.warning)
+        Text(tr("Some signals look unusual"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.warning)
         signals.forEach {
-            Text("${it.title}: ${it.detail}", fontSize = 13.sp, color = PulseColors.textPrimary)
+            Text("${it.title}: ${it.detail}", fontSize = 14.sp, color = PulseColors.textPrimary)
         }
         Text(
             tr("Compared with your own recent nights. This can follow illness, stress, alcohol or a hard day. It isn't a diagnosis; consider an easier day."),
@@ -74,7 +74,7 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("BEDTIME", fontSize = 11.sp, fontWeight = FontWeight.Medium, color = PulseColors.sleep)
+            Text("BEDTIME", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PulseColors.sleep)
             Text(
                 "${BedtimeGuidance.fmt(g.windowStart)}–${BedtimeGuidance.fmt(g.windowEnd)}",
                 fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
@@ -85,7 +85,7 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
             )
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(tr("LAST CAFFEINE"), fontSize = 11.sp, fontWeight = FontWeight.Medium, color = PulseColors.calories)
+            Text(tr("LAST CAFFEINE"), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PulseColors.calories)
             Text(BedtimeGuidance.fmt(g.caffeineCutoff), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             Text(tr("8 hours before bed"), fontSize = 12.sp, color = PulseColors.textMuted)
         }

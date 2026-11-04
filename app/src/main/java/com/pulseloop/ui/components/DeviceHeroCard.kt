@@ -105,7 +105,7 @@ fun DeviceHeroCard(
                 )
                 Text(
                     status.statusLine,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     color = status.statusTint,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -163,7 +163,7 @@ fun DeviceHeroCard(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Text(
                     status.actionTitle,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = if (status.actionEnabled) PulseColors.accent else PulseColors.textMuted,
                     modifier = Modifier

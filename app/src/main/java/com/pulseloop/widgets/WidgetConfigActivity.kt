@@ -152,7 +152,7 @@ private fun MetricPicker(title: String?, selected: WidgetMetric, onSelect: (Widg
         if (title != null) {
             Text(
                 title,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 letterSpacing = 1.sp,
                 color = PulseColors.textMuted,
@@ -169,7 +169,7 @@ private fun MetricPicker(title: String?, selected: WidgetMetric, onSelect: (Widg
             ) {
                 RadioButton(selected = metric == selected, onClick = { onSelect(metric) })
                 Spacer(Modifier.width(4.dp))
-                Text(metric.displayName, fontSize = 15.sp, color = PulseColors.textPrimary)
+                Text(metric.displayName, fontSize = 16.sp, color = PulseColors.textPrimary)
             }
         }
     }

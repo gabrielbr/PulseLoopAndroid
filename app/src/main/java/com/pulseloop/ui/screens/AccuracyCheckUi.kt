@@ -146,11 +146,11 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
 
         if (openLoad != null && current == null) {
             AccuracyCard {
-                Text(tr("Compare your ring with another device"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Compare your ring with another device"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
                     tr("Wear the ring and a watch or band you trust for a few days. PulseLoop reads that device's data from " +
                         "Health Connect and shows where the ring agrees and where it falls short."),
-                    fontSize = 13.sp, color = PulseColors.textSecondary,
+                    fontSize = 14.sp, color = PulseColors.textSecondary,
                 )
                 Text(
                     tr("While a check runs, PulseLoop stops exporting the types the other device also writes, so Health Connect " +
@@ -184,7 +184,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
             if (r != null) {
                 if (r.sources.isEmpty()) {
                     AccuracyCard {
-                        Text(trf("No other app wrote readable data in the last {0} days.", ReferenceSourceScanner.LOOKBACK_DAYS), fontSize = 13.sp, color = PulseColors.textSecondary)
+                        Text(trf("No other app wrote readable data in the last {0} days.", ReferenceSourceScanner.LOOKBACK_DAYS), fontSize = 14.sp, color = PulseColors.textSecondary)
                         Text(
                             tr("If your watch syncs through an app like Health Sync, check that it's set to write to Health Connect."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
@@ -221,18 +221,18 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
         val past = history.filter { it.state == AccuracyCheckEntity.STATE_DONE }
         if (past.isNotEmpty()) {
             AccuracyCard {
-                Text(tr("Past checks"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Past checks"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 past.forEach { c ->
                     Row(
                         Modifier.fillMaxWidth().clickable { viewing = c.id }.padding(vertical = 6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("${c.deviceLabel} vs ${c.referenceLabel}", fontSize = 13.sp, color = PulseColors.textPrimary)
+                            Text("${c.deviceLabel} vs ${c.referenceLabel}", fontSize = 14.sp, color = PulseColors.textPrimary)
                             Text(AccuracyUiText.span(c), fontSize = 12.sp, color = PulseColors.textMuted)
                         }
                         Text(
-                            tr("View"), fontSize = 13.sp, color = PulseColors.accent,
+                            tr("View"), fontSize = 14.sp, color = PulseColors.accent,
                             maxLines = 1, overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.widthIn(max = 96.dp),
                         )
@@ -295,8 +295,8 @@ private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Co
     var confirmEnd by remember { mutableStateOf(false) }
     val (day, total) = AccuracyUiText.dayOf(check)
     AccuracyCard {
-        Text(trf("Accuracy check · day {0} of {1}", day, total), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        Text(trf("{0} vs {1}, until {2}.", check.deviceLabel, check.referenceLabel, AccuracyUiText.date(check.plannedEndAt)), fontSize = 13.sp, color = PulseColors.textSecondary)
+        Text(trf("Accuracy check · day {0} of {1}", day, total), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(trf("{0} vs {1}, until {2}.", check.deviceLabel, check.referenceLabel, AccuracyUiText.date(check.plannedEndAt)), fontSize = 14.sp, color = PulseColors.textSecondary)
         Text(trf("Wear both as usual. Health Connect export paused for: {0}.", AccuracyUiText.units(units)), fontSize = 12.sp, color = PulseColors.warning)
         OutlinedButton(onClick = { confirmEnd = true }) { Text(tr("End now")) }
     }
@@ -321,8 +321,8 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
     val context = LocalContext.current
     var busy by remember { mutableStateOf(false) }
     AccuracyCard {
-        Text(tr("Check finished: resume Health Connect export"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        Text(AccuracyUiText.endReason(check) + " ${AccuracyUiText.span(check)}.", fontSize = 13.sp, color = PulseColors.textSecondary)
+        Text(tr("Check finished: resume Health Connect export"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(AccuracyUiText.endReason(check) + " ${AccuracyUiText.span(check)}.", fontSize = 14.sp, color = PulseColors.textSecondary)
         Text(
             trf("During the check, {0} wrote the same types to Health Connect. Exporting the ring's copy of those days now would count them twice.", check.referenceLabel),
             fontSize = 12.sp, color = PulseColors.textMuted,
@@ -337,7 +337,7 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
         }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(tr("Export them too")) }
         Text(
             tr("Export them too if you're taking the other device off and want the ring's full history in Health Connect."),
-            fontSize = 11.sp, color = PulseColors.textMuted,
+            fontSize = 12.sp, color = PulseColors.textMuted,
         )
     }
 }
@@ -370,7 +370,7 @@ private fun StartDialog(
                         { Text(tr("A bridge app: name the watch behind it.")) }
                     } else null,
                 )
-                Text(tr("How long"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(tr("How long"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 // Four translated "N days" chips are wider than a dialog: let them wrap.
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     AccuracyCheckController.DURATIONS_DAYS.forEach { d ->
@@ -392,8 +392,8 @@ private fun StartDialog(
 @Composable
 private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() -> Unit)? = null) {
     AccuracyCard {
-        Text(ReferenceAppLabels.label(context, s.packageName), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        Text(s.packageName, fontSize = 11.sp, color = PulseColors.textMuted)
+        Text(ReferenceAppLabels.label(context, s.packageName), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(s.packageName, fontSize = 12.sp, color = PulseColors.textMuted)
         if (s.packageName in ReferenceAppLabels.BRIDGES) {
             Text(
                 tr("A bridge app: it copies another app's data (for example Huawei Health) into Health Connect."),
@@ -420,7 +420,7 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
 private fun MetricRow(m: MetricSurvey) {
     val last = Instant.ofEpochMilli(m.lastAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM HH:mm"))
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        Text(m.metric.label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+        Text(m.metric.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Text(
             trf("{0} samples, {1} · latest {2} · arrives ~{3} late", m.sampleCount, ReferenceSurveyText.cadence(m), last, ReferenceSurveyText.duration(m.medianDeliveryDelayMs)),
             fontSize = 12.sp, color = PulseColors.textSecondary,
@@ -451,7 +451,7 @@ internal fun AccuracyCard(content: @Composable () -> Unit) {
 internal fun AdjustedCaption(note: String) {
     Text(
         trf("Adjusted by your accuracy check: {0}. Settings → Accuracy check to change.", note),
-        fontSize = 11.sp, color = PulseColors.textMuted,
+        fontSize = 12.sp, color = PulseColors.textMuted,
     )
 }
 

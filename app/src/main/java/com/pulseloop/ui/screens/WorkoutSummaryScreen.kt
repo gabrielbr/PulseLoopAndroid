@@ -161,7 +161,7 @@ fun WorkoutSummaryScreen(
                     Icon(ActivityMeta.icon(s.type), null, tint = PulseColors.accent, modifier = Modifier.size(34.dp))
                 }
                 Text(ActivityMeta.label(s.type), fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                Text(dateRange(s), fontSize = 13.sp, color = PulseColors.textMuted)
+                Text(dateRange(s), fontSize = 14.sp, color = PulseColors.textMuted)
             }
         }
         item { SummaryHeroBand(s, durationSec, units) }
@@ -503,8 +503,8 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
     ) {
         metrics.forEachIndexed { i, m ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(m.value, fontSize = 30.sp, fontWeight = FontWeight.SemiBold, color = m.tint, maxLines = 1)
-                Text(m.label, fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
+                Text(m.value, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, color = m.tint, maxLines = 1)
+                Text(m.label, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
             }
             if (i != metrics.lastIndex) {
                 Box(Modifier.width(1.dp).height(40.dp).background(PulseColors.borderSubtle))
@@ -546,7 +546,7 @@ private fun StatsGrid(s: ActivitySessionEntity) {
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(value, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                        Text(label.uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
+                        Text(label.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
                     }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -577,7 +577,7 @@ private fun SplitsCard(points: List<ActivityGpsPointEntity>, units: UnitSystem, 
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("SPLITS", fontSize = 11.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = PulseColors.textMuted)
+        Text("SPLITS", fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp, color = PulseColors.textMuted)
         splits.forEachIndexed { index, seconds ->
             val isFastest = seconds == fastest
             val frac = if (slowest > fastest) (seconds - fastest) / (slowest - fastest) else 0.0

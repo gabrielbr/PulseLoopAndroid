@@ -52,7 +52,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("What changed"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(tr("What changed"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -64,25 +64,25 @@ fun WhatChangedScreen(onBack: () -> Unit) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Text(tr("LAST 3 DAYS"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("LAST 3 DAYS"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 if (rowsLoaded == null) {
                     Spacer(Modifier.height(48.dp))
                 } else if (recent.isEmpty()) {
-                    Text(tr("Nothing stood out"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text(tr("Your nights look like your usual. That's an answer too."), fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Nothing stood out"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(tr("Your nights look like your usual. That's an answer too."), fontSize = 14.sp, color = PulseColors.textSecondary)
                 } else {
                     recent.distinctBy { it.kind }.forEach { FindingRow(it) }
                 }
             }
             val older = rows.filter { it.day < recentKey }.groupBy { it.day }
             if (older.isNotEmpty()) {
-                Text(tr("EARLIER"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("EARLIER"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 older.forEach { (day, list) ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                     ) {
-                        Text(FindingsRepository.dateOf(day, zone).format(fmt), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+                        Text(FindingsRepository.dateOf(day, zone).format(fmt), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
                         list.forEach { FindingRow(it) }
                     }
                 }
@@ -90,7 +90,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
             Text(
                 tr("Each night is compared with your own previous four weeks once there are two weeks to compare with. ") +
                     trf("Findings carry the formula version that made them (now v{0}). Patterns, not diagnoses.", Algorithms.VERSION),
-                fontSize = 11.sp, color = PulseColors.textMuted,
+                fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
         }
@@ -105,8 +105,8 @@ private fun FindingRow(f: FindingEntity) {
                 .background(if (f.positive) PulseColors.accent else PulseColors.warning),
         )
         Column(Modifier.weight(1f)) {
-            Text(f.title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-            Text(f.detail, fontSize = 13.sp, color = PulseColors.textSecondary)
+            Text(f.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(f.detail, fontSize = 14.sp, color = PulseColors.textSecondary)
         }
     }
 }

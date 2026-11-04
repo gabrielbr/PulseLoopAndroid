@@ -145,11 +145,11 @@ private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: (
             note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         }
         TextButton(onClick = onMinus, modifier = Modifier.semantics { contentDescription = trf("Decrease {0}", label) }) {
-            Text("−", fontSize = 18.sp, modifier = Modifier.clearAndSetSemantics {})
+            Text("−", fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {})
         }
-        Text(value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 36.dp))
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 36.dp))
         TextButton(onClick = onPlus, modifier = Modifier.semantics { contentDescription = trf("Increase {0}", label) }) {
-            Text("+", fontSize = 18.sp, modifier = Modifier.clearAndSetSemantics {})
+            Text("+", fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {})
         }
     }
 }
@@ -160,7 +160,7 @@ private fun Pill(label: String, on: Boolean, color: Color = PulseColors.accent, 
     val shape = RoundedCornerShape(16.dp)
     Text(
         label,
-        fontSize = 13.sp,
+        fontSize = 14.sp,
         fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
         color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
         maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -189,7 +189,7 @@ private fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Un
             val on = i == selected
             Text(
                 label,
-                fontSize = 13.sp,
+                fontSize = 14.sp,
                 fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                 color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
                 textAlign = TextAlign.Center,
@@ -226,7 +226,7 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
             // Kept clear of the back and settings buttons whatever the voice calls this screen.
             Text(
-                tr("Drinks"), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                tr("Drinks"), fontSize = 16.sp, fontWeight = FontWeight.Bold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
             )
@@ -289,7 +289,7 @@ private fun DrinksLoading() {
         Modifier.fillMaxWidth().height(200.dp).clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         contentAlignment = Alignment.Center,
     ) {
-        if (slow) Text(tr("Reading your drinks…"), color = PulseColors.textMuted, fontSize = 13.sp)
+        if (slow) Text(tr("Reading your drinks…"), color = PulseColors.textMuted, fontSize = 14.sp)
     }
 }
 
@@ -307,7 +307,7 @@ private fun BreastfeedingAlcoholCard(s: DrinksRepository.Snapshot) {
     val clear = com.pulseloop.service.Postpartum.alcoholClearAt(s.recent.map { it.timestamp to it.grams }, now) ?: return
     val time = DateTimeFormatter.ofPattern("HH:mm").format(java.time.Instant.ofEpochMilli(clear).atZone(ZoneId.systemDefault()))
     DrinkCard {
-        Text(trf("Breastfeeding: estimated clear around {0}", time), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.warning)
+        Text(trf("Breastfeeding: estimated clear around {0}", time), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.warning)
         Text(
             tr("CDC suggests waiting at least 2 hours per standard drink before feeding. It's an estimate: bodies differ, and pumping and dumping doesn't make it faster. Not drinking is the safest choice."),
             fontSize = 12.sp, color = PulseColors.textSecondary,
@@ -354,7 +354,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
         )
         Stepper(tr("Dry days a week"), "$dry", { dry = (dry - 1).coerceAtLeast(0) }, { dry = (dry + 1).coerceAtMost(7) })
         Row(Modifier.fillMaxWidth().clickable { showSize = !showSize }, verticalAlignment = Alignment.CenterVertically) {
-            Text(trf("Standard drink: {0} g of alcohol", grams.roundToInt()), fontSize = 13.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
+            Text(trf("Standard drink: {0} g of alcohol", grams.roundToInt()), fontSize = 14.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
             Icon(if (showSize) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = PulseColors.textMuted)
         }
         if (showSize) {
@@ -407,15 +407,15 @@ private fun WeekHero(s: DrinksRepository.Snapshot) {
                     if (fraction > 0f) drawArc(color, 135f, 270f * fraction, false, Offset(inset, inset), arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(std(total), fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text(trf("of {0}", std(s.weeklyLimit)), fontSize = 11.sp, color = PulseColors.textMuted)
+                    Text(std(total), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(trf("of {0}", std(s.weeklyLimit)), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = if (over) PulseColors.warning else PulseColors.textPrimary)
-                Text(sub, fontSize = 13.sp, color = PulseColors.textSecondary)
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (over) PulseColors.warning else PulseColors.textPrimary)
+                Text(sub, fontSize = 14.sp, color = PulseColors.textSecondary)
                 if (s.streaks.current >= 2) {
-                    Text(trf("{0} dry days in a row", s.streaks.current), fontSize = 13.sp, color = PulseColors.accent)
+                    Text(trf("{0} dry days in a row", s.streaks.current), fontSize = 14.sp, color = PulseColors.accent)
                 }
             }
         }
@@ -441,7 +441,7 @@ private fun WeekStrip(s: DrinksRepository.Snapshot) {
             Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     day.dayOfWeek.getDisplayName(TextStyle.NARROW, Locale.getDefault()),
-                    fontSize = 11.sp, maxLines = 1, color = if (isToday) PulseColors.textPrimary else PulseColors.textMuted,
+                    fontSize = 12.sp, maxLines = 1, color = if (isToday) PulseColors.textPrimary else PulseColors.textMuted,
                     fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
                 )
                 Box(
@@ -460,7 +460,7 @@ private fun WeekStrip(s: DrinksRepository.Snapshot) {
                     contentAlignment = Alignment.Center,
                 ) {
                     when {
-                        drank -> Text(std(DrinkInsights.standardDrinks(grams, s.gramsPerStandard)), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PulseColors.onAccent, maxLines = 1, softWrap = false)
+                        drank -> Text(std(DrinkInsights.standardDrinks(grams, s.gramsPerStandard)), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PulseColors.onAccent, maxLines = 1, softWrap = false)
                         !future && known && !isToday -> Icon(Icons.Filled.Check, tr("Dry"), tint = PulseColors.accent, modifier = Modifier.size(16.dp))
                     }
                 }
@@ -483,7 +483,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
     DrinkCard(tr("Log a drink"), action = {
         Text(
             tr("More"),
-            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
+            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
             modifier = Modifier.clickable { more = true }.padding(4.dp),
         )
     }) {
@@ -508,16 +508,16 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(t.icon, null, tint = PulseColors.drinks, modifier = Modifier.size(24.dp))
-                    Text(t.short, fontSize = 11.sp, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(t.short, fontSize = 12.sp, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
         lastLogged?.let { (text, ids) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(trf("Logged {0}", text), fontSize = 13.sp, color = PulseColors.accent, modifier = Modifier.weight(1f))
+                Text(trf("Logged {0}", text), fontSize = 14.sp, color = PulseColors.accent, modifier = Modifier.weight(1f))
                 Text(
                     tr("Undo"),
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.widthIn(max = 120.dp).clickable {
                         scope.launch { ids.forEach { DrinksRepository.delete(db, it) }; lastLogged = null; onChange() }
@@ -532,7 +532,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                 val tonight = s.todayStandard
                 Text(
                     if (tonight > 0) trf("Tonight: {0} drink{1}", std(tonight), if (tonight == 1.0) "" else "s") else tr("Nothing tonight"),
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                    fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 )
                 if (s.recent.isNotEmpty()) {
                     Text(if (showTonight) tr("Hide") else tr("See and edit recent drinks"), fontSize = 12.sp, color = PulseColors.textMuted)
@@ -602,7 +602,7 @@ private fun PlanChip(s: DrinksRepository.Snapshot, onClick: () -> Unit) {
     }
     Text(
         label,
-        fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp, fontWeight = FontWeight.SemiBold,
         color = if (planned == null) PulseColors.accent else PulseColors.textPrimary,
         // Bounded, so a long translation or voice line wraps inside the chip instead of
         // starving the "tonight" text beside it down to one letter per line.
@@ -618,8 +618,8 @@ private fun PlanChip(s: DrinksRepository.Snapshot, onClick: () -> Unit) {
 private fun PlanSheet(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
     var plan by remember { mutableIntStateOf(s.planToday ?: 2) }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(tr("Plan tonight"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        Text(tr("Pick the number before the first drink. It's easier to keep a number you chose beforehand."), fontSize = 13.sp, color = PulseColors.textSecondary)
+        Text(tr("Plan tonight"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(tr("Pick the number before the first drink. It's easier to keep a number you chose beforehand."), fontSize = 14.sp, color = PulseColors.textSecondary)
         Stepper(tr("Drinks tonight"), if (plan == 0) "none" else "$plan", { plan = (plan - 1).coerceAtLeast(0) }, { plan = (plan + 1).coerceAtMost(12) })
         Button(onClick = { DrinkPrefs.setPlan(s.today, plan); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Save plan")) }
         if (s.planToday != null) {
@@ -653,7 +653,7 @@ private fun MoreDrinkSheet(onLog: (DrinkType, Int, Long, Double?) -> Unit) {
     var hoursAgo by remember { mutableLongStateOf(0L) }
     var price by remember { mutableStateOf(DrinkPrefs.pricePerDrink.takeIf { it > 0 }?.let { "%.2f".format(it) } ?: "") }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(tr("Log drinks"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(tr("Log drinks"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             DrinkType.entries.forEach { t -> Pill(t.label, type == t, PulseColors.drinks) { type = t } }
         }
@@ -697,16 +697,16 @@ private fun InsightCard(s: DrinksRepository.Snapshot) {
             Bar(d.dryNights.toFloat() / DrinkInsights.MIN_NIGHTS, PulseColors.sleep)
         } else {
             Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
-                Text(if (open) tr("Less") else tr("Details"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, modifier = Modifier.weight(1f))
+                Text(if (open) tr("Less") else tr("Details"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, modifier = Modifier.weight(1f))
                 Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = PulseColors.accent)
             }
             if (open) {
                 ImpactRow(tr("After 1–2 drinks"), d.light)
                 ImpactRow(tr("After 3 or more"), d.heavier)
                 s.recoveryNights?.let {
-                    Text(trf("HRV usually takes {0} night{1} to come back.", "%.1f".format(it), if (it > 1.05) "s" else ""), fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(trf("HRV usually takes {0} night{1} to come back.", "%.1f".format(it), if (it > 1.05) "s" else ""), fontSize = 14.sp, color = PulseColors.textSecondary)
                 }
-                Text(trf("Against your {0} dry nights since you started. A pattern in your data, not proof of cause.", d.dryNights), fontSize = 11.sp, color = PulseColors.textMuted)
+                Text(trf("Against your {0} dry nights since you started. A pattern in your data, not proof of cause.", d.dryNights), fontSize = 12.sp, color = PulseColors.textMuted)
             }
         }
     }
@@ -715,7 +715,7 @@ private fun InsightCard(s: DrinksRepository.Snapshot) {
 @Composable
 private fun ImpactRow(label: String, i: DrinkInsights.Impact?) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
+        Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
         val text = if (i == null) tr("Not enough nights yet") else buildList {
             i.hrvPct?.let { add("HRV ${if (it >= 0) "+" else "−"}${kotlin.math.abs(it)}%") }
             i.restingHr?.let { add(trf("resting HR {0}{1}", if (it >= 0) "+" else "−", kotlin.math.abs(it))) }
@@ -734,7 +734,7 @@ private fun Stat(value: String, label: String, modifier: Modifier) {
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
         Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, maxLines = 1, softWrap = false)
-        Text(label, fontSize = 11.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(label, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -752,7 +752,7 @@ private fun TrendsTab(s: DrinksRepository.Snapshot) {
         WeeksChart(s)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Box(Modifier.width(16.dp).height(2.dp).background(PulseColors.textMuted))
-            Text(trf("your limit of {0}", std(s.weeklyLimit)), fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(trf("your limit of {0}", std(s.weeklyLimit)), fontSize = 12.sp, color = PulseColors.textMuted)
         }
     }
     s.savings?.takeIf { it.drinksAvoided >= 0.5 }?.let { sv ->
@@ -798,7 +798,7 @@ private fun WeeksChart(s: DrinksRepository.Snapshot) {
             s.weeks.forEachIndexed { i, (start, _) ->
                 Text(
                     if (i % 2 == 1 || i == s.weeks.lastIndex) start.format(fmt) else "",
-                    fontSize = 10.sp, color = PulseColors.textMuted, textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
+                    fontSize = 12.sp, color = PulseColors.textMuted, textAlign = TextAlign.Center, modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -816,7 +816,7 @@ private fun SupportRow(icon: ImageVector, title: String, subtitle: String, onCli
     ) {
         Icon(icon, null, tint = PulseColors.accent, modifier = Modifier.size(22.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             Text(subtitle, fontSize = 12.sp, color = PulseColors.textMuted)
         }
     }
@@ -859,11 +859,11 @@ private fun AuditCard(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
             Spacer(Modifier.height(64.dp))
         } else if (score != null) {
             val level = AuditC.level(score, sex)
-            Text(level.label, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = if (level == AuditC.Level.LOW) PulseColors.accent else PulseColors.warning)
-            Text(AuditC.advice(level), fontSize = 13.sp, color = PulseColors.textSecondary)
-            Text(trf("Score {0} of 12 · {1}", score, DrinkPrefs.auditDate), fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(level.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = if (level == AuditC.Level.LOW) PulseColors.accent else PulseColors.warning)
+            Text(AuditC.advice(level), fontSize = 14.sp, color = PulseColors.textSecondary)
+            Text(trf("Score {0} of 12 · {1}", score, DrinkPrefs.auditDate), fontSize = 12.sp, color = PulseColors.textMuted)
         } else {
-            Text(tr("The WHO's short alcohol check (AUDIT-C). Three questions, under a minute. A screen, not a diagnosis."), fontSize = 13.sp, color = PulseColors.textSecondary)
+            Text(tr("The WHO's short alcohol check (AUDIT-C). Three questions, under a minute. A screen, not a diagnosis."), fontSize = 14.sp, color = PulseColors.textSecondary)
         }
         if (s.auditDue) {
             OutlinedButton(onClick = { taking = true }, modifier = Modifier.fillMaxWidth()) {
@@ -889,7 +889,7 @@ private fun AuditCard(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     RadioButton(selected = answers[qi] == oi, onClick = null)
-                                    Text(o, fontSize = 13.sp)
+                                    Text(o, fontSize = 14.sp)
                                 }
                             }
                         }
@@ -923,7 +923,7 @@ private fun DrinkSettings(onChange: () -> Unit, onTurnedOff: () -> Unit) {
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp).padding(bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr("Drinks settings"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(tr("Drinks settings"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Stepper(tr("Weekly limit"), "$limit", { limit = (limit - 1).coerceAtLeast(0); DrinkPrefs.weeklyLimit = limit.toDouble(); onChange() },
             { limit = (limit + 1).coerceAtMost(60); DrinkPrefs.weeklyLimit = limit.toDouble(); onChange() })
         Stepper(tr("Dry days a week"), "$dry", { dry = (dry - 1).coerceAtLeast(0); DrinkPrefs.dryDaysTarget = dry; onChange() },
@@ -948,7 +948,7 @@ private fun DrinkSettings(onChange: () -> Unit, onTurnedOff: () -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
-        Text(tr("Your drinks stay on this phone. They aren't sent to Health Connect or included in diagnostics."), fontSize = 11.sp, color = PulseColors.textMuted)
+        Text(tr("Your drinks stay on this phone. They aren't sent to Health Connect or included in diagnostics."), fontSize = 12.sp, color = PulseColors.textMuted)
         TextButton(onClick = { confirmOff = true }) {
             Icon(Icons.Filled.Close, null, tint = PulseColors.danger, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
@@ -971,11 +971,11 @@ private fun DrinkSettings(onChange: () -> Unit, onTurnedOff: () -> Unit) {
 fun ColumnScope.DrinksTileContent(week: DrinkInsights.Week?, limit: Double, dryTarget: Int, onAdd: () -> Unit) {
     val total = week?.standardDrinks ?: 0.0
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(std(total), fontSize = 22.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
-        Text(trf("of {0} this week", std(limit)), fontSize = 11.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(std(total), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
+        Text(trf("of {0} this week", std(limit)), fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
     Bar(if (limit > 0) (total / limit).toFloat() else 0f, if (limit > 0 && total > limit) PulseColors.warning else PulseColors.drinks)
-    Text(trf("{0} of {1} dry days", week?.dryDays ?: 0, dryTarget), fontSize = 11.sp, color = PulseColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Text(trf("{0} of {1} dry days", week?.dryDays ?: 0, dryTarget), fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     Spacer(Modifier.weight(1f))
     Text(
         "+ ${DrinkPrefs.lastType.label}",

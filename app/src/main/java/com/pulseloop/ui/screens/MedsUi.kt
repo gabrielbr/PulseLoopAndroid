@@ -69,7 +69,7 @@ fun MedsScreen(onBack: () -> Unit) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
             // Kept clear of the back button: the translated title is long.
             Text(
-                tr("Medications & supplements"), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                tr("Medications & supplements"), fontSize = 16.sp, fontWeight = FontWeight.Bold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
             )
@@ -90,11 +90,11 @@ fun MedsScreen(onBack: () -> Unit) {
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    Text(tr("TODAY"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("TODAY"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                     doses.forEach { d ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
-                                Text("${d.time} · ${d.med.name}", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                                Text("${d.time} · ${d.med.name}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
                                 Text(
                                     listOfNotNull(d.med.dose, d.state.label).joinToString(" · "),
                                     fontSize = 12.sp,
@@ -125,7 +125,7 @@ fun MedsScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(m.name + (m.dose?.let { " · $it" } ?: ""), fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                        Text(m.name + (m.dose?.let { " · $it" } ?: ""), fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
                             color = if (m.active) PulseColors.textPrimary else PulseColors.textMuted)
                         val adherence = Meds.adherence(m, answers, today)
                         if (com.pulseloop.service.Postpartum.breastfeeding) {
@@ -158,7 +158,7 @@ fun MedsScreen(onBack: () -> Unit) {
             }
             Text(
                 tr("A record for you and your doctor. PulseLoop doesn't check interactions or doses; ask your pharmacist."),
-                fontSize = 11.sp, color = PulseColors.textMuted,
+                fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
         }
@@ -187,7 +187,7 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
     fun chip(label: String, on: Boolean, onClick: () -> Unit) {
         val shape = RoundedCornerShape(16.dp)
         Text(
-            label, fontSize = 13.sp,
+            label, fontSize = 14.sp,
             color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
             modifier = Modifier.clip(shape).background(if (on) PulseColors.accent else PulseColors.cardSoft)
                 .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, shape)
@@ -205,7 +205,7 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
                     chip(tr("Medication"), kind == "medication") { kind = "medication" }
                     chip(tr("Supplement"), kind == "supplement") { kind = "supplement" }
                 }
-                Text(tr("Times"), fontSize = 13.sp, color = PulseColors.textSecondary)
+                Text(tr("Times"), fontSize = 14.sp, color = PulseColors.textSecondary)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     (PRESET_TIMES + times).distinct().sorted().forEach { t ->
                         chip(t, t in times) { times = if (t in times) times - t else times + t }

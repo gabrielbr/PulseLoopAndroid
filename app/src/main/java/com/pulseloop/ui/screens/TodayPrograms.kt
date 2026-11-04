@@ -88,7 +88,7 @@ private fun ProgramChip(c: Chip) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Icon(c.icon, null, Modifier.size(18.dp), tint = c.tint)
-        Text(c.label, fontSize = 13.sp, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(c.label, fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -111,12 +111,12 @@ fun RestModeLine(offerIt: Boolean) {
         Text(
             if (u != null) trf("Rest Mode on until {0}", u.format(DateTimeFormatter.ofPattern("EEE d MMM")))
             else tr("Feeling unwell? Pause activity nudges for 3 days."),
-            fontSize = 13.sp, color = PulseColors.textPrimary,
+            fontSize = 14.sp, color = PulseColors.textPrimary,
             modifier = Modifier.weight(1f).padding(horizontal = 8.dp, vertical = 12.dp),
         )
         Text(
             if (u != null) tr("Turn off") else tr("Rest Mode"),
-            fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
+            fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.readiness,
             maxLines = 1,
             modifier = Modifier
                 .widthIn(max = 140.dp)

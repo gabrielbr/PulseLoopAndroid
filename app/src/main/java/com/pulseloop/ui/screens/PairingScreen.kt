@@ -303,7 +303,7 @@ fun PairingScreen(
             ) {
                 Text(
                     trace,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     color = if (state.lastError != null) PulseColors.danger else PulseColors.textMuted,
                 )
             }
@@ -361,14 +361,14 @@ private fun PairingHeader(title: String, subtitle: String) {
     ) {
         Text(
             title,
-            fontSize = 30.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
             textAlign = TextAlign.Center,
         )
         Text(
             subtitle,
-            fontSize = 15.sp,
+            fontSize = 16.sp,
             color = PulseColors.textSecondary,
             textAlign = TextAlign.Center,
             lineHeight = 20.sp,
@@ -453,7 +453,7 @@ private fun ModelCarousel(
                 RingArtView(tint = model.tint, imageRes = model.imageRes)
                 Text(
                     model.displayName,
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.textPrimary,
                 )
@@ -597,7 +597,7 @@ private fun DiscoveredRingRow(ring: RingBLEClient.DiscoveredRing, onClick: () ->
                     Text(
                         WearableModel.model(ring.wearableModelID)?.displayName
                             ?: ringModelLabel(ring.name, type),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = PulseColors.accent,
                     )
                 }
@@ -664,7 +664,7 @@ private fun ConnectedCard(
             )
             Text(
                 trf("Connected to {0}", deviceName),
-                fontSize = 17.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary,
             )
@@ -695,7 +695,7 @@ private fun BluetoothOffCard() {
         )
         Text(
             tr("Bluetooth is off"),
-            fontSize = 17.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
         )
@@ -736,7 +736,7 @@ private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () ->
         )
         Text(
             tr("Bluetooth access needed"),
-            fontSize = 17.sp,
+            fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
         )

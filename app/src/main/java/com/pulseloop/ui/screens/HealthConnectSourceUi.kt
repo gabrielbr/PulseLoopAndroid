@@ -135,12 +135,12 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         AccuracyCard {
-            Text(tr("Use the device you already wear"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(tr("Use the device you already wear"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(
                 tr("No PulseLoop ring? If your Oura, Galaxy Ring, Fitbit or watch app writes to Health Connect, PulseLoop can " +
                     "read it from there: sleep, heart rate, HRV, blood oxygen, steps, calories, workouts and periods. " +
                     "Every screen, the coach and your insights then work from that data."),
-                fontSize = 13.sp, color = PulseColors.textSecondary,
+                fontSize = 14.sp, color = PulseColors.textSecondary,
             )
             Text(
                 tr("PulseLoop reads only the app you choose, and doesn't write that data back to Health Connect."),
@@ -163,7 +163,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
         if (enabled && source != null) {
             val pkg = source!!
             AccuracyCard {
-                Text(trf("Using {0}", HealthConnectSource.label(context, pkg)), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(trf("Using {0}", HealthConnectSource.label(context, pkg)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 val last = remember(refresh) { HealthConnectSource.lastImportAt(context) }
                 val count = remember(refresh) { HealthConnectSource.lastImportCount(context) }
                 Text(
@@ -171,7 +171,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                         trf("Last import {0}", DateTimeFormatter.ofPattern("EEE d MMM, HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))) +
                             trf(" · {0} readings", "%,d".format(count))
                     } ?: tr("Not imported yet"),
-                    fontSize = 13.sp, color = PulseColors.textSecondary,
+                    fontSize = 14.sp, color = PulseColors.textSecondary,
                 )
                 Text(
                     tr("PulseLoop checks for new data every hour and whenever you open the app. A night usually appears once ") +
@@ -203,13 +203,13 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
             if (scanning) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
-                    Text(tr("Looking for apps writing to Health Connect…"), fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Looking for apps writing to Health Connect…"), fontSize = 14.sp, color = PulseColors.textSecondary)
                 }
             } else if (r != null) {
                 val usable = r.sources.filter { it.echo?.looksLikeEcho != true }
                 if (usable.isEmpty()) {
                     AccuracyCard {
-                        Text(trf("No app wrote health data in the last {0} days.", ReferenceSourceScanner.LOOKBACK_DAYS), fontSize = 13.sp, color = PulseColors.textSecondary)
+                        Text(trf("No app wrote health data in the last {0} days.", ReferenceSourceScanner.LOOKBACK_DAYS), fontSize = 14.sp, color = PulseColors.textSecondary)
                         Text(
                             tr("In the Oura app: Settings → Health Connect, and turn on sharing. Then come back and look again."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
@@ -219,8 +219,8 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                 }
                 usable.forEach { src ->
                     AccuracyCard {
-                        Text(HealthConnectSource.label(context, src.packageName), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                        Text(src.metrics.joinToString(", ") { it.metric.label }, fontSize = 13.sp, color = PulseColors.textSecondary)
+                        Text(HealthConnectSource.label(context, src.packageName), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                        Text(src.metrics.joinToString(", ") { it.metric.label }, fontSize = 14.sp, color = PulseColors.textSecondary)
                         Button(onClick = {
                             HealthConnectSource.enable(context, src.packageName)
                             enabled = true
@@ -248,12 +248,12 @@ fun HealthConnectSourceHeroCard(onOpen: () -> Unit) {
             .clickable(onClick = onOpen).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(tr("DATA SOURCE"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-        Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(tr("DATA SOURCE"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(
             last?.let { trf("Last import {0}", DateTimeFormatter.ofPattern("EEE HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))) }
                 ?: tr("Waiting for the first import"),
-            fontSize = 13.sp, color = PulseColors.textSecondary,
+            fontSize = 14.sp, color = PulseColors.textSecondary,
         )
     }
 }

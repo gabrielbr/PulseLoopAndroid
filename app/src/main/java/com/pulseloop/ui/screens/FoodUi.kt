@@ -110,8 +110,8 @@ fun FoodCard(
 
         if (f.enabled) {
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(fmt.format(f.eaten.roundToInt()), fontSize = 30.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text(" " + tr("kcal eaten"), fontSize = 13.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                Text(fmt.format(f.eaten.roundToInt()), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(" " + tr("kcal eaten"), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
             }
             val parts = buildList {
                 burned?.takeIf { it > 0 }?.let { add(trf("{0} burned", fmt.format(it.roundToInt()))) }
@@ -120,12 +120,12 @@ fun FoodCard(
                 if (f.meals == 0) add(tr("nothing logged yet"))
             }
             if (parts.isNotEmpty()) {
-                Text(parts.joinToString(" · "), fontSize = 13.sp, color = PulseColors.textSecondary)
+                Text(parts.joinToString(" · "), fontSize = 14.sp, color = PulseColors.textSecondary)
             }
         } else {
             Text(
                 tr("Log meals to see food next to the calories you burn, and to link late meals and drinks to your sleep."),
-                fontSize = 13.sp, color = PulseColors.textSecondary,
+                fontSize = 14.sp, color = PulseColors.textSecondary,
             )
         }
 
@@ -155,7 +155,7 @@ private fun FoodAction(label: String, icon: ImageVector, modifier: Modifier, onC
         Icon(icon, null, Modifier.size(16.dp), tint = PulseColors.accent)
         Spacer(Modifier.width(6.dp))
         Text(
-            label, fontSize = 13.sp, color = PulseColors.textPrimary,
+            label, fontSize = 14.sp, color = PulseColors.textPrimary,
             maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
             modifier = Modifier.weight(1f, fill = false),
         )

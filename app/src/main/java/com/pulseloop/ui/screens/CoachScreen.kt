@@ -216,7 +216,7 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null, onBack
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(tr("PulseLoop Coach"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(tr("PulseLoop Coach"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             Text(tr("Using your latest ring sync"), fontSize = 12.sp, color = PulseColors.textMuted)
         }
         if (onOpenUsage != null) {
@@ -552,10 +552,10 @@ private fun GoalBanner(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text("◎", fontSize = 18.sp, color = PulseColors.accent)
+        Text("◎", fontSize = 16.sp, color = PulseColors.accent)
         Column(Modifier.weight(1f)) {
             if (hasGoal && plan != null) {
-                Text(tr("YOUR GOAL"), fontSize = 10.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+                Text(tr("YOUR GOAL"), fontSize = 12.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
                 Text(com.pulseloop.service.GoalPlan.headline(plan), fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 2)
                 Text(com.pulseloop.service.GoalPlan.focusLine(plan) + tr(" · tap for this week's plan"), fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 2)
             } else {

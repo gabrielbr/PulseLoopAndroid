@@ -2870,7 +2870,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
             toast?.let { message ->
                 Text(
                     message,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = PulseColors.textPrimary,
                     modifier = Modifier
@@ -3048,9 +3048,9 @@ private fun NutrientStepper(label: String, value: Double, step: Double, min: Dou
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { if (value > min) onChange((value - step).coerceAtLeast(min)) }) { Text("−", fontSize = 18.sp) }
+            TextButton(onClick = { if (value > min) onChange((value - step).coerceAtLeast(min)) }) { Text("−", fontSize = 16.sp) }
             Text("${value.roundToInt()}", fontWeight = FontWeight.Medium)
-            TextButton(onClick = { if (value < max) onChange((value + step).coerceAtMost(max)) }) { Text("+", fontSize = 18.sp) }
+            TextButton(onClick = { if (value < max) onChange((value + step).coerceAtMost(max)) }) { Text("+", fontSize = 16.sp) }
         }
     }
 }
@@ -3815,7 +3815,7 @@ private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, 
                 }
                 Switch(checked = following.size == fields.size, onCheckedChange = null)
             }
-            Text(tr("Let my goal manage these"), fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(tr("Let my goal manage these"), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

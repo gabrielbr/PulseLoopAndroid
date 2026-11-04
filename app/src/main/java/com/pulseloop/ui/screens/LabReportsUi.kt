@@ -128,7 +128,7 @@ private fun LabNotice(text: String) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, PulseColors.warning, RoundedCornerShape(4.dp))
             .dither(PulseColors.warning, 0.12f).padding(horizontal = 12.dp, vertical = 10.dp),
     ) {
-        Text(text, fontSize = 13.sp, color = PulseColors.textPrimary)
+        Text(text, fontSize = 14.sp, color = PulseColors.textPrimary)
     }
 }
 
@@ -143,7 +143,7 @@ private fun LabCard(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 private fun Overline(text: String, color: Color = PulseColors.textMuted) {
-    Text(text.uppercase(), fontSize = 11.sp, letterSpacing = 1.6.sp, color = color)
+    Text(text.uppercase(), fontSize = 12.sp, letterSpacing = 1.6.sp, color = color)
 }
 
 @Composable
@@ -211,7 +211,7 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                     fontSize = 14.sp, color = PulseColors.textSecondary)
             } else {
                 Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("${all.size}", fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text("${all.size}", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(trf("reports · {0} markers tracked", markers.size), fontSize = 14.sp, color = PulseColors.textMuted,
                         modifier = Modifier.padding(bottom = 4.dp))
                 }
@@ -233,10 +233,10 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
             if (reading) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = PulseColors.accent)
-                    Text(tr("The coach is reading the report. This can take a minute."), fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("The coach is reading the report. This can take a minute."), fontSize = 14.sp, color = PulseColors.textSecondary)
                 }
             }
-            readError?.let { Text(it, fontSize = 13.sp, color = PulseColors.danger) }
+            readError?.let { Text(it, fontSize = 14.sp, color = PulseColors.danger) }
         }
 
         if (latest != null) {
@@ -255,10 +255,10 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
             ) {
                 Icon(Icons.Filled.AutoAwesome, null, tint = PulseColors.accent)
                 Column(Modifier.weight(1f)) {
-                    Text(tr("Ask the coach for a plan"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(tr("Ask the coach for a plan"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(tr("From these results, with goals you approve"), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
-                Text("›", fontSize = 22.sp, color = PulseColors.textMuted)
+                Text("›", fontSize = 20.sp, color = PulseColors.textMuted)
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -303,11 +303,11 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                     }
                 }
             }
-            Text(tr("Tap a report to open its PDF."), fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(tr("Tap a report to open its PDF."), fontSize = 12.sp, color = PulseColors.textMuted)
         }
 
         Text(tr("Values come from your reports as you checked them. PulseLoop doesn't diagnose; the ranges are the lab's own."),
-            fontSize = 11.sp, color = PulseColors.textMuted)
+            fontSize = 12.sp, color = PulseColors.textMuted)
     }
 
     deleting?.let { r ->
@@ -385,7 +385,7 @@ fun LabMarkerScreen(markerKey: String, onBack: () -> Unit, onAskCoach: (markerNa
                     ref != null -> trf("{0} · the lab's range is {1}", flagLabel(l.flag), ref)
                     else -> tr("The report printed no range for this marker.")
                 },
-                fontSize = 13.sp, color = flagColor(l.flag),
+                fontSize = 14.sp, color = flagColor(l.flag),
             )
         }
 
@@ -393,7 +393,7 @@ fun LabMarkerScreen(markerKey: String, onBack: () -> Unit, onAskCoach: (markerNa
             LabCard {
                 Overline(tr("Every exam"))
                 LabChart(m)
-                Text(tr("Shaded: the lab's reference range. Amber points are outside it."), fontSize = 11.sp, color = PulseColors.textMuted)
+                Text(tr("Shaded: the lab's reference range. Amber points are outside it."), fontSize = 12.sp, color = PulseColors.textMuted)
             }
         }
 
@@ -434,8 +434,8 @@ private fun LabChart(m: LabReports.Marker) {
     val lo0 = bounds.min(); val hi0 = bounds.max()
     val pad = ((hi0 - lo0).takeIf { it > 0 } ?: (kotlin.math.abs(hi0).takeIf { it > 0 } ?: 1.0)) * 0.15
     val lo = lo0 - pad; val hi = hi0 + pad
-    val label = TextStyle(fontSize = 11.sp, color = PulseColors.textPrimary, fontWeight = FontWeight.Bold)
-    val tick = TextStyle(fontSize = 10.sp, color = PulseColors.textMuted)
+    val label = TextStyle(fontSize = 12.sp, color = PulseColors.textPrimary, fontWeight = FontWeight.Bold)
+    val tick = TextStyle(fontSize = 12.sp, color = PulseColors.textMuted)
     val description = pts.joinToString(", ") { "${dayLabel(it.day)}: ${LabReports.valueLabel(it.valueNum, null)}" }
     Canvas(Modifier.fillMaxWidth().height(200.dp).semantics { contentDescription = description }) {
         val top = 24.dp.toPx(); val bottom = size.height - 22.dp.toPx(); val side = 24.dp.toPx()
@@ -492,7 +492,7 @@ private fun LabReviewScreen(
                 Column(Modifier.weight(1f)) {
                     Text(tr("Collected on"), fontSize = 12.sp, color = PulseColors.textMuted)
                     Text(draft.collectedOn?.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)) ?: tr("Not found: set the date"),
-                        fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp, fontWeight = FontWeight.Bold,
                         color = if (draft.collectedOn == null) PulseColors.warning else PulseColors.textPrimary)
                 }
                 TextButton(onClick = {

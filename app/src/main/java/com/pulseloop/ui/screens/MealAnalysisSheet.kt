@@ -434,7 +434,7 @@ fun MealAnalysisDialog(
                                     Spacer(Modifier.width(4.dp))
                                     Text(
                                         tr("AI estimate"),
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = PulseColors.accent,
                                     )

@@ -67,7 +67,7 @@ fun CycleScreen(onBack: () -> Unit) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
             Text(
-                tr("Cycle"), fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                tr("Cycle"), fontSize = 16.sp, fontWeight = FontWeight.Bold,
                 maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
                 modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
             )
@@ -84,25 +84,25 @@ fun CycleScreen(onBack: () -> Unit) {
                     // Holds roughly the card's height until the dates are read.
                     Spacer(Modifier.height(72.dp))
                 } else if (status == null) {
-                    Text(tr("Log your period to start"), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text(tr("PulseLoop shows the day of your cycle and its phase from the dates you log, next to your sleep and recovery."), fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Log your period to start"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(tr("PulseLoop shows the day of your cycle and its phase from the dates you log, next to your sleep and recovery."), fontSize = 14.sp, color = PulseColors.textSecondary)
                 } else {
-                    Text(trf("Day {0} · {1}", status.cycleDay, status.phase.label), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                    Text(status.phase.note, fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(trf("Day {0} · {1}", status.cycleDay, status.phase.label), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(status.phase.note, fontSize = 14.sp, color = PulseColors.textSecondary)
                     val paused = com.pulseloop.service.Postpartum.pausesCycle(
                         com.pulseloop.service.Postpartum.active(today), com.pulseloop.service.Postpartum.birthDate,
                         com.pulseloop.service.Postpartum.feeding, periods.map { LocalDate.ofEpochDay(it.startDay) },
                     )
                     if (paused) Text(
                         tr("Predictions are paused after birth: while breastfeeding, and until your first period, cycles don't follow their usual pattern."),
-                        fontSize = 13.sp, color = PulseColors.textSecondary,
+                        fontSize = 14.sp, color = PulseColors.textSecondary,
                     )
                     status.nextStart?.takeIf { !paused }?.let { next ->
                         val d = status.daysToNext ?: 0
                         Text(
                             if (d >= 0) trf("Next period around {0} (in {1} day{2}), from your usual {3}-day cycle.", next.format(fmt), d, if (d == 1) "" else "s", status.usualLength)
                             else trf("Your usual {0}-day cycle would have ended {1} day{2} ago.", status.usualLength, -d, if (d == -1) "" else "s"),
-                            fontSize = 13.sp, color = PulseColors.textPrimary,
+                            fontSize = 14.sp, color = PulseColors.textPrimary,
                         )
                     }
                 }
@@ -122,7 +122,7 @@ fun CycleScreen(onBack: () -> Unit) {
             OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
 
             if (periods.isNotEmpty()) {
-                Text(tr("HISTORY"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("HISTORY"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 val starts = periods.map { it.startDay }.sorted()
                 periods.forEach { p ->
                     val next = starts.firstOrNull { it > p.startDay }
@@ -146,7 +146,7 @@ fun CycleScreen(onBack: () -> Unit) {
             }
             Text(
                 tr("Phases come only from the dates you log. PulseLoop doesn't predict fertile days, and this isn't contraception or a medical tool."),
-                fontSize = 11.sp, color = PulseColors.textMuted,
+                fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
         }

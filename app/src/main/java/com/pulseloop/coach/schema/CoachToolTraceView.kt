@@ -49,7 +49,7 @@ fun CoachToolTraceDisclosure(messageId: String, viewModel: CoachViewModel?) {
             Icon(Icons.Filled.Build, null, tint = PulseColors.textMuted, modifier = Modifier.size(11.dp))
             Text(
                 collapsedLabel(calls),
-                fontSize = 11.sp, color = PulseColors.textMuted,
+                fontSize = 12.sp, color = PulseColors.textMuted,
                 modifier = Modifier.weight(1f),
             )
             Icon(
@@ -95,7 +95,7 @@ private fun ToolTraceRow(call: CoachToolCallEntity) {
             Text(displayLabel(call), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PulseColors.textSecondary)
             if (call.outputJSON?.isNotBlank() == true) {
                 Text(
-                    call.outputJSON, fontSize = 11.sp, color = PulseColors.textMuted,
+                    call.outputJSON, fontSize = 12.sp, color = PulseColors.textMuted,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
