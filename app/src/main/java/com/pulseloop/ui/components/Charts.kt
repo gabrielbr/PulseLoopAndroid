@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.ZoomOut
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -490,27 +492,51 @@ fun TrendChart(
             }
         }
 
-        // Scroll slider + zoom-reset — shown only while zoomed in. The slider pans the
-        // visible window across the time domain; reset returns to the full (unzoomed) view.
-        if (interactive && zoom > 1f) {
+        // Zoom without a pinch (WCAG 2.5.7): zoom out / zoom in buttons on every chart that can
+        // zoom, stepping 2× about the middle of what is on screen. While zoomed in, a slider pans
+        // the visible window across the time domain and reset returns to the full view.
+        if (interactive && maxZoom > 1f) {
+            fun zoomBy(factor: Float) {
+                val oldWindow = 1f / zoom
+                val centre = windowStart + oldWindow / 2f
+                val newZoom = (zoom * factor).coerceIn(1f, maxZoom)
+                val newWindow = 1f / newZoom
+                windowStart = (centre - newWindow / 2f).coerceIn(0f, (1f - newWindow).coerceAtLeast(0f))
+                zoom = newZoom
+                scrubX = null
+            }
             val sliderWindow = 1f / zoom
             val maxStart = (1f - sliderWindow).coerceAtLeast(0f)
-            if (maxStart > 0f) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            val iconTint = PulseColors.textSecondary
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (zoom > 1f && maxStart > 0f) {
                     Slider(
                         value = windowStart.coerceIn(0f, maxStart),
                         onValueChange = { windowStart = it.coerceIn(0f, maxStart) },
                         valueRange = 0f..maxStart,
                         modifier = Modifier.weight(1f),
                     )
-                    IconButton(onClick = { zoom = 1f; windowStart = 0f }) {
+                } else {
+                    Spacer(Modifier.weight(1f))
+                }
+                // IconButton is a 48dp target; disabled at either end of the range.
+                IconButton(onClick = { zoomBy(0.5f) }, enabled = zoom > 1f) {
+                    Icon(Icons.Filled.ZoomOut, contentDescription = tr("Zoom out"),
+                        tint = if (zoom > 1f) iconTint else iconTint.copy(alpha = 0.38f))
+                }
+                IconButton(onClick = { zoomBy(2f) }, enabled = zoom < maxZoom) {
+                    Icon(Icons.Filled.ZoomIn, contentDescription = tr("Zoom in"),
+                        tint = if (zoom < maxZoom) iconTint else iconTint.copy(alpha = 0.38f))
+                }
+                if (zoom > 1f) {
+                    IconButton(onClick = { zoom = 1f; windowStart = 0f; scrubX = null }) {
                         Icon(
                             Icons.Filled.Refresh,
                             contentDescription = tr("Reset zoom"),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = iconTint,
                         )
                     }
                 }

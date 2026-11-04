@@ -1160,7 +1160,8 @@ their data. Each rule fails silently if broken:
   `ArchivedSettings`** — a restore on a new phone must start off with nothing paired.
 - **Off by default, foreground while on, never back by itself**: `START_NOT_STICKY`, no boot
   receiver, auto-off after the chosen hours (default 8), and stopping for any reason clears the
-  switch. The notification's tap stops it. Type `dataSync` (Android 15 ends it at its daily
+  switch. On Android 15+ the choices stop at 6 h and a stored 8 reads as 6
+  (`McpConfig.autoOffHours`): a `dataSync` service gets about 6 h a day there. The notification's tap stops it. Type `dataSync` (Android 15 ends it at its daily
   limit through `onTimeout`; keep that override).
 - **The `instructions` say it is not a diagnostic tool** and the numbers are estimates — the same
   rule the coach follows. Keep them in step with the coach's prompt.

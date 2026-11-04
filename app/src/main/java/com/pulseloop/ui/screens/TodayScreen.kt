@@ -32,13 +32,12 @@ import com.pulseloop.service.VitalsThresholdEngine
 import com.pulseloop.settings.ApiKeyStore
 import com.pulseloop.settings.UnitConverter
 import com.pulseloop.ui.components.*
-import com.pulseloop.ui.dashboard.CustomizeCardsButton
+import com.pulseloop.ui.dashboard.CustomizeCardsFooter
 import com.pulseloop.ui.dashboard.DashboardCard
 import com.pulseloop.ui.dashboard.EditableCard
 import com.pulseloop.ui.dashboard.HiddenMetricsTray
 import com.pulseloop.ui.dashboard.MetricPrefsStore
 import com.pulseloop.ui.dashboard.MetricScope
-import com.pulseloop.ui.dashboard.ReorderDoneBar
 import com.pulseloop.ui.dashboard.rememberDashboardEditState
 import com.pulseloop.util.Formats
 import com.pulseloop.ui.theme.PulseColors
@@ -354,13 +353,8 @@ fun TodayScreen(
                 }
             }
 
-            // Browse: the metric tiles.
-            item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    if (editState.editing) ReorderDoneBar { editState.exit() }
-                    else CustomizeCardsButton { editState.enterEditing() }
-                }
-            }
+            // Browse: the metric tiles. Customizing them is rare, so its link waits at the end
+            // of the list rather than above the tiles on every visit.
 
             // Three across from 600dp (tablets, unfolded foldables) instead of two stretched tiles.
             val columns = if (screenWidthDp >= 600) 3 else 2
@@ -395,6 +389,9 @@ fun TodayScreen(
             if (editState.editing) {
                 item { HiddenMetricsTray(hiddenCards) { editState.setHidden(it, false) } }
             }
+            // The end of the list: a quiet "Customize cards" link, which becomes the Done bar in
+            // the same place while editing, so leaving edit mode is where entering it was.
+            item { CustomizeCardsFooter(editState) }
 
             // The long view ("how have I been this month?") is the header's health line now,
             // on every tab, so Today no longer ends with its own My Health card.

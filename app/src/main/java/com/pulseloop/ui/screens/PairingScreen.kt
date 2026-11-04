@@ -88,6 +88,8 @@ fun PairingScreen(
     bleClient: RingBLEClient,
     onConnected: () -> Unit,
     onSkip: (() -> Unit)? = null,
+    /** Pushed from Settings: a top bar with a back arrow. Onboarding passes none; it has its own chrome. */
+    onBack: (() -> Unit)? = null,
 ) {
     val state by bleClient.state.collectAsState()
     val context = LocalContext.current
@@ -208,6 +210,9 @@ fun PairingScreen(
     }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
+        // No bar title: "Add your ring" heads the page right below it, and saying it twice
+        // was the only thing a title would add.
+        onBack?.let { com.pulseloop.ui.components.PulseTopBar(title = "", onBack = it) }
         Column(
             Modifier
                 .weight(1f)

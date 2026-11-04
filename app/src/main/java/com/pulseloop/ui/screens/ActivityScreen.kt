@@ -935,6 +935,7 @@ private fun DetectedActivityCard() {
     val context = androidx.compose.ui.platform.LocalContext.current
     val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
     val scope = rememberCoroutineScope()
+    val snackbar = com.pulseloop.ui.components.LocalAppSnackbar.current
     var tick by remember { mutableIntStateOf(0) }
     val proposals by produceState<List<com.pulseloop.service.ActivityDetection.Proposal>>(emptyList(), tick) {
         value = runCatching { com.pulseloop.service.ActivityDetection.load(context, db) }.getOrDefault(emptyList())
@@ -973,7 +974,20 @@ private fun DetectedActivityCard() {
                 // FlowRow: the two translated actions wrap rather than overflow the card.
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PulseButton(PulseButtonStyle.Tonal, onClick = {
-                        scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
+                        scope.launch {
+                            // The card leaves as soon as this lands, so the snackbar is the only
+                            // sign it worked; a failure keeps the card and says so.
+                            val saved = runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }
+                            snackbar?.show(
+                                when {
+                                    saved.isFailure && isNap -> tr("Couldn't add the nap. Try again.")
+                                    saved.isFailure -> tr("Couldn't add the workout. Try again.")
+                                    isNap -> tr("Nap added")
+                                    else -> trf("Workout added: {0}", ActivityMeta.label(type))
+                                },
+                            )
+                            tick++
+                        }
                     }) { Text(if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
                     PulseButton(PulseButtonStyle.Text, onClick = { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }) {
                         Text(tr("Not this"), fontSize = 14.sp, color = PulseColors.textSecondary)
