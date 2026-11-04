@@ -634,7 +634,7 @@ private fun SleepHypnogram(
                         val cur = sorted[i]
                         val cx = xForMinute(cur.startMinute, size.width)
                         drawLine(
-                            color = Color(0xFFD2CDFF).copy(alpha = 0.46f),
+                            color = PulseColors.sleep.copy(alpha = 0.46f),
                             start = Offset(cx, laneY(prev.stageRaw, size.height)),
                             end = Offset(cx, laneY(cur.stageRaw, size.height)),
                             strokeWidth = 1.2.dp.toPx(),
