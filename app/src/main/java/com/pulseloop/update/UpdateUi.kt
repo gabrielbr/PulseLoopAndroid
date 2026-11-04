@@ -19,6 +19,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.pulseloop.BuildConfig
 import com.pulseloop.ui.components.MarkdownLite
+import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.i18n.trf
+import android.text.format.Formatter
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 /**
@@ -29,17 +33,23 @@ import kotlinx.coroutines.launch
 fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var downloading by remember { mutableStateOf(false) }
+    var job by remember { mutableStateOf<Job?>(null) }
+    val downloading = job != null
     var progress by remember { mutableFloatStateOf(0f) }
     var error by remember { mutableStateOf<String?>(null) }
+    // The size on the button, so nobody spends mobile data unknowingly (docs/self-update.md).
+    val size = remember(info.apkSize) {
+        if (info.apkSize > 0) Formatter.formatShortFileSize(context, info.apkSize) else null
+    }
 
     AlertDialog(
+        // While downloading, tapping outside or Back does nothing; Cancel is the way out.
         onDismissRequest = { if (!downloading) onDismiss() },
-        title = { Text("Update available — ${info.versionName}") },
+        title = { Text(trf("Update available · {0}", info.versionName)) },
         text = {
             Column {
                 if (downloading) {
-                    Text("Downloading… ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodyMedium)
+                    Text(trf("Downloading… {0}%", (progress * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(8.dp))
                     LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
                 } else {
@@ -69,26 +79,48 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                 onClick = {
                     // Require the per-app "install unknown apps" grant first.
                     if (!ApkInstaller.canInstall(context)) {
+                        error = tr("Allow installs from this app, then tap Update again.")
                         context.startActivity(ApkInstaller.installPermissionIntent(context))
                         return@TextButton
                     }
-                    downloading = true
                     error = null
-                    scope.launch {
-                        val file = UpdateChecker.download(context, info) { progress = it }
-                        downloading = false
-                        if (file != null) {
-                            ApkInstaller.install(context, file)
-                            onDismiss()
-                        } else {
-                            error = "Download failed. Please try again."
+                    progress = 0f
+                    // One download at a time: the button is disabled while [job] runs.
+                    job = scope.launch {
+                        try {
+                            when (val result = UpdateChecker.download(context, info) { progress = it }) {
+                                is DownloadResult.Ready -> {
+                                    ApkInstaller.install(context, result.file)
+                                    onDismiss()
+                                }
+                                DownloadResult.Failed -> error = tr("Download failed. Try again.")
+                                DownloadResult.ChecksumMismatch -> error =
+                                    tr("The download didn't match the release's checksum, so it wasn't installed.")
+                                DownloadResult.WrongSignature -> error =
+                                    tr("The download isn't signed like this app, so it wasn't installed.")
+                            }
+                        } finally {
+                            job = null
                         }
                     }
                 },
-            ) { Text(if (downloading) "Downloading…" else "Update") }
+            ) {
+                Text(
+                    when {
+                        downloading -> tr("Downloading…")
+                        size != null -> trf("Update · {0}", size)
+                        else -> tr("Update")
+                    }
+                )
+            }
         },
         dismissButton = {
-            TextButton(enabled = !downloading, onClick = onDismiss) { Text("Later") }
+            if (downloading) {
+                // Cancel stops the download and deletes the part (UpdateChecker.download).
+                TextButton(onClick = { job?.cancel(); job = null }) { Text(tr("Cancel")) }
+            } else {
+                TextButton(onClick = onDismiss) { Text(tr("Later")) }
+            }
         },
     )
 }
@@ -109,8 +141,7 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
     Column(modifier) {
         if (!UpdateChecker.isSupported()) {
             Text(
-                "Self-update is available in the release build only " +
-                    "(current: ${BuildConfig.VERSION_NAME} / ${BuildConfig.APPLICATION_ID}).",
+                trf("Self-update works in the release build only ({0} / {1}).", BuildConfig.VERSION_NAME, BuildConfig.APPLICATION_ID),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -125,14 +156,14 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
                     when (val result = UpdateChecker.check(context, force = true)) {
                         is UpdateCheckResult.UpdateAvailable -> update = result.info
                         is UpdateCheckResult.Failed ->
-                            status = "Couldn't check for updates (${result.reason}). Please try again."
-                        else -> status = "You're on the latest version (${BuildConfig.VERSION_NAME})."
+                            status = trf("Couldn't check for updates ({0}). Try again.", result.reason)
+                        else -> status = trf("You're on the latest version ({0}).", BuildConfig.VERSION_NAME)
                     }
                     checking = false
                 }
             },
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(if (checking) "Checking…" else "Check for updates") }
+        ) { Text(if (checking) tr("Checking…") else tr("Check for updates")) }
         status?.let {
             Spacer(Modifier.height(8.dp))
             Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

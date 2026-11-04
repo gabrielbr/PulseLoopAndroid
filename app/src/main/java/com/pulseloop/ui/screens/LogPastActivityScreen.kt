@@ -164,7 +164,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
 private fun SectionLabel(text: String) {
     Text(
         text.uppercase(),
-        fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
         letterSpacing = 1.2.sp, color = PulseColors.textMuted,
     )
 }
@@ -211,7 +211,7 @@ private fun ActivityTypeButton(type: String, isSelected: Boolean, onSelect: (Str
         }
         Text(
             ActivityMeta.label(type),
-            fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+            fontSize = 16.sp, fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
             modifier = Modifier.weight(1f),
         )
@@ -237,7 +237,7 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
             DurationStepButton(Icons.Filled.Remove, tr("Decrease duration by 5 minutes"), enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(durationText(minutes), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("DURATION", fontSize = 11.sp, letterSpacing = 1.1.sp, color = PulseColors.textMuted)
+                Text("DURATION", fontSize = 12.sp, letterSpacing = 1.1.sp, color = PulseColors.textMuted)
             }
             DurationStepButton(Icons.Filled.Add, tr("Increase duration by 5 minutes"), enabled = true) { onChange(minutes + 5) }
         }

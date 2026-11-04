@@ -277,7 +277,7 @@ private fun SegmentedRow(
             ) {
                 Text(
                     option,
-                    fontSize = 13.sp,
+                    fontSize = 14.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                     color = if (selected) PulseColors.onAccent else PulseColors.textSecondary,
                     maxLines = 1,
@@ -475,7 +475,7 @@ private fun DecimalValueSheet(
                     if (text.isEmpty()) {
                         Text(
                             LocalizedDecimalInput.format(70.5),
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PulseColors.textMuted,
                         )
@@ -485,7 +485,7 @@ private fun DecimalValueSheet(
                         onValueChange = { text = it },
                         singleLine = true,
                         textStyle = TextStyle(
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PulseColors.textPrimary,
                         ),
@@ -643,7 +643,7 @@ private fun GoalSliderCard(
             // Weighted title (not a Spacer): a long translated title wraps beside the value.
             Text(
                 title,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
                 color = PulseColors.textPrimary,
                 modifier = Modifier.weight(1f),

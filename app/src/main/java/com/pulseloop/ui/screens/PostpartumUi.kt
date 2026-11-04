@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -74,10 +76,10 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Text(tr("LIFE STAGE"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("LIFE STAGE"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("Postpartum / breastfeeding"), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                Text(tr("Postpartum / breastfeeding"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
                 Text(
                     tr("Pauses cycle predictions while breastfeeding, adds an alcohol-to-feeding estimate, a mood check-in and warning signs, and tells the coach."),
                     fontSize = 12.sp, color = PulseColors.textMuted,
@@ -147,7 +149,7 @@ suspend fun syncCalorieGoal(context: Context, today: LocalDate = LocalDate.now()
 private fun Chip(label: String, on: Boolean, onClick: () -> Unit) {
     val shape = RoundedCornerShape(16.dp)
     Text(
-        label, fontSize = 13.sp,
+        label, fontSize = 14.sp,
         color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
         modifier = Modifier.clip(shape).background(if (on) PulseColors.accent else PulseColors.cardSoft)
             .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, shape)
@@ -229,7 +231,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Postpartum"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Postpartum"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
             // Birth date and feeding live in Profile → Life stage; one tap from here to change them.
             IconButton(onClick = onOpenProfile, modifier = Modifier.align(Alignment.CenterEnd)) {
                 Icon(Icons.Filled.Edit, tr("Edit life stage"), tint = PulseColors.textSecondary)
@@ -248,18 +250,18 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             }
             val weeks = Postpartum.weeksSince(birth, today)
             Card {
-                Text(trf("Week {0} after birth", weeks), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(trf("Week {0} after birth", weeks), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
                     when (Postpartum.feeding) {
                         Postpartum.Feeding.EXCLUSIVE -> tr("Breastfeeding only")
                         Postpartum.Feeding.MIXED -> tr("Breastfeeding and formula")
                         Postpartum.Feeding.NONE -> tr("Not breastfeeding")
                     },
-                    fontSize = 13.sp, color = PulseColors.textSecondary,
+                    fontSize = 14.sp, color = PulseColors.textSecondary,
                 )
                 Text(
                     tr("Your body is still recovering. Broken nights and a resting heart rate that wanders are expected for months, so compare yourself with last week, not with before."),
-                    fontSize = 13.sp, color = PulseColors.textPrimary,
+                    fontSize = 14.sp, color = PulseColors.textPrimary,
                 )
             }
 
@@ -270,7 +272,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             d?.alcoholClearAt?.let { clear ->
                 val time = DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(clear).atZone(zone))
                 Card {
-                    Text(trf("Alcohol: estimated clear for feeding around {0}", time), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.warning)
+                    Text(trf("Alcohol: estimated clear for feeding around {0}", time), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.warning)
                     Text(
                         tr("CDC suggests waiting at least 2 hours per standard drink before breastfeeding. It's an estimate: bodies differ, and pumping and dumping doesn't make it faster. Not drinking is the safest choice."),
                         fontSize = 12.sp, color = PulseColors.textSecondary,
@@ -283,19 +285,19 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             // recovery is going, then reading for later.
             // Mood check-in: the EPDS, the validated questionnaire. Answers stay on this phone.
             val moodCard: @Composable () -> Unit = { Card {
-                Text(tr("MOOD CHECK-IN"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("MOOD CHECK-IN"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 val last = history.lastOrNull()
                 if (last != null) {
                     Text(trf("Last check-in {0}: score {1} of 30", last.date, last.score), fontSize = 14.sp, color = PulseColors.textPrimary)
                     EpdsGuidance(last.score, last.selfHarm)
                 } else {
-                    Text(tr("Ten quick questions about the last 7 days, used by health services worldwide to spot postpartum depression early."), fontSize = 13.sp, color = PulseColors.textSecondary)
+                    Text(tr("Ten quick questions about the last 7 days, used by health services worldwide to spot postpartum depression early."), fontSize = 14.sp, color = PulseColors.textSecondary)
                 }
                 Postpartum.nextCheckIn(birth, today, history)?.let { next ->
                     Text(trf("Suggested next check-in: {0}", next.format(DateTimeFormatter.ofPattern("d MMM"))), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
                 Button(onClick = { checkIn = true }) { Text(tr("Start check-in")) }
-                Text(tr("Your answers stay on this phone. They aren't in backups, diagnostics or Health Connect."), fontSize = 11.sp, color = PulseColors.textMuted)
+                Text(tr("Your answers stay on this phone. They aren't in backups, diagnostics or Health Connect."), fontSize = 12.sp, color = PulseColors.textMuted)
             } }
             val lastEpds = history.lastOrNull()
             val moodUrgent = Postpartum.nextCheckIn(birth, today, history)?.let { !it.minusDays(7).isAfter(today) } == true ||
@@ -303,10 +305,10 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             if (moodUrgent) moodCard()
             d?.lastNight?.let { n ->
                 Card {
-                    Text(tr("LAST NIGHT"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("LAST NIGHT"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                     Text(
                         trf("{0} asleep · woke {1} times · longest stretch {2}", fmtMin(n.asleepMin), n.wakings, fmtMin(n.longestSleepMin)),
-                        fontSize = 15.sp, color = PulseColors.textPrimary,
+                        fontSize = 16.sp, color = PulseColors.textPrimary,
                     )
                     Text(
                         tr("After birth, sleep is broken rather than short. The longest unbroken stretch is the number to watch; it usually grows over the first months."),
@@ -319,14 +321,14 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             ResourcesCard(context)
             if (d != null && (d.restingHr.isNotEmpty() || d.hrv.isNotEmpty())) {
                 Card {
-                    Text(tr("RECOVERY, WEEK BY WEEK"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("RECOVERY, WEEK BY WEEK"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                     val weeksShown = (d.restingHr.map { it.first } + d.hrv.map { it.first }).distinct().sorted().takeLast(4)
                     weeksShown.forEach { w ->
                         val rhr = d.restingHr.firstOrNull { it.first == w }?.second
                         val hrv = d.hrv.firstOrNull { it.first == w }?.second
                         Text(
                             trf("Week {0}: resting HR {1} · HRV {2}", w, rhr?.let { "${it.roundToInt()} bpm" } ?: "–", hrv?.let { "${it.roundToInt()} ms" } ?: "–"),
-                            fontSize = 13.sp, color = PulseColors.textPrimary,
+                            fontSize = 14.sp, color = PulseColors.textPrimary,
                         )
                     }
                     Text(
@@ -338,9 +340,9 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
 
             if (!moodUrgent) moodCard()
             Card {
-                Text(tr("NUTRITION"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("NUTRITION"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                 val bonus = Postpartum.calorieBonus(birth, today, Postpartum.feeding)
-                if (bonus > 0) Text(trf("Breastfeeding uses about {0} kcal a day more; your intake goal includes it.", bonus), fontSize = 13.sp, color = PulseColors.textPrimary)
+                if (bonus > 0) Text(trf("Breastfeeding uses about {0} kcal a day more; your intake goal includes it.", bonus), fontSize = 14.sp, color = PulseColors.textPrimary)
                 Text(
                     tr("Drink to thirst and keep water where you feed. Ask your clinician about iodine, DHA and your baby's vitamin D. This is no time for a diet."),
                     fontSize = 12.sp, color = PulseColors.textSecondary,
@@ -349,22 +351,22 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
 
             d?.lam?.let { lam ->
                 Card {
-                    Text(tr("BREASTFEEDING AS CONTRACEPTION (LAM)"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("BREASTFEEDING AS CONTRACEPTION (LAM)"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
                     LamRow(tr("Baby under 6 months"), lam.babyUnderSixMonths, if (lam.babyUnderSixMonths) trf("{0} days to go", lam.daysToSixMonths) else null)
                     LamRow(tr("No period since 8 weeks after birth"), lam.noPeriodSinceBirth, null)
                     LamRow(tr("Breastfeeding only, day and night"), lam.fullBreastfeeding, null)
                     Text(
                         if (lam.allHold) tr("All three hold. LAM is about 98% effective only while all three do.")
                         else tr("Not all three hold, so LAM doesn't apply now."),
-                        fontSize = 13.sp, color = PulseColors.textPrimary,
+                        fontSize = 14.sp, color = PulseColors.textPrimary,
                     )
-                    Text(tr("This is information, not contraception advice. Talk to your clinician about the method that suits you."), fontSize = 11.sp, color = PulseColors.textMuted)
+                    Text(tr("This is information, not contraception advice. Talk to your clinician about the method that suits you."), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
 
             Text(
                 tr("PulseLoop doesn't detect mastitis, fever, depression, preeclampsia, milk supply or returning fertility. The ring's numbers are context, not a diagnosis."),
-                fontSize = 11.sp, color = PulseColors.textMuted,
+                fontSize = 12.sp, color = PulseColors.textMuted,
             )
             Spacer(Modifier.height(24.dp))
         }
@@ -385,8 +387,14 @@ private fun Card(content: @Composable ColumnScope.() -> Unit) {
 @Composable
 private fun LamRow(label: String, holds: Boolean, detail: String?) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Text(if (holds) "✓" else "✗", fontSize = 15.sp, color = if (holds) PulseColors.accent else PulseColors.warning, modifier = Modifier.width(24.dp))
-        Text(label, fontSize = 13.sp, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+        // A line icon, not a glyph; "holds" is good, so success, not the mint (which means "tap").
+        Icon(
+            if (holds) Icons.Filled.Check else Icons.Filled.Close,
+            contentDescription = if (holds) tr("Met") else tr("Not met"),
+            tint = if (holds) PulseColors.success else PulseColors.warning,
+            modifier = Modifier.padding(end = 4.dp).size(22.dp),
+        )
+        Text(label, fontSize = 14.sp, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
         // Bounded so a translated "days to go" can't squeeze the condition beside it.
         detail?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 120.dp)) }
     }
@@ -396,7 +404,7 @@ private fun LamRow(label: String, holds: Boolean, detail: String?) {
 @Composable
 private fun WarningSignsCard() {
     Card {
-        Text(tr("Get care now if you notice"), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.danger)
+        Text(tr("Get care now if you notice"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.danger)
         listOf(
             tr("A headache that won't go away or gets worse"),
             tr("Dizziness or fainting"),
@@ -410,16 +418,16 @@ private fun WarningSignsCard() {
             tr("A painful, red or swollen leg or arm"),
             tr("A hot, painful, red area on a breast with fever or chills"),
             tr("Overwhelming tiredness"),
-        ).forEach { Text("• $it", fontSize = 13.sp, color = PulseColors.textPrimary) }
+        ).forEach { Text("• $it", fontSize = 14.sp, color = PulseColors.textPrimary) }
         Text(tr("Blood pressure of 160/110 or higher is an emergency. A ring's blood pressure isn't validated: confirm with a cuff, and never let a normal ring reading reassure you."), fontSize = 12.sp, color = PulseColors.textSecondary)
-        Text(tr("Source: CDC Hear Her urgent maternal warning signs."), fontSize = 11.sp, color = PulseColors.textMuted)
+        Text(tr("Source: CDC Hear Her urgent maternal warning signs."), fontSize = 12.sp, color = PulseColors.textMuted)
     }
 }
 
 @Composable
 private fun ResourcesCard(context: Context) {
     Card {
-        Text(tr("HELP"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("HELP"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
         ResourceRow(tr("SAMU (emergencies)"), "192") { dial(context, "192") }
         ResourceRow(tr("CVV (emotional support, 24 h)"), "188") { dial(context, "188") }
         ResourceRow(tr("Disque Saúde (find a human milk bank)"), "136") { dial(context, "136") }
@@ -471,7 +479,7 @@ private fun EpdsGuidance(score: Int, selfHarm: Int) {
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(tr("You said thoughts of harming yourself have come up. Please talk to someone today."), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(tr("CVV listens 24 hours a day, free and anonymous. In danger now, call SAMU."), fontSize = 13.sp, color = PulseColors.textPrimary)
+            Text(tr("CVV listens 24 hours a day, free and anonymous. In danger now, call SAMU."), fontSize = 14.sp, color = PulseColors.textPrimary)
             // FlowRow: the two translated labels don't fit side by side, and a crisis button
             // pushed off the edge of the screen is the worst place for an overflow.
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -486,9 +494,9 @@ private fun EpdsGuidance(score: Int, selfHarm: Int) {
             Postpartum.EpdsBand.POSSIBLE -> tr("This score suggests possible depression. Talk to your doctor, nurse or midwife soon.")
             Postpartum.EpdsBand.LIKELY -> tr("This score suggests depression is likely. Please talk to your doctor, nurse or midwife this week.")
         },
-        fontSize = 13.sp, color = PulseColors.textPrimary,
+        fontSize = 14.sp, color = PulseColors.textPrimary,
     )
-    Text(tr("A screening questionnaire, not a diagnosis."), fontSize = 11.sp, color = PulseColors.textMuted)
+    Text(tr("A screening questionnaire, not a diagnosis."), fontSize = 12.sp, color = PulseColors.textMuted)
 }
 
 /** The Edinburgh Postnatal Depression Scale, worded exactly as validated (assets/epds.json). */
@@ -507,7 +515,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
             IconButton(onClick = { onDone(result) }, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Mood check-in"), modifier = Modifier.align(Alignment.Center), fontSize = 17.sp, fontWeight = FontWeight.Bold)
+            Text(tr("Mood check-in"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -516,7 +524,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
             val r = result
             if (r != null) {
                 Card {
-                    Text(trf("Your score: {0} of 30", r.score), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                    Text(trf("Your score: {0} of 30", r.score), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     EpdsGuidance(r.score, r.selfHarm)
                 }
                 Button(onClick = { onDone(r) }, modifier = Modifier.fillMaxWidth()) { Text(tr("Done")) }
@@ -525,7 +533,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
             Text(form.instruction, fontSize = 14.sp, color = PulseColors.textSecondary)
             form.items.forEachIndexed { i, item ->
                 Card {
-                    Text("${i + 1}. ${item.text}", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                    Text("${i + 1}. ${item.text}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
                     item.options.forEachIndexed { o, opt ->
                         val on = answers[i] == o
                         Text(
@@ -546,7 +554,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(tr("See my score")) }
-            Text(if (portuguese) asset.citation_pt else asset.citation_en, fontSize = 11.sp, color = PulseColors.textMuted)
+            Text(if (portuguese) asset.citation_pt else asset.citation_en, fontSize = 12.sp, color = PulseColors.textMuted)
             Spacer(Modifier.height(24.dp))
         }
     }

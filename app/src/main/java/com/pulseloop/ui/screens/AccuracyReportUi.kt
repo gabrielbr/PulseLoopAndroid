@@ -111,7 +111,7 @@ internal fun AccuracyReportSection(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (check.state == AccuracyCheckEntity.STATE_RUNNING) tr("So far (preliminary)") else tr("Report"),
-                fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, modifier = Modifier.weight(1f),
+                fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, modifier = Modifier.weight(1f),
             )
             // Both actions are width-bounded so translated labels can't squeeze the weighted title.
             if (scoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
@@ -153,17 +153,17 @@ internal fun AccuracyReportSection(
         }
         status?.let { Text(it, fontSize = 12.sp, color = PulseColors.warning) }
         if (daysLoad != null && days.isEmpty() && !scoring) {
-            Text(tr("Nothing to compare yet. Check back after the first full day and night."), fontSize = 13.sp, color = PulseColors.textSecondary)
+            Text(tr("Nothing to compare yet. Check back after the first full day and night."), fontSize = 14.sp, color = PulseColors.textSecondary)
         }
         val worst = AccuracyReportText.worstFirst(summaries)
         if (worst.isNotEmpty()) {
-            Text(tr("Where the ring falls short"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(tr("Where the ring falls short"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             worst.forEach { s ->
                 Text("• ${s.metric.label}: ${AccuracyReportText.signed(s.metric, s.bias)} (${AccuracyReportText.verdictLabel(s.verdict).lowercase()})",
                     fontSize = 12.sp, color = PulseColors.textSecondary)
             }
         } else if (summaries.isNotEmpty() && summaries.none { it.verdict == Verdict.NOT_ENOUGH_DATA }) {
-            Text(tr("Everything compared agrees within its band."), fontSize = 13.sp, color = PulseColors.success)
+            Text(tr("Everything compared agrees within its band."), fontSize = 14.sp, color = PulseColors.success)
         }
     }
 
@@ -204,13 +204,13 @@ private fun MetricCard(
     AccuracyCard {
         Row(Modifier.fillMaxWidth().clickable(onClick = onToggle), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(m.label, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(m.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 val headline = when {
                     summary.verdict == Verdict.NOT_ENOUGH_DATA -> null
                     m.kind == ComparisonMetric.Kind.STAGES -> summary.stageAgreement?.let { "${(it * 100).roundToInt()} % same stage" }
                     else -> AccuracyReportText.signed(m, summary.bias) + " vs ${check.referenceLabel}"
                 }
-                headline?.let { Text(it, fontSize = 13.sp, color = PulseColors.textSecondary) }
+                headline?.let { Text(it, fontSize = 14.sp, color = PulseColors.textSecondary) }
             }
             // Bounded chip: unbounded, a long translated verdict took the row and squeezed the
             // weighted metric name to a character per line (the DrinksUi bug).
@@ -424,7 +424,7 @@ internal fun AccuracyCorrectionsCard() {
     val key = RingIdentity.keyOf(r)
     val mine = all.filter { it.deviceKey == key }.sortedBy { ComparisonMetric.byName(it.metric)?.ordinal ?: 99 }
     AccuracyCard {
-        Text(trf("Corrections for {0}", RingIdentity.labelOf(r)), fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+        Text(trf("Corrections for {0}", RingIdentity.labelOf(r)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         if (mine.isEmpty()) {
             Text(
                 if (all.isNotEmpty()) tr("No accuracy check for this ring yet. Corrections from another ring don't carry over.")
@@ -437,10 +437,10 @@ internal fun AccuracyCorrectionsCard() {
             val m = ComparisonMetric.byName(c.metric) ?: return@forEach
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("${m.label}: ${AccuracyCorrections.formatValue(m, c.value)}", fontSize = 13.sp, color = PulseColors.textPrimary)
+                    Text("${m.label}: ${AccuracyCorrections.formatValue(m, c.value)}", fontSize = 14.sp, color = PulseColors.textPrimary)
                     if (AccuracyCorrections.isStale(c, r)) {
                         Text(trf("Fitted {0}{1}: worth a fresh check.", AccuracyUiText.date(c.createdAt), if (c.firmware != null && c.firmware != r.firmwareVersion) " on other firmware" else ""),
-                            fontSize = 11.sp, color = PulseColors.warning)
+                            fontSize = 12.sp, color = PulseColors.warning)
                     }
                 }
                 Switch(checked = c.enabled, onCheckedChange = { on -> scope.launch { AccuracyCorrections.setEnabled(db, c, on) } })
@@ -449,6 +449,6 @@ internal fun AccuracyCorrectionsCard() {
                 }
             }
         }
-        Text(tr("Applied to what PulseLoop shows, never to stored readings or Health Connect."), fontSize = 11.sp, color = PulseColors.textMuted)
+        Text(tr("Applied to what PulseLoop shows, never to stored readings or Health Connect."), fontSize = 12.sp, color = PulseColors.textMuted)
     }
 }

@@ -10,7 +10,9 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import kotlinx.coroutines.ensureActive
 import java.io.File
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 
 @Serializable
@@ -39,7 +41,22 @@ data class UpdateInfo(
     val apkUrl: String,
     val apkSize: Long,
     val htmlUrl: String,
+    /** The APK asset's file name, as `SHA256SUMS.txt` lists it. */
+    val apkName: String = "",
+    /** The release's `SHA256SUMS.txt`, or null when the release published none (then no install). */
+    val sumsUrl: String? = null,
 )
+
+/** How a download ended. Only [Ready] may be handed to the installer. */
+sealed class DownloadResult {
+    data class Ready(val file: File) : DownloadResult()
+    /** Network error, HTTP error, or a short file. */
+    data object Failed : DownloadResult()
+    /** The bytes didn't match the release's `SHA256SUMS.txt`, or the release published none. */
+    data object ChecksumMismatch : DownloadResult()
+    /** Not this app, or not signed with the installed app's key. */
+    data object WrongSignature : DownloadResult()
+}
 
 /**
  * Outcome of an update check. Failures are distinct from "no update" so the UI never
@@ -75,7 +92,38 @@ object UpdateChecker {
     private val downloadClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(60, TimeUnit.SECONDS)
+        // HTTPS only, redirected to HTTPS only (design system docs/self-update.md).
+        .followSslRedirects(false)
         .build()
+
+    /** The checksum file every release publishes (`release.yml`). */
+    const val SUMS_ASSET = "SHA256SUMS.txt"
+
+    /**
+     * The hash `sha256sum` wrote for [fileName] in a `SHA256SUMS.txt` body, lower-case, or null.
+     * Lines are `<64 hex><space><space or *><name>`; anything else is ignored.
+     */
+    fun sha256For(sums: String, fileName: String): String? = sums.lineSequence()
+        .map { it.trim() }
+        .mapNotNull { line ->
+            val m = Regex("^([0-9a-fA-F]{64})\\s+\\*?(.+)$").find(line) ?: return@mapNotNull null
+            m.groupValues[1].lowercase() to m.groupValues[2].trim()
+        }
+        .firstOrNull { it.second == fileName }
+        ?.first
+
+    fun sha256Hex(file: File): String {
+        val md = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buf = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buf)
+                if (n < 0) break
+                md.update(buf, 0, n)
+            }
+        }
+        return md.digest().joinToString("") { "%02x".format(it) }
+    }
 
     private const val PREFS = "self_update"
     private const val KEY_ETAG = "etag"
@@ -175,30 +223,46 @@ object UpdateChecker {
             apkUrl = apk.browserDownloadUrl,
             apkSize = apk.size,
             htmlUrl = release.htmlUrl ?: "",
+            apkName = apk.name,
+            sumsUrl = release.assets.firstOrNull { it.name == SUMS_ASSET }?.browserDownloadUrl,
         ))
     }
 
     /**
-     * Download the APK to cacheDir/updates, reporting progress in 0f..1f. Returns the file, or
-     * null if the download failed or arrived short.
+     * Download the APK to cacheDir/updates, reporting progress in 0f..1f, and check it before
+     * anything may install it: HTTPS only, the whole file, its SHA-256 against the release's
+     * `SHA256SUMS.txt` (no published sum, no install), then same package and same signing key.
+     * Cancelling the calling coroutine stops the download and deletes the part.
      *
-     * The short-file check is the important one: a body that ends early without throwing (a
+     * The short-file check matters on its own: a body that ends early without throwing (a
      * dropped connection on a chunked reply, a captive portal cutting in) leaves a truncated
-     * APK, and the system package installer reports that as "There was a problem parsing the
-     * package" — which reads as a broken release rather than a failed download. Better to fail
-     * the download honestly and let the user retry.
+     * APK, and the system installer reports that as "There was a problem parsing the package",
+     * which reads as a broken release rather than a failed download.
      */
     suspend fun download(
         context: Context,
         info: UpdateInfo,
         onProgress: (Float) -> Unit,
-    ): File? = withContext(Dispatchers.IO) {
+    ): DownloadResult = withContext(Dispatchers.IO) {
+        val sumsUrl = info.sumsUrl
+        if (sumsUrl == null || !sumsUrl.startsWith("https://") || !info.apkUrl.startsWith("https://")) {
+            return@withContext DownloadResult.ChecksumMismatch
+        }
+        val expected = try {
+            downloadClient.newCall(Request.Builder().url(sumsUrl).build()).execute().use { resp ->
+                if (!resp.isSuccessful) return@withContext DownloadResult.Failed
+                resp.body?.string()?.let { sha256For(it, info.apkName) }
+            }
+        } catch (_: Exception) {
+            return@withContext DownloadResult.Failed
+        } ?: return@withContext DownloadResult.ChecksumMismatch
+
         val dir = File(context.cacheDir, "updates").apply { mkdirs() }
         val out = File(dir, "pulseloop-${info.versionCode}.apk")
         try {
             downloadClient.newCall(Request.Builder().url(info.apkUrl).build()).execute().use { resp ->
-                if (!resp.isSuccessful) return@withContext null
-                val body = resp.body ?: return@withContext null
+                if (!resp.isSuccessful) return@withContext DownloadResult.Failed
+                val body = resp.body ?: return@withContext DownloadResult.Failed
                 val stream = body.byteStream()
                 val total = body.contentLength().takeIf { it > 0 } ?: info.apkSize
 
@@ -209,6 +273,7 @@ object UpdateChecker {
                     val buf = ByteArray(64 * 1024)
                     var read: Int
                     while (stream.read(buf).also { read = it } != -1) {
+                        ensureActive()                     // Cancel stops here; the catch below deletes the part
                         fos.write(buf, 0, read)
                         downloaded += read
                         if (total > 0) onProgress((downloaded.toFloat() / total).coerceIn(0f, 1f))
@@ -218,13 +283,24 @@ object UpdateChecker {
 
                 if (total > 0 && downloaded != total) {
                     out.delete()
-                    return@withContext null
+                    return@withContext DownloadResult.Failed
                 }
-                out
             }
+            if (sha256Hex(out) != expected) {
+                out.delete()
+                return@withContext DownloadResult.ChecksumMismatch
+            }
+            if (!ApkInstaller.matchesInstalledApp(context, out)) {
+                out.delete()
+                return@withContext DownloadResult.WrongSignature
+            }
+            DownloadResult.Ready(out)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            out.delete()
+            throw e
         } catch (_: Exception) {
             out.delete()
-            null
+            DownloadResult.Failed
         }
     }
 }

@@ -95,7 +95,7 @@ fun FairyTransformOverlay() {
         ) {
             Text(
                 tr("Tatá, te amo!"),
-                fontSize = 36.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center,
+                fontSize = 32.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center,
             )
             Text("💗", fontSize = 28.sp, textAlign = TextAlign.Center)
         }

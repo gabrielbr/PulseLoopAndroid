@@ -343,7 +343,7 @@ private fun WelcomeStep(
                     Text(
                         tr("PulseLoop needs Bluetooth permission to find and connect to your ring. " +
                             "Allow it in Settings, or continue without a ring and pair one later."),
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         color = PulseColors.textSecondary,
                         textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
@@ -408,7 +408,7 @@ private fun WelcomeStep(
                         }
                         Text(
                             feature.title,
-                            fontSize = 15.sp,
+                            fontSize = 16.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = PulseColors.textPrimary,
                             textAlign = TextAlign.Center,
@@ -603,7 +603,7 @@ private fun BaselineStep(finish: () -> Unit) {
                         if (milestone.icon != null) {
                             Icon(milestone.icon, contentDescription = null, Modifier.size(15.dp), tint = milestone.tint)
                         } else {
-                            Text("1", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = milestone.tint)
+                            Text("1", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = milestone.tint)
                         }
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -615,7 +615,7 @@ private fun BaselineStep(finish: () -> Unit) {
                         )
                         Text(
                             milestone.subtitle,
-                            fontSize = 13.sp,
+                            fontSize = 14.sp,
                             color = PulseColors.textMuted,
                         )
                     }
@@ -679,7 +679,7 @@ private fun HealthConnectSourceStep(next: () -> Unit) {
     ) {
         Text(
             tr("Use your device's data"),
-            fontSize = 26.sp,
+            fontSize = 24.sp,
             fontWeight = FontWeight.Bold,
             color = PulseColors.textPrimary,
             textAlign = TextAlign.Center,
@@ -725,7 +725,7 @@ private fun StepHeader(title: String, subtitle: String? = null) {
     ) {
         Text(
             title,
-            fontSize = 30.sp,
+            fontSize = 28.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
             textAlign = TextAlign.Center,
@@ -733,7 +733,7 @@ private fun StepHeader(title: String, subtitle: String? = null) {
         if (subtitle != null) {
             Text(
                 subtitle,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 color = PulseColors.textSecondary,
                 textAlign = TextAlign.Center,
                 lineHeight = 21.sp,

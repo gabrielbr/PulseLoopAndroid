@@ -60,7 +60,7 @@ fun LanguageSettingsScreen(onBack: () -> Unit) {
                     Column(Modifier.padding(start = 12.dp, top = 6.dp, bottom = 6.dp)) {
                         Text(
                             if (lang == AppLanguage.SYSTEM) tr("System default") else lang.label,
-                            fontSize = 15.sp, color = PulseColors.textPrimary,
+                            fontSize = 16.sp, color = PulseColors.textPrimary,
                         )
                         lang.caption?.let { Text(tr(it), fontSize = 12.sp, color = PulseColors.textMuted) }
                     }

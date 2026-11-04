@@ -264,7 +264,7 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                     Spacer(Modifier.height(10.dp))
                     Text(
                         tr("Scanning unavailable"),
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textPrimary,
                     )
@@ -292,7 +292,7 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                     Spacer(Modifier.height(10.dp))
                     Text(
                         tr("Camera access needed"),
-                        fontSize = 17.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textPrimary,
                     )

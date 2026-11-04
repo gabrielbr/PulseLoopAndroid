@@ -1195,6 +1195,33 @@ screens that no longer exist, and an app change missing from the canvas is invis
 - If a session cannot reach the canvas, say so in the PR description instead of skipping it
   silently.
 
+## The design system's rules apply here (Gabriel Design System 0.30.0)
+
+PulseLoop is one of the apps the design-system repo governs (its `pulseloop` layer). Its AGENTS.md
+"Rules every design decision follows" bind this app; where PulseLoop still differs, the
+difference is recorded in that repo's `docs/divergences.md` (D-4 dark only, D-11 update
+checksum, …), not here. Don't add a divergence in the app: add it there first, with its plan.
+
+- **Three skills on every screen and flow.** Every new or changed screen, flow, sheet,
+  notification or widget is designed with, and then audited against, all three skills in
+  `.claude/skills/`:
+  1. **impeccable**: shape, critique and polish while designing, then its native `audit` and
+     `critique`, with the five dimensions scored and findings P0–P3.
+  2. **graphic-design-fundamentals**: plan with it, then its §13 checklist.
+  3. **less-is-more**: the five questions on every element; what was cut; taps on common actions
+     never rise.
+
+  Use them while working, not only at the end. If a skill won't load, read its `SKILL.md` and
+  references and apply it by hand, and say so. The audit file has one section per skill. Fix any
+  P0 or P1 finding, and anything the checklist fails, before merging.
+- **Where the audit goes:** `audits/YYYY-MM-DD-<version or topic>.md`, from `audits/TEMPLATE.md`
+  (the design system's template), linked from the PR. A UI PR without one isn't merged.
+- **The skills are vendored** (`.claude/skills/VENDORED.md` names the design-system version).
+  Re-copy them when a design-system release changes one; never edit the copies here.
+- **Every release publishes `SHA256SUMS.txt`**, and the in-app updater installs a download only
+  when its SHA-256 matches that file and its signing key matches the installed app (the design
+  system's `docs/self-update.md`).
+
 ## Where things live: intent first, then overview → detail
 
 **Read this before adding a card, a row or a screen.** The app is organised in two layers, and most

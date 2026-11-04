@@ -51,7 +51,7 @@ fun MarkdownLite(
                 line.isBlank() -> Spacer(Modifier.height(2.dp))
                 line.startsWith("#") -> Text(
                     mdInline(line.trimStart('#', ' '), boldColor),
-                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = headingColor,
+                    fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = headingColor,
                 )
                 line.startsWith("- ") || line.startsWith("* ") || line.startsWith("• ") -> Row {
                     Box(

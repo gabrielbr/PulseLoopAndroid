@@ -76,7 +76,7 @@ fun JournalTagsCard(
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (allowYesterday && onYesterday) tr("Tag yesterday") else title,
-                fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
             if (allowYesterday) {
@@ -108,7 +108,7 @@ fun JournalTagsCard(
                 ) {
                     Text(
                         tag.label,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
                         color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
                         maxLines = 1,
@@ -192,30 +192,30 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
                 Text(
                     if (com.pulseloop.service.DrinkPrefs.enabled) tr("Open Drinks: this week, your plan and what drinking does to your nights")
                     else tr("Want to drink less? Track drinks, set a weekly limit and see what each drink does to your nights"),
-                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.drinks,
+                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.drinks,
                     modifier = Modifier.clickable(onClick = onOpenDrinks).padding(vertical = 4.dp),
                 )
             }
 
-            Text(tr("What affects you"), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+            Text(tr("What affects you"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
             val list = effects
             when {
                 list == null -> Unit
                 list.isEmpty() -> Text(
                     trf("Tag your days for a couple of weeks. Once a tag has at least {0} nights after it, PulseLoop compares those nights with your others.", JournalInsights.MIN_NIGHTS),
-                    fontSize = 13.sp, color = PulseColors.textSecondary,
+                    fontSize = 14.sp, color = PulseColors.textSecondary,
                 )
                 else -> Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card),
                 ) {
                     list.forEachIndexed { i, e ->
                         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(e.tag.label, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
+                            Text(e.tag.label, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
                             val enough = e.nightsWith >= JournalInsights.MIN_NIGHTS && e.nightsWithout >= JournalInsights.MIN_NIGHTS
                             Text(
                                 if (enough) e.summary().replaceFirstChar { it.uppercase() }
                                 else trf("Tag {0} more {1} to see an effect", maxOf(0, JournalInsights.MIN_NIGHTS - e.nightsWith), if (JournalInsights.MIN_NIGHTS - e.nightsWith == 1) tr("day") else tr("days")),
-                                fontSize = 13.sp,
+                                fontSize = 14.sp,
                                 color = if (enough && e.hasEffect) PulseColors.textSecondary else PulseColors.textMuted,
                             )
                         }

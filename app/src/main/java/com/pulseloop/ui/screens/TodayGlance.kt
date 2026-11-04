@@ -103,7 +103,7 @@ fun TodayGlance(
                 Icon(Icons.Filled.Warning, null, Modifier.size(16.dp), tint = PulseColors.warning)
                 Text(
                     tr("Unusual last night: ") + alert.joinToString(", ") { it.title.lowercase() },
-                    fontSize = 13.sp, color = PulseColors.textPrimary,
+                    fontSize = 14.sp, color = PulseColors.textPrimary,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
@@ -112,7 +112,7 @@ fun TodayGlance(
         if (insight != null) {
             Text(
                 insight,
-                fontSize = 15.sp,
+                fontSize = 16.sp,
                 lineHeight = 21.sp,
                 color = PulseColors.textSecondary,
                 maxLines = 3,
@@ -123,7 +123,7 @@ fun TodayGlance(
                     .padding(horizontal = 4.dp),
             )
         } else if (insightPending) {
-            Text("", fontSize = 15.sp, lineHeight = 21.sp, minLines = 2, modifier = Modifier.fillMaxWidth())
+            Text("", fontSize = 16.sp, lineHeight = 21.sp, minLines = 2, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -148,18 +148,18 @@ fun LastNightCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(tr("LAST NIGHT"), fontSize = 11.sp, letterSpacing = 1.8.sp, color = PulseColors.sleep)
+        Text(tr("LAST NIGHT"), fontSize = 12.sp, letterSpacing = 1.8.sp, color = PulseColors.sleep)
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(durationText, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(durationText, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             score?.let {
                 Text(trf("score {0}", it), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
             }
         }
-        window?.let { Text(it, fontSize = 13.sp, color = PulseColors.textMuted) }
+        window?.let { Text(it, fontSize = 14.sp, color = PulseColors.textMuted) }
         drinksLine?.let { line ->
             Text(
                 line,
-                fontSize = 13.sp, color = PulseColors.textPrimary,
+                fontSize = 14.sp, color = PulseColors.textPrimary,
                 modifier = Modifier
                     .padding(top = 6.dp)
                     .fillMaxWidth()
@@ -190,7 +190,7 @@ internal fun SheetOption(title: String, subtitle: String, icon: ImageVector, onC
     ) {
         Icon(icon, null, Modifier.size(22.dp), tint = PulseColors.accent)
         Column {
-            Text(title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(subtitle, fontSize = 12.sp, color = PulseColors.textSecondary)
         }
     }
@@ -220,9 +220,9 @@ fun CoachBriefSheet(
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(tr("TODAY'S BRIEF"), fontSize = 11.sp, letterSpacing = 1.6.sp, color = PulseColors.accent)
+            Text(tr("TODAY'S BRIEF"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.accent)
             Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(body, fontSize = 15.sp, lineHeight = 22.sp, color = PulseColors.textSecondary)
+            Text(body, fontSize = 16.sp, lineHeight = 22.sp, color = PulseColors.textSecondary)
             if (chips.isNotEmpty()) {
                 // Wraps rather than squeezing the third chip on a narrow phone or at a large font.
                 FlowRow(

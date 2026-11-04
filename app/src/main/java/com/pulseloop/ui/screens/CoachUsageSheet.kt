@@ -76,7 +76,7 @@ fun CoachUsageSheet(
                 .padding(bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(tr("Usage & cost"), fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(tr("Usage & cost"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             SummaryCard(providerLabel, models, totalInputTokens, totalOutputTokens, totalCost)
             if (showsCostNote) CostNote()
             if (accounted.isNotEmpty()) BreakdownCard(accounted)
@@ -142,7 +142,7 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                tr("Per-message breakdown"), fontSize = 13.sp, fontWeight = FontWeight.Medium,
+                tr("Per-message breakdown"), fontSize = 14.sp, fontWeight = FontWeight.Medium,
                 color = PulseColors.textPrimary, modifier = Modifier.weight(1f),
             )
             Text(if (expanded) tr("Hide") else tr("Show"), fontSize = 12.sp, color = PulseColors.textSecondary)

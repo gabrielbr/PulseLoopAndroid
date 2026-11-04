@@ -58,7 +58,7 @@ fun SettingsSection(title: String, rows: List<SettingsRowItem>) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
             title.uppercase(),
-            fontSize = 13.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 1.sp,
             color = PulseColors.textSecondary,
