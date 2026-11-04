@@ -1243,6 +1243,24 @@ clutter came from ignoring one of them:
 - **A goal saved anywhere goes through `GoalSync.afterManualSave`** — it is what stops the field
   following the coach, sends the step goal to the ring and republishes the widget.
 
+## Detected workouts: guess the type, ask, learn (docs/activity-recognition-plan.md)
+
+The rings give no raw accelerometer, so `ActivityClassifier` guesses from step cadence and
+burstiness and from heart-rate level and unevenness. Every type is ranked; the user always picks.
+Rules a change must keep:
+
+- **Nothing is logged without a tap.** A wrong workout reaches Health Connect and Strava.
+- **The user's answers win.** A confirmed suggestion stores its features with the chosen type
+  (`activity_detection` → `learned`, newest 200, in the backup). Close earlier answers outweigh
+  the rules, so don't tune the rules to override them.
+- **"Not this" holds by overlap, not by key** (`ActivityDetection.open`): a re-detection with
+  shifted bounds or a changed guess must not resurface a dismissed stretch.
+- **Steps and heart stretches merge into one window** (`mergeActive`), so a run is never also
+  offered as cardio.
+- **Notify once, recent only** (`ActivityDetectionNotifier`): after a sync's `done`, for
+  activity ending in the last 12 h, never twice for the same stretch, behind its own switch and
+  channel. Today shows the newest as one line; the Activity tab's card is where it is answered.
+
 ## Logging a food again: suggestions come from the user's own history
 
 Typing a meal's name in the Log Meal form offers foods logged before (`service/FoodHistory.kt`,

@@ -245,6 +245,9 @@ fun TodayScreen(
 
             // Accuracy check in progress (docs/accuracy-check-plan.md): say so, since it pauses export.
             accuracyOpen?.let { c -> item { AccuracyCheckBanner(c) { navController?.navigate("settings/accuracy-check") } } }
+            // What the ring saw the user doing since the last look (docs/activity-recognition-plan.md):
+            // one line, opening the Activity tab where it is confirmed, retyped or dismissed.
+            item { DetectedActivityLine { navController?.navigate("activity") { launchSingleTop = true } } }
             // The accuracy-check correction note lives in Settings → Accuracy check, not here:
             // on Today it was a line shown on every visit for something set once.
 
@@ -727,5 +730,41 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
         modifier = Modifier.heightIn(min = 48.dp),
     ) {
         Text(tr("+ Log meal"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent)
+    }
+}
+
+
+/** The newest detected workout as one line on Today, or nothing. */
+@Composable
+private fun DetectedActivityLine(onOpen: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
+    val newest by androidx.compose.runtime.produceState<com.pulseloop.service.ActivityDetection.Proposal?>(null) {
+        value = runCatching {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                com.pulseloop.service.ActivityDetection.load(context, db, days = 2)
+                    .firstOrNull { it.kind != com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP }
+            }
+        }.getOrNull()
+    }
+    val p = newest ?: return
+    val time = remember(p.startAt) {
+        java.time.Instant.ofEpochMilli(p.startAt).atZone(java.time.ZoneId.systemDefault())
+            .format(java.time.format.DateTimeFormatter.ofPattern("EEE HH:mm"))
+    }
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+            .background(PulseColors.card).clickable(role = Role.Button, onClickLabel = tr("Review"), onClick = onOpen)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(PulseColors.steps))
+        Text(
+            com.pulseloop.notifications.ActivityDetectionNotifier.phrase(p.bestType) + " · $time · ${p.minutes} min",
+            fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        com.pulseloop.ui.components.Chevron()
     }
 }

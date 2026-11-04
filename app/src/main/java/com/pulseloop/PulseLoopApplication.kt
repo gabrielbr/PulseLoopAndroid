@@ -37,6 +37,9 @@ class PulseLoopApplication : Application() {
         // Accuracy check: a different ring ends a running check at once (it can't be told apart later).
         com.pulseloop.health.accuracy.AccuracyRingWatcher.start(this, appScope)
         com.pulseloop.health.accuracy.AccuracyNotifications.createChannel(this)
+        // What the ring saw the user doing, said after each sync (docs/activity-recognition-plan.md).
+        com.pulseloop.notifications.ActivityDetectionNotifier.createChannel(this)
+        com.pulseloop.notifications.ActivityDetectionNotifier.start(this, appScope)
         // One-time cleanup of activity totals corrupted by the old bucket handling; runs off the
         // main thread and is prefs-gated so it executes once. Safe to race the first sync — the
         // ring can't connect before this completes a couple of DELETE statements.
