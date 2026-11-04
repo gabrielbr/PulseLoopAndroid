@@ -117,7 +117,11 @@ internal fun Section(
                         Text(title, style = com.pulseloop.ui.theme.PulseType.title, color = PulseColors.textPrimary)
                         if (!open) Text(summary!!, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
-                    val turn by androidx.compose.animation.core.animateFloatAsState(if (open) 180f else 0f, label = "chevron")
+                    val turn by androidx.compose.animation.core.animateFloatAsState(
+                        if (open) 180f else 0f,
+                        androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease),
+                        label = "chevron",
+                    )
                     Icon(
                         Icons.Filled.ExpandMore, contentDescription = null, tint = PulseColors.textMuted,
                         modifier = Modifier.size(24.dp).graphicsLayer { rotationZ = turn },
@@ -125,8 +129,11 @@ internal fun Section(
                 }
                 androidx.compose.animation.AnimatedVisibility(
                     visible = open,
-                    enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
-                    exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
+                    // The system's durations and ease (theme/Motion.kt), not Compose's default springs.
+                    enter = androidx.compose.animation.expandVertically(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)) +
+                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
+                    exit = androidx.compose.animation.shrinkVertically(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)) +
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
                 ) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
                 }
@@ -196,9 +203,9 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
         val shareScope = rememberCoroutineScope()
-        androidx.compose.material3.CenterAlignedTopAppBar(
-            title = { Text(tr("My Health"), style = com.pulseloop.ui.theme.PulseType.title) },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) } },
+        com.pulseloop.ui.components.PulseTopBar(
+            title = tr("My Health"),
+            onBack = onBack,
             actions = {
                 IconButton(
                     onClick = {
@@ -217,8 +224,6 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                     },
                 ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, tr("Share my week"), tint = PulseColors.textSecondary) }
             },
-            windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = PulseColors.background),
         )
         // Lazy: each section composes as it scrolls in, instead of every chart and DB read at once.
         androidx.compose.foundation.lazy.LazyColumn(
@@ -319,7 +324,8 @@ private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate
             Column(Modifier.weight(1f)) {
                 Text(tr("Rest Mode"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(
-                    restUntil?.let { trf("On until {0}/{1}: activity nudges paused, the coach eases off.", it.dayOfMonth, it.monthValue) }
+                    // A localised date ("Thu 6 Nov"), not a day/month pair that reads backwards in the US.
+                    restUntil?.let { trf("On until {0}: activity nudges paused, the coach eases off.", it.format(java.time.format.DateTimeFormatter.ofPattern("EEE d MMM"))) }
                         ?: tr("Feeling unwell? Pause activity nudges for 3 days."),
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
@@ -559,7 +565,7 @@ fun BreatheScreen(onBack: () -> Unit) {
                     )
                     animated
                 }
-                Box(Modifier.size(220.dp).scale(s).clip(CircleShape).dither(PulseColors.accent, 0.35f, CircleShape).border(2.dp, PulseColors.accent, CircleShape))
+                Box(Modifier.size(220.dp).scale(s).clip(CircleShape).dither(PulseColors.info, 0.35f, CircleShape).border(2.dp, PulseColors.info, CircleShape))
                 Spacer(Modifier.height(24.dp))
                 Text(
                     if (inhaling) tr("Breathe in") else tr("Breathe out"), fontSize = 20.sp, color = PulseColors.textPrimary,

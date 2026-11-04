@@ -105,7 +105,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.switchRow(checked = enabled, enabled = available && !busy, onCheckedChange = { on ->
                     if (on) launcher.launch(HealthConnectBodyImport.permissions)
@@ -129,9 +129,9 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
             val w = s.weight
             val whenText = Instant.ofEpochMilli(w.measuredAt).atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("d MMM, HH:mm"))
-            Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("%.1f".format(UnitConverter.weight(w.value, units)), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("$unit · $whenText", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 5.dp))
+                Text("$unit · $whenText", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
             }
             val facts = buildList {
                 s.bodyFatPct?.let { add(trf("Body fat {0}%", "%.1f".format(it))) }
@@ -168,7 +168,8 @@ private fun WeightLine(points: List<BodyMeasurementEntity>, units: UnitSystem) {
             val o = Offset(x(p.measuredAt), y(p.value))
             if (i == 0) path.moveTo(o.x, o.y) else path.lineTo(o.x, o.y)
         }
-        drawPath(path, PulseColors.accent, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+        // Mint is for what's tapped; a chart line takes a data hue.
+        drawPath(path, PulseColors.info, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
     }
     Row(Modifier.fillMaxWidth()) {
         Text(shown(points.first().value), fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))

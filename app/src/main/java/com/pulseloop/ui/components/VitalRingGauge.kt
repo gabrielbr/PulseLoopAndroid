@@ -176,18 +176,21 @@ fun VitalRingGauge(
             )
         }
 
-        // Center stack: value / unit / status / subtitle, scaled off the gauge size like iOS.
+        // Center stack: value / unit / status / subtitle, scaled off the gauge size like iOS, then
+        // snapped to the type scale (a 190dp gauge asked for 57sp and 15.2sp, both off it).
+        fun onScale(target: Float) = com.pulseloop.ui.theme.PulseType.SCALE
+            .minByOrNull { kotlin.math.abs(it - target) }!!.sp
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 centerValue,
-                fontSize = (size.value * 0.30f).sp,
+                fontSize = onScale(size.value * 0.30f),
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
             )
             if (centerUnit != null) {
                 Text(
                     centerUnit,
-                    fontSize = maxOf(12f, size.value * 0.08f).sp,
+                    fontSize = onScale(size.value * 0.08f),
                     fontWeight = FontWeight.Medium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -195,7 +198,7 @@ fun VitalRingGauge(
             if (centerStatus != null) {
                 Text(
                     centerStatus.uppercase(),
-                    fontSize = maxOf(12f, size.value * 0.08f).sp,
+                    fontSize = onScale(size.value * 0.08f),
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 1.sp,
                     color = valueColor,
@@ -209,7 +212,7 @@ fun VitalRingGauge(
             if (subtitle != null) {
                 Text(
                     subtitle,
-                    fontSize = maxOf(12f, size.value * 0.065f).sp,
+                    fontSize = onScale(size.value * 0.065f),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
                     maxLines = 2,

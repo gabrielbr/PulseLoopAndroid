@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -114,7 +115,7 @@ internal fun AccuracyReportSection(
                 fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, modifier = Modifier.weight(1f),
             )
             // Both actions are width-bounded so translated labels can't squeeze the weighted title.
-            if (scoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+            if (scoring) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
             else PulseButton(PulseButtonStyle.Text, onClick = { rescore(force = true) }, modifier = Modifier.widthIn(max = 120.dp)) {
                 Text(tr("Recompute"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -202,13 +203,17 @@ private fun MetricCard(
 ) {
     val m = summary.metric
     AccuracyCard {
-        Row(Modifier.fillMaxWidth().clickable(onClick = onToggle), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onToggle),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Column(Modifier.weight(1f)) {
                 Text(m.label, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 val headline = when {
                     summary.verdict == Verdict.NOT_ENOUGH_DATA -> null
-                    m.kind == ComparisonMetric.Kind.STAGES -> summary.stageAgreement?.let { "${(it * 100).roundToInt()} % same stage" }
-                    else -> AccuracyReportText.signed(m, summary.bias) + " vs ${check.referenceLabel}"
+                    m.kind == ComparisonMetric.Kind.STAGES -> summary.stageAgreement?.let { trf("{0} % same stage", (it * 100).roundToInt()) }
+                    else -> trf("{0} vs {1}", AccuracyReportText.signed(m, summary.bias), check.referenceLabel)
                 }
                 headline?.let { Text(it, fontSize = 14.sp, color = PulseColors.textSecondary) }
             }

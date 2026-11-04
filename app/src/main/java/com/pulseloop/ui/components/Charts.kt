@@ -101,91 +101,6 @@ fun zoneGradientStops(dataMin: Double, dataMax: Double, th: MetricThresholds): A
     return stops.toTypedArray()
 }
 
-/**
- * Simple line chart composable — draws a polyline from data points.
- * No external charting library needed.
- *
- * When [thresholds] is provided, the line + dots are colored by each value's zone
- * (matching the metric's threshold legend) instead of the flat [color].
- */
-@Composable
-fun SimpleLineChart(
-    points: List<Double>,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary,
-    lineWidth: Float = 2f,
-    showDots: Boolean = true,
-    thresholds: MetricThresholds? = null,
-) {
-    if (points.isEmpty()) return
-    val min = points.min()
-    val max = points.max()
-    val range = if (max == min) 1.0 else max - min
-
-    Canvas(modifier = modifier.fillMaxWidth().height(100.dp)) {
-        val w = size.width
-        val h = size.height
-        val pad = 8f
-        val stepX = (w - pad * 2) / maxOf(1, points.size - 1)
-        val top = pad
-        val bottom = h - pad
-
-        val lineBrush = thresholds?.let {
-            Brush.verticalGradient(
-                colorStops = zoneGradientStops(min, max, it),
-                startY = top,
-                endY = bottom,
-            )
-        }
-
-        val path = Path()
-        points.forEachIndexed { i, value ->
-            val x = pad + i * stepX
-            val y = pad + (h - pad * 2) * (1f - ((value - min) / range).toFloat())
-            if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
-
-            if (showDots) {
-                val dotColor = thresholds?.zoneFor(value)?.color ?: color
-                drawCircle(dotColor, 3f, Offset(x, y))
-            }
-        }
-        if (lineBrush != null) {
-            drawPath(path, brush = lineBrush, style = Stroke(width = lineWidth, cap = StrokeCap.Round))
-        } else {
-            drawPath(path, color, style = Stroke(width = lineWidth, cap = StrokeCap.Round))
-        }
-    }
-}
-
-/**
- * Metric card with embedded mini sparkline — ported from MiniSparkline in DesignSystem.
- */
-@Composable
-fun MetricWithSparkline(
-    label: String,
-    value: String,
-    unit: String,
-    sparkline: List<Double>,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.primary,
-) {
-    androidx.compose.material3.Card(modifier) {
-        Column(Modifier.padding(12.dp)) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            androidx.compose.foundation.layout.Spacer(Modifier.height(4.dp))
-            androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom) {
-                Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                androidx.compose.foundation.layout.Spacer(Modifier.width(4.dp))
-                Text(unit, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 2.dp))
-            }
-            if (sparkline.isNotEmpty()) {
-                androidx.compose.foundation.layout.Spacer(Modifier.height(8.dp))
-                SimpleLineChart(points = sparkline, modifier = Modifier.fillMaxWidth(), color = color, showDots = false)
-            }
-        }
-    }
-}
-
 /** Small color swatch + label, used as an inline chart legend (e.g. Systolic / Diastolic). */
 @Composable
 fun LegendDot(label: String, color: Color) {
@@ -207,17 +122,21 @@ private fun formatTick(value: Double): String {
  * midnight, and returns a label formatter whose granularity matches the step
  * (e.g. "2 PM" for hourly, "2:30 PM" sub-hour, "Jun 28" for multi-day).
  */
-private fun timeAxisTicks(visStart: Long, visEnd: Long, zone: ZoneId): Pair<List<Long>, (Long) -> String> {
+private fun timeAxisTicks(visStart: Long, visEnd: Long, zone: ZoneId, is24h: Boolean): Pair<List<Long>, (Long) -> String> {
     val rangeMs = (visEnd - visStart).coerceAtLeast(1L)
     val stepsMin = longArrayOf(15, 30, 60, 120, 180, 360, 720, 1440, 2880, 10080)
     val stepMin = stepsMin.firstOrNull { rangeMs / (it * 60_000L) <= 5 } ?: stepsMin.last()
     val stepMs = stepMin * 60_000L
-    val pattern = when {
-        stepMin >= 1440 -> "MMM d"
-        stepMin < 60 -> "h:mm a"
-        else -> "h a"
+    // Skeletons, arranged the locale's way and on the phone's 12/24-hour clock (was "h a" and
+    // "MMM d" for everyone).
+    val skeleton = when {
+        stepMin >= 1440 -> "MMMd"
+        stepMin < 60 -> if (is24h) "Hm" else "hm"
+        else -> if (is24h) "Hm" else "ha"
     }
-    val fmt = DateTimeFormatter.ofPattern(pattern, Locale.getDefault())
+    val locale = Locale.getDefault()
+    val fmt = java.text.SimpleDateFormat(android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton), locale)
+        .apply { timeZone = java.util.TimeZone.getTimeZone(zone) }
     // Align ticks to local midnight so labels land on clean boundaries.
     val dayStart = Instant.ofEpochMilli(visStart).atZone(zone)
         .truncatedTo(ChronoUnit.DAYS).toInstant().toEpochMilli()
@@ -226,7 +145,7 @@ private fun timeAxisTicks(visStart: Long, visEnd: Long, zone: ZoneId): Pair<List
     while (t < visStart) t += stepMs
     // End-exclusive: a calendar day's domain ends on the next midnight, which would label "12 AM" twice.
     while (t < visEnd) { ticks.add(t); t += stepMs }
-    val formatter: (Long) -> String = { ms -> Instant.ofEpochMilli(ms).atZone(zone).format(fmt) }
+    val formatter: (Long) -> String = { ms -> fmt.format(java.util.Date(ms)) }
     return ticks to formatter
 }
 
@@ -293,6 +212,7 @@ fun TrendChart(
     val zone = ZoneId.systemDefault()
 
     val textMeasurer = rememberTextMeasurer()
+    val is24h = android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current)
     val axisColor = MaterialTheme.colorScheme.onSurfaceVariant
     val surfaceColor = MaterialTheme.colorScheme.surface
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface
@@ -480,14 +400,14 @@ fun TrendChart(
                 // Current-value marker at the last primary point
                 primaryOffsets.lastOrNull()?.let { o ->
                     val c = if (zoneColoring) thresholds?.zoneFor(points.last())?.color ?: color else color
-                    drawCircle(Color.White, 7f, o)
+                    drawCircle(PulseColors.textPrimary, 7f, o)
                     drawCircle(c, 5f, o)
                 }
             }
 
             // X-axis time labels — real clock times at clean intervals across the visible window.
             if (useTime) {
-                val (ticks, fmt) = timeAxisTicks(visStart, visEnd, zone)
+                val (ticks, fmt) = timeAxisTicks(visStart, visEnd, zone, is24h)
                 var lastRight = -Float.MAX_VALUE
                 for (t in ticks) {
                     val text = fmt(t)
@@ -523,12 +443,12 @@ fun TrendChart(
                 // Vertical guide
                 drawLine(outlineColor.copy(alpha = 0.6f), Offset(px, plotTop), Offset(px, plotBottom), 1.5f)
                 // Highlighted point(s)
-                drawCircle(Color.White, 7f, Offset(px, py))
+                drawCircle(PulseColors.textPrimary, 7f, Offset(px, py))
                 drawCircle(if (zoneColoring) thresholds?.zoneFor(points[idx])?.color ?: color else color, 5f, Offset(px, py))
                 val secVal = secondary.getOrNull(idx)
                 if (secVal != null) {
                     val py2 = yForValue(secVal)
-                    drawCircle(Color.White, 6f, Offset(px, py2))
+                    drawCircle(PulseColors.textPrimary, 6f, Offset(px, py2))
                     drawCircle(colorSecondary, 4f, Offset(px, py2))
                 }
 

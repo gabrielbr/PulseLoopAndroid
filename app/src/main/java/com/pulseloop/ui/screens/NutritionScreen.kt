@@ -78,7 +78,7 @@ fun NutritionScreen(
         }
     }
     val dateLabel = remember(todayStart) {
-        java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.US).format(java.util.Date(todayStart))
+        java.text.SimpleDateFormat("EEE, MMM d", java.util.Locale.getDefault()).format(java.util.Date(todayStart))
     }
 
     var meals by remember { mutableStateOf<List<MealEntryEntity>>(emptyList()) }
@@ -128,16 +128,7 @@ fun NutritionScreen(
         // Insets are already applied by the route wrapper (see SettingsSubScreen).
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            if (!asTab) TopAppBar(
-                title = { Text(tr("Nutrition")) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PulseColors.background),
-            )
+            if (!asTab) com.pulseloop.ui.components.PulseTopBar(title = tr("Nutrition"), onBack = onBack)
         },
     ) { padding ->
         LazyColumn(
@@ -162,16 +153,24 @@ fun NutritionScreen(
             // Calorie gauge
             item {
                 val totalCal = totals.sumOf { it.totalCal }
+                // Without a goal the 2000 is a stand-in, and the line says so rather than
+                // reading as a target the user set (audit, v2.11.58, carried).
+                val hasCalorieGoal = goal?.intakeCalories != null
                 val goalCal = goal?.intakeCalories ?: 2000.0
                 val pct = if (goalCal > 0) (totalCal / goalCal).coerceAtMost(1.0) else 0.0
                 Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
                     // Invisible rather than absent while loading, so the card keeps its height.
                     Column(
-                        Modifier.padding(20.dp).then(if (dayLoaded && goalLoaded) Modifier else Modifier.alpha(0f)),
+                        Modifier.padding(16.dp).then(if (dayLoaded && goalLoaded) Modifier else Modifier.alpha(0f)),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Text("${totalCal.roundToInt()} kcal", fontSize = 32.sp, fontWeight = FontWeight.Bold)
-                        Text(trf("of {0}", goalCal.roundToInt()), color = PulseColors.textMuted)
+                        Text(
+                            if (hasCalorieGoal) trf("of {0}", goalCal.roundToInt())
+                            else trf("No goal set · {0} is a typical day", goalCal.roundToInt()),
+                            color = PulseColors.textMuted,
+                            textAlign = TextAlign.Center,
+                        )
                         Spacer(Modifier.height(8.dp))
                         LinearProgressIndicator(
                             progress = { pct.toFloat() },
@@ -255,6 +254,18 @@ fun NutritionScreen(
                 }
             }
 
+            // An empty day says so, instead of ending at the logging row.
+            if (dayLoaded && meals.isEmpty()) {
+                item {
+                    Text(
+                        if (dayOffset == 0) tr("Nothing logged today yet.") else tr("Nothing logged on this day."),
+                        fontSize = 14.sp, color = PulseColors.textMuted,
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
             // Meals grouped by type
             val mealTypes = listOf("breakfast", "lunch", "dinner", "snack")
             for (type in mealTypes) {
@@ -307,8 +318,15 @@ fun NutritionScreen(
             onDismiss = { showAddDialog = false; startScanner = false },
             onSave = { save ->
                 scope.launch {
+                    // A past day's meal is stamped at that day's noon, not at this moment, by the
+                    // rule the photo flow already uses (NutritionTools.resolveTimestamp).
+                    val stamp = NutritionTools.resolveTimestamp(
+                        date = java.time.Instant.ofEpochMilli(todayStart)
+                            .atZone(java.time.ZoneId.systemDefault()).toLocalDate().toString(),
+                        time = null,
+                    )
                     val entry = MealEntryEntity(
-                        date = todayStart, timestamp = System.currentTimeMillis(),
+                        date = todayStart, timestamp = stamp,
                         name = save.name, mealTypeRaw = save.type,
                         calories = save.calories, proteinG = save.proteinG,
                         carbsG = save.carbsG, fatG = save.fatG,
@@ -578,7 +596,7 @@ fun MealLogDialog(
                     ) {
                         if (estimating) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(
                             if (estimating) tr("Estimating…") else tr("Estimate calories with AI"),
                             maxLines = 2, overflow = TextOverflow.Ellipsis,
@@ -721,10 +739,11 @@ private fun NextMealCard(
         Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = PulseColors.card),
-        border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors.accent),
+        // Mint is for what's tapped: the card itself isn't, so its frame is the quiet one.
+        border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors.borderSubtle),
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.accent)
+            Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
             if (idea.items.isEmpty()) {
                 Text(idea.note ?: "", fontSize = 14.sp, color = PulseColors.textPrimary)
             } else {
@@ -742,7 +761,7 @@ private fun NextMealCard(
                     fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary,
                 )
                 if (idea.fromPreferences.isNotEmpty()) {
-                    Text(tr("Your preference: ") + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.accent)
+                    Text(tr("Your preference: ") + idea.fromPreferences.joinToString("; "), fontSize = 12.sp, color = PulseColors.textSecondary)
                 }
                 idea.note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textSecondary) }
                 // Same treatment as the Photo/Describe pair: two lines allowed, equal heights.

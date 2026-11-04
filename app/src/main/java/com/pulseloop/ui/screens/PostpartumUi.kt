@@ -27,6 +27,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -75,9 +76,9 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr("LIFE STAGE"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("LIFE STAGE"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(tr("Postpartum / breastfeeding"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
@@ -98,7 +99,7 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
                 PulseButton(PulseButtonStyle.Text, onClick = { picking = true }) { Text(birth?.format(fmt) ?: tr("Set")) }
             }
             Text(tr("Feeding"), fontSize = 14.sp, color = PulseColors.textSecondary)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
                     Postpartum.Feeding.EXCLUSIVE to tr("Breastfeeding only"),
                     Postpartum.Feeding.MIXED to tr("Breastfeeding and formula"),
@@ -152,9 +153,11 @@ private fun Chip(label: String, on: Boolean, onClick: () -> Unit) {
     Text(
         label, fontSize = 14.sp,
         color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-        modifier = Modifier.clip(shape).background(if (on) PulseColors.accent else PulseColors.cardSoft)
+        // 48dp of layout for the target, the drawn chip unchanged; one of a radio group.
+        modifier = Modifier.minimumInteractiveComponentSize().clip(shape).background(if (on) PulseColors.accent else PulseColors.cardSoft)
             .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, shape)
-            .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+            .selectable(selected = on, role = androidx.compose.ui.semantics.Role.RadioButton, onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
 
@@ -230,11 +233,9 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Postpartum"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-            // Birth date and feeding live in Profile → Life stage; one tap from here to change them.
-            IconButton(onClick = onOpenProfile, modifier = Modifier.align(Alignment.CenterEnd)) {
+        // Birth date and feeding live in Profile → Life stage; one tap from here to change them.
+        com.pulseloop.ui.components.PulseTopBar(title = tr("Postpartum"), onBack = onBack) {
+            IconButton(onClick = onOpenProfile) {
                 Icon(Icons.Filled.Edit, tr("Edit life stage"), tint = PulseColors.textSecondary)
             }
         }
@@ -245,7 +246,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             if (birth == null) {
                 Card {
                     Text(tr("Set your baby's birth date in your profile to see this view."), fontSize = 14.sp, color = PulseColors.textSecondary)
-                    PulseButton(onClick = onOpenProfile) { Text(tr("Open profile")) }
+                    PulseButton(PulseButtonStyle.Tonal, onClick = onOpenProfile) { Text(tr("Open profile")) }
                 }
                 return@Column
             }
@@ -286,7 +287,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             // recovery is going, then reading for later.
             // Mood check-in: the EPDS, the validated questionnaire. Answers stay on this phone.
             val moodCard: @Composable () -> Unit = { Card {
-                Text(tr("MOOD CHECK-IN"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("MOOD CHECK-IN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 val last = history.lastOrNull()
                 if (last != null) {
                     Text(trf("Last check-in {0}: score {1} of 30", last.date, last.score), fontSize = 14.sp, color = PulseColors.textPrimary)
@@ -306,7 +307,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             if (moodUrgent) moodCard()
             d?.lastNight?.let { n ->
                 Card {
-                    Text(tr("LAST NIGHT"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("LAST NIGHT"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                     Text(
                         trf("{0} asleep · woke {1} times · longest stretch {2}", fmtMin(n.asleepMin), n.wakings, fmtMin(n.longestSleepMin)),
                         fontSize = 16.sp, color = PulseColors.textPrimary,
@@ -322,7 +323,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             ResourcesCard(context)
             if (d != null && (d.restingHr.isNotEmpty() || d.hrv.isNotEmpty())) {
                 Card {
-                    Text(tr("RECOVERY, WEEK BY WEEK"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("RECOVERY, WEEK BY WEEK"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                     val weeksShown = (d.restingHr.map { it.first } + d.hrv.map { it.first }).distinct().sorted().takeLast(4)
                     weeksShown.forEach { w ->
                         val rhr = d.restingHr.firstOrNull { it.first == w }?.second
@@ -341,7 +342,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
 
             if (!moodUrgent) moodCard()
             Card {
-                Text(tr("NUTRITION"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("NUTRITION"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 val bonus = Postpartum.calorieBonus(birth, today, Postpartum.feeding)
                 if (bonus > 0) Text(trf("Breastfeeding uses about {0} kcal a day more; your intake goal includes it.", bonus), fontSize = 14.sp, color = PulseColors.textPrimary)
                 Text(
@@ -352,7 +353,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
 
             d?.lam?.let { lam ->
                 Card {
-                    Text(tr("BREASTFEEDING AS CONTRACEPTION (LAM)"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("BREASTFEEDING AS CONTRACEPTION (LAM)"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                     LamRow(tr("Baby under 6 months"), lam.babyUnderSixMonths, if (lam.babyUnderSixMonths) trf("{0} days to go", lam.daysToSixMonths) else null)
                     LamRow(tr("No period since 8 weeks after birth"), lam.noPeriodSinceBirth, null)
                     LamRow(tr("Breastfeeding only, day and night"), lam.fullBreastfeeding, null)
@@ -428,7 +429,7 @@ private fun WarningSignsCard() {
 @Composable
 private fun ResourcesCard(context: Context) {
     Card {
-        Text(tr("HELP"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+        Text(tr("HELP"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
         ResourceRow(tr("SAMU (emergencies)"), "192") { dial(context, "192") }
         ResourceRow(tr("CVV (emotional support, 24 h)"), "188") { dial(context, "188") }
         ResourceRow(tr("Disque Saúde (find a human milk bank)"), "136") { dial(context, "136") }
@@ -478,7 +479,7 @@ private fun EpdsGuidance(score: Int, selfHarm: Int) {
     if (selfHarm > 0) {
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.danger.copy(alpha = 0.15f)).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(tr("You said thoughts of harming yourself have come up. Please talk to someone today."), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(tr("CVV listens 24 hours a day, free and anonymous. In danger now, call SAMU."), fontSize = 14.sp, color = PulseColors.textPrimary)
@@ -514,10 +515,23 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
     val answers = remember { mutableStateListOf<Int?>().apply { repeat(form.items.size) { add(null) } } }
     var result by remember { mutableStateOf<Postpartum.EpdsResult?>(null) }
 
+    // Leaving half-way would throw the answers away without a word; ask first. A result already
+    // shown, or no answer yet, leaves at once.
+    var confirmLeave by remember { mutableStateOf(false) }
+    fun leave() { if (result == null && answers.any { it != null }) confirmLeave = true else onDone(result) }
     // System Back behaves like the arrow: it returns to Postpartum and keeps a result already shown.
-    androidx.activity.compose.BackHandler { onDone(result) }
+    androidx.activity.compose.BackHandler { leave() }
+    if (confirmLeave) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text(tr("Leave the check-in?")) },
+            text = { Text(tr("Your answers so far won't be saved.")) },
+            confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmLeave = false; onDone(null) }) { Text(tr("Leave")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmLeave = false }) { Text(tr("Keep going")) } },
+        )
+    }
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        com.pulseloop.ui.components.PulseTopBar(tr("Mood check-in"), onBack = { onDone(result) })
+        com.pulseloop.ui.components.PulseTopBar(tr("Mood check-in"), onBack = { leave() })
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -528,7 +542,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
                     Text(trf("Your score: {0} of 30", r.score), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     EpdsGuidance(r.score, r.selfHarm)
                 }
-                PulseButton(onClick = { onDone(r) }, modifier = Modifier.fillMaxWidth()) { Text(tr("Done")) }
+                PulseButton(PulseButtonStyle.Tonal, onClick = { onDone(r) }, modifier = Modifier.fillMaxWidth()) { Text(tr("Done")) }
                 return@Column
             }
             Text(form.instruction, fontSize = 14.sp, color = PulseColors.textSecondary)
@@ -552,7 +566,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
                     }
                 }
             }
-            PulseButton(
+            PulseButton(PulseButtonStyle.Tonal,
                 enabled = answers.all { it != null },
                 onClick = {
                     val scores = form.items.mapIndexed { i, item -> item.options[answers[i]!!].score }

@@ -320,6 +320,7 @@ fun TodayScreen(
                                 onOpen = { navController?.navigate("sleep") },
                                 drinksLine = drinks?.morningAfter?.let { com.pulseloop.service.DrinksRepository.morningAfterLine(it) },
                                 onDrinks = { navController?.navigate("drinks") },
+                                drinksOnly = DashboardCard.SLEEP in visibleOrdered,
                             )
                         }
                     }
@@ -747,9 +748,11 @@ private fun DetectedActivityLine(onOpen: () -> Unit) {
         }.getOrNull()
     }
     val p = newest ?: return
-    val time = remember(p.startAt) {
+    // Follows the phone's 12/24-hour setting, like the Last night card.
+    val is24 = android.text.format.DateFormat.is24HourFormat(context)
+    val time = remember(p.startAt, is24) {
         java.time.Instant.ofEpochMilli(p.startAt).atZone(java.time.ZoneId.systemDefault())
-            .format(java.time.format.DateTimeFormatter.ofPattern("EEE HH:mm"))
+            .format(java.time.format.DateTimeFormatter.ofPattern(if (is24) "EEE HH:mm" else "EEE h:mm a"))
     }
     Row(
         Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))

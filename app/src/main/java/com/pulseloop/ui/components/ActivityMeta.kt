@@ -34,6 +34,7 @@ object ActivityMeta {
         "yoga" -> tr("Yoga")
         "dance" -> tr("Dance")
         "hike" -> tr("Hiking")
+        "other" -> tr("Other")
         else -> type.replaceFirstChar { it.uppercase() }
     }
 
@@ -126,4 +127,36 @@ object ActivityMeta {
         return if (units == UnitSystem.IMPERIAL) "%.1f".format(mps * 2.23694) to "MPH"
         else "%.1f".format(mps * 3.6) to "KM/H"
     }
+}
+
+/**
+ * Times and dates in the phone's own format: the clock follows the system 12/24-hour setting and
+ * the dates follow the locale's own order and month names (a pattern like "MMM d" or "h:mm a"
+ * forced English order and a 12-hour clock on everyone).
+ */
+object PhoneFormat {
+    /** "07:42" or "7:42 AM", as the phone's clock setting says. */
+    fun clock(context: android.content.Context, epochMillis: Long): String =
+        clock(android.text.format.DateFormat.is24HourFormat(context), epochMillis)
+
+    /** The same, for code that read the 12/24-hour setting once already. Built the way the
+     *  platform's own `DateFormat.getTimeFormat` builds it. */
+    fun clock(is24Hour: Boolean, epochMillis: Long): String {
+        val locale = java.util.Locale.getDefault()
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, if (is24Hour) "Hm" else "hm")
+        return java.text.SimpleDateFormat(pattern, locale).format(java.util.Date(epochMillis))
+    }
+
+    /**
+     * A date from a skeleton ("EEEMMMd", "yMMMd", "EEEE", "EEEEMMMMd"), arranged the locale's way:
+     * "Wed, Nov 4" in English, "qua., 4 de nov." in Portuguese.
+     */
+    fun date(skeleton: String, date: java.time.temporal.TemporalAccessor): String {
+        val locale = java.util.Locale.getDefault()
+        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
+        return java.time.format.DateTimeFormatter.ofPattern(pattern, locale).format(date)
+    }
+
+    fun date(skeleton: String, epochMillis: Long): String =
+        date(skeleton, java.time.Instant.ofEpochMilli(epochMillis).atZone(java.time.ZoneId.systemDefault()))
 }

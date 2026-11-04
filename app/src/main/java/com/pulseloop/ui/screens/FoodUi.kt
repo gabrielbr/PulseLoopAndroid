@@ -88,14 +88,14 @@ fun FoodCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .clickable(onClick = onOpen)
+            .clickable(role = Role.Button, onClick = onOpen)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.size(8.dp).clip(RoundedCornerShape(4.dp)).background(PulseColors.calories))
             Spacer(Modifier.width(8.dp))
-            Text(tr("FOOD"), fontSize = 12.sp, letterSpacing = 1.8.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+            Text(tr("FOOD"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
             if (!f.enabled) {
                 Text(
                     tr("Hide"), fontSize = 12.sp, color = PulseColors.textMuted,
@@ -144,16 +144,17 @@ private fun FoodAction(label: String, icon: ImageVector, modifier: Modifier, onC
     val shape = RoundedCornerShape(4.dp)
     Row(
         modifier
+            .heightIn(min = 48.dp)
             .clip(shape)
             .background(PulseColors.cardSoft)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 4.dp, vertical = 10.dp),
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 4.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(icon, null, Modifier.size(16.dp), tint = PulseColors.accent)
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             label, fontSize = 14.sp, color = PulseColors.textPrimary,
             maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,

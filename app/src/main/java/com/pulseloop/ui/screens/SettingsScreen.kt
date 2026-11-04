@@ -94,22 +94,25 @@ fun SettingsScreen(
         navController?.navigate(route)
     }
 
+    // Settings is pushed from the header's gear, so it wears the shared pushed-screen bar
+    // (centred title + back) like its own sub-screens, instead of a bare headline.
+    Column(Modifier.fillMaxSize()) {
+    com.pulseloop.ui.components.PulseTopBar(title = tr("Settings"), onBack = { navController?.popBackStack() })
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
     ) {
-        Text(tr("Settings"), style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
 
         val hcSource by remember { com.pulseloop.health.source.HealthConnectSource.activeSource(context) }.collectAsState()
         if (hcSource != null) {
             HealthConnectSourceHeroCard(onOpen = { navigate("settings/hc-source") })
         } else if (storedDeviceLoad == null && bleState.connectionState != com.pulseloop.ring.RingConnectionState.CONNECTED) {
-            // Same footprint as the hero card (18 dp padding, 72 dp art, 10 dp gap, 48 dp action)
+            // Same footprint as the hero card (16 dp padding, 72 dp art, 8 dp gap, 48 dp action)
             // so the rows below don't jump when the stored ring arrives.
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(166.dp)
+                    .height(160.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(PulseColors.card)
                     .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
@@ -133,11 +136,11 @@ fun SettingsScreen(
         SettingsSection(
             title = tr("My ring"),
             rows = buildList {
-                add(SettingsRowItem(Icons.Filled.Watch, PulseColors.accent, tr("Ring & sync")) {
+                add(SettingsRowItem(Icons.Filled.Watch, PulseColors.battery, tr("Ring & sync")) {
                     navigate("settings/wearable")
                 })
                 if (capabilities.contains(WearableCapability.MEASUREMENT_INTERVAL)) {
-                    add(SettingsRowItem(Icons.Filled.Timer, PulseColors.spo2, tr("Measurement Frequency")) {
+                    add(SettingsRowItem(Icons.Filled.Timer, PulseColors.spo2, tr("Measurement frequency")) {
                         navigate("settings/measurement")
                     })
                 }
@@ -181,7 +184,7 @@ fun SettingsScreen(
         SettingsSection(
             title = tr("AI Coach"),
             rows = listOf(
-                SettingsRowItem(Icons.Filled.AutoAwesome, PulseColors.accent, tr("AI Coach"), coachTrailing) {
+                SettingsRowItem(Icons.Filled.AutoAwesome, PulseColors.sleep, tr("AI Coach"), coachTrailing) {
                     navigate("settings/coach")
                 },
             ),
@@ -205,7 +208,7 @@ fun SettingsScreen(
         SettingsSection(
             title = tr("Me"),
             rows = listOf(
-                SettingsRowItem(Icons.Filled.AccountCircle, PulseColors.accent, tr("User Profile")) {
+                SettingsRowItem(Icons.Filled.AccountCircle, PulseColors.textSecondary, tr("User profile")) {
                     navigate("settings/profile")
                 },
                 SettingsRowItem(Icons.Filled.MonitorHeart, PulseColors.hrv, tr("Physiology")) {
@@ -236,5 +239,6 @@ fun SettingsScreen(
         )
 
         Spacer(Modifier.height(32.dp))
+    }
     }
 }

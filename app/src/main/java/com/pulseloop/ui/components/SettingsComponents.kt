@@ -16,8 +16,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -56,11 +54,10 @@ data class SettingsRowItem(
 fun SettingsSection(title: String, rows: List<SettingsRowItem>) {
     if (rows.isEmpty()) return
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // The design system's one tracked caps label (PulseType.eyebrow), not a hand-rolled one.
         Text(
             title.uppercase(),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp,
+            style = com.pulseloop.ui.theme.PulseType.eyebrow,
             color = PulseColors.textSecondary,
             modifier = Modifier.padding(start = 16.dp),
         )
@@ -100,16 +97,16 @@ fun SettingsRow(item: SettingsRowItem) {
             .heightIn(min = 52.dp)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Box(
             Modifier
-                .size(34.dp)
+                .size(32.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .dither(item.tint, 0.14f),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(item.icon, contentDescription = null, Modifier.size(18.dp), tint = item.tint)
+            Icon(item.icon, contentDescription = null, Modifier.size(20.dp), tint = item.tint)
         }
 
         // The title takes the free width (it used to be unweighted beside a weighted Spacer, so a
@@ -132,11 +129,6 @@ fun SettingsRow(item: SettingsRowItem) {
             )
         }
 
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = PulseColors.textMuted,
-        )
+        Chevron()
     }
 }

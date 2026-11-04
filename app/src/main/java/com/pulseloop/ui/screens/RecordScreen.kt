@@ -7,8 +7,8 @@ import com.pulseloop.ui.components.PulseButton
 import com.pulseloop.ui.theme.PulseColors
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,6 +24,7 @@ import com.pulseloop.service.HeartRateZones
 import com.pulseloop.settings.UnitConverter
 import com.pulseloop.settings.UnitSystem
 import com.pulseloop.ui.components.ActivityMeta
+import com.pulseloop.ui.theme.PulseType
 import kotlinx.coroutines.delay
 
 /**
@@ -82,6 +83,9 @@ fun RecordScreen(
     }
 
     Column(Modifier.fillMaxSize().padding(16.dp)) {
+      // Everything above the buttons scrolls, so landscape (or a large font) can still reach the
+      // stat tiles; Pause / Finish stay pinned at the bottom.
+      Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
         // Activity name + status
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             // Weighted (fill = false) so a long translated name wraps instead of pushing PAUSED off.
@@ -99,7 +103,7 @@ fun RecordScreen(
 
         // Large elapsed + HR
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-            Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(elapsed, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Spacer(Modifier.height(4.dp))
                 val hrText = heartRate?.let { "$it bpm" } ?: "-- bpm"
@@ -120,24 +124,30 @@ fun RecordScreen(
 
         // Stat tiles — GPS tiles only for GPS sessions, matching iOS (`if session.useGps`);
         // iOS has no live calories tile, so the permanent "--" placeholder is dropped.
-        LazyVerticalGrid(columns = GridCells.Fixed(2), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // A plain two-column grid (at most three tiles), not a LazyVerticalGrid: a lazy grid can't
+        // sit inside the scrolling column above.
+        val tiles = buildList {
             if (useGps && metricSet.showsDistance) {
-                item {
-                    val distText = if (units == UnitSystem.METRIC && distanceMeters < 1000) {
-                        "%.0f m".format(distanceMeters)
-                    } else {
-                        "%.2f %s".format(UnitConverter.distance(distanceMeters, units), UnitConverter.distanceUnit(units))
-                    }
-                    StatTile(tr("Distance"), distText)
+                val distText = if (units == UnitSystem.METRIC && distanceMeters < 1000) {
+                    "%.0f m".format(distanceMeters)
+                } else {
+                    "%.2f %s".format(UnitConverter.distance(distanceMeters, units), UnitConverter.distanceUnit(units))
+                }
+                add(tr("Distance") to distText)
+            }
+            if (useGps && (metricSet.showsPace || metricSet.showsSpeed)) add(paceOrSpeedLabel to paceOrSpeedValue)
+            add(tr("SpO₂") to (spO2?.let { "$it%" } ?: "--"))
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            tiles.chunked(2).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { (label, value) -> Box(Modifier.weight(1f)) { StatTile(label, value) } }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
-            if (useGps && (metricSet.showsPace || metricSet.showsSpeed)) {
-                item { StatTile(paceOrSpeedLabel, paceOrSpeedValue) }
-            }
-            item { StatTile(tr("SpO₂"), spO2?.let { "$it%" } ?: "--") }
         }
-
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(16.dp))
+      }
 
         // Action buttons
         Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -166,8 +176,8 @@ fun RecordScreen(
 @Composable
 private fun StatTile(label: String, value: String) {
     Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(14.dp)) {
-            Text(label.uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(16.dp)) {
+            Text(label.uppercase(), style = PulseType.eyebrow, color = PulseColors.textSecondary)
             Spacer(Modifier.height(4.dp))
             Text(value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         }

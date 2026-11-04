@@ -416,7 +416,7 @@ fun PulseLoopApp() {
             backgroundColor = com.pulseloop.ui.theme.PulseColors.background,
             tints = listOf(
                 dev.chrisbanes.haze.HazeTint(com.pulseloop.ui.theme.PulseColors.background.copy(alpha = 0.42f)),
-                dev.chrisbanes.haze.HazeTint(Color.White.copy(alpha = 0.04f)),
+                dev.chrisbanes.haze.HazeTint(com.pulseloop.ui.theme.PulseColors.textPrimary.copy(alpha = 0.04f)),
             ),
             blurRadius = 24.dp,
             noiseFactor = 0.02f,
@@ -433,8 +433,11 @@ fun PulseLoopApp() {
                 // blinking with the screen change.
                 androidx.compose.animation.AnimatedVisibility(
                     visible = showLogFab,
-                    enter = androidx.compose.animation.scaleIn() + androidx.compose.animation.fadeIn(),
-                    exit = androidx.compose.animation.scaleOut() + androidx.compose.animation.fadeOut(),
+                    // The system's durations and ease (theme/Motion.kt), not Compose's default springs.
+                    enter = androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)) +
+                        androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
+                    exit = androidx.compose.animation.scaleOut(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)) +
+                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
                 ) {
                     ExtendedFloatingActionButton(
                         onClick = { LaunchRequests.openLog.value = com.pulseloop.ui.screens.LogStep.MENU },
@@ -590,8 +593,8 @@ fun PulseLoopApp() {
                                     Icon(
                                         if (selected) tab.selectedIcon else tab.unselectedIcon,
                                         contentDescription = tab.label,
-                                        tint = if (selected) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        tint = if (selected) com.pulseloop.ui.theme.PulseColors.accent
+                                        else com.pulseloop.ui.theme.PulseColors.textMuted,
                                     )
                                 }
                             }

@@ -30,6 +30,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import com.pulseloop.ui.theme.PulseType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -96,8 +98,9 @@ fun TodayGlance(
                     .clip(shape)
                     .dither(PulseColors.warning, 0.12f)
                     .border(1.dp, PulseColors.warning, shape)
-                    .clickable(onClick = onAlert)
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                    .heightIn(min = 48.dp)
+                    .clickable(role = Role.Button, onClick = onAlert)
+                    .padding(horizontal = 12.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -120,7 +123,7 @@ fun TodayGlance(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .then(if (onInsight != null) Modifier.clickable(onClick = onInsight) else Modifier)
+                    .then(if (onInsight != null) Modifier.clickable(role = Role.Button, onClick = onInsight) else Modifier)
                     .padding(horizontal = 4.dp),
             )
         } else if (insightPending) {
@@ -139,35 +142,44 @@ fun LastNightCard(
     /** The morning after drinks (docs/drinks-plan.md): what last night's drinks did to the night. */
     drinksLine: String? = null,
     onDrinks: (() -> Unit)? = null,
+    /**
+     * The Sleep tile is on the grid and already shows the duration and score: the card then
+     * carries only what the tile can't, the drinks line (less-is-more, question 2).
+     */
+    drinksOnly: Boolean = false,
 ) {
     Column(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .clickable(onClick = onOpen)
+            .clickable(role = Role.Button, onClick = onOpen)
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(tr("LAST NIGHT"), fontSize = 12.sp, letterSpacing = 1.8.sp, color = PulseColors.sleep)
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(durationText, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            score?.let {
-                Text(trf("score {0}", it), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
+        Text(tr("LAST NIGHT"), style = PulseType.eyebrow, color = PulseColors.textSecondary)
+        if (!drinksOnly || drinksLine == null) {
+            Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(durationText, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                score?.let {
+                    Text(trf("score {0}", it), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(bottom = 4.dp))
+                }
             }
+            window?.let { Text(it, fontSize = 14.sp, color = PulseColors.textMuted) }
         }
-        window?.let { Text(it, fontSize = 14.sp, color = PulseColors.textMuted) }
         drinksLine?.let { line ->
             Text(
                 line,
                 fontSize = 14.sp, color = PulseColors.textPrimary,
                 modifier = Modifier
-                    .padding(top = 6.dp)
+                    .padding(top = 8.dp)
                     .fillMaxWidth()
+                    .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .dither(PulseColors.drinks, 0.10f)
-                    .then(if (onDrinks != null) Modifier.clickable(onClick = onDrinks) else Modifier)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                    .then(if (onDrinks != null) Modifier.clickable(role = Role.Button, onClick = onDrinks) else Modifier)
+                    .wrapContentHeight(Alignment.CenterVertically)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
     }
@@ -184,12 +196,12 @@ internal fun SheetOption(title: String, subtitle: String, icon: ImageVector, onC
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, onClick = onClick)
+            .clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, role = Role.Button, onClick = onClick)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(icon, null, Modifier.size(22.dp), tint = PulseColors.accent)
+        Icon(icon, null, Modifier.size(24.dp), tint = PulseColors.accent)
         Column {
             Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(subtitle, fontSize = 12.sp, color = PulseColors.textSecondary)
@@ -217,19 +229,19 @@ fun CoachBriefSheet(
             Modifier
                 .fillMaxWidth()
                 .verticalScroll(androidx.compose.foundation.rememberScrollState())
-                .padding(horizontal = 20.dp)
+                .padding(horizontal = 16.dp)
                 .padding(bottom = 32.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(tr("TODAY'S BRIEF"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.accent)
+            Text(tr("TODAY'S BRIEF"), style = PulseType.eyebrow, color = PulseColors.textSecondary)
             Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(body, fontSize = 16.sp, lineHeight = 22.sp, color = PulseColors.textSecondary)
             if (chips.isNotEmpty()) {
                 // Wraps rather than squeezing the third chip on a narrow phone or at a large font.
                 FlowRow(
                     Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     chips.take(3).forEach {
                         Text(
@@ -239,7 +251,7 @@ fun CoachBriefSheet(
                                 .clip(RoundedCornerShape(16.dp))
                                 .background(PulseColors.card)
                                 .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(16.dp))
-                                .padding(horizontal = 10.dp, vertical = 5.dp),
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
                 }

@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.pulseloop.data.entity.ActivityGpsPointEntity
 
@@ -56,7 +58,9 @@ fun WorkoutMapView(
                 .fillMaxWidth()
                 .height(height.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(PulseColors.card),
+                .background(PulseColors.card)
+                // TalkBack can't see a drawn route: say what it is.
+                .semantics { contentDescription = trf("Route map: {0} GPS points", points.size) },
         ) {
             Canvas(Modifier.fillMaxSize().padding(8.dp)) {
                 val w = size.width; val h = size.height
@@ -64,12 +68,19 @@ fun WorkoutMapView(
                 val lons = points.map { it.longitude }
                 val minLat = lats.min(); val maxLat = lats.max()
                 val minLon = lons.min(); val maxLon = lons.max()
+                // One scale for both axes, with longitude shrunk by cos(latitude), so the route
+                // keeps its real shape instead of being stretched to fill the box.
+                val lonFactor = kotlin.math.cos(Math.toRadians((minLat + maxLat) / 2)).coerceAtLeast(0.01)
                 val latR = if (maxLat == minLat) 0.001 else maxLat - minLat
-                val lonR = if (maxLon == minLon) 0.001 else maxLon - minLon
+                val lonR = (if (maxLon == minLon) 0.001 else maxLon - minLon) * lonFactor
+                val inset = 16f
+                val scale = minOf((w - 2 * inset) / lonR, (h - 2 * inset) / latR)
+                val offX = (w - lonR * scale) / 2
+                val offY = (h - latR * scale) / 2
 
                 fun toScreen(lat: Double, lon: Double): Offset {
-                    val x = kotlin.math.max(0f, ((lon - minLon) / lonR * (w - 32f) + 16f).toFloat())
-                    val y = kotlin.math.max(0f, (h - ((lat - minLat) / latR * (h - 32f) + 16f)).toFloat())
+                    val x = (offX + (lon - minLon) * lonFactor * scale).toFloat()
+                    val y = (h - offY - (lat - minLat) * scale).toFloat()
                     return androidx.compose.ui.geometry.Offset(x, y)
                 }
 
@@ -88,12 +99,12 @@ fun WorkoutMapView(
                 // Start marker
                 val start = toScreen(points.first().latitude, points.first().longitude)
                 drawCircle(PulseColors.steps, 6f, start)
-                drawCircle(Color.White, 5f, start)
+                drawCircle(PulseColors.textPrimary, 5f, start)
 
-                // End marker (pulsing dot)
+                // End marker. Not mint: the map isn't a tap target.
                 val end = toScreen(points.last().latitude, points.last().longitude)
-                drawCircle(PulseColors.accent, 8f, end)
-                drawCircle(PulseColors.accent, 12f, end, style = Stroke(width = 1.5f))
+                drawCircle(PulseColors.textPrimary, 8f, end)
+                drawCircle(PulseColors.textPrimary, 12f, end, style = Stroke(width = 1.5f))
 
                 // Point count overlay
             }
@@ -105,7 +116,7 @@ fun WorkoutMapView(
                 infoText,
                 modifier = Modifier.align(Alignment.BottomStart).padding(8.dp),
                 style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f),
+                color = PulseColors.textSecondary,
             )
         }
     }

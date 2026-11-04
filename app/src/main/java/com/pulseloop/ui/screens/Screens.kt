@@ -94,6 +94,9 @@ fun VitalsScreen(
     // failure copy tells the user to put the ring on rather than the generic "hold still" (issue #29).
     var measureNotWornHint by remember { mutableStateOf(false) }
     var measureDisconnectedHint by remember { mutableStateOf(false) }
+    // Set when a run ends without a failed leg, so the end of a measurement is said too (the card
+    // updating silently gave TalkBack nothing, and sighted users a value change to spot).
+    var measureSucceeded by remember { mutableStateOf(false) }
     // Two measurement flavours:
     //  • combined (56ff/Jring): one 0x23 packet → BP + SpO₂ + stress + fatigue + blood sugar
     //  • spot (Colmi): sequential live HR + SpO₂ via the real-time command (0x69)
@@ -322,6 +325,7 @@ fun VitalsScreen(
                         measuring = true
                         measuringLabel = label
                         measureFailed = false
+                        measureSucceeded = false
                         measureNotWornHint = false
                         measureDisconnectedHint = false
                         remaining = seconds
@@ -348,6 +352,8 @@ fun VitalsScreen(
                                     measureFailed = true
                                     measureNotWornHint = coordinator.measureNotWorn
                                     measureDisconnectedHint = coordinator.measureDisconnected
+                                } else {
+                                    measureSucceeded = true
                                 }
                                 viewModel?.refreshNow()  // show the new reading immediately
                             }
@@ -476,6 +482,9 @@ fun VitalsScreen(
                         ((total - remaining).toFloat() / total).coerceIn(0f, 1f)
                     },
                     modifier = Modifier.fillMaxWidth(),
+                    // Progress is a state, not a tap target: no mint.
+                    color = PulseColors.textPrimary,
+                    trackColor = PulseColors.elevated,
                 )
                 Text(
                     measureCaption,
@@ -499,6 +508,15 @@ fun VitalsScreen(
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
+            if (measureSucceeded && !measuring) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    tr("Done. The new reading is on its card below."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = PulseColors.textSecondary,
                     modifier = Modifier.padding(top = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
@@ -663,20 +681,11 @@ fun VitalDetailScreen(
 
     val title = metricDisplayName(metric)
 
+    // Read once here so every time on this screen follows the phone's 12/24-hour setting.
+    val is24h = android.text.format.DateFormat.is24HourFormat(context)
+
     Column(Modifier.fillMaxSize()) {
-        // Inline nav bar (iOS .navigationBarTitleDisplayMode(.inline)): back on the leading
-        // edge, title centered.
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
-            }
-            Text(
-                title,
-                modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-        }
+        com.pulseloop.ui.components.PulseTopBar(title = title, onBack = onBack)
 
         if (state.loading) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -697,6 +706,11 @@ fun VitalDetailScreen(
                     PeriodSegmentedControl(selected = state.period, onSelect = { vm.setPeriod(it) })
                 }
                 state.adjustedNote?.let { note -> item { AdjustedCaption(note) } }
+                // Derived stress says so before the chart, not after it (issue #67): the number
+                // is an inference, and the chart is the first thing read.
+                if (metric == "stress" && state.isDerived) {
+                    metricDisclaimer(metric, true)?.let { disclaimer -> item { DisclaimerCard(disclaimer) } }
+                }
 
                 // 2. Chart card: unit label + interactive trend chart (24dp continuous corners).
                 item {
@@ -770,7 +784,7 @@ fun VitalDetailScreen(
                                 // line up with the plotted line (iOS #43 §2/§3).
                                 thresholds = displayThresholds(state.thresholds, metric, units, gUnit),
                                 timestamps = state.timestamps,
-                                tooltipTimeFormatter = { ts -> tooltipTime(ts, state.period) },
+                                tooltipTimeFormatter = { ts -> tooltipTime(ts, state.period, is24h) },
                                 // The whole calendar period, gaps included (issue #102).
                                 timeDomain = state.windowStart to state.windowEnd,
                                 usualRange = state.usualRange,
@@ -897,7 +911,7 @@ fun VitalDetailScreen(
                             color = PulseColors.textSecondary,
                         )
                         Text(
-                            metricExplainer(metric),
+                            metricExplainer(metric, state.isDerived),
                             fontSize = 14.sp,
                             lineHeight = 18.sp,
                             color = PulseColors.textSecondary,
@@ -908,35 +922,40 @@ fun VitalDetailScreen(
                 // 7. Estimated-metric disclaimer (BP + glucose, iOS warning card; plus derived
                 // stress, issue #67 — the card that opened this chart labels its number, and this
                 // chart shows the same number, so it says the same thing here).
-                metricDisclaimer(metric, state.isDerived)?.let { disclaimer ->
-                    item {
-                        val cardShape = RoundedCornerShape(8.dp)
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clip(cardShape)
-                                .dither(ZonePalette.ZoneAmber, 0.10f)
-                                .border(1.dp, ZonePalette.ZoneAmber.copy(alpha = 0.30f), cardShape)
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        ) {
-                            Icon(
-                                Icons.Filled.Warning, null,
-                                tint = ZonePalette.ZoneAmber,
-                                modifier = Modifier.size(18.dp),
-                            )
-                            Text(
-                                disclaimer,
-                                fontSize = 12.sp,
-                                lineHeight = 17.sp,
-                                color = PulseColors.textSecondary,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
+                // Derived stress shows its card above the chart instead (see the top of this list).
+                if (!(metric == "stress" && state.isDerived)) {
+                    metricDisclaimer(metric, state.isDerived)?.let { disclaimer -> item { DisclaimerCard(disclaimer) } }
                 }
             }
         }
+    }
+}
+
+/** The amber "this is an estimate" card (BP, glucose, derived stress). */
+@Composable
+private fun DisclaimerCard(disclaimer: String) {
+    val cardShape = RoundedCornerShape(8.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(cardShape)
+            .dither(ZonePalette.ZoneAmber, 0.10f)
+            .border(1.dp, ZonePalette.ZoneAmber.copy(alpha = 0.30f), cardShape)
+            .padding(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            Icons.Filled.Warning, null,
+            tint = ZonePalette.ZoneAmber,
+            modifier = Modifier.size(20.dp),
+        )
+        Text(
+            disclaimer,
+            fontSize = 12.sp,
+            lineHeight = 17.sp,
+            color = PulseColors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 
@@ -964,6 +983,7 @@ private fun ReadingsCard(
     // PAGE_SIZE is what someone scanning for a bad measurement actually reads.
     var visibleCount by remember(readings.size) { mutableStateOf(READINGS_PAGE_SIZE) }
     val cardShape = RoundedCornerShape(8.dp)
+    val is24h = android.text.format.DateFormat.is24HourFormat(LocalContext.current)
 
     fun readingText(r: VitalDetailViewModel.Reading): String {
         val primary = formatStat(r.value, metric, gUnit)
@@ -1018,7 +1038,7 @@ private fun ReadingsCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
-                        tooltipTime(reading.timestamp, period),
+                        tooltipTime(reading.timestamp, period, is24h),
                         fontSize = 14.sp,
                         color = PulseColors.textSecondary,
                         modifier = Modifier.weight(1f),
@@ -1065,11 +1085,10 @@ private fun ReadingsCard(
             text = {
                 Text(
                     buildString {
-                        append(readingText(reading))
-                        if (unitLabel.isNotEmpty()) append(" $unitLabel")
-                        append(" at ")
-                        append(tooltipTime(reading.timestamp, period))
-                        append(".\n\nThis can't be undone.")
+                        val value = readingText(reading) + if (unitLabel.isNotEmpty()) " $unitLabel" else ""
+                        append(trf("{0} at {1}.", value, tooltipTime(reading.timestamp, period, is24h)))
+                        append("\n\n")
+                        append(tr("This can't be undone."))
                         // Say so plainly rather than letting a user wonder why the reading
                         // didn't come back after a re-sync — that is deliberate.
                         if (reading.fromHistory) {
@@ -1198,7 +1217,11 @@ private fun metricDisplayName(metric: String): String = when (metric) {
 }
 
 /** "WHAT THIS MEANS" copy, verbatim from iOS MetricDetailView `explainerText`. */
-private fun metricExplainer(metric: String): String = when (metric) {
+private fun metricExplainer(metric: String, isDerived: Boolean = false): String =
+    // A derived score is not "based on heart-rate patterns" from the ring: say what it is.
+    if (metric == "stress" && isDerived) tr("A wellness score from 0–100 worked out from your HRV against your own usual range. " +
+        "Lower is calmer. It's an estimate, not a medical stress measure.")
+    else when (metric) {
     "hr" -> tr("Resting heart rate reflects how hard your heart works at rest. A typical adult range is 60–100 bpm; " +
         "fitness, medication, caffeine, and stress all shift it.")
     "spo2" -> tr("Blood oxygen (SpO₂) is the percentage of oxygen your blood carries. 95–100% is normal; " +
@@ -1221,23 +1244,23 @@ private fun metricExplainer(metric: String): String = when (metric) {
 private fun dateLabel(anchor: Long, period: Period): String {
     val zone = java.time.ZoneId.systemDefault()
     val dt = java.time.Instant.ofEpochMilli(anchor).atZone(zone)
+    // The locale's own order and month names (was ISO "2026-11-04" and English "NOV").
+    val fmt = com.pulseloop.ui.components.PhoneFormat
     return when (period) {
-        Period.DAY -> dt.toLocalDate().toString()
-        Period.WEEK -> {
-            val end = dt.plusDays(6)
-            "${dt.toLocalDate()} – ${end.toLocalDate()}"
-        }
-        Period.MONTH -> "${dt.month.name.take(3)} ${dt.year}"
+        Period.DAY -> fmt.date("EEEMMMd", dt)
+        Period.WEEK -> "${fmt.date("MMMd", dt)} – ${fmt.date("MMMd", dt.plusDays(6))}"
+        Period.MONTH -> fmt.date("yMMMM", dt)
     }
 }
 
 /** Precise time label for the chart scrub tooltip, formatted per aggregation period. */
-private fun tooltipTime(ts: Long, period: Period): String {
+private fun tooltipTime(ts: Long, period: Period, is24h: Boolean): String {
     val z = java.time.Instant.ofEpochMilli(ts).atZone(java.time.ZoneId.systemDefault())
+    val fmt = com.pulseloop.ui.components.PhoneFormat
     return when (period) {
-        Period.DAY -> z.format(java.time.format.DateTimeFormatter.ofPattern("h:mm a", java.util.Locale.getDefault()))
-        Period.WEEK -> "${z.dayOfWeek.name.take(3)} ${z.dayOfMonth}"
-        Period.MONTH -> "${z.month.name.take(3)} ${z.dayOfMonth}"
+        Period.DAY -> fmt.clock(is24h, ts)
+        Period.WEEK -> fmt.date("EEEd", z)
+        Period.MONTH -> fmt.date("MMMd", z)
     }
 }
 
@@ -1286,9 +1309,8 @@ private fun MeasurePickerSheet(titles: List<String>, onDismiss: () -> Unit, onPi
         ) {
             Text(tr("Measure"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
             Text(tr("Keep the ring snug and your hand still until it finishes."), fontSize = 14.sp, color = PulseColors.textSecondary)
-            titles.forEachIndexed { i, t ->
-                SheetOption(t, tr("Tap to start"), Icons.Filled.MonitorHeart) { onPick(i) }
-            }
+            // Title only: "Tap to start" under every option said what a row always means.
+            titles.forEachIndexed { i, t -> MeasureOptionRow(t) { onPick(i) } }
         }
     }
 }
@@ -1314,4 +1336,25 @@ private fun VitalsStatusLine() {
         maxLines = 2,
         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
     )
+}
+
+/** One row of the Measure sheet: icon and title, a 48dp+ target. */
+@Composable
+private fun MeasureOptionRow(title: String, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(8.dp)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(shape)
+            .background(PulseColors.card)
+            .border(1.dp, PulseColors.borderSubtle, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(Icons.Filled.MonitorHeart, null, Modifier.size(24.dp), tint = PulseColors.accent)
+        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+    }
 }

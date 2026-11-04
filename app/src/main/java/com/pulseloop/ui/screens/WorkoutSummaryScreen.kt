@@ -30,6 +30,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
@@ -119,17 +120,14 @@ fun WorkoutSummaryScreen(
     // caller) — an over-long pause total must never render a negative hero.
     val durationSec = s.endedAt?.let { maxOf(0, ((it - s.startedAt) / 1000.0 - s.totalPauseSeconds).toInt()) }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(PulseColors.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-    ) {
-        item {
-            Row(Modifier.fillMaxWidth()) {
-                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), tint = PulseColors.textSecondary, onTap = onBack)
-                Spacer(Modifier.weight(1f))
+    val is24h = android.text.format.DateFormat.is24HourFormat(context)
+
+    Column(Modifier.fillMaxSize().background(PulseColors.background)) {
+    // The shared pushed-screen bar (was a hand-rolled row of circles): Back, then the screen's
+    // own actions on the trailing edge.
+    com.pulseloop.ui.components.PulseTopBar(title = tr("Workout"), onBack = onBack) {
                 if (s.useGps && points.any { it.accepted }) {
-                    CircleIconButton(Icons.Filled.Share, "Export route as GPX", tint = PulseColors.textSecondary, onTap = {
+                    IconButton(onClick = {
                         scope.launch {
                             val hr = db.measurementDao().rangeReal(
                                 com.pulseloop.ring.MeasurementKind.HEART_RATE.name, s.startedAt, s.endedAt ?: System.currentTimeMillis(),
@@ -143,24 +141,27 @@ fun WorkoutSummaryScreen(
                                 context.startActivity(android.content.Intent.createChooser(intent, tr("Export route (GPX)")))
                             }
                         }
-                    })
-                    Spacer(Modifier.width(10.dp))
+                    }) { Icon(Icons.Filled.Share, tr("Export route (GPX)"), tint = PulseColors.textSecondary) }
                 }
-                CircleIconButton(Icons.Filled.Edit, tr("Edit workout"), tint = PulseColors.accent, onTap = { editing = true })
-                Spacer(Modifier.width(10.dp))
-                CircleIconButton(Icons.Filled.Delete, tr("Delete workout"), tint = PulseColors.danger, onTap = { confirmDelete = true })
-            }
-        }
+                IconButton(onClick = { editing = true }) { Icon(Icons.Filled.Edit, tr("Edit workout"), tint = PulseColors.textSecondary) }
+                IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, tr("Delete workout"), tint = PulseColors.danger) }
+    }
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
         item {
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Box(
-                    Modifier.size(72.dp).clip(CircleShape).dither(PulseColors.accent, 0.18f),
+                    // Decoration, not a tap target: no mint.
+                    Modifier.size(72.dp).clip(CircleShape).dither(PulseColors.textSecondary, 0.18f),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(ActivityMeta.icon(s.type), null, tint = PulseColors.accent, modifier = Modifier.size(34.dp))
+                    Icon(ActivityMeta.icon(s.type), null, tint = PulseColors.textPrimary, modifier = Modifier.size(32.dp))
                 }
                 Text(ActivityMeta.label(s.type), fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                Text(dateRange(s), fontSize = 14.sp, color = PulseColors.textMuted)
+                Text(dateRange(s, is24h), fontSize = 14.sp, color = PulseColors.textMuted)
             }
         }
         item { SummaryHeroBand(s, durationSec, units) }
@@ -173,6 +174,7 @@ fun WorkoutSummaryScreen(
             }
         }
         item { Spacer(Modifier.height(48.dp)) }
+    }
     }
 
     if (confirmDelete) {
@@ -249,8 +251,8 @@ private fun EditWorkoutSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = PulseColors.background) {
         Column(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 24.dp).padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(tr("Edit workout"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
 
@@ -258,7 +260,7 @@ private fun EditWorkoutSheet(
                 Box {
                     PulseButton(PulseButtonStyle.Outlined, onClick = { typeExpanded = true }) {
                         Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
+                        Spacer(Modifier.width(8.dp))
                         Text(ActivityMeta.label(type))
                     }
                     DropdownMenu(expanded = typeExpanded, onDismissRequest = { typeExpanded = false }) {
@@ -340,7 +342,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
     var pendingDayMillis by remember { mutableLongStateOf(valueMillis) }
 
     PulseButton(PulseButtonStyle.Text, onClick = { showDate = true }) {
-        Text(formatDateTime(valueMillis), color = PulseColors.accent, fontWeight = FontWeight.Medium)
+        Text(formatDateTime(valueMillis, android.text.format.DateFormat.is24HourFormat(LocalContext.current)), color = PulseColors.accent, fontWeight = FontWeight.Medium)
     }
 
     if (showDate) {
@@ -404,8 +406,10 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
     }
 }
 
-internal fun formatDateTime(millis: Long): String =
-    SimpleDateFormat("MMM d, h:mm a", Locale.getDefault()).format(Date(millis))
+/** "Nov 4, 6:05 PM" / "4 de nov., 18:05": the locale's date order and the phone's clock. */
+internal fun formatDateTime(millis: Long, is24h: Boolean): String =
+    com.pulseloop.ui.components.PhoneFormat.date("MMMd", millis) + ", " +
+        com.pulseloop.ui.components.PhoneFormat.clock(is24h, millis)
 
 /** The calendar date of a local-epoch millis value, expressed at UTC midnight (what DatePicker wants). */
 internal fun localMillisToUtcMidnight(localMillis: Long): Long {
@@ -419,28 +423,8 @@ internal fun utcMidnightToLocalDayStart(utcMillis: Long): Long {
     return date.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
 }
 
-@Composable
-internal fun CircleIconButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    contentDescription: String,
-    tint: Color,
-    onTap: () -> Unit,
-) {
-    Box(
-        Modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, CircleShape)
-            .clickable(role = Role.Button, onClick = onTap),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(icon, contentDescription, tint = tint, modifier = Modifier.size(20.dp))
-    }
-}
-
 /** "Today · 6:05 – 6:43 PM" (WorkoutMetricsSections.dateRange). */
-private fun dateRange(s: ActivitySessionEntity): String {
+private fun dateRange(s: ActivitySessionEntity, is24h: Boolean): String {
     val cal = Calendar.getInstance()
     val startCal = Calendar.getInstance().apply { timeInMillis = s.startedAt }
     val sameDay = cal.get(Calendar.YEAR) == startCal.get(Calendar.YEAR) &&
@@ -451,12 +435,11 @@ private fun dateRange(s: ActivitySessionEntity): String {
     val day = when {
         sameDay -> tr("Today")
         yesterday -> tr("Yesterday")
-        else -> SimpleDateFormat("MMM d", Locale.getDefault()).format(Date(s.startedAt))
+        else -> com.pulseloop.ui.components.PhoneFormat.date("MMMd", s.startedAt)
     }
     val ended = s.endedAt ?: return day
-    val start = SimpleDateFormat("h:mm", Locale.getDefault()).format(Date(s.startedAt))
-    val end = SimpleDateFormat("h:mm a", Locale.getDefault()).format(Date(ended))
-    return "$day · $start – $end"
+    val fmt = com.pulseloop.ui.components.PhoneFormat
+    return "$day · ${fmt.clock(is24h, s.startedAt)} – ${fmt.clock(is24h, ended)}"
 }
 
 /** Three large headline stats: GPS → distance/duration/pace-or-speed (calories for sport);
@@ -465,16 +448,17 @@ private fun dateRange(s: ActivitySessionEntity): String {
 @Composable
 private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: UnitSystem) {
     data class M(val value: String, val label: String, val tint: Color)
+    val corrections = rememberAccuracyCorrections()
     val dur = durationSec?.let { ActivityMeta.duration(it) } ?: "—"
     val metrics = if (s.useGps) {
         val metricSet = ActivityMeta.metricSet(s.type)
         val dist = s.distanceMeters?.let { "%.2f".format(UnitConverter.distance(it, units)) }
         val third = when {
             metricSet.showsPace ->
-                M(ActivityMeta.pace(s.distanceMeters, durationSec, units) ?: "—", "PACE ${ActivityMeta.paceUnit(units)}", PulseColors.accent)
+                M(ActivityMeta.pace(s.distanceMeters, durationSec, units) ?: "—", tr("Pace").uppercase() + " " + ActivityMeta.paceUnit(units), PulseColors.textPrimary)
             metricSet.showsSpeed -> {
                 val parts = ActivityMeta.speedParts(s.distanceMeters, durationSec, units)
-                M(parts?.first ?: "—", parts?.second ?: "SPEED", PulseColors.accent)
+                M(parts?.first ?: "—", parts?.second ?: tr("Speed").uppercase(), PulseColors.textPrimary)
             }
             else -> M(s.calories?.let { "${it.toInt()}" } ?: "—", tr("CALORIES"), PulseColors.calories)
         }
@@ -486,7 +470,9 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
     } else {
         listOf(
             M(dur, tr("DURATION"), PulseColors.textPrimary),
-            M(durationSec?.let { "${it / 60}" } ?: "—", tr("ACTIVE MIN"), PulseColors.success),
+            // Was "ACTIVE MIN", which is the duration again in minutes. Average heart rate is the
+            // figure an indoor workout has instead of distance; the grid below then skips it.
+            M(s.avgHeartRate?.let { "${corrections.heartRate(it).toInt()}" } ?: "—", tr("Avg HR").uppercase(), PulseColors.heartRate),
             M(s.calories?.let { "${it.toInt()}" } ?: "—", tr("CALORIES"), PulseColors.calories),
         )
     }
@@ -497,13 +483,13 @@ private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: 
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(vertical = 18.dp, horizontal = 8.dp),
+            .padding(vertical = 16.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         metrics.forEachIndexed { i, m ->
-            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(m.value, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, color = m.tint, maxLines = 1)
-                Text(m.label, fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
+                Text(m.label, style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textMuted, maxLines = 2, textAlign = TextAlign.Center)
             }
             if (i != metrics.lastIndex) {
                 Box(Modifier.width(1.dp).height(40.dp).background(PulseColors.borderSubtle))
@@ -520,7 +506,8 @@ private fun StatsGrid(s: ActivitySessionEntity) {
     fun hr(v: Double?) = v?.let { "${corrections.heartRate(it).toInt()}" } ?: "—"
     val stats = buildList {
         if (s.useGps) add(tr("Calories") to (s.calories?.let { "${it.toInt()}" } ?: "—"))
-        add(tr("Avg HR") to hr(s.avgHeartRate))
+        // Indoor workouts already lead with it in the band above.
+        if (s.useGps) add(tr("Avg HR") to hr(s.avgHeartRate))
         add(tr("Max HR") to hr(s.maxHeartRate))
         add(tr("Min HR") to hr(s.minHeartRate))
         add("SpO₂" to (s.latestSpO2?.let { "${corrections.spo2(it).toInt()}%" } ?: "—"))
@@ -540,12 +527,12 @@ private fun StatsGrid(s: ActivitySessionEntity) {
                             .clip(shape)
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, shape)
-                            .padding(vertical = 14.dp),
+                            .padding(vertical = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(value, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                        Text(label.uppercase(), fontSize = 12.sp, fontWeight = FontWeight.Medium, letterSpacing = 0.8.sp, color = PulseColors.textMuted)
+                        Text(label.uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textMuted)
                     }
                 }
                 repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
@@ -574,9 +561,9 @@ private fun SplitsCard(points: List<ActivityGpsPointEntity>, units: UnitSystem, 
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr("SPLITS"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
+        Text(tr("SPLITS"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
         splits.forEachIndexed { index, seconds ->
             val isFastest = seconds == fastest
             val frac = if (slowest > fastest) (seconds - fastest) / (slowest - fastest) else 0.0
@@ -594,13 +581,14 @@ private fun SplitsCard(points: List<ActivityGpsPointEntity>, units: UnitSystem, 
                             .fillMaxWidth((0.25f + 0.75f * (1f - frac.toFloat())).coerceIn(0.05f, 1f))
                             .fillMaxHeight()
                             .clip(CircleShape)
-                            .background(if (isFastest) PulseColors.accent else PulseColors.distance),
+                            // Fastest is "good", not "tap here": success, not mint.
+                            .background(if (isFastest) PulseColors.success else PulseColors.distance),
                     )
                 }
                 Text(
                     paceLabel(seconds, paceUnit),
                     fontSize = 12.sp, fontWeight = FontWeight.Medium,
-                    color = if (isFastest) PulseColors.accent else PulseColors.textPrimary,
+                    color = if (isFastest) PulseColors.success else PulseColors.textPrimary,
                     modifier = Modifier.width(72.dp),
                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
                 )
@@ -630,7 +618,7 @@ private fun MissingWorkout(onBack: () -> Unit) {
         Icon(Icons.AutoMirrored.Filled.DirectionsRun, null, tint = PulseColors.textMuted, modifier = Modifier.size(48.dp))
         Spacer(Modifier.height(12.dp))
         Text(tr("Workout not found"), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(8.dp))
         Text(
             tr("This workout is no longer in local storage. It may have been deleted or replaced."),
             fontSize = 14.sp, color = PulseColors.textMuted, textAlign = TextAlign.Center,

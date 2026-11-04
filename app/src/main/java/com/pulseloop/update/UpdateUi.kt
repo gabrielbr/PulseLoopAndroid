@@ -141,7 +141,8 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
     Column(modifier) {
         if (!UpdateChecker.isSupported()) {
             Text(
-                trf("Self-update works in the release build only ({0} / {1}).", BuildConfig.VERSION_NAME, BuildConfig.APPLICATION_ID),
+                // The package id is a developer detail; the version is enough to tell builds apart.
+                trf("Updates install in the release build only. This is version {0}.", BuildConfig.VERSION_NAME),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -155,8 +156,11 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
                 scope.launch {
                     when (val result = UpdateChecker.check(context, force = true)) {
                         is UpdateCheckResult.UpdateAvailable -> update = result.info
-                        is UpdateCheckResult.Failed ->
-                            status = trf("Couldn't check for updates ({0}). Try again.", result.reason)
+                        is UpdateCheckResult.Failed -> {
+                            // The reason names the engine (HTTP codes, parse errors): logcat, not the screen.
+                            android.util.Log.w("UpdateUi", "Update check failed: ${result.reason}")
+                            status = tr("Couldn't check for updates. Check your connection and try again.")
+                        }
                         else -> status = trf("You're on the latest version ({0}).", BuildConfig.VERSION_NAME)
                     }
                     checking = false

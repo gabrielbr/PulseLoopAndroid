@@ -116,9 +116,9 @@ private fun CostNote() {
             .clip(RoundedCornerShape(4.dp))
             .dither(PulseColors.textMuted, 0.10f)
             .padding(12.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(Icons.Filled.Info, null, tint = PulseColors.textMuted, modifier = Modifier.size(14.dp))
+        Icon(Icons.Filled.Info, null, tint = PulseColors.textMuted, modifier = Modifier.size(16.dp))
         Text(
             tr("Cost estimates aren't available for on-device or custom models."),
             fontSize = 12.sp, color = PulseColors.textMuted,
@@ -137,7 +137,7 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
             .padding(16.dp),
     ) {
         Row(
-            Modifier.fillMaxWidth().clickable { expanded = !expanded },
+            Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = !expanded },
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -148,7 +148,7 @@ private fun BreakdownCard(accounted: List<CoachMessageEntity>) {
             Text(if (expanded) tr("Hide") else tr("Show"), fontSize = 12.sp, color = PulseColors.textSecondary)
         }
         if (expanded) {
-            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 accounted.forEach { MessageBreakdownRow(it) }
             }
         }
@@ -191,4 +191,4 @@ private fun Divider() {
     Box(Modifier.fillMaxWidth().height(1.dp).background(PulseColors.borderSubtle))
 }
 
-private fun formatTokens(value: Int): String = NumberFormat.getNumberInstance(Locale.US).format(value)
+private fun formatTokens(value: Int): String = NumberFormat.getNumberInstance(Locale.getDefault()).format(value)

@@ -64,21 +64,14 @@ fun CycleScreen(onBack: () -> Unit) {
     var pastStart by remember { mutableStateOf<LocalDate?>(null) }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(
-                tr("Cycle"), fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
-            )
-        }
+        com.pulseloop.ui.components.PulseTopBar(title = tr("Cycle"), onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Column(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (!loaded) {
                     // Holds roughly the card's height until the dates are read.
@@ -111,18 +104,19 @@ fun CycleScreen(onBack: () -> Unit) {
             if (!loaded) {
                 Spacer(Modifier.height(40.dp))
             } else if (open != null) {
-                PulseButton(onClick = { scope.launch { db.periodDao().upsert(open.copy(endDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
+                // Tonal: the one filled accent is the Actions button.
+                PulseButton(PulseButtonStyle.Tonal, onClick = { scope.launch { db.periodDao().upsert(open.copy(endDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Period ended today"))
                 }
             } else {
-                PulseButton(onClick = { scope.launch { db.periodDao().upsert(PeriodEntity(startDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
+                PulseButton(PulseButtonStyle.Tonal, onClick = { scope.launch { db.periodDao().upsert(PeriodEntity(startDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Period started today"))
                 }
             }
             PulseButton(PulseButtonStyle.Outlined, onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
 
             if (periods.isNotEmpty()) {
-                Text(tr("HISTORY"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                Text(tr("HISTORY"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 val starts = periods.map { it.startDay }.sorted()
                 periods.forEach { p ->
                     val next = starts.firstOrNull { it > p.startDay }
@@ -140,7 +134,7 @@ fun CycleScreen(onBack: () -> Unit) {
                         }
                         // Asks first: one tap used to delete a logged period with no way back.
                         IconButton(onClick = { pendingDelete = p.id }) {
-                            Icon(Icons.Filled.Delete, tr("Delete"), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Delete, trf("Delete {0}", LocalDate.ofEpochDay(p.startDay).format(fmt)), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
                         }
                     }
                 }

@@ -46,7 +46,7 @@ fun CoachToolTraceDisclosure(messageId: String, viewModel: CoachViewModel?) {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             modifier = Modifier.heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { expanded = !expanded },
         ) {
-            Icon(Icons.Filled.Build, null, tint = PulseColors.textMuted, modifier = Modifier.size(11.dp))
+            Icon(Icons.Filled.Build, null, tint = PulseColors.textMuted, modifier = Modifier.size(12.dp))
             Text(
                 collapsedLabel(calls),
                 fontSize = 12.sp, color = PulseColors.textMuted,
@@ -54,14 +54,14 @@ fun CoachToolTraceDisclosure(messageId: String, viewModel: CoachViewModel?) {
             )
             Icon(
                 if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
-                null, tint = PulseColors.textMuted, modifier = Modifier.size(14.dp),
+                null, tint = PulseColors.textMuted, modifier = Modifier.size(16.dp),
             )
         }
 
         AnimatedVisibility(
             visible = expanded,
-            enter = expandVertically(tween(180)),
-            exit = shrinkVertically(tween(180)),
+            enter = expandVertically(tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
+            exit = shrinkVertically(tween(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
         ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp),

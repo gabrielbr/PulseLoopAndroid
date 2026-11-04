@@ -191,8 +191,9 @@ fun OnboardingScreen(
         AnimatedContent(
             targetState = step,
             transitionSpec = {
-                (fadeIn(tween(300)) + slideInHorizontally(tween(300)) { it / 4 })
-                    .togetherWith(fadeOut(tween(200)))
+                val enter = tween<Float>(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)
+                (fadeIn(enter) + slideInHorizontally(tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)) { it / 4 })
+                    .togetherWith(fadeOut(tween(com.pulseloop.ui.theme.Motion.STANDARD_MS)))
             },
             label = "onboardingStep",
             modifier = Modifier.weight(1f),
@@ -235,7 +236,14 @@ fun OnboardingScreen(
                     coordinator = coordinator,
                     next = { push(OnboardingStep.BASELINE) },
                 )
-                OnboardingStep.BASELINE -> BaselineStep(finish = ::finish)
+                OnboardingStep.BASELINE -> BaselineStep(
+                    source = when {
+                        useHealthConnect -> BaselineSource.HEALTH_CONNECT
+                        bleClient.hasLastKnownRing -> BaselineSource.RING
+                        else -> BaselineSource.NONE
+                    },
+                    finish = ::finish,
+                )
             }
         }
     }
@@ -253,11 +261,11 @@ private fun OnboardingTopBar(
 ) {
     val total = OnboardingStep.entries.size
     Column(
-        Modifier.padding(horizontal = 18.dp).padding(bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        Modifier.padding(horizontal = 16.dp).padding(bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(width = 60.dp, height = 44.dp), contentAlignment = Alignment.CenterStart) {
+            Box(Modifier.widthIn(min = 64.dp).heightIn(min = 48.dp), contentAlignment = Alignment.CenterStart) {
                 if (canGoBack) {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -278,8 +286,8 @@ private fun OnboardingTopBar(
                 modifier = Modifier.weight(1f),
             )
             // widthIn, not a fixed 60dp: a longer translated "Skip" grows the slot instead of
-            // wrapping inside it and clipping at 44dp tall.
-            Box(Modifier.widthIn(min = 60.dp).height(44.dp), contentAlignment = Alignment.CenterEnd) {
+            // wrapping inside it. 48dp tall: the design system's minimum target.
+            Box(Modifier.widthIn(min = 64.dp).heightIn(min = 48.dp), contentAlignment = Alignment.CenterEnd) {
                 if (showsSkip) {
                     Text(
                         tr("Skip"),
@@ -288,14 +296,16 @@ private fun OnboardingTopBar(
                         color = PulseColors.textSecondary,
                         maxLines = 1,
                         modifier = Modifier
+                            .heightIn(min = 48.dp)
                             .clip(RoundedCornerShape(4.dp))
-                            .clickable(onClick = onSkip)
-                            .padding(horizontal = 10.dp, vertical = 12.dp),
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onSkip)
+                            .wrapContentHeight()
+                            .padding(horizontal = 12.dp),
                     )
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OnboardingStep.entries.forEach { item ->
                 Box(
                     Modifier
@@ -329,7 +339,7 @@ private fun WelcomeStep(
     val features = listOf(
         WelcomeFeature(Icons.Filled.Paid, tr("No subscription"), tr("Own your ring data"), PulseColors.success),
         WelcomeFeature(Icons.Filled.Lock, tr("Privacy first"), tr("Data stays on device"), PulseColors.info),
-        WelcomeFeature(Icons.Filled.AutoAwesome, tr("AI health coach"), tr("Learns your baseline"), PulseColors.accent),
+        WelcomeFeature(Icons.Filled.AutoAwesome, tr("AI health coach"), tr("Learns your baseline"), PulseColors.hrv),
         WelcomeFeature(Icons.Filled.MonitorHeart, tr("See your vitals"), tr("HR, SpO₂, HRV & stress"), PulseColors.heartRate),
         WelcomeFeature(Icons.Filled.Bedtime, tr("Sleep tracking"), tr("Stages and trends"), PulseColors.sleep),
         WelcomeFeature(Icons.Filled.DirectionsRun, tr("Activity recording"), tr("Live workout tracking"), PulseColors.steps),
@@ -337,7 +347,7 @@ private fun WelcomeStep(
 
     StepScaffold(
         footer = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (permissionDenied) {
                     Text(
                         tr("PulseLoop needs Bluetooth permission to find and connect to your ring. " +
@@ -386,18 +396,18 @@ private fun WelcomeStep(
                             .clip(RoundedCornerShape(8.dp))
                             .background(PulseColors.card)
                             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                            .padding(horizontal = 13.dp, vertical = 10.dp),
+                            .padding(horizontal = 12.dp, vertical = 12.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
                     ) {
                         Box(
                             Modifier
-                                .size(38.dp)
+                                .size(40.dp)
                                 .clip(RoundedCornerShape(4.dp))
                                 .dither(feature.tint, 0.14f),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(feature.icon, contentDescription = null, Modifier.size(18.dp), tint = feature.tint)
+                            Icon(feature.icon, contentDescription = null, Modifier.size(20.dp), tint = feature.tint)
                         }
                         Text(
                             feature.title,
@@ -480,6 +490,7 @@ private fun GoalsStep(
     next: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val units = remember { apiKeyStore.resolvedUnitSystem }
     var draft by remember { mutableStateOf<GoalDraft?>(null) }
 
@@ -495,10 +506,11 @@ private fun GoalsStep(
                 val current = draft ?: return@PrimaryButton
                 scope.launch {
                     val existing = db.userGoalDao().get()
-                    db.userGoalDao().upsert(
-                        current.applyTo(existing ?: UserGoalEntity(), units, includeWeeklyWorkouts = false),
-                    )
-                    coordinator?.setGoal(current.steps.toInt())
+                    val saved = current.applyTo(existing ?: UserGoalEntity(), units, includeWeeklyWorkouts = false)
+                    db.userGoalDao().upsert(saved)
+                    // The one path every manual goal save takes: stops the field following the
+                    // coach, sends the step goal to the ring and republishes the widget.
+                    com.pulseloop.service.GoalSync.afterManualSave(context, saved, coordinator)
                     next()
                 }
             }
@@ -528,14 +540,26 @@ private data class BaselineMilestone(
     val tint: Color,
 )
 
+/** Where the user's data will come from, so the finale doesn't promise a ring they skipped. */
+private enum class BaselineSource { RING, HEALTH_CONNECT, NONE }
+
 @Composable
-private fun BaselineStep(finish: () -> Unit) {
-    // iOS #75 finale copy: Today / First sync / Days 3–7.
+private fun BaselineStep(source: BaselineSource, finish: () -> Unit) {
+    // The baseline needs 14 nights (My Health's "Learning you"), not the 3–7 days iOS #75 said.
     val milestones = listOf(
         BaselineMilestone(null, tr("Today"), tr("Activity and live vitals, right away"), PulseColors.info),
         BaselineMilestone(Icons.Filled.Bedtime, tr("First sync"), tr("Sleep stages and nightly trends"), PulseColors.sleep),
-        BaselineMilestone(Icons.AutoMirrored.Filled.TrendingUp, tr("Days 3–7"), tr("Your personalized baseline unlocks"), PulseColors.success),
+        BaselineMilestone(Icons.AutoMirrored.Filled.TrendingUp, tr("After 14 nights"), tr("Your personalized baseline unlocks"), PulseColors.success),
     )
+    val subtitle = when (source) {
+        BaselineSource.RING -> tr("Wear your ring today. Your baseline builds from here.")
+        BaselineSource.HEALTH_CONNECT -> tr("Your device's data comes in through Health Connect. Your baseline builds from here.")
+        BaselineSource.NONE -> tr("Pair a ring from Settings whenever you're ready. Your baseline builds once it's on.")
+    }
+    val howItWorks = when (source) {
+        BaselineSource.HEALTH_CONNECT -> tr("Keep wearing your device and let its app sync. Trends become personal after 14 nights of sleep.")
+        else -> tr("Wear your ring during the day and sync after sleep. Trends become personal after 14 nights of sleep.")
+    }
 
     // Celebratory finale (iOS #75): the medallion scales in on appear. reduceMotion-equivalent
     // isn't gated here — the spring settles quickly and Compose respects the system animator scale.
@@ -553,10 +577,9 @@ private fun BaselineStep(finish: () -> Unit) {
         },
     ) {
         SuccessMedallion(scale = medallionScale)
-        SetupCompleteEyebrow()
         StepHeader(
             title = tr("You're all set"),
-            subtitle = tr("Wear your ring today. Your baseline builds from here."),
+            subtitle = subtitle,
         )
 
         Column(
@@ -564,10 +587,10 @@ private fun BaselineStep(finish: () -> Unit) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card)
-                .ditherFade(PulseColors.accent, 0.14f, 0f)
+                .ditherFade(PulseColors.success, 0.14f, 0f)
                 .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
@@ -577,7 +600,7 @@ private fun BaselineStep(finish: () -> Unit) {
                     color = PulseColors.textPrimary,
                 )
                 Text(
-                    tr("Wear your ring during the day and sync after sleep. Trends become more personal after a few days."),
+                    howItWorks,
                     fontSize = 14.sp,
                     color = PulseColors.textSecondary,
                     lineHeight = 20.sp,
@@ -588,13 +611,13 @@ private fun BaselineStep(finish: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     Box(
                         Modifier
-                            .size(34.dp)
+                            .size(32.dp)
                             .clip(RoundedCornerShape(4.dp))
                             .dither(milestone.tint, 0.14f),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (milestone.icon != null) {
-                            Icon(milestone.icon, contentDescription = null, Modifier.size(15.dp), tint = milestone.tint)
+                            Icon(milestone.icon, contentDescription = null, Modifier.size(16.dp), tint = milestone.tint)
                         } else {
                             Text("1", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = milestone.tint)
                         }
@@ -618,46 +641,30 @@ private fun BaselineStep(finish: () -> Unit) {
     }
 }
 
-/** Animated success medallion: two concentric accent rings around a check-seal badge, scaled in
+/** Animated success medallion: two concentric success rings around a check-seal badge, scaled in
  *  on appear (iOS #75 finale "Tier 1" medallion). */
 @Composable
 private fun SuccessMedallion(scale: Float) {
     Box(contentAlignment = Alignment.Center, modifier = Modifier.size(140.dp).scale(scale)) {
         Box(
             Modifier.size(140.dp).clip(CircleShape)
-                .border(2.dp, PulseColors.accent.copy(alpha = 0.12f), CircleShape),
+                .border(2.dp, PulseColors.success.copy(alpha = 0.12f), CircleShape),
         )
         Box(
             Modifier.size(104.dp).clip(CircleShape)
-                .border(2.dp, PulseColors.accent.copy(alpha = 0.25f), CircleShape),
+                .border(2.dp, PulseColors.success.copy(alpha = 0.25f), CircleShape),
         )
         Box(
-            Modifier.size(96.dp).clip(CircleShape).dither(PulseColors.accent, 0.14f),
+            Modifier.size(96.dp).clip(CircleShape).dither(PulseColors.success, 0.14f),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 Icons.Filled.Verified,
                 contentDescription = tr("Setup complete"),
-                tint = PulseColors.accent,
+                tint = PulseColors.success,
                 modifier = Modifier.size(56.dp),
             )
         }
-    }
-}
-
-/** "Setup complete" accent pill above the finale title (iOS #75 eyebrow). */
-@Composable
-private fun SetupCompleteEyebrow() {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier
-            .clip(CircleShape)
-            .dither(PulseColors.accent, 0.16f)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
-    ) {
-        Icon(Icons.Filled.Verified, contentDescription = null, Modifier.size(14.dp), tint = PulseColors.accent)
-        Text(tr("Setup complete"), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent)
     }
 }
 
@@ -693,7 +700,7 @@ private fun StepScaffold(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
             content = content,
         )
         androidx.compose.material3.HorizontalDivider(thickness = 1.dp, color = PulseColors.borderSubtle)

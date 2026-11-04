@@ -187,8 +187,9 @@ fun ZoneLineChart(
                 Modifier.fillMaxWidth().padding(end = 34.dp, top = 2.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
+                val is24h = android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current)
                 listOf(minTs, (minTs + maxTs) / 2, maxTs).forEach {
-                    Text(timeLabel(it, span), fontSize = 12.sp, color = PulseColors.textMuted)
+                    Text(timeLabel(it, span, is24h), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
         }
@@ -196,12 +197,11 @@ fun ZoneLineChart(
 }
 
 /** Hour-of-day labels for day-scale spans, day/month for anything longer (iOS VitalsAxisFormat). */
-private fun timeLabel(ts: Long, spanMs: Long): String {
-    val t = Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault())
-    if (spanMs > 48 * 3600_000L) {
-        return "${t.dayOfMonth} ${t.month.name.take(3).lowercase().replaceFirstChar { it.uppercase() }}"
-    }
-    val h = t.hour % 12
-    val displayH = if (h == 0) 12 else h
-    return "$displayH ${if (t.hour < 12) "AM" else "PM"}"
+private fun timeLabel(ts: Long, spanMs: Long, is24h: Boolean): String {
+    // The locale's month names and order, and the phone's 12/24-hour clock (was English "4 Nov"
+    // and "2 PM" for everyone).
+    if (spanMs > 48 * 3600_000L) return PhoneFormat.date("MMMd", ts)
+    val locale = java.util.Locale.getDefault()
+    val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, if (is24h) "Hm" else "ha")
+    return java.text.SimpleDateFormat(pattern, locale).format(java.util.Date(ts))
 }

@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -117,11 +121,11 @@ private fun ConfigScreen(
             // targetSdk 35 draws edge to edge: keep the title off the status bar and the button off the nav bar.
             .safeDrawingPadding()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp),
+            .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(
-            if (isDual) tr("Choose Metrics") else tr("Choose Metric"),
+            if (isDual) tr("Choose metrics") else tr("Choose metric"),
             fontSize = 24.sp,
             fontWeight = FontWeight.SemiBold,
             color = PulseColors.textPrimary,
@@ -135,30 +139,29 @@ private fun ConfigScreen(
         Spacer(Modifier.height(8.dp))
 
         if (isDual) {
-            MetricPicker(tr("LEFT METRIC"), left) { left = it }
+            MetricPicker(tr("Left metric"), left) { left = it }
             Spacer(Modifier.height(12.dp))
-            MetricPicker(tr("RIGHT METRIC"), right) { right = it }
+            MetricPicker(tr("Right metric"), right) { right = it }
         } else {
             MetricPicker(null, single) { single = it }
         }
 
         Spacer(Modifier.height(16.dp))
         PulseButton(onClick = { onDone(single, left, right) }, modifier = Modifier.fillMaxWidth()) {
-            Text(tr("Add Widget"))
+            Text(tr("Add widget"))
         }
     }
 }
 
 @Composable
 private fun MetricPicker(title: String?, selected: WidgetMetric, onSelect: (WidgetMetric) -> Unit) {
-    Column {
+    // One radio group per picker: the row is the target (48dp) and carries the radio role.
+    Column(Modifier.selectableGroup()) {
         if (title != null) {
             Text(
-                title,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 1.sp,
-                color = PulseColors.textMuted,
+                title.uppercase(),
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                color = PulseColors.textSecondary,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
         }
@@ -166,13 +169,13 @@ private fun MetricPicker(title: String?, selected: WidgetMetric, onSelect: (Widg
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .clickable { onSelect(metric) }
-                    .padding(vertical = 2.dp),
+                    .heightIn(min = 48.dp)
+                    .selectable(selected = metric == selected, role = Role.RadioButton) { onSelect(metric) },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RadioButton(selected = metric == selected, onClick = { onSelect(metric) })
-                Spacer(Modifier.width(4.dp))
-                Text(metric.displayName, fontSize = 16.sp, color = PulseColors.textPrimary)
+                RadioButton(selected = metric == selected, onClick = null)
+                Spacer(Modifier.width(8.dp))
+                Text(tr(metric.displayName), fontSize = 16.sp, color = PulseColors.textPrimary)
             }
         }
     }

@@ -121,7 +121,7 @@ fun TodayTile(
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .then(if (onTap != null) Modifier.clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, onClick = onTap) else Modifier)
+            .then(if (onTap != null) Modifier.clickable(interactionSource = press, indication = androidx.compose.foundation.LocalIndication.current, role = Role.Button, onClick = onTap) else Modifier)
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -379,7 +379,7 @@ fun SleepTile(
                     tint = PulseColors.sleep.copy(alpha = 0.7f),
                     modifier = Modifier.size(24.dp),
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(
                     tr("No sleep recorded"),
                     fontSize = 14.sp,
@@ -391,80 +391,11 @@ fun SleepTile(
     }
 }
 
-// ─────────────────── Hero insight + coach message cards ───────────────────
+// ─────────────────── Coach message card, and the brief's chips ───────────────────
 
 enum class ChipTone { NEUTRAL, UP, DOWN, WARN }
 
 data class ToneChip(val label: String, val tone: ChipTone)
-
-private fun ChipTone.foreground() = when (this) {
-    ChipTone.NEUTRAL -> PulseColors.textSecondary
-    ChipTone.UP -> PulseColors.success
-    ChipTone.DOWN -> PulseColors.danger
-    ChipTone.WARN -> PulseColors.warning
-}
-
-/** The chip's wash: its tone colour dithered, never a translucent shade. */
-private fun ChipTone.ditherColor() = when (this) {
-    ChipTone.NEUTRAL -> PulseColors.textPrimary
-    ChipTone.UP -> PulseColors.success
-    ChipTone.DOWN -> PulseColors.danger
-    ChipTone.WARN -> PulseColors.warning
-}
-
-private fun ChipTone.border() = when (this) {
-    ChipTone.NEUTRAL -> PulseColors.borderSubtle
-    else -> foreground().copy(alpha = 0.30f)
-}
-
-/** Full-width gradient hero card at the top of Today (HeroInsightCardView in Swift). */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun HeroInsightCard(title: String, summary: String, chips: List<ToneChip>, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(8.dp)
-    Column(
-        modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .ditherFade(PulseColors.accent, 0.18f, 0.06f)
-            .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(20.dp),
-    ) {
-        Text(title, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-        Text(
-            summary,
-            fontSize = 16.sp,
-            lineHeight = 21.sp,
-            color = PulseColors.textSecondary,
-            modifier = Modifier.padding(top = 8.dp),
-        )
-        if (chips.isNotEmpty()) {
-            // Wraps: three translated chips ("Linha de base pendente", …) overflow one line.
-            FlowRow(
-                Modifier.padding(top = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                chips.forEach { chip ->
-                    Text(
-                        chip.label,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = chip.tone.foreground(),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .clip(CircleShape)
-                            .dither(chip.tone.ditherColor(), if (chip.tone == ChipTone.NEUTRAL) 0.10f else 0.15f)
-                            .border(1.dp, chip.tone.border(), CircleShape)
-                            .padding(horizontal = 12.dp, vertical = 4.dp),
-                    )
-                }
-            }
-        }
-    }
-}
 
 /** Full-width coach card (COACH eyebrow, headline, body, chips) — CoachMessageCard in Swift. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -484,7 +415,7 @@ fun CoachMessageCard(
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
             .then(if (onTap != null) Modifier.clickable(role = Role.Button, onClick = onTap) else Modifier)
-            .padding(20.dp),
+            .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(

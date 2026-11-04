@@ -77,7 +77,10 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 
-private val weekLabels = listOf("M", "T", "W", "T", "F", "S", "S")
+/** Monday..Sunday initials in the phone's language ("M T W…" / "S T Q…"), not always English. */
+private fun weekLabels(): List<String> = java.time.DayOfWeek.values().map {
+    it.getDisplayName(java.time.format.TextStyle.NARROW, java.util.Locale.getDefault())
+}
 
 /**
  * Activity dashboard — ported from ActivityView.swift: the daily summary card (colored stats +
@@ -150,7 +153,7 @@ fun ActivityScreen(
     val todayIdx = ((Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1) + 6) % 7
     // recentDays is newest-first; index 0..6 = Monday..Sunday of this week's steps.
     val stepsByWeekday = weeklySteps(state, todayIdx)
-    val days = weekLabels.mapIndexed { i, label ->
+    val days = weekLabels().mapIndexed { i, label ->
         WeeklyDay(label, completed = (stepsByWeekday[i] ?: 0) >= state.stepGoal, isToday = i == todayIdx)
     }
 
@@ -205,7 +208,7 @@ fun ActivityScreen(
                         .clip(RoundedCornerShape(8.dp))
                         .background(PulseColors.card)
                         .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                        .padding(vertical = 20.dp),
+                        .padding(vertical = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -372,9 +375,9 @@ private fun dayHeaderLabel(dayMillis: Long): String {
     return when {
         daysAgo <= 0 -> tr("Today")
         daysAgo == 1 -> tr("Yesterday")
-        daysAgo < 7 -> date.format(DateTimeFormatter.ofPattern("EEEE"))
-        date.year == java.time.Year.now().value -> date.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
-        else -> date.format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        daysAgo < 7 -> com.pulseloop.ui.components.PhoneFormat.date("EEEE", date)
+        date.year == java.time.Year.now().value -> com.pulseloop.ui.components.PhoneFormat.date("EEEMMMd", date)
+        else -> com.pulseloop.ui.components.PhoneFormat.date("yMMMd", date)
     }
 }
 
@@ -480,7 +483,7 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                Text(SleepFormat.clockTime(session.startedAt), fontSize = 12.sp, color = PulseColors.textMuted)
+                Text(com.pulseloop.ui.components.PhoneFormat.clock(LocalContext.current, session.startedAt), fontSize = 12.sp, color = PulseColors.textMuted)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 if (durationSec != null) {
@@ -599,7 +602,8 @@ private fun WeeklyPillCalendar(days: List<WeeklyDay>) {
                             1.dp,
                             when {
                                 day.completed -> PulseColors.steps.copy(alpha = 0.5f)
-                                day.isToday -> PulseColors.accent.copy(alpha = 0.6f)
+                                // Today is a state, not a tap target: no mint.
+                                day.isToday -> PulseColors.textSecondary
                                 else -> PulseColors.borderSubtle
                             },
                             CircleShape,
@@ -687,7 +691,6 @@ private fun WorkoutHistoryDialog(
     onSelect: (String) -> Unit,
 ) {
     val zone = remember { ZoneId.systemDefault() }
-    val headerFmt = remember { DateTimeFormatter.ofPattern("EEEE, MMM d") }
     val today = remember { LocalDate.now(zone) }
     val groups = remember(sessions) {
         sessions.groupBy { Instant.ofEpochMilli(it.startedAt).atZone(zone).toLocalDate() }
@@ -698,7 +701,7 @@ private fun WorkoutHistoryDialog(
         today.minusDays(1) -> tr("YESTERDAY")
         // Locale.ROOT: iOS's uppercased() is locale-insensitive; a Turkish locale would turn
         // month-name i's into dotted İ otherwise.
-        else -> headerFmt.format(day).uppercase(java.util.Locale.ROOT)
+        else -> com.pulseloop.ui.components.PhoneFormat.date("EEEEMMMMd", day).uppercase(java.util.Locale.ROOT)
     }
 
     AlertDialog(
@@ -803,9 +806,8 @@ private fun ActivityRecordsCard(
         if (expanded && buckets == null) buckets = viewModel?.bucketsForDay(dayStart) ?: emptyList()
     }
 
-    fun timeOf(startEpoch: Long): String =
-        DateTimeFormatter.ofPattern("h:mm a")
-            .format(Instant.ofEpochMilli(startEpoch).atZone(ZoneId.systemDefault()))
+    val context = LocalContext.current
+    fun timeOf(startEpoch: Long): String = com.pulseloop.ui.components.PhoneFormat.clock(context, startEpoch)
 
     Column(
         Modifier.fillMaxWidth().clip(shape).background(PulseColors.card).border(1.dp, PulseColors.borderSubtle, shape),
@@ -868,7 +870,7 @@ private fun ActivityRecordsCard(
                             )
                             if (bucket.distanceMeters > 0) {
                                 Text(
-                                    tr(" · %.2f %s").format(UnitConverter.distance(bucket.distanceMeters, units), UnitConverter.distanceUnit(units)),
+                                    " · " + "%.2f %s".format(UnitConverter.distance(bucket.distanceMeters, units), UnitConverter.distanceUnit(units)),
                                     fontSize = 12.sp, color = PulseColors.textMuted,
                                 )
                             }
@@ -938,8 +940,6 @@ private fun DetectedActivityCard() {
         value = runCatching { com.pulseloop.service.ActivityDetection.load(context, db) }.getOrDefault(emptyList())
     }
     if (proposals.isEmpty()) return
-    val fmt = remember { java.time.format.DateTimeFormatter.ofPattern("EEE HH:mm") }
-    val zone = remember { java.time.ZoneId.systemDefault() }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)).padding(16.dp),
@@ -952,11 +952,11 @@ private fun DetectedActivityCard() {
             val isNap = p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    (if (isNap) tr("Possible nap") else com.pulseloop.notifications.ActivityDetectionNotifier.phrase(type)) + " · ${p.minutes} min",
+                    (if (isNap) tr("Possible nap") else com.pulseloop.notifications.ActivityDetectionNotifier.phrase(type)) + " · " + trf("{0} min", p.minutes),
                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 )
                 Text(
-                    "${java.time.Instant.ofEpochMilli(p.startAt).atZone(zone).format(fmt)} · ${p.detail}",
+                    "${com.pulseloop.ui.components.PhoneFormat.date("EEE", p.startAt)} ${com.pulseloop.ui.components.PhoneFormat.clock(context, p.startAt)} · ${p.detail}",
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
                 if (!isNap) {

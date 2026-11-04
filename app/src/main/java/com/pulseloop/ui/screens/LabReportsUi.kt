@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -42,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -125,7 +127,7 @@ private fun openPdf(context: Context, report: LabReportEntity) {
 private fun LabNotice(text: String) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp)).border(1.dp, PulseColors.warning, RoundedCornerShape(4.dp))
-            .dither(PulseColors.warning, 0.12f).padding(horizontal = 12.dp, vertical = 10.dp),
+            .dither(PulseColors.warning, 0.12f).padding(horizontal = 12.dp, vertical = 12.dp),
     ) {
         Text(text, fontSize = 14.sp, color = PulseColors.textPrimary)
     }
@@ -141,8 +143,8 @@ private fun LabCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun Overline(text: String, color: Color = PulseColors.textMuted) {
-    Text(text.uppercase(), fontSize = 12.sp, letterSpacing = 1.6.sp, color = color)
+private fun Overline(text: String, color: Color = PulseColors.textSecondary) {
+    Text(text.uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = color)
 }
 
 @Composable
@@ -181,14 +183,16 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
         draft?.let { LabReports.pdfFile(context, it.pdfFile).delete() }
         draft = null
     }
+    // A review can hold minutes of checking: Back or Discard asks before throwing it away.
+    var confirmDiscard by remember { mutableStateOf(false) }
 
     val current = draft
     if (current != null) {
-        BackHandler { discard() }
+        BackHandler { confirmDiscard = true }
         LabReviewScreen(
             draft = current,
             onChange = { draft = it },
-            onDiscard = ::discard,
+            onDiscard = { confirmDiscard = true },
             onSave = {
                 scope.launch {
                     LabReports.save(db, current)
@@ -197,6 +201,17 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                 }
             },
         )
+        if (confirmDiscard) {
+            AlertDialog(
+                onDismissRequest = { confirmDiscard = false },
+                title = { Text(tr("Discard this report?")) },
+                text = { Text(tr("The values read from it and your changes are lost. You'd need to add the PDF again.")) },
+                confirmButton = {
+                    PulseButton(PulseButtonStyle.Text, onClick = { confirmDiscard = false; discard() }) { Text(tr("Discard"), color = PulseColors.danger) }
+                },
+                dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmDiscard = false }) { Text(tr("Keep editing")) } },
+            )
+        }
         return
     }
 
@@ -219,23 +234,26 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                         .joinToString(" · "), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
-            PulseButton(
+            // Tonal: the one filled accent is the Actions button.
+            PulseButton(PulseButtonStyle.Tonal,
                 onClick = { picker.launch(arrayOf("application/pdf")) },
                 enabled = !reading,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PulseColors.accent, contentColor = PulseColors.onAccent),
+                modifier = Modifier.fillMaxWidth(),
             ) {
                 Icon(Icons.Filled.Add, null)
                 Spacer(Modifier.width(8.dp))
                 Text(tr("Add a lab report (PDF)"))
             }
             if (reading) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
                     CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = PulseColors.accent)
                     Text(tr("The coach is reading the report. This can take a minute."), fontSize = 14.sp, color = PulseColors.textSecondary)
                 }
             }
-            readError?.let { Text(it, fontSize = 14.sp, color = PulseColors.danger) }
+            readError?.let { Text(it, fontSize = 14.sp, color = PulseColors.danger, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite }) }
         }
 
         if (latest != null) {
@@ -257,7 +275,7 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                     Text(tr("Ask the coach for a plan"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     Text(tr("From these results, with goals you approve"), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
-                Text("›", fontSize = 20.sp, color = PulseColors.textMuted)
+                com.pulseloop.ui.components.Chevron()
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -285,9 +303,13 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                     if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(PulseColors.borderSubtle))
                     val count = results.orEmpty().count { it.reportId == r.id }
                     Row(
-                        Modifier.fillMaxWidth().clickable { openPdf(context, r) }.padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
+                        Modifier.fillMaxWidth().clickable(role = Role.Button, onClickLabel = tr("Open PDF")) { openPdf(context, r) }
+                            .padding(start = 16.dp, top = 8.dp, bottom = 8.dp, end = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
+                        // The PDF glyph says what a tap opens (was a "Tap a report…" line under the list).
+                        Icon(Icons.Filled.PictureAsPdf, null, tint = PulseColors.textSecondary)
                         Column(Modifier.weight(1f)) {
                             Text(listOfNotNull(dayLabel(r.collectedDay), r.lab).joinToString(" · "), fontSize = 14.sp,
                                 fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
@@ -302,7 +324,6 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                     }
                 }
             }
-            Text(tr("Tap a report to open its PDF."), fontSize = 12.sp, color = PulseColors.textMuted)
         }
 
         Text(tr("Values come from your reports as you checked them. PulseLoop doesn't diagnose; the ranges are the lab's own."),
@@ -331,7 +352,7 @@ private fun MarkerRow(m: LabReports.Marker, onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f)) {
             Text(m.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -352,7 +373,7 @@ private fun MarkerRow(m: LabReports.Marker, onClick: () -> Unit) {
             }
         }
         Text(flagLabel(l.flag), fontSize = 12.sp, fontWeight = FontWeight.Bold, color = flagColor(l.flag))
-        Text("›", fontSize = 20.sp, color = PulseColors.textMuted)
+        com.pulseloop.ui.components.Chevron()
     }
 }
 
@@ -375,7 +396,7 @@ fun LabMarkerScreen(markerKey: String, onBack: () -> Unit, onAskCoach: (markerNa
             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(LabReports.valueLabel(l.valueNum, l.valueText), fontSize = 40.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Text(listOfNotNull(l.unit, dayLabel(l.day)).joinToString(" · "), fontSize = 14.sp, color = PulseColors.textMuted,
-                    modifier = Modifier.padding(bottom = 6.dp))
+                    modifier = Modifier.padding(bottom = 8.dp))
             }
             val ref = LabReports.referenceLabel(l.refLow, l.refHigh, l.refText, l.unit)
             Text(
@@ -514,7 +535,7 @@ private fun LabReviewScreen(
             draft.results.forEachIndexed { i, r ->
                 if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(PulseColors.borderSubtle))
                 Row(
-                    Modifier.fillMaxWidth().clickable(role = Role.Button) { editing = i }.padding(vertical = 8.dp),
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = Role.Button, onClickLabel = tr("Edit marker")) { editing = i }.padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -527,17 +548,17 @@ private fun LabReviewScreen(
                     Text(LabReports.valueLabel(r.valueNum, r.valueText) + (r.unit.takeIf { it.isNotBlank() }?.let { " $it" } ?: ""),
                         fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     if (LabReports.isOutside(r.flag)) Text(flagLabel(r.flag), fontSize = 12.sp, color = PulseColors.warning)
+                    // The chevron says a row opens (was a mint "Tap a row…" hint under the list).
+                    com.pulseloop.ui.components.Chevron()
                 }
             }
-            Text(tr("Tap a row to fix or remove it."), fontSize = 12.sp, color = PulseColors.accent)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             PulseButton(PulseButtonStyle.Outlined, onClick = onDiscard, modifier = Modifier.weight(1f)) { Text(tr("Discard")) }
-            PulseButton(
+            PulseButton(PulseButtonStyle.Tonal,
                 onClick = onSave,
                 enabled = draft.results.isNotEmpty(),
-                modifier = Modifier.weight(1f).heightIn(min = 48.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PulseColors.accent, contentColor = PulseColors.onAccent),
+                modifier = Modifier.weight(1f),
             ) { Text(trf("Save {0} markers", draft.results.size)) }
         }
     }
