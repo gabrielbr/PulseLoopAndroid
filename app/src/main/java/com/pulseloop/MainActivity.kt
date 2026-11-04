@@ -157,6 +157,10 @@ class MainActivity : ComponentActivity() {
         } else if (intent?.action == ACTION_OPEN_ACCURACY_CHECK) {
             com.pulseloop.ui.LaunchRequests.route.value = "settings/accuracy-check"
             intent.action = null
+        } else if (intent?.action == ACTION_OPEN_ACTIVITY) {
+            // A detected-workout notification: the suggestion waits on the Activity tab.
+            com.pulseloop.ui.LaunchRequests.route.value = "activity"
+            intent.action = null
         }
     }
 
@@ -180,6 +184,8 @@ class MainActivity : ComponentActivity() {
         const val ACTION_LOG_MEAL = "com.pulseloop.action.LOG_MEAL"
         /** The accuracy-report-ready notification. */
         const val ACTION_OPEN_ACCURACY_CHECK = "com.pulseloop.action.OPEN_ACCURACY_CHECK"
+        /** A detected-workout notification (ActivityDetectionNotifier). */
+        const val ACTION_OPEN_ACTIVITY = "com.pulseloop.action.OPEN_ACTIVITY"
     }
 
     private fun handleStravaRedirect(intent: Intent) {

@@ -947,48 +947,37 @@ private fun DetectedActivityCard() {
     ) {
         Text(tr("DETECTED · REVIEW"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
         proposals.forEach { p ->
-            val defaultType = when (p.kind) {
-                com.pulseloop.service.ActivityDetection.Proposal.Kind.WALK -> "walk"
-                com.pulseloop.service.ActivityDetection.Proposal.Kind.RUN -> "run"
-                else -> "cycle"
-            }
-            var type by remember(p.key) { mutableStateOf(defaultType) }
+            // The classifier's best guess is selected; the rest follow in order of likelihood.
+            var type by remember(p.key) { mutableStateOf(p.bestType) }
             val isNap = p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.NAP
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    (if (isNap) tr("Possible nap") else trf("Possible {0}", ActivityMeta.label(type).lowercase())) + " · ${p.minutes} min",
+                    (if (isNap) tr("Possible nap") else com.pulseloop.notifications.ActivityDetectionNotifier.phrase(type)) + " · ${p.minutes} min",
                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
                 )
                 Text(
                     "${java.time.Instant.ofEpochMilli(p.startAt).atZone(zone).format(fmt)} · ${p.detail}",
                     fontSize = 12.sp, color = PulseColors.textMuted,
                 )
-                if (p.kind == com.pulseloop.service.ActivityDetection.Proposal.Kind.CARDIO) {
+                if (!isNap) {
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        listOf("cycle", "gym", "sport", "dance", "other").forEach { t ->
-                            val on = t == type
-                            Text(
-                                ActivityMeta.label(t), fontSize = 12.sp,
-                                color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-                                modifier = Modifier.clip(RoundedCornerShape(16.dp))
-                                    .background(if (on) PulseColors.accent else PulseColors.cardSoft)
-                                    .clickable(role = Role.Button) { type = t }.padding(horizontal = 12.dp, vertical = 8.dp),
+                        p.guesses.ifEmpty { listOf(p.bestType) }.take(6).forEach { t ->
+                            androidx.compose.material3.FilterChip(
+                                selected = t == type,
+                                onClick = { type = t },
+                                label = { Text(ActivityMeta.label(t), fontSize = 14.sp) },
                             )
                         }
                     }
                 }
                 // FlowRow: the two translated actions wrap rather than overflow the card.
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Text(
-                        if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent,
-                        modifier = Modifier.clickable(role = Role.Button) {
-                            scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
-                        }.padding(vertical = 4.dp),
-                    )
-                    Text(
-                        tr("Not this"), fontSize = 14.sp, color = PulseColors.textMuted,
-                        modifier = Modifier.clickable(role = Role.Button) { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }.padding(vertical = 4.dp),
-                    )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilledTonalButton(onClick = {
+                        scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
+                    }) { Text(if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
+                    TextButton(onClick = { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }) {
+                        Text(tr("Not this"), fontSize = 14.sp, color = PulseColors.textSecondary)
+                    }
                 }
             }
         }

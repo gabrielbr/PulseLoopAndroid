@@ -957,10 +957,43 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
         }
     }
 
+    // Detected workouts (docs/activity-recognition-plan.md): after a sync, what the ring saw.
+    var detectedEnabled by remember { mutableStateOf(com.pulseloop.service.ActivityDetection.notifyEnabled(context)) }
+    val detectedPermLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        detectedEnabled = granted
+        com.pulseloop.service.ActivityDetection.setNotifyEnabled(context, granted)
+    }
+    fun setDetected(on: Boolean) {
+        if (on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            detectedPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            detectedEnabled = on
+            com.pulseloop.service.ActivityDetection.setNotifyEnabled(context, on)
+        }
+    }
+
     SettingsSubScreen(title = tr("Notifications"), onBack = onBack) {
         // Guidance and battery alerts work without the coach, so they lead; the coach's own
         // check-ins come last and explain themselves when the coach is off.
         DailyGuidanceSettingsCard()
+
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(16.dp)) {
+                Text(tr("Detected workouts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    tr("After a sync, what your ring saw you doing (a walk, a ride, strength training), to add with a tap. Nothing is logged without you."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth()
+                    .switchRow(checked = detectedEnabled, onCheckedChange = { setDetected(it) }), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text(tr("Detected workout notifications"), Modifier.weight(1f))
+                    Switch(checked = detectedEnabled, onCheckedChange = null)
+                }
+            }
+        }
 
         // Ring battery alerts — independent of the coach toggle (iOS #61a puts this in its own
         // NotificationsSettingsView section): a local notification at <20% / <10%, once per day.

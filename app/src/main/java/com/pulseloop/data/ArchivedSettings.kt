@@ -37,8 +37,9 @@ object ArchivedSettings {
         "mindful_sessions" to emptySet(),
         // The phone-step calibration and its daily counts. The raw step counter is this phone's.
         "step_calibration" to setOf("lastCounter"),
-        // Detected workouts and naps already answered, so they aren't asked again.
-        "activity_detection" to emptySet(),
+        // Detected workouts: what was answered (not asked again), the types the user taught the
+        // classifier ("learned"), and the notification switch. Which ones notified stays here.
+        "activity_detection" to setOf("notified"),
         // Rest Mode, while it lasts.
         "rest_mode" to emptySet(),
         // Whether the coach may use the lab results.

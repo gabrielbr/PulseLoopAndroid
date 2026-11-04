@@ -17,8 +17,18 @@ import java.time.ZoneId
  */
 object ActivityDetection {
 
-    data class Proposal(val kind: Kind, val startAt: Long, val endAt: Long, val detail: String) {
+    data class Proposal(
+        val kind: Kind, val startAt: Long, val endAt: Long, val detail: String,
+        /** Every activity type, most likely first (ActivityClassifier); empty for a nap. */
+        val guesses: List<String> = emptyList(),
+        /** What the guess was made from, kept with the user's answer so later guesses learn. */
+        val features: ActivityClassifier.Features? = null,
+    ) {
         enum class Kind { WALK, RUN, CARDIO, NAP }
+        /** The selected type: the classifier's first choice, else the kind's own. */
+        val bestType: String get() = guesses.firstOrNull() ?: when (kind) {
+            Kind.WALK -> "walk"; Kind.RUN -> "run"; else -> "other"
+        }
         val key: String get() = "${kind.name}:$startAt:$endAt"
         val minutes: Int get() = ((endAt - startAt) / 60_000L).toInt()
     }
@@ -107,13 +117,73 @@ object ActivityDetection {
         return out
     }
 
-    /** Proposals that overlap anything already recorded, or that the user already answered, are dropped. */
-    fun open(proposals: List<Proposal>, recorded: List<LongRange>, answered: Set<String>): List<Proposal> =
-        proposals.filter { p -> p.key !in answered && recorded.none { it.first < p.endAt && p.startAt < it.last } }
+    /**
+     * Proposals that overlap anything already recorded, or a stretch the user already answered, are
+     * dropped. Answers match by overlap, not by key: a re-detection (more data, a changed guess)
+     * can shift a stretch's bounds or kind, and "Not this" must still hold for it.
+     */
+    fun open(proposals: List<Proposal>, recorded: List<LongRange>, answered: Set<String>): List<Proposal> {
+        val answeredRanges = answered.mapNotNull { k ->
+            val parts = k.split(':')
+            val a = parts.getOrNull(1)?.toLongOrNull(); val b = parts.getOrNull(2)?.toLongOrNull()
+            if (a != null && b != null) a..b else null
+        }
+        fun overlaps(r: LongRange, p: Proposal) = r.first < p.endAt && p.startAt < r.last
+        return proposals.filter { p ->
+            p.key !in answered && recorded.none { overlaps(it, p) } && answeredRanges.none { overlaps(it, p) }
+        }
+    }
+
+    /**
+     * Walk/run stretches and raised-heart stretches that touch (within 10 minutes) are one
+     * activity: a run is not also offered as "cardio", and a ride with a walk to the bike is one.
+     */
+    fun mergeActive(ranges: List<LongRange>): List<LongRange> {
+        val out = mutableListOf<LongRange>()
+        for (r in ranges.sortedBy { it.first }) {
+            val last = out.lastOrNull()
+            if (last != null && r.first <= last.last + 10 * 60_000L) out[out.size - 1] = last.first..maxOf(last.last, r.last)
+            else out += r
+        }
+        return out
+    }
 
     // ── Persistence of answers ───────────────────────────────────────────────────────────────
 
     private fun prefs(c: Context) = c.applicationContext.getSharedPreferences("activity_detection", Context.MODE_PRIVATE)
+
+    // ── Learning: confirmed stretches with the type the user chose (rides in the backup) ──
+    fun learned(c: Context): List<ActivityClassifier.Example> =
+        runCatching { decodeLearned(prefs(c).getString("learned", null)) }.getOrDefault(emptyList())
+
+    fun learn(c: Context, f: ActivityClassifier.Features, type: String) {
+        val all = (learned(c) + ActivityClassifier.Example(f, type)).takeLast(200)
+        prefs(c).edit().putString("learned", encodeLearned(all)).apply()
+    }
+
+    /** One line per example: type and the six features, comma-separated. */
+    internal fun encodeLearned(all: List<ActivityClassifier.Example>): String = all.joinToString("\n") { e ->
+        val f = e.features
+        listOf(e.type, f.minutes, f.cadence, f.stepBurst, f.hrMeanPct, f.hrPeakPct, f.hrCv).joinToString(",")
+    }
+
+    internal fun decodeLearned(raw: String?): List<ActivityClassifier.Example> =
+        raw.orEmpty().lines().mapNotNull { line ->
+            val p = line.split(',')
+            val n = p.drop(1).mapNotNull { it.toDoubleOrNull() }
+            if (p.size != 7 || n.size != 6) null
+            else ActivityClassifier.Example(ActivityClassifier.Features(n[0], n[1], n[2], n[3], n[4], n[5]), p[0])
+        }
+
+    /** Whether a new suggestion may notify (Settings → Notifications → Detected workouts). */
+    fun notifyEnabled(c: Context): Boolean = prefs(c).getBoolean("notify", true)
+    fun setNotifyEnabled(c: Context, on: Boolean) { prefs(c).edit().putBoolean("notify", on).apply() }
+    fun notified(c: Context): Set<String> = prefs(c).getStringSet("notified", emptySet()).orEmpty()
+    fun markNotified(c: Context, keys: Collection<String>) {
+        val keep = (notified(c) + keys).sortedBy { it.substringAfter(':').substringBefore(':').toLongOrNull() ?: 0 }.takeLast(300).toSet()
+        prefs(c).edit().putStringSet("notified", keep).apply()
+    }
+
     fun answered(c: Context): Set<String> = prefs(c).getStringSet("answered", emptySet()).orEmpty()
     fun answer(c: Context, p: Proposal) {
         val keep = (answered(c) + p.key).sortedBy { it.substringAfter(':').substringBefore(':').toLongOrNull() ?: 0 }.takeLast(300).toSet()
@@ -140,18 +210,26 @@ object ActivityDetection {
         val buckets = (0 until days).flatMap { db.activityBucketDao().byDay(start(today.minusDays(it))) }
             .map { it.startEpoch to it.steps }
         val recentHr = hr29.filter { it.first >= from && nights.none { n -> it.first in n } }
-        val proposals = buildList {
-            addAll(stepSessions(buckets.filter { it.first >= from }))
-            if (quiet != null) {
-                addAll(heartSessions(recentHr, quiet, CardioLoad.hrMax(profile?.age)))
-                addAll(naps(recentHr, buckets, quiet, zone))
-            }
+        val recentSteps = buckets.filter { it.first >= from }
+        val hrMax = CardioLoad.hrMax(profile?.age)
+        val active = stepSessions(recentSteps) + (if (quiet != null) heartSessions(recentHr, quiet, hrMax) else emptyList())
+        val learned = learned(c)
+        // One window per activity, then a guess at what it was (ActivityClassifier).
+        val activities = mergeActive(active.map { it.startAt..it.endAt }).map { w ->
+            val f = ActivityClassifier.features(w.first, w.last, recentSteps, recentHr, quiet ?: 60.0, hrMax)
+            val guesses = ActivityClassifier.rank(f, learned)
+            val kind = when (guesses.first()) { "walk" -> Proposal.Kind.WALK; "run" -> Proposal.Kind.RUN; else -> Proposal.Kind.CARDIO }
+            val stepsIn = recentSteps.filter { it.first in w.first until w.last }.sumOf { it.second }
+            val peak = recentHr.filter { it.first in w.first..w.last }.maxOfOrNull { it.second }
+            val detail = listOfNotNull(
+                stepsIn.takeIf { it >= 300 }?.let { tr("%,d steps").format(it) },
+                peak?.let { trf("Heart rate up to {0} bpm", it.toInt()) },
+            ).joinToString(" · ")
+            Proposal(kind, w.first, w.last, detail, guesses, f)
         }
+        val proposals = activities + (if (quiet != null) naps(recentHr, buckets, quiet, zone) else emptyList())
         val sessions = db.activitySessionDao().recent(50).map { it.startedAt..(it.endedAt ?: it.startedAt) }
-        // A cardio stretch inside a walk or run is the same activity.
-        val stepRanges = proposals.filter { it.kind == Proposal.Kind.WALK || it.kind == Proposal.Kind.RUN }.map { it.startAt..it.endAt }
-        val deduped = proposals.filter { p -> p.kind != Proposal.Kind.CARDIO || stepRanges.none { it.first < p.endAt && p.startAt < it.last } }
-        return open(deduped, sessions + nights, answered(c)).sortedByDescending { it.startAt }
+        return open(proposals, sessions + nights, answered(c)).sortedByDescending { it.startAt }
     }
 }
 
@@ -164,6 +242,8 @@ suspend fun ActivityDetection.accept(c: Context, db: PulseLoopDatabase, p: Activ
         db.journalDao().upsert(com.pulseloop.data.entity.JournalEntryEntity(com.pulseloop.data.entity.JournalEntryEntity.idFor(day, tag), day, tag))
     } else {
         ManualActivityService.create(db, type, p.startAt, p.minutes.toDouble(), notes = tr("Detected by PulseLoop and confirmed"))
+        // The answer teaches the next guess for a stretch like this one.
+        p.features?.let { learn(c, it, type) }
     }
     answer(c, p)
 }
