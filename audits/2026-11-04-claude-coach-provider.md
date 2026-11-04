@@ -89,3 +89,5 @@ No other screen changed, and taps on common actions did not go up.
 ## Verdict
 
 Merge. There are no P0 or P1 findings.
+
+**Status (v2.13.1):** the carried items are closed or assigned in `2026-11-04-v2.13.1-closeout.md`.

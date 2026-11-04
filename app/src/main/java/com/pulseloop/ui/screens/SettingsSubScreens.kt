@@ -3467,7 +3467,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                     // Thirteen switches folded behind one row: most people set this once.
                     var typesOpen by remember { mutableStateOf(false) }
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { typesOpen = !typesOpen },
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { typesOpen = !typesOpen },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(tr("Data Types"), style = PulseType.title, modifier = Modifier.weight(1f))

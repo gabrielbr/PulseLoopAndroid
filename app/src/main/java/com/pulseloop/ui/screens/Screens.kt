@@ -1058,7 +1058,7 @@ private fun ReadingsCard(
                             Icons.Filled.DeleteOutline,
                             contentDescription = tr("Delete this reading"),
                             tint = PulseColors.textMuted,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }

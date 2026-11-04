@@ -244,7 +244,7 @@ fun CoachHeader(
             }
         }
         RoundIconTarget(visualSize = 36.dp, onClick = onNewChat) {
-            Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
+            Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(20.dp))
         }
     }
 }
@@ -486,7 +486,7 @@ private fun Composer(
                 // input. Bordered circle + "+" glyph mirrors the header's affordance exactly so the
                 // control reads the same in both orientations.
                 RoundIconTarget(visualSize = 40.dp, onClick = onNewChat) {
-                    Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(20.dp))
                 }
             }
             if (imageInputEnabled) {

@@ -1400,8 +1400,8 @@ serving, AI-estimate source); changing a number marks it `userEdited`, as a barc
   source file. The tracked caps label over a card or section is `PulseType.eyebrow` (12sp,
   1sp tracking, `textSecondary`) everywhere — don't hand-roll another letter-spacing.
 - **Mint is the brand and the thing to tap, nothing else.** `success` (good, in range,
-  connected) is its own green, REM is cyan, connecting is amber. The readiness ring keeps the
-  brand colour on purpose: it is the headline score.
+  connected) is its own green, REM is cyan, connecting is amber. The readiness and activity
+  score rings are coloured by their band (the score's own meaning), not by the brand colour.
 - **One card radius: 8dp.** Tiles and vital cards used to be 20/30dp.
 - **Every button is a `PulseButton`** (`ui/components/PulseButton.kt`, v2.11.57): one composable
   with a style (Filled, Tonal, Outlined, Text) that holds the design system's button rules — 52dp

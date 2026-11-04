@@ -134,7 +134,7 @@ fun CycleScreen(onBack: () -> Unit) {
                         }
                         // Asks first: one tap used to delete a logged period with no way back.
                         IconButton(onClick = { pendingDelete = p.id }) {
-                            Icon(Icons.Filled.Delete, trf("Delete {0}", LocalDate.ofEpochDay(p.startDay).format(fmt)), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Filled.Delete, trf("Delete {0}", LocalDate.ofEpochDay(p.startDay).format(fmt)), tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
                         }
                     }
                 }

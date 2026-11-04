@@ -1083,7 +1083,7 @@ private fun SleepRecordsCard(
                             Icons.Filled.Edit,
                             contentDescription = tr("Edit this record's times"),
                             tint = PulseColors.textMuted,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                     // The escape hatch (issue #78): the ring opened a record on a still wrist —
@@ -1094,7 +1094,7 @@ private fun SleepRecordsCard(
                             Icons.Filled.DeleteOutline,
                             contentDescription = tr("Delete this record"),
                             tint = PulseColors.textMuted,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }

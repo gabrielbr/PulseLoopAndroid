@@ -107,7 +107,7 @@ fun RecordScreen(
             Column(Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(elapsed, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Spacer(Modifier.height(4.dp))
-                val hrText = heartRate?.let { "$it bpm" } ?: "-- bpm"
+                val hrText = com.pulseloop.ui.i18n.trf("{0} bpm", heartRate?.toString() ?: "--")
                 val zoneColor = when (hrZone) {
                     HeartRateZones.Zone.REST, HeartRateZones.Zone.FAT_BURN -> PulseColors.zoneMint
                     HeartRateZones.Zone.CARDIO -> PulseColors.zoneAmber

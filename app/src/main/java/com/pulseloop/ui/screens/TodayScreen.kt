@@ -634,7 +634,7 @@ private fun deriveHero(state: TodayViewModel.TodayState, sleep: SleepViewModel.S
         else -> tr("Steady build")
     }
 
-    val hrStr = state.heartRate?.let { "$it bpm" } ?: "—"
+    val hrStr = state.heartRate?.let { com.pulseloop.ui.i18n.trf("{0} bpm", it) } ?: "—"
     val night = sleep.lastNight
     val summary = if (night == null) {
         tr("You're at %,d steps. Sync after waking to add recovery context.").format(steps)
@@ -760,7 +760,7 @@ private fun DetectedActivityLine(onOpen: () -> Unit) {
     ) {
         Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(PulseColors.steps))
         Text(
-            com.pulseloop.notifications.ActivityDetectionNotifier.phrase(p.bestType) + " · $time · ${p.minutes} min",
+            com.pulseloop.notifications.ActivityDetectionNotifier.phrase(p.bestType) + " · $time · " + com.pulseloop.ui.i18n.trf("{0} min", p.minutes),
             fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )

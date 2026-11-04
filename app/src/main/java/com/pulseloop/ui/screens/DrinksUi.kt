@@ -352,7 +352,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
             note = tr("We suggest a quarter less to start"),
         )
         Stepper(tr("Dry days a week"), "$dry", { dry = (dry - 1).coerceAtLeast(0) }, { dry = (dry + 1).coerceAtMost(7) })
-        Row(Modifier.fillMaxWidth().clickable { showSize = !showSize }, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { showSize = !showSize }, verticalAlignment = Alignment.CenterVertically) {
             Text(trf("Standard drink: {0} g of alcohol", grams.roundToInt()), fontSize = 14.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
             Icon(if (showSize) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = PulseColors.textMuted)
         }
@@ -640,7 +640,7 @@ private fun RecentDrinkRow(e: DrinkEntryEntity, gramsPerStd: Double, fmt: DateTi
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, trf("Delete {0}", DrinkType.of(e.type).label), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp)) }
+        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, trf("Delete {0}", DrinkType.of(e.type).label), tint = PulseColors.textMuted, modifier = Modifier.size(20.dp)) }
     }
 }
 
@@ -695,7 +695,7 @@ private fun InsightCard(s: DrinksRepository.Snapshot) {
         if (learning) {
             Bar(d.dryNights.toFloat() / DrinkInsights.MIN_NIGHTS, PulseColors.sleep)
         } else {
-            Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { open = !open }, verticalAlignment = Alignment.CenterVertically) {
                 Text(if (open) tr("Less") else tr("Details"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, modifier = Modifier.weight(1f))
                 Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = PulseColors.accent)
             }

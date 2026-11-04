@@ -106,3 +106,5 @@ P3 — the canvas board for AI Coach needs the new option (see PR description).
 ## Evidence
 
 No device in this session: no screenshots, `check_tokens.py` / `drift.py` not run (no token changed).
+
+**Status (v2.13.1):** the carried items are closed or assigned in `2026-11-04-v2.13.1-closeout.md`.

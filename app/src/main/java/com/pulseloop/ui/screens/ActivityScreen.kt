@@ -653,7 +653,7 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
-                            Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(18.dp))
+                            Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
                             Column {
                                 Text(ActivityMeta.label(type), fontSize = 14.sp, fontWeight = FontWeight.Medium)
                                 Text(ActivityMeta.helper(type), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -751,7 +751,7 @@ private fun GoalEditorDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 GoalSlider(tr("Steps"), Formats.count((steps / 500).toInt() * 500), steps, 2000f..20000f) { steps = it }
-                GoalSlider(tr("Active minutes"), "${active.toInt()} min", active, 10f..180f) { active = it }
+                GoalSlider(tr("Active minutes"), com.pulseloop.ui.i18n.trf("{0} min", active.toInt()), active, 10f..180f) { active = it }
                 GoalSlider(tr("Sleep"), "%.1f h".format((sleepH * 2).toInt() / 2f), sleepH, 5f..10f) { sleepH = it }
                 GoalSlider(tr("Workouts / week"), "${workouts.toInt()}", workouts, 1f..7f) { workouts = it }
             }
@@ -879,7 +879,7 @@ private fun ActivityRecordsCard(
                                     Icons.Filled.DeleteOutline,
                                     contentDescription = tr("Delete this activity record"),
                                     tint = PulseColors.textMuted,
-                                    modifier = Modifier.size(18.dp),
+                                    modifier = Modifier.size(20.dp),
                                 )
                             }
                         }

@@ -579,7 +579,7 @@ fun GoalEditor(
             value = draft.activeMinutes.toFloat(),
             range = 10f..180f,
             step = 5f,
-            label = "${draft.activeMinutes.toInt()} min",
+            label = com.pulseloop.ui.i18n.trf("{0} min", draft.activeMinutes.toInt()),
             onValueChange = { onDraftChange(draft.copy(activeMinutes = it)) },
         )
         GoalSliderCard(
