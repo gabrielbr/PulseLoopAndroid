@@ -209,7 +209,7 @@ fun CoachHeader(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(start = if (onBack != null) 4.dp else 16.dp, end = 16.dp, top = 10.dp, bottom = 10.dp),
+            .padding(start = if (onBack != null) 4.dp else 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -305,10 +305,10 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
                 .then(if (msg.isError) Modifier.dither(errorColor, 0.12f) else Modifier)
                 .then(if (msg.isError) Modifier.border(1.dp, errorColor.copy(alpha = 0.5f), RoundedCornerShape(8.dp)) else Modifier)
                 .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (msg.attachments.isNotEmpty()) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     msg.attachments.forEach { ref ->
                         val bmp = rememberAttachmentBitmap(ref)
                         bmp?.let {
@@ -439,7 +439,7 @@ private fun Composer(
         }
         if (staged.isNotEmpty()) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 staged.forEach { ref ->
@@ -477,7 +477,7 @@ private fun Composer(
             }
         }
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {

@@ -209,7 +209,7 @@ fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) ->
         Text(com.pulseloop.ui.i18n.tr("HIDDEN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = com.pulseloop.ui.theme.PulseColors.textSecondary)
         hidden.forEach { card ->
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -78,7 +78,7 @@ fun ProfileEditor(
         if (showUnits) {
             SectionHeaderCaps(tr("Units"))
             FormCard {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         tr("Measurement units"),
                         fontSize = 14.sp,
@@ -133,7 +133,7 @@ fun ProfileEditor(
                 HorizontalDivider(color = PulseColors.borderSubtle)
 
                 Column(
-                    Modifier.padding(vertical = 10.dp),
+                    Modifier.padding(vertical = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Text(
@@ -453,7 +453,7 @@ private fun DecimalValueSheet(
             }
 
             Column(
-                Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(
@@ -469,7 +469,7 @@ private fun DecimalValueSheet(
                         .clip(RoundedCornerShape(8.dp))
                         .background(PulseColors.card)
                         .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                        .padding(14.dp),
+                        .padding(16.dp),
                 ) {
                     if (text.isEmpty()) {
                         Text(
@@ -629,7 +629,7 @@ private fun GoalSliderCard(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Box(
                 Modifier
                     .size(30.dp)
