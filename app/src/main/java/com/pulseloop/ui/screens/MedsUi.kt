@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -16,12 +18,10 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,10 +108,10 @@ fun MedsScreen(onBack: () -> Unit) {
                             when (d.state) {
                                 // Bounded so long translations can't squeeze the dose name beside them.
                                 Meds.State.TAKEN, Meds.State.SKIPPED ->
-                                    TextButton(onClick = { answer(d, null) }, modifier = Modifier.widthIn(max = 104.dp)) { Text(tr("Undo"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                    PulseButton(PulseButtonStyle.Text, onClick = { answer(d, null) }, modifier = Modifier.widthIn(max = 104.dp)) { Text(tr("Undo"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                 else -> {
-                                    TextButton(onClick = { answer(d, "skipped") }, modifier = Modifier.widthIn(max = 96.dp)) { Text(tr("Skip"), color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                                    TextButton(onClick = { answer(d, "taken") }, modifier = Modifier.widthIn(max = 96.dp)) { Text(tr("Taken"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                    PulseButton(PulseButtonStyle.Text, onClick = { answer(d, "skipped") }, modifier = Modifier.widthIn(max = 96.dp)) { Text(tr("Skip"), color = PulseColors.textMuted, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+                                    PulseButton(PulseButtonStyle.Text, onClick = { answer(d, "taken") }, modifier = Modifier.widthIn(max = 96.dp)) { Text(tr("Taken"), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                                 }
                             }
                         }
@@ -154,7 +154,7 @@ fun MedsScreen(onBack: () -> Unit) {
             }
             // With nothing added yet, adding is the only thing to do here: keep the big button.
             if (medsLoaded != null && meds.isEmpty()) {
-                Button(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
+                PulseButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
             }
             Text(
                 tr("A record for you and your doctor. PulseLoop doesn't check interactions or doses; ask your pharmacist."),
@@ -216,7 +216,7 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
                         Text(tr("Active"), fontSize = 14.sp, modifier = Modifier.weight(1f))
                         androidx.compose.material3.Switch(checked = active, onCheckedChange = { active = it })
                     }
-                    onDelete?.let { del -> TextButton(onClick = del) {
+                    onDelete?.let { del -> PulseButton(PulseButtonStyle.Text, onClick = del) {
                         Icon(Icons.Filled.Delete, null, tint = PulseColors.danger, modifier = Modifier.size(16.dp))
                         Text(tr(" Delete"), color = PulseColors.danger)
                     } }
@@ -224,13 +224,13 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
             }
         },
         confirmButton = {
-            TextButton(enabled = name.isNotBlank() && times.isNotEmpty(), onClick = {
+            PulseButton(PulseButtonStyle.Text, enabled = name.isNotBlank() && times.isNotEmpty(), onClick = {
                 onSave((initial ?: MedEntity(name = name.trim(), timesCsv = "")).copy(
                     name = name.trim(), dose = dose.trim().ifEmpty { null }, kind = kind,
                     timesCsv = times.sorted().joinToString(","), active = active,
                 ))
             }) { Text(tr("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }

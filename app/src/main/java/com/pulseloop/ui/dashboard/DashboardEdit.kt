@@ -1,6 +1,8 @@
 package com.pulseloop.ui.dashboard
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -25,7 +27,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -224,7 +225,7 @@ fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) ->
  *  for iOS's long-press). Show it only when not already editing. */
 @Composable
 fun CustomizeCardsButton(onClick: () -> Unit) {
-    TextButton(onClick = onClick) {
+    PulseButton(PulseButtonStyle.Text, onClick = onClick) {
         Text(tr("Customize"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -244,7 +245,7 @@ fun ReorderDoneBar(onDone: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 8.dp),
             )
-            TextButton(onClick = onDone) { Text(tr("Done")) }
+            PulseButton(PulseButtonStyle.Text, onClick = onDone) { Text(tr("Done")) }
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -29,10 +31,8 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
@@ -951,11 +951,11 @@ private fun SleepDayPickerDialog(
     DatePickerDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = {
+            PulseButton(PulseButtonStyle.Text, onClick = {
                 state.selectedDateMillis?.let { onPick(utcMillisToLocalDayKey(it)) } ?: onDismiss()
             }) { Text(tr("Done")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     ) {
         DatePicker(state = state, title = null)
     }
@@ -1139,7 +1139,7 @@ private fun SleepRecordsCard(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     pendingRun = null
                     scope.launch {
                         val removed = viewModel?.deleteSleepRecord(session.id, run.recordStartAt) ?: false
@@ -1152,7 +1152,7 @@ private fun SleepRecordsCard(
                 }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingRun = null }) { Text(tr("Keep")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { pendingRun = null }) { Text(tr("Keep")) }
             },
         )
     }
@@ -1187,13 +1187,13 @@ private fun SleepRecordEditDialog(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { pickingTime = "start" },
                         modifier = Modifier.weight(1f),
                     ) {
                         Text(trf("Start: {0}", SleepFormat.clockTime(currentStart)))
                     }
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { pickingTime = "end" },
                         modifier = Modifier.weight(1f),
                     ) {
@@ -1217,7 +1217,7 @@ private fun SleepRecordEditDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            PulseButton(PulseButtonStyle.Text,
                 onClick = { onSave(currentStart, currentEnd) },
                 enabled = currentStart < currentEnd && (currentStart != run.startAt || currentEnd != run.endAt),
             ) {
@@ -1225,7 +1225,7 @@ private fun SleepRecordEditDialog(
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text(tr("Cancel")) }
+            PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) }
         },
     )
 
@@ -1246,7 +1246,7 @@ private fun SleepRecordEditDialog(
             // The dial doesn't fit a landscape dialog; the keyboard entry form does.
             text = { if (landscape) TimeInput(state = timeState) else TimePicker(state = timeState) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val picked = resolveAdjustedTime(targetTs, run.startAt, run.endAt, timeState.hour, timeState.minute, zone)
                     val resolved = picked.coerceIn(run.startAt, run.endAt)
                     pickedOutside = isOutsideRecord(picked, run.startAt, run.endAt)
@@ -1259,7 +1259,7 @@ private fun SleepRecordEditDialog(
                 }) { Text(tr("Done")) }
             },
             dismissButton = {
-                TextButton(onClick = { pickingTime = null }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { pickingTime = null }) { Text(tr("Cancel")) }
             },
         )
     }

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -71,7 +73,7 @@ fun CoachModelPicker(
     var expanded by remember { mutableStateOf(false) }
     var filter by remember(provider) { mutableStateOf("") }
     Box {
-        OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+        PulseButton(PulseButtonStyle.Outlined, onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
             Text(selected, Modifier.weight(1f))
             Icon(Icons.Filled.ArrowDropDown, null)
         }
@@ -137,7 +139,7 @@ fun CoachModelPicker(
         Text(status, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(1f))
         if (savedKey.isNotBlank() && !loading) {
             // Bounded so a long translated label can't squeeze the weighted status text.
-            TextButton(onClick = { load(force = true) }, modifier = Modifier.widthIn(max = 140.dp)) {
+            PulseButton(PulseButtonStyle.Text, onClick = { load(force = true) }, modifier = Modifier.widthIn(max = 140.dp)) {
                 Text(
                     if (listing is CoachModelCatalog.Result.Failure) tr("Retry") else tr("Refresh"),
                     maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,

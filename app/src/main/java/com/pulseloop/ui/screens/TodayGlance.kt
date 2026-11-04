@@ -1,6 +1,7 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.theme.pressScale
+import com.pulseloop.ui.components.PulseButton
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
@@ -244,7 +245,7 @@ fun CoachBriefSheet(
                 }
             }
             if (askCoach) {
-                androidx.compose.material3.Button(
+                PulseButton(
                     onClick = onAsk,
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(tr("Ask the coach about it")) }

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -47,17 +49,14 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -298,7 +297,7 @@ fun MealAnalysisDialog(
                     color = PulseColors.textPrimary,
                     modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = onDismiss) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) }
             }
             Column(
                 Modifier
@@ -346,12 +345,12 @@ fun MealAnalysisDialog(
                         } else {
                             // Equal heights if a translated label wraps to a second line.
                             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                OutlinedButton(onClick = { launchCamera() }, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                                PulseButton(PulseButtonStyle.Outlined, onClick = { launchCamera() }, modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
                                     Spacer(Modifier.width(6.dp))
                                     Text(tr("Camera"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
-                                OutlinedButton(
+                                PulseButton(PulseButtonStyle.Outlined,
                                     onClick = {
                                         photoPicker.launch(
                                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -383,7 +382,7 @@ fun MealAnalysisDialog(
                             )
                         }
 
-                        Button(
+                        PulseButton(
                             onClick = { analyze() },
                             enabled = canAnalyze,
                             modifier = Modifier.fillMaxWidth(),
@@ -486,7 +485,7 @@ fun MealAnalysisDialog(
                             }
                         }
                         val canSave = MealAnalysisLogic.canSave(name, calories)
-                        Button(
+                        PulseButton(
                             onClick = { save() },
                             enabled = canSave,
                             modifier = Modifier.fillMaxWidth(),
@@ -496,7 +495,7 @@ fun MealAnalysisDialog(
                             Spacer(Modifier.width(6.dp))
                             Text(tr("Log meal"))
                         }
-                        TextButton(
+                        PulseButton(PulseButtonStyle.Text,
                             onClick = { phase = AnalysisPhase.Input },
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                         ) {
@@ -521,7 +520,7 @@ fun MealAnalysisDialog(
                             textAlign = TextAlign.Center,
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             onClick = { phase = AnalysisPhase.Input },
                             modifier = Modifier.align(Alignment.CenterHorizontally),
                         ) {

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -15,12 +17,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -115,10 +115,10 @@ internal fun AccuracyReportSection(
             )
             // Both actions are width-bounded so translated labels can't squeeze the weighted title.
             if (scoring) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-            else TextButton(onClick = { rescore(force = true) }, modifier = Modifier.widthIn(max = 120.dp)) {
+            else PulseButton(PulseButtonStyle.Text, onClick = { rescore(force = true) }, modifier = Modifier.widthIn(max = 120.dp)) {
                 Text(tr("Recompute"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (summaries.isNotEmpty()) TextButton(modifier = Modifier.widthIn(max = 120.dp), onClick = {
+            if (summaries.isNotEmpty()) PulseButton(PulseButtonStyle.Text, modifier = Modifier.widthIn(max = 120.dp), onClick = {
                 scope.launch {
                     val ring = db.deviceDao().currentReal()?.takeIf { RingIdentity.keyOf(it) == check.deviceKey }
                     val text = AccuracyReportText.share(
@@ -333,21 +333,21 @@ internal fun AccuracyCorrectionControl(check: AccuracyCheckEntity, summary: Accu
         existing != null && existing.enabled -> Row(verticalAlignment = Alignment.CenterVertically) {
             Text(trf("Correction on: {0}", AccuracyCorrections.formatValue(metric, existing.value)), fontSize = 12.sp,
                 color = PulseColors.success, modifier = Modifier.weight(1f))
-            TextButton(onClick = { editing = true }, modifier = Modifier.widthIn(max = 110.dp)) {
+            PulseButton(PulseButtonStyle.Text, onClick = { editing = true }, modifier = Modifier.widthIn(max = 110.dp)) {
                 Text(tr("Change"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, false) } }, modifier = Modifier.widthIn(max = 110.dp)) {
+            PulseButton(PulseButtonStyle.Text, onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, false) } }, modifier = Modifier.widthIn(max = 110.dp)) {
                 Text(tr("Turn off"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         existing != null -> Row(verticalAlignment = Alignment.CenterVertically) {
             Text(trf("Correction off ({0})", AccuracyCorrections.formatValue(metric, existing.value)), fontSize = 12.sp,
                 color = PulseColors.textMuted, modifier = Modifier.weight(1f))
-            TextButton(onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, true) } }, modifier = Modifier.widthIn(max = 120.dp)) {
+            PulseButton(PulseButtonStyle.Text, onClick = { scope.launch { AccuracyCorrections.setEnabled(db, existing, true) } }, modifier = Modifier.widthIn(max = 120.dp)) {
                 Text(tr("Turn on"), maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
-        else -> Button(onClick = { editing = true }, modifier = Modifier.fillMaxWidth()) {
+        else -> PulseButton(onClick = { editing = true }, modifier = Modifier.fillMaxWidth()) {
             Text(trf("Apply correction ({0})", AccuracyCorrections.formatValue(metric, fitted)))
         }
     }
@@ -383,11 +383,11 @@ private fun CorrectionDialog(
                 )
                 Text(AccuracyCorrections.formatValue(metric, value), fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 Slider(value = value.toFloat(), onValueChange = { value = it.toDouble() }, valueRange = range)
-                TextButton(onClick = { value = fitted }) { Text(tr("Use the fitted value")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { value = fitted }) { Text(tr("Use the fitted value")) }
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(roundCorrection(metric, value)) }) { Text(tr("Apply")) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { onSave(roundCorrection(metric, value)) }) { Text(tr("Apply")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -444,7 +444,7 @@ internal fun AccuracyCorrectionsCard() {
                     }
                 }
                 Switch(checked = c.enabled, onCheckedChange = { on -> scope.launch { AccuracyCorrections.setEnabled(db, c, on) } })
-                TextButton(onClick = { scope.launch { AccuracyCorrections.remove(db, c) } }, modifier = Modifier.widthIn(max = 110.dp)) {
+                PulseButton(PulseButtonStyle.Text, onClick = { scope.launch { AccuracyCorrections.remove(db, c) } }, modifier = Modifier.widthIn(max = 110.dp)) {
                     Text(tr("Remove"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }

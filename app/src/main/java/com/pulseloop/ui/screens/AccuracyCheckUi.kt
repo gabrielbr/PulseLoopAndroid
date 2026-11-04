@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -13,7 +15,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.collectAsState
 import com.pulseloop.data.PulseLoopDatabase
 import com.pulseloop.data.entity.AccuracyCheckEntity
@@ -31,9 +32,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -166,12 +165,12 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         if (readable.size < ReferenceMetric.entries.size) {
-                            Button(onClick = { launcher.launch(AccuracyCheckPermissions.request) }, enabled = !scanning) {
+                            PulseButton(onClick = { launcher.launch(AccuracyCheckPermissions.request) }, enabled = !scanning) {
                                 Text(if (readable.isEmpty()) tr("Allow access") else tr("Allow more"))
                             }
                         }
                         if (readable.isNotEmpty()) {
-                            OutlinedButton(onClick = { scan() }, enabled = !scanning) { Text(trf("Scan last {0} days", ReferenceSourceScanner.LOOKBACK_DAYS)) }
+                            PulseButton(PulseButtonStyle.Outlined, onClick = { scan() }, enabled = !scanning) { Text(trf("Scan last {0} days", ReferenceSourceScanner.LOOKBACK_DAYS)) }
                         }
                         if (scanning) CircularProgressIndicator(Modifier.size(20.dp).align(Alignment.CenterVertically), strokeWidth = 2.dp)
                     }
@@ -204,7 +203,7 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                         }
                     }
                 }
-                OutlinedButton(onClick = {
+                PulseButton(PulseButtonStyle.Outlined, onClick = {
                     val text = ReferenceSurveyText.render(r.sources, ReferenceSourceScanner.LOOKBACK_DAYS, { ReferenceAppLabels.label(context, it) }, r.unreadable)
                     (context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager)
                         .setPrimaryClip(ClipData.newPlainText(tr("Accuracy check sources"), text))
@@ -298,7 +297,7 @@ private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Co
         Text(trf("Accuracy check · day {0} of {1}", day, total), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(trf("{0} vs {1}, until {2}.", check.deviceLabel, check.referenceLabel, AccuracyUiText.date(check.plannedEndAt)), fontSize = 14.sp, color = PulseColors.textSecondary)
         Text(trf("Wear both as usual. Health Connect export paused for: {0}.", AccuracyUiText.units(units)), fontSize = 12.sp, color = PulseColors.warning)
-        OutlinedButton(onClick = { confirmEnd = true }) { Text(tr("End now")) }
+        PulseButton(PulseButtonStyle.Outlined, onClick = { confirmEnd = true }) { Text(tr("End now")) }
     }
     if (confirmEnd) {
         AlertDialog(
@@ -306,12 +305,12 @@ private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Co
             title = { Text(tr("End the check now?")) },
             text = { Text(tr("The report covers the days so far. You'll then choose what happens to the paused Health Connect export.")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     confirmEnd = false
                     scope.launch { AccuracyCheckController.end(context, AccuracyCheckEntity.END_EARLY) }
                 }) { Text(tr("End now")) }
             },
-            dismissButton = { TextButton(onClick = { confirmEnd = false }) { Text(tr("Keep going")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmEnd = false }) { Text(tr("Keep going")) } },
         )
     }
 }
@@ -327,11 +326,11 @@ private fun ResumeCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Cor
             trf("During the check, {0} wrote the same types to Health Connect. Exporting the ring's copy of those days now would count them twice.", check.referenceLabel),
             fontSize = 12.sp, color = PulseColors.textMuted,
         )
-        Button(onClick = {
+        PulseButton(onClick = {
             busy = true
             scope.launch { AccuracyCheckController.resolve(context, AccuracyCheckEntity.RESUME_SKIP); busy = false }
         }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(tr("Skip these days (recommended)")) }
-        OutlinedButton(onClick = {
+        PulseButton(PulseButtonStyle.Outlined, onClick = {
             busy = true
             scope.launch { AccuracyCheckController.resolve(context, AccuracyCheckEntity.RESUME_EXPORT); busy = false }
         }, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text(tr("Export them too")) }
@@ -384,8 +383,8 @@ private fun StartDialog(
                 Text(tr("Wear both devices as you normally would, including at night."), fontSize = 12.sp)
             }
         },
-        confirmButton = { TextButton(onClick = { onStart(label.trim(), days) }) { Text(tr("Start")) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { onStart(label.trim(), days) }) { Text(tr("Start")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -412,7 +411,7 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
             )
         }
         s.metrics.forEach { MetricRow(it) }
-        if (onUse != null) Button(onClick = onUse, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare my ring with this")) }
+        if (onUse != null) PulseButton(onClick = onUse, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare my ring with this")) }
     }
 }
 

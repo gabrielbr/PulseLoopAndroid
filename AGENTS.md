@@ -1307,6 +1307,11 @@ serving, AI-estimate source); changing a number marks it `userEdited`, as a barc
   connected) is its own green, REM is cyan, connecting is amber. The readiness ring keeps the
   brand colour on purpose: it is the headline score.
 - **One card radius: 8dp.** Tiles and vital cards used to be 20/30dp.
+- **Every button is a `PulseButton`** (`ui/components/PulseButton.kt`, v2.11.57): one composable
+  with a style (Filled, Tonal, Outlined, Text) that holds the design system's button rules — 52dp
+  minimum height and the 97% press scale. Never call Material's `Button`, `FilledTonalButton`,
+  `OutlinedButton` or `TextButton` directly, and don't give a button a fixed `.height()`: it is a
+  minimum so a long pt-BR label grows the button. `PulseButtonTest` fails on a direct call.
 - **One filled accent per screen**: the Actions button. A screen's own primary action is a tonal
   button (Activity's Record).
 - **Landscape keeps the header** (compact, one row): it is the only route to Settings and the

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -13,15 +15,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -111,15 +110,15 @@ fun CycleScreen(onBack: () -> Unit) {
             if (!loaded) {
                 Spacer(Modifier.height(40.dp))
             } else if (open != null) {
-                Button(onClick = { scope.launch { db.periodDao().upsert(open.copy(endDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
+                PulseButton(onClick = { scope.launch { db.periodDao().upsert(open.copy(endDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Period ended today"))
                 }
             } else {
-                Button(onClick = { scope.launch { db.periodDao().upsert(PeriodEntity(startDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
+                PulseButton(onClick = { scope.launch { db.periodDao().upsert(PeriodEntity(startDay = today.toEpochDay())) } }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Period started today"))
                 }
             }
-            OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
+            PulseButton(PulseButtonStyle.Outlined, onClick = { picking = "start" }, modifier = Modifier.fillMaxWidth()) { Text(tr("Log a past period")) }
 
             if (periods.isNotEmpty()) {
                 Text(tr("HISTORY"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
@@ -157,7 +156,7 @@ fun CycleScreen(onBack: () -> Unit) {
         DatePickerDialog(
             onDismissRequest = { picking = null; pastStart = null },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val chosen = state.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
                     if (chosen != null && !chosen.isAfter(today)) {
                         if (picking == "start") { pastStart = chosen; picking = "end" }
@@ -170,7 +169,7 @@ fun CycleScreen(onBack: () -> Unit) {
                     }
                 }) { Text(if (picking == "start") tr("Next: end date") else tr("Save")) }
             },
-            dismissButton = { TextButton(onClick = { picking = null; pastStart = null }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { picking = null; pastStart = null }) { Text(tr("Cancel")) } },
         ) {
             Text(if (picking == "start") tr("When did it start?") else tr("When did it end?"), modifier = Modifier.padding(start = 24.dp, top = 16.dp), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             DatePicker(state = state, showModeToggle = false)

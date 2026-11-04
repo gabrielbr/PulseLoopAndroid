@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -80,14 +82,14 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                     )
                     // FlowRow: the two translated labels don't fit side by side on a phone.
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             enabled = !busy,
                             onClick = { viewModel.sync(connect = false) },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         ) {
                             Text(tr("Sync Now"), style = MaterialTheme.typography.labelSmall)
                         }
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             enabled = !busy,
                             onClick = { viewModel.sync(connect = true) },
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
@@ -105,7 +107,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                             modifier = Modifier.padding(top = 8.dp))
                     } else {
                         events.take(if (showAllEvents) 40 else 5).forEach { EventRow(it, timeFmt) }
-                        TextButton(onClick = { showAllEvents = !showAllEvents }) {
+                        PulseButton(PulseButtonStyle.Text, onClick = { showAllEvents = !showAllEvents }) {
                             Text(if (showAllEvents) tr("Show fewer events") else tr("Show more events"))
                         }
                     }
@@ -118,7 +120,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                     Text(trf("{0} packets captured", packetCount), style = MaterialTheme.typography.bodyMedium)
                     Text("↓ = ring → app (response)   ↑ = app → ring (command)",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { showPackets = !showPackets }) {
+                    PulseButton(PulseButtonStyle.Text, onClick = { showPackets = !showPackets }) {
                         Text(if (showPackets) tr("Hide packets") else tr("Show recent packets"))
                     }
                     if (showPackets) packets.forEach { PacketRow(it, timeFmt) }
@@ -137,7 +139,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            TextButton(onClick = {
+                            PulseButton(PulseButtonStyle.Text, onClick = {
                                 expandedTable = if (expandedTable == count.name) null else count.name
                                 viewModel.selectTable(count.name)
                             }) {
@@ -188,7 +190,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                         }
                         Switch(checked = maskSensitive, onCheckedChange = null)
                     }
-                    Button(
+                    PulseButton(
                         onClick = {
                             scope.launch {
                                 try {

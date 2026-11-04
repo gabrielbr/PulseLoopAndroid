@@ -1,6 +1,8 @@
 package com.pulseloop.update
 
 import androidx.compose.foundation.layout.Column
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -10,9 +12,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -74,14 +74,14 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(
+            PulseButton(PulseButtonStyle.Text,
                 enabled = !downloading,
                 onClick = {
                     // Require the per-app "install unknown apps" grant first.
                     if (!ApkInstaller.canInstall(context)) {
                         error = tr("Allow installs from this app, then tap Update again.")
                         context.startActivity(ApkInstaller.installPermissionIntent(context))
-                        return@TextButton
+                        return@PulseButton
                     }
                     error = null
                     progress = 0f
@@ -117,9 +117,9 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
         dismissButton = {
             if (downloading) {
                 // Cancel stops the download and deletes the part (UpdateChecker.download).
-                TextButton(onClick = { job?.cancel(); job = null }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { job?.cancel(); job = null }) { Text(tr("Cancel")) }
             } else {
-                TextButton(onClick = onDismiss) { Text(tr("Later")) }
+                PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Later")) }
             }
         },
     )
@@ -147,7 +147,7 @@ fun CheckForUpdatesButton(modifier: Modifier = Modifier) {
             )
             return@Column
         }
-        OutlinedButton(
+        PulseButton(PulseButtonStyle.Outlined,
             enabled = !checking,
             onClick = {
                 checking = true

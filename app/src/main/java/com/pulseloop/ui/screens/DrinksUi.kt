@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -36,16 +38,13 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SportsBar
 import androidx.compose.material.icons.filled.WineBar
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -144,11 +143,11 @@ private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: (
             Text(label, fontSize = 14.sp, color = PulseColors.textPrimary)
             note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
         }
-        TextButton(onClick = onMinus, modifier = Modifier.semantics { contentDescription = trf("Decrease {0}", label) }) {
+        PulseButton(PulseButtonStyle.Text, onClick = onMinus, modifier = Modifier.semantics { contentDescription = trf("Decrease {0}", label) }) {
             Text("−", fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {})
         }
         Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.widthIn(min = 36.dp))
-        TextButton(onClick = onPlus, modifier = Modifier.semantics { contentDescription = trf("Increase {0}", label) }) {
+        PulseButton(PulseButtonStyle.Text, onClick = onPlus, modifier = Modifier.semantics { contentDescription = trf("Increase {0}", label) }) {
             Text("+", fontSize = 16.sp, modifier = Modifier.clearAndSetSemantics {})
         }
     }
@@ -365,7 +364,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
             }
         }
     }
-    Button(
+    PulseButton(
         onClick = {
             DrinkPrefs.baselinePerWeek = typical.toDouble()
             DrinkPrefs.weeklyLimit = limit.toDouble()
@@ -374,7 +373,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
             DrinkPrefs.setEnabled(true)
             onStart()
         },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) { Text(tr("Start tracking")) }
     Text(
         tr("Private to this phone. If you drink most days, cut down gradually and talk to a doctor: stopping suddenly can be dangerous."),
@@ -555,12 +554,12 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
             title = { Text(tr("Delete drink?")) },
             text = { Text(trf("This {0} will be removed from your log.", DrinkType.of(e.type).label.lowercase())) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     toDelete = null
                     scope.launch { DrinksRepository.delete(db, e); onChange() }
                 }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { toDelete = null }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { toDelete = null }) { Text(tr("Cancel")) } },
         )
     }
 
@@ -621,9 +620,9 @@ private fun PlanSheet(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
         Text(tr("Plan tonight"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(tr("Pick the number before the first drink. It's easier to keep a number you chose beforehand."), fontSize = 14.sp, color = PulseColors.textSecondary)
         Stepper(tr("Drinks tonight"), if (plan == 0) "none" else "$plan", { plan = (plan - 1).coerceAtLeast(0) }, { plan = (plan + 1).coerceAtMost(12) })
-        Button(onClick = { DrinkPrefs.setPlan(s.today, plan); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Save plan")) }
+        PulseButton(onClick = { DrinkPrefs.setPlan(s.today, plan); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Save plan")) }
         if (s.planToday != null) {
-            TextButton(onClick = { DrinkPrefs.setPlan(s.today, null); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Clear plan")) }
+            PulseButton(PulseButtonStyle.Text, onClick = { DrinkPrefs.setPlan(s.today, null); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Clear plan")) }
         }
     }
 }
@@ -670,7 +669,7 @@ private fun MoreDrinkSheet(onLog: (DrinkType, Int, Long, Double?) -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
-        Button(
+        PulseButton(
             onClick = { onLog(type, count, hoursAgo, price.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }) },
             modifier = Modifier.fillMaxWidth(),
         ) { Text(trf("Log {0}", count)) }
@@ -866,7 +865,7 @@ private fun AuditCard(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
             Text(tr("The WHO's short alcohol check (AUDIT-C). Three questions, under a minute. A screen, not a diagnosis."), fontSize = 14.sp, color = PulseColors.textSecondary)
         }
         if (s.auditDue) {
-            OutlinedButton(onClick = { taking = true }, modifier = Modifier.fillMaxWidth()) {
+            PulseButton(PulseButtonStyle.Outlined, onClick = { taking = true }, modifier = Modifier.fillMaxWidth()) {
                 Text(if (score == null) tr("Take the check") else tr("Retake (every 3 months)"))
             }
         }
@@ -897,13 +896,13 @@ private fun AuditCard(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
                 }
             },
             confirmButton = {
-                TextButton(enabled = answers.all { it >= 0 }, onClick = {
+                PulseButton(PulseButtonStyle.Text, enabled = answers.all { it >= 0 }, onClick = {
                     DrinkPrefs.setAudit(LocalDate.now(), AuditC.score(answers))
                     taking = false
                     onDone()
                 }) { Text(tr("See result")) }
             },
-            dismissButton = { TextButton(onClick = { taking = false }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { taking = false }) { Text(tr("Cancel")) } },
         )
     }
 }
@@ -949,7 +948,7 @@ private fun DrinkSettings(onChange: () -> Unit, onTurnedOff: () -> Unit) {
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
         Text(tr("Your drinks stay on this phone. They aren't sent to Health Connect or included in diagnostics."), fontSize = 12.sp, color = PulseColors.textMuted)
-        TextButton(onClick = { confirmOff = true }) {
+        PulseButton(PulseButtonStyle.Text, onClick = { confirmOff = true }) {
             Icon(Icons.Filled.Close, null, tint = PulseColors.danger, modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
             Text(tr("Turn off Drinks"), color = PulseColors.danger)
@@ -959,8 +958,8 @@ private fun DrinkSettings(onChange: () -> Unit, onTurnedOff: () -> Unit) {
         onDismissRequest = { confirmOff = false },
         title = { Text(tr("Turn off Drinks?")) },
         text = { Text(tr("The tile and the morning-after line disappear. Your logged drinks stay on this phone until you delete them or clear your data.")) },
-        confirmButton = { TextButton(onClick = { DrinkPrefs.setEnabled(false); confirmOff = false; onTurnedOff() }) { Text(tr("Turn off")) } },
-        dismissButton = { TextButton(onClick = { confirmOff = false }) { Text(tr("Keep")) } },
+        confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { DrinkPrefs.setEnabled(false); confirmOff = false; onTurnedOff() }) { Text(tr("Turn off")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmOff = false }) { Text(tr("Keep")) } },
     )
 }
 

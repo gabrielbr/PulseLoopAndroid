@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -34,7 +36,6 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +43,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -172,9 +172,9 @@ fun ActivityScreen(
             // Tonal, not filled mint: the Actions button is the screen's one filled accent, and
             // two filled CTAs side by side left no primary action to find.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilledTonalButton(
+                PulseButton(PulseButtonStyle.Tonal,
                     onClick = { pickerOpen = true },
-                    modifier = Modifier.weight(1f).height(56.dp),
+                    modifier = Modifier.weight(1f),
                 ) {
                     Text(tr("+ Record Activity"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
                 }
@@ -258,7 +258,7 @@ fun ActivityScreen(
                         "You can allow it in Android Settings › Apps › PulseLoop › Permissions."),
                 )
             },
-            confirmButton = { TextButton(onClick = { permissionDenied = false }) { Text(tr("OK")) } },
+            confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { permissionDenied = false }) { Text(tr("OK")) } },
         )
     }
     if (pickerOpen) {
@@ -670,9 +670,9 @@ private fun RecordTypePickerDialog(onDismiss: () -> Unit, onStart: (String, Bool
             }
         },
         confirmButton = {
-            TextButton(onClick = { onStart(selected, useGps && ActivityMeta.gpsCapable(selected)) }) { Text(tr("Start")) }
+            PulseButton(PulseButtonStyle.Text, onClick = { onStart(selected, useGps && ActivityMeta.gpsCapable(selected)) }) { Text(tr("Start")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -727,7 +727,7 @@ private fun WorkoutHistoryDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text(tr("Done")) } },
+        confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Done")) } },
     )
 }
 
@@ -754,11 +754,11 @@ private fun GoalEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            PulseButton(PulseButtonStyle.Text, onClick = {
                 onSave((steps / 500).toInt() * 500, active.toInt(), ((sleepH * 2).toInt() * 30), workouts.toInt())
             }) { Text(tr("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }
 
@@ -883,7 +883,7 @@ private fun ActivityRecordsCard(
                         }
                     }
                     if (rows.size > visibleCount) {
-                        TextButton(
+                        PulseButton(PulseButtonStyle.Text,
                             onClick = { visibleCount += ACTIVITY_RECORDS_PAGE_SIZE },
                             modifier = Modifier.padding(start = 8.dp),
                         ) {
@@ -908,13 +908,13 @@ private fun ActivityRecordsCard(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val target = bucket
                     pending = null
                     scope.launch { buckets = viewModel?.deleteBucket(target.startEpoch) ?: buckets }
                 }) { Text(tr("Delete"), color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { pending = null }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { pending = null }) { Text(tr("Cancel")) } },
         )
     }
 }
@@ -972,10 +972,10 @@ private fun DetectedActivityCard() {
                 }
                 // FlowRow: the two translated actions wrap rather than overflow the card.
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    androidx.compose.material3.FilledTonalButton(onClick = {
+                    PulseButton(PulseButtonStyle.Tonal, onClick = {
                         scope.launch { runCatching { com.pulseloop.service.ActivityDetection.accept(context, db, p, type) }; tick++ }
                     }) { Text(if (isNap) tr("Yes, a nap") else tr("Add workout"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold) }
-                    TextButton(onClick = { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }) {
+                    PulseButton(PulseButtonStyle.Text, onClick = { com.pulseloop.service.ActivityDetection.answer(context, p); tick++ }) {
                         Text(tr("Not this"), fontSize = 14.sp, color = PulseColors.textSecondary)
                     }
                 }
