@@ -26,6 +26,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
@@ -59,6 +61,7 @@ import kotlinx.coroutines.launch
 import com.pulseloop.coach.attachments.CoachAttachmentStore
 import com.pulseloop.ui.components.MarkdownLite
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.theme.PulseType
 import com.pulseloop.ui.viewmodels.CoachViewModel
 
 /**
@@ -125,7 +128,7 @@ fun CoachScreen(
                 start = 16.dp, end = 16.dp,
                 top = topBarPadding + 8.dp, bottom = 8.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             // The goal the coach plans around, or the prompt to set one.
             item {
@@ -157,7 +160,7 @@ fun CoachScreen(
                     Text(
                         tr("Coach is thinking…"),
                         fontSize = 12.sp, color = PulseColors.textMuted,
-                        modifier = Modifier.padding(start = 8.dp),
+                        modifier = Modifier.padding(start = 8.dp).semantics { liveRegion = LiveRegionMode.Polite },
                     )
                 }
             }
@@ -222,7 +225,7 @@ fun CoachHeader(onNewChat: () -> Unit, onOpenUsage: (() -> Unit)? = null, onBack
                     .padding(top = 9.dp, end = 9.dp)
                     .size(6.dp)
                     .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.9f)),
+                    .background(PulseColors.onAccent.copy(alpha = 0.9f)),
             )
         }
         Column(Modifier.weight(1f)) {
@@ -277,7 +280,6 @@ private fun RoundIconTarget(
 @Composable
 private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewModel?) {
     val isUser = msg.role == "user"
-    val ctx = LocalContext.current
     Column(
         Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
@@ -302,10 +304,10 @@ private fun MessageBubble(msg: CoachViewModel.ChatMessage, viewModel: CoachViewM
             if (msg.attachments.isNotEmpty()) {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     msg.attachments.forEach { ref ->
-                        val bmp = remember(ref.file) { CoachAttachmentStore.loadBitmap(ctx, ref) }
+                        val bmp = rememberAttachmentBitmap(ref)
                         bmp?.let {
                             Image(
-                                bitmap = it.asImageBitmap(),
+                                bitmap = it,
                                 contentDescription = tr("Attached photo"),
                                 modifier = Modifier.size(96.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
@@ -431,10 +433,10 @@ private fun Composer(
             ) {
                 staged.forEach { ref ->
                     Box {
-                        val bmp = remember(ref.file) { CoachAttachmentStore.loadBitmap(ctx, ref) }
+                        val bmp = rememberAttachmentBitmap(ref)
                         bmp?.let {
                             Image(
-                                bitmap = it.asImageBitmap(),
+                                bitmap = it,
                                 contentDescription = tr("Staged photo"),
                                 modifier = Modifier.size(56.dp).clip(RoundedCornerShape(4.dp)),
                                 contentScale = ContentScale.Crop,
@@ -452,7 +454,12 @@ private fun Composer(
                                 },
                             contentAlignment = Alignment.TopEnd,
                         ) {
-                            Icon(Icons.Filled.Close, tr("Remove photo"), Modifier.padding(3.dp).size(14.dp), tint = Color.White)
+                            // A scrim behind the glyph, so it reads on a bright photo too.
+                            Icon(
+                                Icons.Filled.Close, tr("Remove photo"),
+                                Modifier.padding(4.dp).size(16.dp).clip(CircleShape).background(PulseColors.background.copy(alpha = 0.7f)),
+                                tint = PulseColors.textPrimary,
+                            )
                         }
                     }
                 }
@@ -478,7 +485,8 @@ private fun Composer(
                     enabled = !isThinking,
                     onClick = { pickImage.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 ) {
-                    Icon(Icons.Filled.Add, tr("Attach photo"), tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
+                    // Its own glyph: in landscape it sits beside New chat's "+".
+                    Icon(Icons.Filled.AddPhotoAlternate, tr("Attach photo"), tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
                 }
             }
             // Pill text field (iOS composer): filled capsule, no outline.
@@ -557,15 +565,15 @@ private fun GoalBanner(
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, if (hasGoal) PulseColors.accent else PulseColors.borderSubtle, shape)
-            .clickable(enabled = enabled) { if (hasGoal) onCheckIn() else onSetGoal() }
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .clickable(enabled = enabled, role = Role.Button) { if (hasGoal) onCheckIn() else onSetGoal() }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("◎", fontSize = 16.sp, color = PulseColors.accent)
+        Icon(Icons.Outlined.Flag, contentDescription = null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
         Column(Modifier.weight(1f)) {
             if (hasGoal && plan != null) {
-                Text(tr("YOUR GOAL"), fontSize = 12.sp, letterSpacing = 1.4.sp, color = PulseColors.accent)
+                Text(tr("YOUR GOAL"), style = PulseType.eyebrow, color = PulseColors.textSecondary)
                 Text(com.pulseloop.service.GoalPlan.headline(plan), fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 2)
                 Text(com.pulseloop.service.GoalPlan.focusLine(plan) + tr(" · tap for this week's plan"), fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 2)
             } else {
@@ -574,4 +582,19 @@ private fun GoalBanner(
             }
         }
     }
+}
+
+/**
+ * A coach photo, decoded off the main thread: a full chat of photos decoded in composition
+ * dropped frames on every scroll (audit, v2.11.58, carried).
+ */
+@Composable
+private fun rememberAttachmentBitmap(ref: CoachAttachmentRef): androidx.compose.ui.graphics.ImageBitmap? {
+    val ctx = LocalContext.current
+    val bmp by produceState<androidx.compose.ui.graphics.ImageBitmap?>(null, ref.file) {
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            CoachAttachmentStore.loadBitmap(ctx, ref)?.asImageBitmap()
+        }
+    }
+    return bmp
 }
