@@ -457,7 +457,7 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
                     add(line(tr("Night covered by the ring"), "${(night.coverage * 100).roundToInt()}%"))
                     add(line(tr("Heart-rate readings"), "${night.hrSamples}"))
                     add(line(tr("HRV readings"), "${night.hrvSamples}"))
-                    add(line(tr("Resting heart rate"), night.restingHr?.let { "${it.roundToInt()} bpm" } ?: tr("not measured")))
+                    add(line(tr("Resting heart rate"), night.restingHr?.let { trf("{0} bpm", it.roundToInt()) } ?: tr("not measured")))
                     add(line(tr("HRV"), night.hrv?.let { "${it.roundToInt()} ms" } ?: tr("not measured")))
                 } else add(line(tr("Last night"), tr("no sleep recorded")))
                 inputs?.let { add(line(tr("Nights in your baseline"), "${it.history.count { n -> n.restingHr != null || n.hrv != null }}")) }

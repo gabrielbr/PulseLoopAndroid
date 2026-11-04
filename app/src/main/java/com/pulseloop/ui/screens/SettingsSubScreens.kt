@@ -93,6 +93,7 @@ import com.pulseloop.settings.ZenModeListener
 import com.pulseloop.ui.components.DeviceHeroStatus
 import com.pulseloop.ui.components.ZoneLineChart
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.theme.PulseType
 import com.pulseloop.wearables.WearableModel
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
@@ -218,9 +219,9 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
 
     SettingsSubScreen(title = tr("AI Coach"), onBack = onBack) {
         // AI Coach section — ported from CoachSettingsSection.swift
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("AI Coach"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("AI Coach"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 // Readiness differs by provider: the local mode is gated by the server address,
                 // not a key, so the old key-only check told a correctly-configured user their
@@ -869,10 +870,10 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
 
         // Coach Memory — ported from CoachSettingsSection memoryRow
         if (memories.isNotEmpty() && coachEnabled) {
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(tr("Coach Memory"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(tr("Coach Memory"), style = PulseType.title, modifier = Modifier.weight(1f))
                         PulseButton(PulseButtonStyle.Text, onClick = { showMemory = !showMemory }) {
                             Text(if (showMemory) tr("Hide") else trf("Show ({0})", memories.size))
                         }
@@ -880,13 +881,10 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     if (showMemory) {
                         Spacer(Modifier.height(8.dp))
                         memories.forEach { memory ->
-                            Card(
-                                Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            ) {
+                            SubScreenCard(Modifier.padding(vertical = 4.dp), color = PulseColors.cardSoft) {
                                 Row(Modifier.padding(12.dp).fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                     Column(Modifier.weight(1f)) {
-                                        Text(memory.key, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+                                        Text(memory.key, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                                         Text(memory.value, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
                                     }
                                     IconButton(onClick = { memoryToDelete = memory.key }) {
@@ -1024,9 +1022,9 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
         // check-ins come last and explain themselves when the coach is off.
         DailyGuidanceSettingsCard()
 
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Detected workouts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Detected workouts"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("After a sync, what your ring saw you doing (a walk, a ride, strength training), to add with a tap. Nothing is logged without you."),
@@ -1044,9 +1042,9 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
 
         // Ring battery alerts — independent of the coach toggle (iOS #61a puts this in its own
         // NotificationsSettingsView section): a local notification at <20% / <10%, once per day.
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Ring battery alerts"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Ring battery alerts"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("Get notified when your ring drops below 20% and 10%, so tracking doesn't stop mid-day."),
@@ -1069,9 +1067,9 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
             }
         }
 
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Daily check-ins"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Daily check-ins"), style = PulseType.title)
                 if (!coachEnabled) {
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -1178,9 +1176,9 @@ private fun DailyGuidanceSettingsCard() {
     var progress by remember { mutableStateOf(prefs.activityProgress) }
     var medsOn by remember { mutableStateOf(prefs.medReminders) }
 
-    Card(Modifier.fillMaxWidth()) {
+    SubScreenCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(tr("Daily guidance"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(tr("Daily guidance"), style = PulseType.title)
             Text(
                 tr("Built on your phone from your ring's data. No AI key needed."),
                 style = MaterialTheme.typography.bodySmall,
@@ -1343,7 +1341,7 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit,
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(tr("Save profile")) }
             savedMsg?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = PulseColors.success)
             }
         }
     }
@@ -1436,7 +1434,7 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
             modifier = Modifier.fillMaxWidth(),
         ) { Text(tr("Save")) }
         savedMsg?.let {
-            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Text(it, style = MaterialTheme.typography.bodySmall, color = PulseColors.success)
         }
     }
 }
@@ -1444,7 +1442,7 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
 /** A titled card with optional explanatory footer, matching iOS `SettingsGroup`. */
 @Composable
 private fun PhysiologyCard(title: String, footer: String?, content: @Composable ColumnScope.() -> Unit) {
-    Card(Modifier.fillMaxWidth()) {
+    SubScreenCard {
         Column(Modifier.padding(16.dp)) {
             Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(8.dp))
@@ -1464,7 +1462,7 @@ private fun TriStateRow(title: String, value: Boolean?, onChange: (Boolean?) -> 
     val options = listOf<Pair<String, Boolean?>>("Not set" to null, "No" to false, "Yes" to true)
     // Stacked rather than side by side: three translated segments ("Não definido" …) left the
     // weighted title a few dp and broke it a character per line.
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(title, style = MaterialTheme.typography.bodyMedium)
         SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
             options.forEachIndexed { i, (label, v) ->
@@ -1503,7 +1501,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     var savedMsg by remember { mutableStateOf<String?>(null) }
 
     SettingsSubScreen(title = tr("Calibration"), onBack = onBack) {
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
                 Text(tr("Blood pressure calibration"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
@@ -1542,13 +1540,13 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                     modifier = Modifier.fillMaxWidth(),
                 ) { Text(tr("Save calibration")) }
                 savedMsg?.let {
-                    Spacer(Modifier.height(6.dp))
-                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(8.dp))
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = PulseColors.success)
                 }
             }
         }
 
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
                 Text(tr("Blood sugar calibration"), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
@@ -1665,7 +1663,7 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             ) { Text(tr("Save goals")) }
             goalSavedMsg?.let {
-                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text(it, style = MaterialTheme.typography.bodySmall, color = PulseColors.success)
             }
         }
         // Which hours count as sleep is a sleep setting, so it lives with the sleep goal.
@@ -1740,9 +1738,9 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     }
 
     SettingsSubScreen(title = tr("Measurement frequency"), onBack = onBack) {
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Measurement"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Measurement"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("How often the ring measures in the background. Shorter heart-rate intervals give finer history at the cost of battery."),
@@ -1840,8 +1838,8 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text(tr("Save measurement settings")) }
                     cfgSavedMsg?.let {
-                        Spacer(Modifier.height(6.dp))
-                        Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(8.dp))
+                        Text(it, style = MaterialTheme.typography.bodySmall, color = PulseColors.success)
                     }
                 }
             }
@@ -1888,7 +1886,7 @@ private fun QuietHoursCard() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    SubScreenCard {
         Column(Modifier.padding(16.dp)) {
             Row(
                 Modifier.fillMaxWidth()
@@ -1896,7 +1894,7 @@ private fun QuietHoursCard() {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(tr("Sleep quiet hours"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text(tr("Sleep quiet hours"), style = PulseType.title, modifier = Modifier.weight(1f))
                 Switch(checked = enabled, onCheckedChange = null)
             }
             Text(
@@ -2079,7 +2077,7 @@ fun WearableSettingsScreen(
         ?: tr("Not yet")
 
     SettingsSubScreen(title = tr("Ring & sync"), onBack = onBack) {
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
@@ -2099,12 +2097,12 @@ fun WearableSettingsScreen(
                 if (device?.firmwareVersion != null) {
                     val rawFw = device!!.firmwareVersion!!
                     val fwDisplay = if (rawFw.contains("V")) "V" + rawFw.substringAfterLast("V") else rawFw
-                    Text(trf("Firmware: {0}", fwDisplay), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                    Text(trf("Firmware: {0}", fwDisplay), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
                 } else if (device != null) {
-                    Text(tr("Firmware: reading… (connect ring to read)"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                    Text(tr("Firmware: reading… (connect ring to read)"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
                 }
                 if (device != null) {
-                    Text(trf("Last synced: {0}", lastSyncedLabel), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 2.dp))
+                    Text(trf("Last synced: {0}", lastSyncedLabel), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
                 }
 
                 if (deviceLoaded && device == null) {
@@ -2173,9 +2171,9 @@ fun WearableSettingsScreen(
 
 
         if (device != null) {
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Ring management"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(tr("Ring management"), style = PulseType.title)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         tr("Forget unbinds the ring and removes it from the app so it can be paired " +
@@ -2321,9 +2319,9 @@ private fun BackgroundSyncCard() {
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    SubScreenCard {
         Column(Modifier.padding(16.dp)) {
-            Text(tr("Reliable background sync"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(tr("Reliable background sync"), style = PulseType.title)
             Spacer(Modifier.height(8.dp))
             Text(
                 if (exempt) {
@@ -2399,10 +2397,10 @@ private fun BatteryHistorySection(db: PulseLoopDatabase) {
             .map { VitalSample(timestampMs = it.timestamp, value = it.percent.toDouble()) }
     }
 
-    Card(Modifier.fillMaxWidth()) {
+    SubScreenCard {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Battery history"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                Text(tr("Battery history"), style = PulseType.title, modifier = Modifier.weight(1f))
                 SingleChoiceSegmentedButtonRow {
                     BatteryHistoryRange.entries.forEachIndexed { i, r ->
                         SegmentedButton(
@@ -2437,7 +2435,7 @@ private fun BatteryHistorySection(db: PulseLoopDatabase) {
                         endMs = loaded.last().timestampMs,
                     ),
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 BatteryRuntimeEstimate(loaded)
             }
         }
@@ -2553,9 +2551,9 @@ fun PrivacyDataSettingsScreen(
 
     SettingsSubScreen(title = tr("Backup & data"), onBack = onBack) {
         // Data Backup — export/import full app data as JSON.
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Data backup"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Data backup"), style = PulseType.title)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Export all your data to a single JSON file for backup, device migration, or external analysis. Import restores everything — replacing all current data."),
@@ -2621,9 +2619,9 @@ fun PrivacyDataSettingsScreen(
         AutoBackupCard()
 
         // App data — destructive reset/restore actions.
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("App data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("App data"), style = PulseType.title)
                 Spacer(Modifier.height(8.dp))
                 // Unpairing lives on Ring & sync only (one place for the ring); this card only
                 // erases the app's own data.
@@ -2646,9 +2644,9 @@ fun PrivacyDataSettingsScreen(
         }
 
         // Demo data — Android-only (iOS seeds via the Simulator's SeedData).
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Demo data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Demo data"), style = PulseType.title)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Explore the app without a ring. Seeds activity, HR, SpO2, sleep, and a coach conversation."),
@@ -2667,13 +2665,13 @@ fun PrivacyDataSettingsScreen(
         }
 
         // Diagnostics export.
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
                 var maskSensitive by remember { mutableStateOf(true) }
                 // The unmasked export is for protocol debugging: only offered once developer
                 // options are unlocked, so nobody shares raw health frames by accident.
                 val developer = remember { ApiKeyStore(context).developerUnlocked }
-                Text(tr("Diagnostics"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Diagnostics"), style = PulseType.title)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Export app, device, and wearable logs as JSON for bug reports."),
@@ -2918,19 +2916,16 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
                         .clip(CircleShape)
                         .background(PulseColors.elevated)
                         .border(1.dp, PulseColors.borderSubtle, CircleShape)
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .padding(horizontal = 16.dp, vertical = 12.dp)
                         .semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
         },
     ) {
         // Version row: tap 7× to unlock Developer options; a tint/border builds with progress.
-        Card(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(4.dp))
-                .clickable { registerVersionTap() }
-                .border(1.5.dp, PulseColors.accent.copy(alpha = tapProgress * 0.9f), RoundedCornerShape(4.dp)),
+        SubScreenCard(
+            Modifier.border(1.5.dp, PulseColors.accent.copy(alpha = tapProgress * 0.9f), RoundedCornerShape(8.dp)),
+            onClick = { registerVersionTap() },
         ) {
             Column(
                 Modifier
@@ -2938,7 +2933,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
                     .dither(PulseColors.accent, tapProgress * 0.22f)
                     .padding(16.dp),
             ) {
-                Text(tr("Version"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Version"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     trf("PulseLoop v{0} ({1})", com.pulseloop.BuildConfig.VERSION_NAME, com.pulseloop.BuildConfig.VERSION_CODE),
@@ -2947,9 +2942,9 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
             }
         }
 
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("PulseLoop"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("PulseLoop"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("An LLM-native health app that turns a cheap Bluetooth smart ring into a real, " +
@@ -2964,18 +2959,16 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
         }
 
         // Project — source link + license (iOS AboutSettingsView "Project" section).
-        Card(
-            Modifier.fillMaxWidth().clickable {
-                try {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO_URL)))
-                } catch (_: Exception) {
-                    // No browser available — nothing to open.
-                }
-            },
-        ) {
+        SubScreenCard(onClick = {
+            try {
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO_URL)))
+            } catch (_: Exception) {
+                // No browser available — nothing to open.
+            }
+        }) {
             Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("Source on GitHub"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(tr("Source on GitHub"), style = PulseType.title)
                     Text(
                         REPO_URL.removePrefix("https://"),
                         style = MaterialTheme.typography.bodySmall,
@@ -2986,9 +2979,9 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
             }
         }
 
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("License"), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Text(tr("License"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("Open-source health tracker. Ported from iOS.\nCC BY 4.0 · Free to share and " +
@@ -3019,7 +3012,7 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
 
     SettingsSubScreen(title = tr("Nutrition"), onBack = onBack) {
         CoachManagedCard(com.pulseloop.service.GoalSync.NUTRITION_FIELDS) { goalReload++ }
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
                 Row(Modifier.fillMaxWidth()
                     .switchRow(checked = goal?.nutritionEnabled == true, enabled = goalLoaded, onCheckedChange = { enabled ->
@@ -3038,7 +3031,7 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
         }
 
         if (goal?.nutritionEnabled == true) {
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(tr("Daily Goals"), fontWeight = FontWeight.SemiBold)
                     NutrientStepper(tr("Calories (kcal)"), goal?.intakeCalories ?: 2000.0, 50.0, 100.0, 10000.0) { v ->
@@ -3066,7 +3059,7 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
                 }
             }
 
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
                     Text(tr("Quick Access"), fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
@@ -3131,9 +3124,9 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
 
     SettingsSubScreen(title = tr("Strava"), onBack = onBack) {
         if (!isConfigured) {
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Strava Not Configured"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(tr("Strava Not Configured"), style = PulseType.title)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         tr("Add stravaClientId and stravaClientSecret to local.properties to enable Strava integration."),
@@ -3145,9 +3138,9 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
             return@SettingsSubScreen
         }
 
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Strava Integration"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Strava Integration"), style = PulseType.title)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     if (isConnected) trf("Connected as {0}. Workouts sync automatically when finished.", athleteName)
@@ -3217,9 +3210,9 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
         }
 
         if (isConnected) {
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Auto Upload"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(tr("Auto Upload"), style = PulseType.title)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Finished workouts are automatically uploaded to Strava. GPS routes, heart rate data, and sport type are included.",
@@ -3231,15 +3224,9 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
         }
 
         statusMessage?.let { msg ->
-            Card(
-                Modifier.fillMaxWidth(),
-                // containerColor alone leaves contentColor Unspecified, so the Text falls back to
-                // LocalContentColor (dark) and renders near-invisible on this dark card.
-                colors = CardDefaults.cardColors(
-                    containerColor = PulseColors.cardSoft,
-                    contentColor = PulseColors.textPrimary,
-                ),
-            ) {
+            // SubScreenCard provides textPrimary as the content colour, so a Text without its
+            // own colour reads on this card.
+            SubScreenCard(color = PulseColors.cardSoft) {
                 Text(msg, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -3397,9 +3384,9 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
     }
 
     SettingsSubScreen(title = tr("Health Connect"), onBack = onBack) {
-        Card(Modifier.fillMaxWidth()) {
+        SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Health Connect"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Health Connect"), style = PulseType.title)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("Export ring data to Health Connect so other apps and dashboards can show it. Exporting only writes. PulseLoop reads Health Connect only for features you turn on: body data in your profile, Use without a ring, and the accuracy check."),
@@ -3475,15 +3462,15 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         }
 
         if (availability == HealthConnectAvailability.AVAILABLE && prefs.isConnected) {
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
                     // Thirteen switches folded behind one row: most people set this once.
                     var typesOpen by remember { mutableStateOf(false) }
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable { typesOpen = !typesOpen },
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { typesOpen = !typesOpen },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(tr("Data Types"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                        Text(tr("Data Types"), style = PulseType.title, modifier = Modifier.weight(1f))
                         Text(
                             if (typesOpen) tr("Hide") else tr("Show"),
                             style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
@@ -3588,15 +3575,9 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         // exported; the card now stays, and says plainly what it can and cannot do without
         // permissions.
         if (availability == HealthConnectAvailability.AVAILABLE && (prefs.isConnected || hasExportState)) {
-            Card(
-                Modifier.fillMaxWidth(),
-                // containerColor alone leaves contentColor Unspecified, so the Text falls back to
-                // LocalContentColor (dark) and renders near-invisible on this dark card.
-                colors = CardDefaults.cardColors(
-                    containerColor = PulseColors.cardSoft,
-                    contentColor = PulseColors.textPrimary,
-                ),
-            ) {
+            // SubScreenCard provides textPrimary as the content colour, so a Text without its
+            // own colour reads on this card.
+            SubScreenCard(color = PulseColors.cardSoft) {
                 val syncedAt = prefs.lastSyncAt
                 Text(
                     if (syncedAt != null) {
@@ -3615,9 +3596,9 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
             // Phase 6: "Remove PulseLoop data from Health Connect" (iOS removeAllExportedData parity).
             // Deletes only the records this app wrote, then clears every watermark + the last-sync
             // stamp so the export state matches an empty Health store.
-            Card(Modifier.fillMaxWidth()) {
+            SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Remove exported data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(tr("Remove exported data"), style = PulseType.title)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         tr("Delete every record PulseLoop wrote to Health Connect and reset the export to start fresh. Your ring data in PulseLoop is untouched."),
@@ -3647,13 +3628,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         // Removal runs in a worker, so its outcome arrives here through the store rather than
         // through this screen's own state — it survives navigating away and process death.
         prefs.removalStatus?.takeIf { it != HealthConnectPrefs.REMOVAL_IN_PROGRESS }?.let { msg ->
-            Card(
-                Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = PulseColors.cardSoft,
-                    contentColor = PulseColors.textPrimary,
-                ),
-            ) {
+            SubScreenCard(color = PulseColors.cardSoft) {
                 Row(
                     Modifier.padding(16.dp).fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -3667,15 +3642,9 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         }
 
         statusMessage?.let { msg ->
-            Card(
-                Modifier.fillMaxWidth(),
-                // containerColor alone leaves contentColor Unspecified, so the Text falls back to
-                // LocalContentColor (dark) and renders near-invisible on this dark card.
-                colors = CardDefaults.cardColors(
-                    containerColor = PulseColors.cardSoft,
-                    contentColor = PulseColors.textPrimary,
-                ),
-            ) {
+            // SubScreenCard provides textPrimary as the content colour, so a Text without its
+            // own colour reads on this card.
+            SubScreenCard(color = PulseColors.cardSoft) {
                 Text(msg, modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
             }
         }
@@ -3835,8 +3804,8 @@ private fun CoachManagedCard(fields: Set<com.pulseloop.service.GoalSync.Field>, 
     val following = remember(refresh, goal) { com.pulseloop.service.GoalSync.following(context).intersect(fields) }
     val g = goal ?: return
 
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    SubScreenCard {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.switchRow(checked = following.size == fields.size, onCheckedChange = { on ->
                         com.pulseloop.service.GoalSync.setFollowing(context, fields, on)
                         scope.launch {
@@ -3882,11 +3851,11 @@ private fun AutoBackupCard() {
             status = backupStatus(context)
         }
     }
-    Card(Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    SubScreenCard {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("Automatic backups"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    Text(tr("Automatic backups"), style = PulseType.title)
                     Text(
                         tr("Saves the same file as Export to a folder you choose, and keeps the latest 5."),
                         style = MaterialTheme.typography.bodySmall,
@@ -3940,4 +3909,32 @@ private fun backupStatus(context: android.content.Context): String {
     if (last <= 0) return "No backup yet."
     val fmt = java.text.SimpleDateFormat("EEE d MMM, HH:mm", java.util.Locale.getDefault())
     return "Last backup: ${fmt.format(java.util.Date(last))}"
+}
+
+/**
+ * The surface every Settings sub-screen groups its controls on: the card colour, a hairline
+ * border and the one 8dp radius, like `SettingsSection` and the newer sub-screens. It replaces
+ * Material's `Card` here (which drew the elevated grey) and keeps Card's content contract, so
+ * text without its own colour still reads as primary text.
+ */
+@Composable
+private fun SubScreenCard(
+    modifier: Modifier = Modifier,
+    color: androidx.compose.ui.graphics.Color = PulseColors.card,
+    borderColor: androidx.compose.ui.graphics.Color = PulseColors.borderSubtle,
+    onClick: (() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val shape = RoundedCornerShape(8.dp)
+    CompositionLocalProvider(LocalContentColor provides PulseColors.textPrimary) {
+        Column(
+            modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(color)
+                .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+                .border(1.dp, borderColor, shape),
+            content = content,
+        )
+    }
 }

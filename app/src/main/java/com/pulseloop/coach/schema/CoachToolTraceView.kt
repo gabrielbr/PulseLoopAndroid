@@ -64,8 +64,8 @@ fun CoachToolTraceDisclosure(messageId: String, viewModel: CoachViewModel?) {
             exit = shrinkVertically(tween(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)),
         ) {
             Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.padding(top = 2.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.padding(top = 4.dp),
             ) {
                 calls.forEach { call -> ToolTraceRow(call) }
             }
@@ -84,7 +84,7 @@ private fun displayLabel(call: CoachToolCallEntity): String =
 @Composable
 private fun ToolTraceRow(call: CoachToolCallEntity) {
     val isError = call.statusRaw == "error"
-    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Icon(
             if (isError) Icons.Filled.Cancel else Icons.Filled.CheckCircle,
             null,

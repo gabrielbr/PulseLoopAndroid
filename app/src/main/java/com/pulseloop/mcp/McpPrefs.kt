@@ -28,8 +28,9 @@ class McpPrefs(context: Context) : McpTokenStorage {
         get() = prefs.getLong(KEY_OFF_AT, 0L)
         set(v) { prefs.edit().putLong(KEY_OFF_AT, v).apply() }
 
+    /** Clamped to what this Android version lets a `dataSync` service run (McpConfig.autoOffHours). */
     var autoOffHours: Int
-        get() = prefs.getInt(KEY_HOURS, DEFAULT_HOURS).takeIf { it in HOURS_CHOICES } ?: DEFAULT_HOURS
+        get() = McpConfig.autoOffHours(prefs.getInt(KEY_HOURS, McpConfig.defaultAutoOffHours(SDK)), SDK)
         set(v) { prefs.edit().putInt(KEY_HOURS, v).apply() }
 
     /** Whether a request may be answered now: switched on and not past its auto-off time. */
@@ -50,8 +51,9 @@ class McpPrefs(context: Context) : McpTokenStorage {
         private const val KEY_OFF_AT = "offAt"
         private const val KEY_HOURS = "autoOffHours"
         private const val KEY_TOOLS = "pairedTools"
-        const val DEFAULT_HOURS = 8
-        val HOURS_CHOICES = listOf(1, 4, 8)
+        private val SDK get() = android.os.Build.VERSION.SDK_INT
+        /** The auto-off lengths this device offers (1, 4 and 8 h; 6 h instead of 8 on Android 15+). */
+        val HOURS_CHOICES: List<Int> get() = McpConfig.autoOffChoices(SDK)
         private val json = Json { ignoreUnknownKeys = true }
     }
 }

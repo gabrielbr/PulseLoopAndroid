@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Edit-mode controller for a dashboard tab's card grid (iOS #64, Android adaptation). A long-press
@@ -135,7 +136,7 @@ fun rememberDashboardEditState(scope: MetricScope, store: MetricPrefsStore): Das
  * Wraps a card's content with the edit-mode overlay: a "–" hide badge (top-start) and up/down move
  * controls (top-end), shown only while [DashboardEditState.editing]. While editing, a transparent
  * scrim over the card body swallows taps so the card's own tap-to-navigate is suppressed; the hide/
- * move controls sit above the scrim. Edit mode is entered via [CustomizeCardsButton], not a
+ * move controls sit above the scrim. Edit mode is entered via [CustomizeCardsFooter], not a
  * long-press, to avoid conflicting with each card's existing clickable.
  */
 @Composable
@@ -208,7 +209,7 @@ fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) ->
         Text(com.pulseloop.ui.i18n.tr("HIDDEN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = com.pulseloop.ui.theme.PulseColors.textSecondary)
         hidden.forEach { card ->
             Row(
-                Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                Modifier.fillMaxWidth().padding(vertical = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -221,12 +222,22 @@ fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) ->
     }
 }
 
-/** Low-emphasis entry point that puts the dashboard into edit mode (Android's explicit substitute
- *  for iOS's long-press). Show it only when not already editing. */
+/**
+ * The last item of a customizable tab (Today, Vitals): a quiet "Customize cards" text link that
+ * puts the dashboard into edit mode (Android's explicit substitute for iOS's long-press), and the
+ * Done bar in the same place while editing. A rare action, so it lives at the end of the scroll
+ * rather than above the cards, and never at card weight.
+ */
 @Composable
-fun CustomizeCardsButton(onClick: () -> Unit) {
-    PulseButton(PulseButtonStyle.Text, onClick = onClick) {
-        Text(tr("Customize"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+fun CustomizeCardsFooter(editState: DashboardEditState) {
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.Center) {
+        if (editState.editing) {
+            ReorderDoneBar { editState.exit() }
+        } else {
+            PulseButton(PulseButtonStyle.Text, onClick = { editState.enterEditing() }) {
+                Text(tr("Customize cards"), fontSize = 14.sp, color = com.pulseloop.ui.theme.PulseColors.textSecondary)
+            }
+        }
     }
 }
 

@@ -429,8 +429,17 @@ fun PulseLoopApp() {
         // sits in the same place whichever tab is open, and the coach is the sheet's first row.
         val fabEntry by navController.currentBackStackEntryAsState()
         val showLogFab = fabEntry?.destination?.route in tabRoutes
+        // The app's one snackbar host (a confirmation after an action whose card goes away, such
+        // as adding a detected workout). Screens reach it through LocalAppSnackbar.
+        val snackbarHostState = remember { SnackbarHostState() }
+        val snackbarScope = rememberCoroutineScope()
+        val appSnackbar = remember(snackbarHostState, snackbarScope) {
+            com.pulseloop.ui.components.AppSnackbar(snackbarHostState, snackbarScope)
+        }
+        CompositionLocalProvider(com.pulseloop.ui.components.LocalAppSnackbar provides appSnackbar) {
         Scaffold(
             containerColor = com.pulseloop.ui.theme.PulseColors.background,
+            snackbarHost = { com.pulseloop.ui.components.AppSnackbarHost(snackbarHostState) },
             floatingActionButton = {
                 // Pops in on the tabs that have it and out on the ones that don't, rather than
                 // blinking with the screen change.
@@ -987,11 +996,13 @@ fun PulseLoopApp() {
                     PairingScreen(
                         bleClient = bleClient,
                         onConnected = { navController.popBackStack() },
+                        onBack = { navController.popBackStack() },
                     )
                 }
             }
             } // Row: rail + content
         }
+        } // CompositionLocalProvider(LocalAppSnackbar)
 
         val logStep by LaunchRequests.openLog.collectAsState()
         logStep?.let { step ->

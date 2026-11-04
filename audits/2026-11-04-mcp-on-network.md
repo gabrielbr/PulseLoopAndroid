@@ -81,3 +81,5 @@ Common taps did not rise: nothing was added to any existing screen except one Se
 ## Verdict
 
 Merge. There are no P0 or P1 findings; the two carried items are above.
+
+**Status (v2.13.1):** the carried items are closed or assigned in `2026-11-04-v2.13.1-closeout.md`.

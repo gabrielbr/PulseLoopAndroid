@@ -48,13 +48,12 @@ import com.pulseloop.ui.components.toColor
 import com.pulseloop.ui.theme.PulseColors
 import com.pulseloop.ui.viewmodels.*
 import com.pulseloop.settings.ApiKeyStore
-import com.pulseloop.ui.dashboard.CustomizeCardsButton
+import com.pulseloop.ui.dashboard.CustomizeCardsFooter
 import com.pulseloop.ui.dashboard.DashboardCard
 import com.pulseloop.ui.dashboard.EditableCard
 import com.pulseloop.ui.dashboard.HiddenMetricsTray
 import com.pulseloop.ui.dashboard.MetricPrefsStore
 import com.pulseloop.ui.dashboard.MetricScope
-import com.pulseloop.ui.dashboard.ReorderDoneBar
 import com.pulseloop.ui.dashboard.rememberDashboardEditState
 import com.pulseloop.settings.UnitConverter
 import com.pulseloop.settings.UnitSystem
@@ -525,14 +524,8 @@ fun VitalsScreen(
 
 
         // Card order mirrors VitalsView.swift (HR, SpO₂, BP, HRV, Stress, Fatigue, Glucose, Temp)
-        // by default, but honors the user's per-metric visibility + order (iOS #64). Long-press a
-        // card to reorder/hide; the Hidden tray restores.
-        item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                if (editState.editing) ReorderDoneBar { editState.exit() }
-                else CustomizeCardsButton { editState.enterEditing() }
-            }
-        }
+        // by default, but honors the user's per-metric visibility + order (iOS #64). "Customize
+        // cards" at the end of the list reorders/hides; the Hidden tray restores.
 
         // Not before the first load: until then every series is empty and every supports* flag
         // false, so the list showed "No HR samples yet" cards and then grew as the rest arrived.
@@ -552,6 +545,10 @@ fun VitalsScreen(
                 navController.navigate("my_health") { launchSingleTop = true }
             }
         }
+
+        // The very end: a quiet "Customize cards" link (Done while editing). A rare action, so
+        // it no longer sits above the cards on every visit.
+        item { CustomizeCardsFooter(editState) }
 
         item { Spacer(Modifier.height(32.dp)) }
     }
@@ -1061,7 +1058,7 @@ private fun ReadingsCard(
                             Icons.Filled.DeleteOutline,
                             contentDescription = tr("Delete this reading"),
                             tint = PulseColors.textMuted,
-                            modifier = Modifier.size(18.dp),
+                            modifier = Modifier.size(20.dp),
                         )
                     }
                 }

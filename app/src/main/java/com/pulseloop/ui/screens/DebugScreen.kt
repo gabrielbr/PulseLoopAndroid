@@ -59,15 +59,8 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                title = { Text(tr("Debug")) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Filled.ArrowBack, contentDescription = tr("Back"))
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-            )
+            // The shared pushed-screen bar (AppChrome), not a hand-rolled TopAppBar.
+            com.pulseloop.ui.components.PulseTopBar(title = tr("Debug"), onBack = onBack)
         },
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -247,13 +240,13 @@ private fun DebugCard(
 @Composable
 private fun EventRow(event: WearableLogEntity, timeFmt: SimpleDateFormat) {
     val isError = event.levelRaw == "ERROR"
-    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.Top) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.Top) {
         Icon(
             Icons.Filled.Circle, null,
             Modifier.padding(top = 5.dp).size(8.dp),
             tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
         )
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(8.dp))
         Text(
             "${timeFmt.format(Date(event.timestamp))} · ${event.deviceTypeRaw} · ${event.message}",
             style = MaterialTheme.typography.bodySmall,
@@ -265,7 +258,7 @@ private fun EventRow(event: WearableLogEntity, timeFmt: SimpleDateFormat) {
 @Composable
 private fun PacketRow(packet: RawPacketEntity, timeFmt: SimpleDateFormat) {
     val arrow = if (packet.directionRaw == PacketDirection.INCOMING.name) "↓" else "↑"
-    Column(Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text(
             "$arrow ${timeFmt.format(Date(packet.timestamp))} · ${packet.deviceTypeRaw.orEmpty()} · ${packet.decodedKind}",
             style = MaterialTheme.typography.labelSmall,

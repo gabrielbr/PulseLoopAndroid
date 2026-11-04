@@ -40,6 +40,8 @@
 
     <!-- Self-update: fetch the GitHub release manifest/APK and install it -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- mcp/McpService follows the phone's Wi-Fi/Tailscale addresses while it runs (NetworkCallback). -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Wearable settings → "Reliable background sync": asks to exempt the app from battery

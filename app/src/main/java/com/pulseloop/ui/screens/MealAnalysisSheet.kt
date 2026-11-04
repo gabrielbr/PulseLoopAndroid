@@ -339,7 +339,7 @@ fun MealAnalysisDialog(
                             // Equal heights if a translated label wraps to a second line.
                             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 PulseButton(PulseButtonStyle.Outlined, onClick = { launchCamera() }, modifier = Modifier.weight(1f).fillMaxHeight()) {
-                                    Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
+                                    Icon(Icons.Filled.PhotoCamera, null, Modifier.size(20.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(tr("Camera"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
@@ -351,7 +351,7 @@ fun MealAnalysisDialog(
                                     },
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                 ) {
-                                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp))
+                                    Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(20.dp))
                                     Spacer(Modifier.width(8.dp))
                                     Text(tr("Library"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
@@ -380,7 +380,7 @@ fun MealAnalysisDialog(
                             enabled = canAnalyze,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
+                            Icon(Icons.Filled.AutoAwesome, null, Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(tr("Analyze"))
                         }
@@ -482,7 +482,7 @@ fun MealAnalysisDialog(
                             enabled = canSave,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            Icon(Icons.Filled.Check, null, Modifier.size(18.dp))
+                            Icon(Icons.Filled.Check, null, Modifier.size(20.dp))
                             Spacer(Modifier.width(8.dp))
                             Text(tr("Log meal"))
                         }

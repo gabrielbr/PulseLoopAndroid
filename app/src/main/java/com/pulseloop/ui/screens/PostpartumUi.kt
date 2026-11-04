@@ -329,7 +329,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                         val rhr = d.restingHr.firstOrNull { it.first == w }?.second
                         val hrv = d.hrv.firstOrNull { it.first == w }?.second
                         Text(
-                            trf("Week {0}: resting HR {1} · HRV {2}", w, rhr?.let { "${it.roundToInt()} bpm" } ?: "–", hrv?.let { "${it.roundToInt()} ms" } ?: "–"),
+                            trf("Week {0}: resting HR {1} · HRV {2}", w, rhr?.let { trf("{0} bpm", it.roundToInt()) } ?: "–", hrv?.let { trf("{0} ms", it.roundToInt()) } ?: "–"),
                             fontSize = 14.sp, color = PulseColors.textPrimary,
                         )
                     }

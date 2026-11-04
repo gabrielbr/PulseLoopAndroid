@@ -155,11 +155,12 @@ class GuidanceWorker(context: Context, params: WorkerParameters) : CoroutineWork
         // 3. Wind-down reminder — optional, 15–45 minutes before the suggested bedtime.
         if (prefs.bedtimeReminder && prefs.lastBedtimeReminderDay != today.toString()) {
             BedtimeGuidance.compute(inputs.history + listOfNotNull(night), inputs.sleepGoalMinutes, zone)?.let { g ->
+                val is24h = android.text.format.DateFormat.is24HourFormat(ctx)
                 val minsToBed = minutesUntil(local.toLocalTime(), g.bedtime)
                 if (minsToBed in 15..45) {
                     notify(
                         ctx, ID_BEDTIME, tr("Time to wind down"),
-                        trf("Aim to be in bed by {0} to get your {1} hours before your usual {2} wake-up.", BedtimeGuidance.fmt(g.bedtime), inputs.sleepGoalMinutes / 60, BedtimeGuidance.fmt(g.usualWake)),
+                        trf("Aim to be in bed by {0} to get your {1} hours before your usual {2} wake-up.", BedtimeGuidance.fmt(g.bedtime, is24h), inputs.sleepGoalMinutes / 60, BedtimeGuidance.fmt(g.usualWake, is24h)),
                     )
                     prefs.lastBedtimeReminderDay = today.toString()
                 }

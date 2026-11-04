@@ -200,9 +200,9 @@ fun NutritionScreen(
                         onClick = { showAddDialog = true },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     ) {
-                        Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
+                        Icon(Icons.Filled.Add, null, Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(tr("Log Meal"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(tr("Log meal"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (coachEnabled) {
                         FilledTonalIconButton(onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) }, modifier = Modifier.size(48.dp)) {
@@ -282,7 +282,7 @@ fun NutritionScreen(
                                     Text("${meal.calories.roundToInt()} kcal · P${meal.proteinG.roundToInt()} C${meal.carbsG.roundToInt()} F${meal.fatG.roundToInt()}", fontSize = 12.sp, color = PulseColors.textMuted)
                                 }
                                 IconButton(onClick = { mealToDelete = meal }) {
-                                    Icon(Icons.Filled.Delete, trf("Delete {0}", meal.name), tint = PulseColors.danger, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Filled.Delete, trf("Delete {0}", meal.name), tint = PulseColors.danger, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -528,7 +528,7 @@ fun MealLogDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("Log Meal")) },
+        title = { Text(tr("Log meal")) },
         text = {
             // Scrolls so the fields stay reachable on short screens and with the keyboard up.
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -542,7 +542,7 @@ fun MealLogDialog(
                         Spacer(Modifier.width(8.dp))
                     }
                     PulseButton(PulseButtonStyle.Text, onClick = { showScanner = true }, enabled = !lookingUp && !estimating) {
-                        Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp))
+                        Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(20.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(tr("Scan barcode"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
@@ -595,7 +595,7 @@ fun MealLogDialog(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         if (estimating) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
-                        else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
+                        else Icon(Icons.Filled.AutoAwesome, null, Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
                         Text(
                             if (estimating) tr("Estimating…") else tr("Estimate calories with AI"),

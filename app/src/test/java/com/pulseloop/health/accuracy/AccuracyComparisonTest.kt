@@ -316,6 +316,20 @@ class AccuracyComparisonTest {
     }
 
     @Test
+    fun anOffTimeInADayNoteFollowsTheClockSetting() {
+        val saved = java.util.Locale.getDefault()
+        java.util.Locale.setDefault(java.util.Locale.US)
+        try {
+            val at = LocalDate.of(2026, 10, 1).atTime(15, 0).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+            val note = AccuracyScorer.NOTE_PARTLY_WORN_PREFIX + AccuracyScorer.WHO_RING + ":" + at
+            assertTrue(AccuracyReportText.dayNote(note, "Fitbit", is24Hour = true)!!.contains("15:00"))
+            assertTrue(AccuracyReportText.dayNote(note, "Fitbit", is24Hour = false)!!.contains("3:00 PM"))
+        } finally {
+            java.util.Locale.setDefault(saved)
+        }
+    }
+
+    @Test
     fun overlappingGapsFromBothDevicesAreCountedOnce() {
         val gaps = listOf((day0 + h)..(day0 + 3 * h), (day0 + 2 * h)..(day0 + 4 * h))
         assertEquals(3 * h, AccuracyComparison.gapMs(gaps, day0, day0 + 24 * h))

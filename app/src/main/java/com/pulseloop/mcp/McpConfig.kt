@@ -29,4 +29,27 @@ object McpConfig {
         URL: $url
         Header: Authorization: Bearer $token
     """.trimIndent()
+
+    /**
+     * Android 15 (API 35) gives a `dataSync` foreground service about six hours in every 24, then
+     * calls `onTimeout` (which [McpService] honours by stopping). A longer auto-off can't be kept
+     * there, so it isn't offered, and a longer stored choice reads as the cap.
+     */
+    const val DATA_SYNC_LIMIT_SDK = 35
+    const val DATA_SYNC_LIMIT_HOURS = 6
+
+    /** The auto-off lengths offered on a device running [sdkInt]; the last is the default. */
+    fun autoOffChoices(sdkInt: Int): List<Int> =
+        if (sdkInt >= DATA_SYNC_LIMIT_SDK) listOf(1, 4, DATA_SYNC_LIMIT_HOURS) else listOf(1, 4, 8)
+
+    fun defaultAutoOffHours(sdkInt: Int): Int = autoOffChoices(sdkInt).last()
+
+    /**
+     * A stored auto-off length as this device can honour it: capped at [DATA_SYNC_LIMIT_HOURS] on
+     * Android 15 and later, and the default when it isn't one of the choices offered here.
+     */
+    fun autoOffHours(stored: Int, sdkInt: Int): Int {
+        val capped = if (sdkInt >= DATA_SYNC_LIMIT_SDK) stored.coerceAtMost(DATA_SYNC_LIMIT_HOURS) else stored
+        return capped.takeIf { it in autoOffChoices(sdkInt) } ?: defaultAutoOffHours(sdkInt)
+    }
 }

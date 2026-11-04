@@ -332,7 +332,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
     var limitTouched by remember { mutableStateOf(false) }
     var showSize by remember { mutableStateOf(false) }
 
-    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Text(tr("Drink less, sleep better"), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Benefit(Icons.Filled.LocalBar, tr("Log a drink in one tap"))
         Benefit(Icons.Filled.EventAvailable, tr("A weekly limit and dry days you choose"))
@@ -352,7 +352,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
             note = tr("We suggest a quarter less to start"),
         )
         Stepper(tr("Dry days a week"), "$dry", { dry = (dry - 1).coerceAtLeast(0) }, { dry = (dry + 1).coerceAtMost(7) })
-        Row(Modifier.fillMaxWidth().clickable { showSize = !showSize }, verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { showSize = !showSize }, verticalAlignment = Alignment.CenterVertically) {
             Text(trf("Standard drink: {0} g of alcohol", grams.roundToInt()), fontSize = 14.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
             Icon(if (showSize) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = PulseColors.textMuted)
         }
@@ -504,7 +504,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                         }
                         .padding(horizontal = 4.dp, vertical = 12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Icon(t.icon, null, tint = PulseColors.drinks, modifier = Modifier.size(24.dp))
                     Text(t.short, fontSize = 12.sp, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -640,7 +640,7 @@ private fun RecentDrinkRow(e: DrinkEntryEntity, gramsPerStd: Double, fmt: DateTi
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }
-        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, trf("Delete {0}", DrinkType.of(e.type).label), tint = PulseColors.textMuted, modifier = Modifier.size(18.dp)) }
+        IconButton(onClick = onDelete) { Icon(Icons.Filled.Delete, trf("Delete {0}", DrinkType.of(e.type).label), tint = PulseColors.textMuted, modifier = Modifier.size(20.dp)) }
     }
 }
 
@@ -695,7 +695,7 @@ private fun InsightCard(s: DrinksRepository.Snapshot) {
         if (learning) {
             Bar(d.dryNights.toFloat() / DrinkInsights.MIN_NIGHTS, PulseColors.sleep)
         } else {
-            Row(Modifier.fillMaxWidth().clickable { open = !open }, verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { open = !open }, verticalAlignment = Alignment.CenterVertically) {
                 Text(if (open) tr("Less") else tr("Details"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.accent, modifier = Modifier.weight(1f))
                 Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, null, tint = PulseColors.accent)
             }
@@ -713,7 +713,7 @@ private fun InsightCard(s: DrinksRepository.Snapshot) {
 
 @Composable
 private fun ImpactRow(label: String, i: DrinkInsights.Impact?) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
         val text = if (i == null) tr("Not enough nights yet") else buildList {
             i.hrvPct?.let { add("HRV ${if (it >= 0) "+" else "−"}${kotlin.math.abs(it)}%") }
@@ -730,7 +730,7 @@ private fun ImpactRow(label: String, i: DrinkInsights.Impact?) {
 private fun Stat(value: String, label: String, modifier: Modifier) {
     Column(
         modifier.clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(12.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(value, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary, maxLines = 1, softWrap = false)
         Text(label, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -749,7 +749,7 @@ private fun TrendsTab(s: DrinksRepository.Snapshot) {
     }
     DrinkCard(tr("Last 8 weeks")) {
         WeeksChart(s)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.width(16.dp).height(2.dp).background(PulseColors.textMuted))
             Text(trf("your limit of {0}", std(s.weeklyLimit)), fontSize = 12.sp, color = PulseColors.textMuted)
         }
@@ -964,7 +964,7 @@ private fun DrinkSettings(onChange: () -> Unit, onTurnedOff: () -> Unit) {
         Text(tr("Your drinks stay on this phone. They aren't sent to Health Connect or included in diagnostics."), fontSize = 12.sp, color = PulseColors.textMuted)
         PulseButton(PulseButtonStyle.Text, onClick = { confirmOff = true }) {
             Icon(Icons.Filled.Close, null, tint = PulseColors.danger, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.width(8.dp))
             Text(tr("Turn off Drinks"), color = PulseColors.danger)
         }
     }

@@ -55,7 +55,6 @@ import com.pulseloop.ui.theme.PulseColors
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 /**
@@ -271,10 +270,11 @@ private fun roundBand(m: ComparisonMetric, v: Double): Double =
 
 @Composable
 private fun DayRow(m: ComparisonMetric, d: AccuracyCheckDayEntity, ref: String) {
-    val date = LocalDate.ofEpochDay(d.day).format(DateTimeFormatter.ofPattern("EEE d MMM"))
+    val date = com.pulseloop.ui.components.PhoneFormat.date("EEEMMMd", LocalDate.ofEpochDay(d.day))
     // A counted day still says so when it was compared over only the hours both devices were on.
-    val note = if (d.valid) AccuracyReportText.dayNote(d.note?.takeIf { it.startsWith(com.pulseloop.health.accuracy.AccuracyScorer.NOTE_SHARED_PREFIX) }, ref)
-        else AccuracyReportText.dayNote(d.note, ref) ?: tr("not counted")
+    val is24h = android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current)
+    val note = if (d.valid) AccuracyReportText.dayNote(d.note?.takeIf { it.startsWith(com.pulseloop.health.accuracy.AccuracyScorer.NOTE_SHARED_PREFIX) }, ref, is24h)
+        else AccuracyReportText.dayNote(d.note, ref, is24h) ?: tr("not counted")
     val text = when (m.kind) {
         ComparisonMetric.Kind.DAILY -> {
             val diff = AccuracyComparison.diff(m, d.ringValue, d.refValue)
