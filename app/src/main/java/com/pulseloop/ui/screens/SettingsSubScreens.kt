@@ -124,16 +124,9 @@ internal fun SettingsSubScreen(
         // is what produced the tall dead band above every settings title.
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            TopAppBar(
-                title = { Text(title) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
-                    }
-                },
-                windowInsets = WindowInsets(0, 0, 0, 0),
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PulseColors.background),
-            )
+            // The shared pushed-screen bar (centred title, one back arrow), like every other
+            // pushed screen; it applies no insets of its own either.
+            com.pulseloop.ui.components.PulseTopBar(title = title, onBack = onBack)
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -573,7 +566,9 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                                             localProbeOk = false; localProbeResult = e.reason
                                         } catch (e: Exception) {
                                             localProbeOk = false
-                                            localProbeResult = e.message ?: tr("Couldn't reach the server.")
+                                            // The exception text names the HTTP stack; it goes to logcat.
+                                            android.util.Log.w("CoachSettings", "Local probe failed", e)
+                                            localProbeResult = tr("Couldn't reach the server.")
                                         }
                                         localProbeBusy = false
                                     }
@@ -1222,7 +1217,7 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit,
         )
     }
 
-    SettingsSubScreen(title = tr("User Profile"), onBack = onBack) {
+    SettingsSubScreen(title = tr("User profile"), onBack = onBack) {
         Text(
             tr("Your age, sex, height and weight let the ring compute accurate calories (and, on " +
                 "56ff/Jring rings, blood sugar). Blood pressure is measured directly by the sensor."),
@@ -1694,7 +1689,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
         }
     }
 
-    SettingsSubScreen(title = tr("Measurement Frequency"), onBack = onBack) {
+    SettingsSubScreen(title = tr("Measurement frequency"), onBack = onBack) {
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
                 Text(tr("Measurement"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -2038,7 +2033,7 @@ fun WearableSettingsScreen(
             Column(Modifier.padding(16.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        Icons.Filled.Bluetooth, null, Modifier.size(18.dp),
+                        Icons.Filled.Bluetooth, null, Modifier.size(20.dp),
                         tint = if (isConnected) PulseColors.success else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.width(8.dp))
@@ -2146,7 +2141,7 @@ fun WearableSettingsScreen(
                     ) {
                         Icon(Icons.Filled.DeleteForever, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text(tr("Forget Ring"))
+                        Text(tr("Forget ring"))
                     }
 
                     // Factory reset — destructive, ring-side wipe. Only for connected rings that
@@ -2168,7 +2163,7 @@ fun WearableSettingsScreen(
                         ) {
                             Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(if (resetting) (resetStatus.ifEmpty { tr("Resetting…") }) else tr("Factory Reset Ring"))
+                            Text(if (resetting) (resetStatus.ifEmpty { tr("Resetting…") }) else tr("Factory reset ring"))
                         }
                     }
                 }
@@ -2510,7 +2505,7 @@ fun PrivacyDataSettingsScreen(
         // Data Backup — export/import full app data as JSON.
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Data Backup"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Data backup"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Export all your data to a single JSON file for backup, device migration, or external analysis. Import restores everything — replacing all current data."),
@@ -2526,7 +2521,7 @@ fun PrivacyDataSettingsScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PulseButton(
+                    PulseButton(PulseButtonStyle.Tonal,
                         onClick = {
                             exportInProgress = true
                             scope.launch {
@@ -2554,7 +2549,7 @@ fun PrivacyDataSettingsScreen(
                             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (exportInProgress) tr("Exporting…") else tr("Export All Data"))
+                        Text(if (exportInProgress) tr("Exporting…") else tr("Export all data"))
                     }
                     PulseButton(PulseButtonStyle.Outlined,
                         onClick = {
@@ -2567,7 +2562,7 @@ fun PrivacyDataSettingsScreen(
                             CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text(if (importInProgress) tr("Importing…") else tr("Import Data"))
+                        Text(if (importInProgress) tr("Importing…") else tr("Import data"))
                     }
                 }
             }
@@ -2578,10 +2573,12 @@ fun PrivacyDataSettingsScreen(
         // App data — destructive reset/restore actions.
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("App Data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("App data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
+                // Unpairing lives on Ring & sync only (one place for the ring); this card only
+                // erases the app's own data.
                 Text(
-                    tr("Destructive actions: reset app data, or unpair the ring and reset. To only forget the ring, use Ring & sync."),
+                    tr("Erases everything stored in the app. To also unpair your ring, forget it in Ring & sync first."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -2593,17 +2590,7 @@ fun PrivacyDataSettingsScreen(
                 ) {
                     Icon(Icons.Filled.DeleteForever, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(tr("Reset App Data"))
-                }
-                Spacer(Modifier.height(8.dp))
-                PulseButton(PulseButtonStyle.Outlined,
-                    onClick = { pendingReset = ResetAction.UnpairAndReset },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                ) {
-                    Icon(Icons.Filled.Warning, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text(tr("Unpair & Reset"))
+                    Text(tr("Reset app data"))
                 }
             }
         }
@@ -2611,7 +2598,7 @@ fun PrivacyDataSettingsScreen(
         // Demo data — Android-only (iOS seeds via the Simulator's SeedData).
         Card(Modifier.fillMaxWidth()) {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Demo Data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(tr("Demo data"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Explore the app without a ring. Seeds activity, HR, SpO2, sleep, and a coach conversation."),
@@ -2619,12 +2606,12 @@ fun PrivacyDataSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                PulseButton(onClick = { showSeedDialog = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(tr("Reseed Demo Data"))
+                PulseButton(PulseButtonStyle.Tonal, onClick = { showSeedDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(tr("Reseed demo data"))
                 }
                 Spacer(Modifier.height(8.dp))
                 PulseButton(PulseButtonStyle.Outlined, onClick = { showClearDialog = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(tr("Clear Demo Data"), color = PulseColors.danger)
+                    Text(tr("Clear demo data"), color = PulseColors.danger)
                 }
             }
         }
@@ -2660,7 +2647,7 @@ fun PrivacyDataSettingsScreen(
                     Switch(checked = maskSensitive, onCheckedChange = null)
                 }
                 Spacer(Modifier.height(12.dp))
-                PulseButton(
+                PulseButton(PulseButtonStyle.Tonal,
                     onClick = {
                         scope.launch {
                             val db = PulseLoopDatabase.getInstance(context)
@@ -2675,7 +2662,7 @@ fun PrivacyDataSettingsScreen(
                 ) {
                     Icon(Icons.Filled.Share, null)
                     Spacer(Modifier.width(8.dp))
-                    Text(if (maskSensitive) tr("Export Diagnostics") else tr("Export Full (Unmasked)"))
+                    Text(if (maskSensitive) tr("Export diagnostics") else tr("Export full (unmasked)"))
                 }
             }
         }
@@ -2697,7 +2684,7 @@ fun PrivacyDataSettingsScreen(
 
         showImportSuccess -> AlertDialog(
             onDismissRequest = { showImportSuccess = false },
-            title = { Text(tr("Import Complete")) },
+            title = { Text(tr("Import complete")) },
             text = { Text(tr("Your data has been restored from the backup.")) },
             confirmButton = {
                 PulseButton(PulseButtonStyle.Text, onClick = { showImportSuccess = false }) { Text(tr("OK")) }
@@ -2761,7 +2748,7 @@ fun PrivacyDataSettingsScreen(
 
         showSeedDialog -> AlertDialog(
             onDismissRequest = { showSeedDialog = false },
-            title = { Text(tr("Reseed Demo Data?")) },
+            title = { Text(tr("Reseed demo data?")) },
             text = { Text(tr("This will replace all existing demo data. Your synced ring data — including sleep history — will not be affected.")) },
             confirmButton = {
                 PulseButton(PulseButtonStyle.Text, onClick = {
@@ -2779,7 +2766,7 @@ fun PrivacyDataSettingsScreen(
 
         showClearDialog -> AlertDialog(
             onDismissRequest = { showClearDialog = false },
-            title = { Text(tr("Clear Demo Data?")) },
+            title = { Text(tr("Clear demo data?")) },
             text = {
                 Text(
                     tr("Removes all demo measurements, activity, sleep, and the demo device. " +
@@ -3136,7 +3123,8 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                                                 else -> trf("Uploaded {0} workouts", count)
                                             }
                                     } catch (e: Exception) {
-                                        statusMessage = trf("Upload failed: {0}", e.message ?: tr("unknown error"))
+                                        android.util.Log.w("StravaSettings", "Upload failed", e)
+                                        statusMessage = tr("Upload failed. Check your connection and try again.")
                                     }
                                     isUploading = false
                                 }

@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,12 +83,12 @@ private fun ProgramChip(c: Chip) {
             .clip(shape)
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .clickable(onClick = c.onClick)
+            .clickable(role = Role.Button, onClick = c.onClick)
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Icon(c.icon, null, Modifier.size(18.dp), tint = c.tint)
+        Icon(c.icon, null, Modifier.size(24.dp), tint = c.tint)
         Text(c.label, fontSize = 14.sp, color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -107,7 +108,8 @@ fun RestModeLine(offerIt: Boolean) {
         Modifier.fillMaxWidth().clip(shape).background(PulseColors.card).padding(start = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.SelfImprovement, null, Modifier.size(18.dp), tint = PulseColors.readiness)
+        // Not mint: mint marks what to tap, and the tap is the action word on the right.
+        Icon(Icons.Filled.SelfImprovement, null, Modifier.size(24.dp), tint = PulseColors.textSecondary)
         Text(
             if (u != null) trf("Rest Mode on until {0}", u.format(DateTimeFormatter.ofPattern("EEE d MMM")))
             else tr("Feeling unwell? Pause activity nudges for 3 days."),
@@ -121,7 +123,7 @@ fun RestModeLine(offerIt: Boolean) {
             modifier = Modifier
                 .widthIn(max = 140.dp)
                 .heightIn(min = 48.dp)
-                .clickable {
+                .clickable(role = Role.Button) {
                     RestMode.set(context, if (u != null) null else 3)
                     until = RestMode.until(context)
                 }

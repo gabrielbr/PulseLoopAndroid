@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BatteryFull
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -76,8 +75,8 @@ fun DeviceHeroCard(
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(
             Modifier
@@ -93,7 +92,7 @@ fun DeviceHeroCard(
 
             Column(
                 Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(5.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
                     status.title,
@@ -123,7 +122,7 @@ fun DeviceHeroCard(
 
             Column(
                 horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 status.batteryText?.let { batteryText ->
                     // Tinted by level: always green read "fine" at 5%.
@@ -156,12 +155,7 @@ fun DeviceHeroCard(
                         )
                     }
                 }
-                Icon(
-                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null, // the row's click label says it
-                    modifier = Modifier.size(20.dp),
-                    tint = PulseColors.textMuted,
-                )
+                Chevron() // the row's click label says it
             }
         }
 

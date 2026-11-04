@@ -46,6 +46,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -58,6 +59,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -128,7 +130,7 @@ private fun DrinkCard(title: String? = null, action: (@Composable () -> Unit)? =
     ) {
         if (title != null || action != null) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(title.orEmpty().uppercase(), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted, modifier = Modifier.weight(1f))
+                Text(title.orEmpty().uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
                 action?.invoke()
             }
         }
@@ -163,7 +165,8 @@ private fun Pill(label: String, on: Boolean, color: Color = PulseColors.accent, 
         fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
         color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
         maxLines = 1, overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.clip(shape)
+        // 48dp of layout for the touch target; the pill keeps its drawn size inside it.
+        modifier = Modifier.minimumInteractiveComponentSize().clip(shape)
             .background(if (on) color else PulseColors.cardSoft)
             .border(1.dp, if (on) color else PulseColors.borderSubtle, shape)
             .selectable(selected = on, role = Role.RadioButton, onClick = onClick)
@@ -196,7 +199,10 @@ private fun Segments(options: List<String>, selected: Int, onSelect: (Int) -> Un
                 modifier = Modifier.weight(1f)
                     .background(if (on) PulseColors.accent else PulseColors.cardSoft)
                     .selectable(selected = on, role = Role.Tab) { onSelect(i) }
-                    .padding(vertical = 9.dp),
+                    // 48dp tall, label centred (was 9dp padding, about 36dp).
+                    .heightIn(min = 48.dp)
+                    .wrapContentHeight(Alignment.CenterVertically)
+                    .padding(vertical = 8.dp),
             )
         }
     }
@@ -221,16 +227,10 @@ fun DrinksScreen(onBack: () -> Unit, onBreathe: () -> Unit, onCoach: ((String) -
     }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            // Kept clear of the back and settings buttons whatever the voice calls this screen.
-            Text(
-                tr("Drinks"), fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
-            )
+        // The app's one pushed-screen bar (was hand-rolled); it ellipsises a long voice title.
+        com.pulseloop.ui.components.PulseTopBar(title = tr("Drinks"), onBack = onBack) {
             if (enabled) {
-                IconButton(onClick = { settingsOpen = true }, modifier = Modifier.align(Alignment.CenterEnd)) {
+                IconButton(onClick = { settingsOpen = true }) {
                     Icon(Icons.Filled.Settings, tr("Drinks settings"), tint = PulseColors.textSecondary)
                 }
             }
@@ -495,7 +495,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
                     Modifier.weight(1f).fillMaxHeight().clip(shape)
                         .background(PulseColors.cardSoft)
                         .border(1.dp, PulseColors.borderSubtle, shape)
-                        .clickable {
+                        .clickable(role = Role.Button, onClickLabel = tr("Log a drink")) {
                             scope.launch {
                                 val rows = DrinksRepository.log(db, t)
                                 lastLogged = "+1 ${t.short.lowercase()}" to rows
@@ -513,7 +513,7 @@ private fun LogCard(db: PulseLoopDatabase, s: DrinksRepository.Snapshot, onChang
         }
         lastLogged?.let { (text, ids) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(trf("Logged {0}", text), fontSize = 14.sp, color = PulseColors.success, modifier = Modifier.weight(1f))
+                Text(trf("Logged {0}", text), fontSize = 14.sp, color = PulseColors.success, modifier = Modifier.weight(1f).semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
                 Text(
                     tr("Undo"),
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
@@ -606,9 +606,9 @@ private fun PlanChip(s: DrinksRepository.Snapshot, onClick: () -> Unit) {
         // Bounded, so a long translation or voice line wraps inside the chip instead of
         // starving the "tonight" text beside it down to one letter per line.
         maxLines = 2, overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.widthIn(max = 150.dp).clip(shape)
+        modifier = Modifier.widthIn(max = 150.dp).minimumInteractiveComponentSize().clip(shape)
             .border(1.dp, if (planned == null) PulseColors.accent else PulseColors.borderSubtle, shape)
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
@@ -619,7 +619,7 @@ private fun PlanSheet(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(tr("Plan tonight"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(tr("Pick the number before the first drink. It's easier to keep a number you chose beforehand."), fontSize = 14.sp, color = PulseColors.textSecondary)
-        Stepper(tr("Drinks tonight"), if (plan == 0) "none" else "$plan", { plan = (plan - 1).coerceAtLeast(0) }, { plan = (plan + 1).coerceAtMost(12) })
+        Stepper(tr("Drinks tonight"), if (plan == 0) tr("None") else "$plan", { plan = (plan - 1).coerceAtLeast(0) }, { plan = (plan + 1).coerceAtMost(12) })
         PulseButton(onClick = { DrinkPrefs.setPlan(s.today, plan); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Save plan")) }
         if (s.planToday != null) {
             PulseButton(PulseButtonStyle.Text, onClick = { DrinkPrefs.setPlan(s.today, null); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Clear plan")) }
@@ -630,8 +630,8 @@ private fun PlanSheet(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
 @Composable
 private fun RecentDrinkRow(e: DrinkEntryEntity, gramsPerStd: Double, fmt: DateTimeFormatter, zone: ZoneId, onDelete: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Icon(DrinkType.of(e.type).icon, null, tint = PulseColors.textMuted, modifier = Modifier.size(18.dp))
-        Spacer(Modifier.width(10.dp))
+        Icon(DrinkType.of(e.type).icon, null, tint = PulseColors.textMuted, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(DrinkType.of(e.type).label, fontSize = 14.sp, color = PulseColors.textPrimary)
             Text(
@@ -809,15 +809,19 @@ private fun WeeksChart(s: DrinksRepository.Snapshot) {
 @Composable
 private fun SupportRow(icon: ImageVector, title: String, subtitle: String, onClick: (() -> Unit)?) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier).padding(vertical = 6.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(icon, null, tint = PulseColors.accent, modifier = Modifier.size(22.dp))
+        // Mint marks what can be tapped; an information-only row stays quiet.
+        Icon(icon, null, tint = if (onClick != null) PulseColors.accent else PulseColors.textSecondary, modifier = Modifier.size(24.dp))
         Column(Modifier.weight(1f)) {
             Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             Text(subtitle, fontSize = 12.sp, color = PulseColors.textMuted)
         }
+        if (onClick != null) com.pulseloop.ui.components.Chevron()
     }
 }
 
@@ -832,10 +836,20 @@ private fun SupportTab(s: DrinksRepository.Snapshot, onBreathe: () -> Unit, onCo
         }
     }
     AuditCard(s, onAuditDone)
+    val context = LocalContext.current
+    // A crisis line that only reads "188" makes the user dial it by hand; the row opens the dialer
+    // (ACTION_DIAL needs no permission and calls nothing until the user presses call).
+    fun open(uri: String, action: String) {
+        runCatching { context.startActivity(android.content.Intent(action, android.net.Uri.parse(uri))) }
+    }
     DrinkCard(tr("Support in Brazil")) {
-        SupportRow(Icons.Filled.Phone, tr("CVV · 188"), tr("Free emotional support, any time, by phone or chat."), null)
+        SupportRow(Icons.Filled.Phone, tr("CVV · 188"), tr("Free emotional support, any time, by phone or chat.")) {
+            open("tel:188", android.content.Intent.ACTION_DIAL)
+        }
         SupportRow(Icons.Filled.LocalHospital, tr("CAPS AD"), tr("Free public care for alcohol use. Ask at your local health unit."), null)
-        SupportRow(Icons.Filled.EventAvailable, tr("Alcoólicos Anônimos"), tr("Meetings across the country: aa.org.br"), null)
+        SupportRow(Icons.Filled.EventAvailable, tr("Alcoólicos Anônimos"), tr("Meetings across the country: aa.org.br")) {
+            open("https://www.aa.org.br", android.content.Intent.ACTION_VIEW)
+        }
         Text(tr("Anywhere: your doctor. If you drink most days, don't stop all at once; a doctor can help you cut down safely."), fontSize = 12.sp, color = PulseColors.textMuted)
     }
 }

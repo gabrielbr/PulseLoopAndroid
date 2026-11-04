@@ -63,7 +63,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text(tr("LAST 3 DAYS"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
+                Text(tr("LAST 3 DAYS"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 if (rowsLoaded == null) {
                     Spacer(Modifier.height(48.dp))
                 } else if (recent.isEmpty()) {
@@ -75,7 +75,7 @@ fun WhatChangedScreen(onBack: () -> Unit) {
             }
             val older = rows.filter { it.day < recentKey }.groupBy { it.day }
             if (older.isNotEmpty()) {
-                Text(tr("EARLIER"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
+                Text(tr("EARLIER"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 older.forEach { (day, list) ->
                     Column(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
@@ -104,7 +104,7 @@ private fun FindingRow(f: FindingEntity) {
             if (f.positive) androidx.compose.material.icons.Icons.Filled.CheckCircle else androidx.compose.material.icons.Icons.Filled.Info,
             contentDescription = if (f.positive) tr("Good sign") else tr("Worth a look"),
             tint = if (f.positive) PulseColors.success else PulseColors.warning,
-            modifier = Modifier.size(22.dp),
+            modifier = Modifier.size(24.dp),
         )
         Column(Modifier.weight(1f)) {
             Text(f.title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)

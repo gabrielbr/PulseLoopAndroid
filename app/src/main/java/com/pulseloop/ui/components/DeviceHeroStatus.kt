@@ -109,7 +109,7 @@ data class DeviceHeroStatus(
         fun relativeShort(fromMillis: Long, nowMillis: Long): String {
             val seconds = ((nowMillis - fromMillis) / 1000).coerceAtLeast(0)
             return when {
-                seconds < 60 -> "just now"
+                seconds < 60 -> tr("just now")
                 seconds < 3_600 -> trf("{0}m ago", seconds / 60)
                 seconds < 86_400 -> trf("{0}h ago", seconds / 3_600)
                 else -> trf("{0}d ago", seconds / 86_400)

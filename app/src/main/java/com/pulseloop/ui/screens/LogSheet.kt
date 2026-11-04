@@ -97,9 +97,13 @@ fun LogSheet(
                 targetState = step,
                 transitionSpec = {
                     val forward = targetState != LogStep.MENU
-                    (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
-                        androidx.compose.animation.slideInHorizontally(androidx.compose.animation.core.tween(220)) { w -> if (forward) w / 6 else -w / 6 }) togetherWith
-                        androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(150))
+                    // The system's own durations and ease (theme/Motion.kt), not one-off specs.
+                    val emphasis = androidx.compose.animation.core.tween<Float>(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)
+                    val slide = androidx.compose.animation.core.tween<androidx.compose.ui.unit.IntOffset>(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease)
+                    val standard = androidx.compose.animation.core.tween<Float>(com.pulseloop.ui.theme.Motion.STANDARD_MS, easing = com.pulseloop.ui.theme.Motion.ease)
+                    (androidx.compose.animation.fadeIn(emphasis) +
+                        androidx.compose.animation.slideInHorizontally(slide) { w -> if (forward) w / 6 else -w / 6 }) togetherWith
+                        androidx.compose.animation.fadeOut(standard)
                 },
                 label = "logStep",
             ) { shownStep ->
@@ -154,7 +158,7 @@ private fun RowScope.IconAction(label: String, icon: androidx.compose.ui.graphic
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
     ) {
-        Icon(icon, null, tint = tint, modifier = Modifier.size(26.dp))
+        Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
         Text(label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }

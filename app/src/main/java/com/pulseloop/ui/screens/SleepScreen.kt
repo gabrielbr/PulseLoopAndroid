@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,6 +97,8 @@ fun SleepScreen(
     bottomBarPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     LaunchedEffect(Unit) { onOpen() }
+    // Read once per composition so every time on this screen follows the phone's 12/24-hour setting.
+    sleepClock24h = android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current)
     val state by (viewModel?.state?.collectAsState() ?: remember { mutableStateOf(SleepViewModel.SleepState()) })
 
     LazyColumn(
@@ -140,23 +143,9 @@ private fun androidx.compose.foundation.lazy.LazyListScope.dayItems(
     when {
         sessions.isEmpty() -> {
             val noData = SleepInsights.noDataState(SleepRangeKey.DAY)
+            // One empty state: the hero says there is no night and what to do. The empty hypnogram
+            // card and three "—" stage cards used to say the same thing twice more.
             item { SleepHeroCard(label = noData.label, value = noData.value, support = noData.support, score = null, scoreLabel = null, noData = true) }
-            item {
-                VisualizationCard(eyebrow = tr("Stages"), title = tr("Sleep architecture"), legend = false) {
-                    Column(
-                        Modifier.fillMaxWidth().height(180.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(tr("No sleep recorded"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary)
-                        Text(
-                            tr("Wear your ring overnight to see your hypnogram here."),
-                            fontSize = 12.sp, color = PulseColors.textMuted,
-                        )
-                    }
-                }
-            }
-            item { SleepStageSummaryCards(deep = "—", light = "—", awake = "—") }
         }
         // Single session: render exactly as before, no carousel chrome.
         sessions.size == 1 -> sessionPageItems(sessions[0], state.dayBlocks[sessions[0].id] ?: emptyList(), viewModel, state.goalMinutes)
@@ -287,7 +276,8 @@ private fun SleepCarousel(
                         .size(7.dp)
                         .clip(CircleShape)
                         .background(
-                            if (i == pagerState.currentPage) PulseColors.accent
+                            // A position, not a tap target: no mint.
+                            if (i == pagerState.currentPage) PulseColors.textPrimary
                             else PulseColors.textSecondary.copy(alpha = 0.3f),
                         ),
                 )
@@ -332,7 +322,8 @@ private fun androidx.compose.foundation.lazy.LazyListScope.aggregateItems(
             )
         }
     }
-    item {
+    // Without averages the three cards were three more "—": the hero already says there's no data.
+    if (state.stageAvg != null) item {
         SleepStageSummaryCards(
             prefix = tr("Avg "),
             deep = state.stageAvg?.let { SleepFormat.duration(it.first) } ?: "—",
@@ -382,7 +373,7 @@ private fun SleepHeroCard(
             .background(PulseColors.card)
             .ditherFade(PulseColors.sleep, 0.16f, 0f)
             .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(20.dp),
+            .padding(24.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f)) {
@@ -401,7 +392,8 @@ private fun SleepHeroCard(
                 Text(support, fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 8.dp))
             }
         }
-        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // No night, no score: a big "—" beside "No sleep captured" was a third way of saying it.
+        if (!noData) Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 score?.toString() ?: "—",
                 fontSize = 40.sp, fontWeight = FontWeight.SemiBold,
@@ -498,6 +490,13 @@ private fun SleepHypnogram(
         "AWAKE" -> PulseColors.stageAwake
         else -> PulseColors.stageLight
     }
+    fun stageName(stage: String): String = when (stage) {
+        "DEEP" -> tr("Deep")
+        "LIGHT" -> tr("Light")
+        "REM" -> tr("REM")
+        "AWAKE" -> tr("Awake")
+        else -> stage
+    }
     val sorted = remember(blocks) {
         blocks.filter { it.durationMinutes > 0 && it.stageRaw != "UNKNOWN" }.sortedBy { it.startMinute }
     }
@@ -551,14 +550,14 @@ private fun SleepHypnogram(
     val summary = remember(sorted, startTs, safeTotal) {
         val perStage = sorted.groupBy { it.stageRaw }.mapValues { (_, b) -> b.sumOf { it.durationMinutes } }
         val parts = lanes.reversed().mapNotNull { stage ->
-            perStage[stage]?.let { "${if (stage == "REM") "REM" else stage.lowercase()} ${SleepFormat.duration(it)}" }
+            perStage[stage]?.let { "${stageName(stage)} ${SleepFormat.duration(it)}" }
         }
         trf("Sleep stages from {0} to {1}", clockTime(startTs), clockTime(startTs + safeTotal * 60_000L)) +
-            if (parts.isEmpty()) ": no stage data" else ": " + parts.joinToString(", ")
+            if (parts.isEmpty()) ": " + tr("no stage data") else ": " + parts.joinToString(", ")
     }
 
     fun readoutText(block: SleepStageBlockEntity): String {
-        val stage = block.stageRaw.replaceFirstChar { it.uppercase() }
+        val stage = stageName(block.stageRaw)
         val startTime = clockTime(startTs + block.startMinute * 60_000L)
         val endTime = clockTime(startTs + (block.startMinute + block.durationMinutes) * 60_000L)
         return "$stage · $startTime – $endTime"
@@ -571,7 +570,7 @@ private fun SleepHypnogram(
                 .height(height - 22.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(PulseColors.card)
-                .border(1.dp, Color.White.copy(alpha = 0.06f), RoundedCornerShape(8.dp))
+                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
                 .clearAndSetSemantics { contentDescription = summary },
         ) {
             var plotWidthPx by remember { mutableFloatStateOf(0f) }
@@ -667,7 +666,7 @@ private fun SleepHypnogram(
                     if (isScrubbing && scrubBlockIndex in sorted.indices) {
                         val sx = xForMinute(scrubMinute, size.width)
                         drawLine(
-                            color = Color.White.copy(alpha = 0.7f),
+                            color = PulseColors.textPrimary.copy(alpha = 0.7f),
                             start = Offset(sx, 0f),
                             end = Offset(sx, size.height),
                             strokeWidth = 2.dp.toPx(),
@@ -684,7 +683,7 @@ private fun SleepHypnogram(
                             val yFrac = laneFrac[stage] ?: 0.62f
                             val labelY = yFrac * plotHeightPx
                             Text(
-                                stage,
+                                stageName(stage).uppercase(),
                                 fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
                                 // Not the stage colour: DEEP's is 2.4:1 on the card. The bars and
                                 // legend swatches carry the colour.
@@ -721,14 +720,14 @@ private fun SleepHypnogram(
                     ) {
                         androidx.compose.foundation.layout.Box(
                             Modifier
-                                .background(Color.Black.copy(alpha = 0.85f), RoundedCornerShape(4.dp))
+                                .background(PulseColors.elevated, RoundedCornerShape(4.dp))
                                 .padding(horizontal = 12.dp, vertical = 8.dp),
                         ) {
                             Text(
                                 readoutText(block),
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = Color.White,
+                                color = PulseColors.textPrimary,
                             )
                         }
                     }
@@ -877,7 +876,7 @@ private fun SleepDayNavHeader(state: SleepViewModel.SleepState, viewModel: Sleep
             Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(4.dp))
-                .clickable(role = Role.Button) { showPicker = true }
+                .clickable(role = Role.Button, onClickLabel = tr("Pick a day")) { showPicker = true }
                 .padding(vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -981,9 +980,9 @@ private fun dayLabel(dayMillis: Long): String {
     return when {
         daysAgo <= 0 -> tr("Today")
         daysAgo == 1 -> tr("Yesterday")
-        daysAgo < 7 -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEEE"))
-        date.year == java.time.Year.now().value -> date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d"))
-        else -> date.format(java.time.format.DateTimeFormatter.ofPattern("MMM d, yyyy"))
+        daysAgo < 7 -> com.pulseloop.ui.components.PhoneFormat.date("EEEE", date)
+        date.year == java.time.Year.now().value -> com.pulseloop.ui.components.PhoneFormat.date("EEEMMMd", date)
+        else -> com.pulseloop.ui.components.PhoneFormat.date("yMMMd", date)
     }
 }
 
@@ -993,12 +992,15 @@ private fun daySubLabel(dayMillis: Long): String {
     val daysAgo = ((today - dayMillis) / 86_400_000L).toInt()
     if (daysAgo >= 7) return ""
     val date = java.time.Instant.ofEpochMilli(dayMillis).atZone(java.time.ZoneId.systemDefault())
-    return date.format(java.time.format.DateTimeFormatter.ofPattern("EEE, MMM d")).uppercase(java.util.Locale.ROOT)
+    return com.pulseloop.ui.components.PhoneFormat.date("EEEMMMd", date).uppercase(java.util.Locale.ROOT)
 }
 
 // ─────────────────────────── Helpers ───────────────────────────
 
-private fun clockTime(ts: Long): String = SleepFormat.clockTime(ts)
+/** Set by [SleepScreen] on each composition from the phone's 12/24-hour setting. */
+@Volatile private var sleepClock24h: Boolean = false
+
+private fun clockTime(ts: Long): String = com.pulseloop.ui.components.PhoneFormat.clock(sleepClock24h, ts)
 
 private fun qualityText(label: SleepQualityLabel): String = when (label) {
     SleepQualityLabel.EXCELLENT -> tr("Excellent")
@@ -1041,10 +1043,12 @@ private fun SleepRecordsCard(
     viewModel: SleepViewModel?,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
     // Two-step delete (the vitals/activity pattern): a row's trash icon arms the confirm dialog.
     var pendingRun by remember { mutableStateOf<com.pulseloop.service.SleepRecordRun?>(null) }
     var editingRun by remember { mutableStateOf<com.pulseloop.service.SleepRecordRun?>(null) }
+    // A failed edit or delete is said inline, under the records it concerns (was a Toast, which
+    // TalkBack can miss and which vanishes before it is read).
+    var failure by remember { mutableStateOf<String?>(null) }
     VisualizationCard(
         eyebrow = tr("Records"),
         // One run only happens on a carousel page, which may be a nap rather than a night.
@@ -1063,7 +1067,7 @@ private fun SleepRecordsCard(
                     )
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "${SleepFormat.clockTime(run.startAt)} – ${SleepFormat.clockTime(run.endAt)}",
+                            "${clockTime(run.startAt)} – ${clockTime(run.endAt)}",
                             fontSize = 14.sp,
                             color = PulseColors.textPrimary,
                         )
@@ -1108,6 +1112,12 @@ private fun SleepRecordsCard(
                     )
                 }
             }
+            failure?.let {
+                Text(
+                    it, fontSize = 12.sp, color = PulseColors.danger,
+                    modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite },
+                )
+            }
         }
     }
 
@@ -1117,13 +1127,10 @@ private fun SleepRecordsCard(
             onDismiss = { editingRun = null },
             onSave = { newStart, newEnd ->
                 editingRun = null
+                failure = null
                 scope.launch {
                     val updated = viewModel?.editSleepRecord(session.id, run.recordStartAt, newStart, newEnd) ?: false
-                    if (!updated) {
-                        android.widget.Toast.makeText(
-                            context, tr("Couldn't update this record"), android.widget.Toast.LENGTH_SHORT,
-                        ).show()
-                    }
+                    if (!updated) failure = tr("Couldn't update this record")
                 }
             },
         )
@@ -1135,19 +1142,16 @@ private fun SleepRecordsCard(
             title = { Text(tr("Delete this record?")) },
             text = {
                 Text(
-                    trf("{0} – {1} leaves tonight's totals and the hypnogram, and it won't come back on re-sync.", SleepFormat.clockTime(run.startAt), SleepFormat.clockTime(run.endAt)),
+                    trf("{0} – {1} leaves tonight's totals and the hypnogram, and it won't come back on re-sync.", clockTime(run.startAt), clockTime(run.endAt)),
                 )
             },
             confirmButton = {
                 PulseButton(PulseButtonStyle.Text, onClick = {
                     pendingRun = null
+                    failure = null
                     scope.launch {
                         val removed = viewModel?.deleteSleepRecord(session.id, run.recordStartAt) ?: false
-                        if (!removed) {
-                            android.widget.Toast.makeText(
-                                context, tr("Couldn't delete this record"), android.widget.Toast.LENGTH_SHORT,
-                            ).show()
-                        }
+                        if (!removed) failure = tr("Couldn't delete this record")
                     }
                 }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
@@ -1191,18 +1195,18 @@ private fun SleepRecordEditDialog(
                         onClick = { pickingTime = "start" },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text(trf("Start: {0}", SleepFormat.clockTime(currentStart)))
+                        Text(trf("Start: {0}", clockTime(currentStart)))
                     }
                     PulseButton(PulseButtonStyle.Outlined,
                         onClick = { pickingTime = "end" },
                         modifier = Modifier.weight(1f),
                     ) {
-                        Text(trf("End: {0}", SleepFormat.clockTime(currentEnd)))
+                        Text(trf("End: {0}", clockTime(currentEnd)))
                     }
                 }
                 if (pickedOutside) {
                     Text(
-                        trf("This record runs {0} – {1}. You can only shorten it.", SleepFormat.clockTime(run.startAt), SleepFormat.clockTime(run.endAt)),
+                        trf("This record runs {0} – {1}. You can only shorten it.", clockTime(run.startAt), clockTime(run.endAt)),
                         color = PulseColors.danger,
                         fontSize = 12.sp,
                     )

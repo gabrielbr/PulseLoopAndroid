@@ -298,7 +298,7 @@ fun PairingScreen(
                     .heightIn(min = 88.dp)
                     .background(PulseColors.card)
                     .border(1.dp, PulseColors.borderSubtle)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 contentAlignment = Alignment.CenterStart,
             ) {
                 Text(
@@ -317,7 +317,7 @@ fun PairingScreen(
                         .fillMaxWidth()
                         .background(PulseColors.secondaryBackground)
                         .padding(horizontal = 24.dp, vertical = 12.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     if (!isLooking && btReady) {
@@ -406,7 +406,7 @@ private fun BrandTabs(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            brand,
+                            if (brand == ALL_BRANDS_TAB) tr("All") else brand,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
                             color = if (isSelected) PulseColors.onAccent else PulseColors.textSecondary,
@@ -414,7 +414,7 @@ private fun BrandTabs(
                                 .clip(CircleShape)
                                 .background(if (isSelected) PulseColors.accent else PulseColors.card)
                                 .border(1.dp, if (isSelected) Color.Transparent else PulseColors.borderSubtle, CircleShape)
-                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                         )
                     }
                 }
@@ -438,15 +438,17 @@ private fun ModelCarousel(
     }
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // A minimum, not a fixed height: at large font scale the name and chips wrap, and a
+        // fixed 300dp clipped them.
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(300.dp),
+                .heightIn(min = 300.dp),
         ) { page ->
             val model = models[page]
             Column(
-                Modifier.fillMaxSize(),
+                Modifier.fillMaxWidth().heightIn(min = 300.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
             ) {
@@ -456,6 +458,7 @@ private fun ModelCarousel(
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = PulseColors.textPrimary,
+                    textAlign = TextAlign.Center,
                 )
                 CapabilityChips(model.blurb)
             }
@@ -466,15 +469,22 @@ private fun ModelCarousel(
             Modifier.height(48.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (models.size > 1) {
+            if (models.size > 8) {
+                // Twenty-odd dots overflow a phone's width; past eight, a count reads better.
+                Text(
+                    trf("{0} of {1}", pagerState.currentPage + 1, models.size),
+                    fontSize = 14.sp,
+                    color = PulseColors.textSecondary,
+                )
+            } else if (models.size > 1) {
                 models.forEachIndexed { index, model ->
                     val isSelected = pagerState.currentPage == index
                     Box(
                         Modifier
                             .size(width = 32.dp, height = 48.dp)
-                            .clickable { scope.launch { pagerState.animateScrollToPage(index) } }
+                            .clickable(role = Role.Tab) { scope.launch { pagerState.animateScrollToPage(index) } }
                             .semantics {
-                                contentDescription = "${model.displayName}, ${index + 1} of ${models.size}"
+                                contentDescription = model.displayName + ", " + trf("{0} of {1}", index + 1, models.size)
                                 selected = isSelected
                             },
                         contentAlignment = Alignment.Center,
@@ -557,9 +567,10 @@ private fun DiscoveredRingRow(ring: RingBLEClient.DiscoveredRing, onClick: () ->
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick),
+            .heightIn(min = 48.dp)
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
-        // Accent left-stripe marks devices recognized as rings. matchParentSize resolves after
+        // Success left-stripe (recognised is a status, not a tap colour) marks devices recognized as rings. matchParentSize resolves after
         // the Row below is measured, so the stripe spans the full row height.
         if (ring.isLikelyRing) {
             Box(Modifier.matchParentSize()) {
@@ -568,22 +579,22 @@ private fun DiscoveredRingRow(ring: RingBLEClient.DiscoveredRing, onClick: () ->
                         .align(Alignment.CenterStart)
                         .fillMaxHeight()
                         .width(2.dp)
-                        .background(PulseColors.accent),
+                        .background(PulseColors.success),
                 )
             }
         }
         Row(
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Icon(
                 if (ring.isLikelyRing) Icons.Filled.CheckCircle else Icons.Filled.BluetoothSearching,
                 contentDescription = null,
                 modifier = Modifier.size(20.dp),
-                tint = if (ring.isLikelyRing) PulseColors.accent else PulseColors.textMuted,
+                tint = if (ring.isLikelyRing) PulseColors.success else PulseColors.textMuted,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
@@ -598,7 +609,7 @@ private fun DiscoveredRingRow(ring: RingBLEClient.DiscoveredRing, onClick: () ->
                         WearableModel.model(ring.wearableModelID)?.displayName
                             ?: ringModelLabel(ring.name, type),
                         fontSize = 12.sp,
-                        color = PulseColors.accent,
+                        color = PulseColors.textSecondary,
                     )
                 }
             }
@@ -659,7 +670,7 @@ private fun ConnectedCard(
             Icon(
                 Icons.Filled.Check,
                 contentDescription = null,
-                modifier = Modifier.size(22.dp).scale(checkScale),
+                modifier = Modifier.size(24.dp).scale(checkScale),
                 tint = PulseColors.success,
             )
             Text(
@@ -683,14 +694,14 @@ private fun BluetoothOffCard() {
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .padding(horizontal = 20.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(
             Icons.Filled.BluetoothDisabled,
             contentDescription = null,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(32.dp),
             tint = PulseColors.textMuted,
         )
         Text(
@@ -724,14 +735,14 @@ private fun BluetoothPermissionCard(permanentlyDenied: Boolean, onRequest: () ->
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
-            .padding(horizontal = 20.dp, vertical = 32.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Icon(
             Icons.Filled.BluetoothDisabled,
             contentDescription = null,
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(32.dp),
             tint = PulseColors.textMuted,
         )
         Text(

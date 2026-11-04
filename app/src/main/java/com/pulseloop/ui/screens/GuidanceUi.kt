@@ -46,26 +46,6 @@ fun rememberGuidance(db: PulseLoopDatabase, key: Any?): GuidanceState? {
     return state
 }
 
-/** Shown only when two or more of last night's signals are outside the usual range. */
-@Composable
-fun UnusualSignalsCard(signals: List<OffSignal>) {
-    if (!VitalsCheck.shouldAlert(signals)) return
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp))
-            .dither(PulseColors.warning, 0.12f).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(tr("Some signals look unusual"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.warning)
-        signals.forEach {
-            Text("${it.title}: ${it.detail}", fontSize = 14.sp, color = PulseColors.textPrimary)
-        }
-        Text(
-            tr("Compared with your own recent nights. This can follow illness, stress, alcohol or a hard day. It isn't a diagnosis; consider an easier day."),
-            fontSize = 12.sp, color = PulseColors.textSecondary,
-        )
-    }
-}
-
 /** Tonight: the suggested bedtime window and the caffeine cutoff that goes with it. */
 @Composable
 fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
@@ -74,20 +54,28 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
         horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(tr("BEDTIME"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.sleep)
+            Text(tr("BEDTIME"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
             Text(
-                "${BedtimeGuidance.fmt(g.windowStart)}–${BedtimeGuidance.fmt(g.windowEnd)}",
+                "${clock(g.windowStart)}–${clock(g.windowEnd)}",
                 fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
             )
             Text(
-                trf("For {0}h asleep before your usual {1}", sleepGoalMinutes / 60, BedtimeGuidance.fmt(g.usualWake)),
+                trf("For {0}h asleep before your usual {1}", sleepGoalMinutes / 60, clock(g.usualWake)),
                 fontSize = 12.sp, color = PulseColors.textMuted,
             )
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(tr("LAST CAFFEINE"), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = PulseColors.calories)
-            Text(BedtimeGuidance.fmt(g.caffeineCutoff), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+            Text(tr("LAST CAFFEINE"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+            Text(clock(g.caffeineCutoff), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
             Text(tr("8 hours before bed"), fontSize = 12.sp, color = PulseColors.textMuted)
         }
     }
+}
+
+/** A clock time in the phone's own 12/24-hour setting (BedtimeGuidance.fmt is always 24-hour). */
+@Composable
+private fun clock(t: java.time.LocalTime): String {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val pattern = if (android.text.format.DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm a"
+    return t.format(java.time.format.DateTimeFormatter.ofPattern(pattern))
 }

@@ -224,27 +224,27 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
             .systemBarsPadding(),
     ) {
         // iOS: navigationTitle "Scan barcode" (inline) + .cancellationAction Cancel (:41-45).
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 4.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                tr("Scan barcode"),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = PulseColors.textPrimary,
-                modifier = Modifier.weight(1f),
-            )
-            PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) }
-        }
+        // The app's one pushed-screen bar; its back arrow closes the scanner.
+        com.pulseloop.ui.components.PulseTopBar(title = tr("Scan barcode"), onBack = onDismiss)
         when (availability) {
-            ScanAvailability.Granted ->
+            ScanAvailability.Granted -> Box(Modifier.fillMaxSize()) {
                 AndroidView(
                     factory = { previewView },
                     modifier = Modifier.fillMaxSize(),
                 )
+                // The scanning state says what to do: the preview alone gave no hint.
+                Text(
+                    tr("Point the camera at the barcode"),
+                    fontSize = 14.sp,
+                    color = PulseColors.textPrimary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(24.dp)
+                        .background(PulseColors.background.copy(alpha = 0.7f), androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                )
+            }
 
             ScanAvailability.Unavailable -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 // iOS fallback block, verbatim copy (BarcodeScannerSheet.swift:26-39).
@@ -259,16 +259,16 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                         Icons.Filled.QrCodeScanner,
                         contentDescription = null,
                         tint = PulseColors.textMuted,
-                        modifier = Modifier.size(34.dp),
+                        modifier = Modifier.size(32.dp),
                     )
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         tr("Scanning unavailable"),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textPrimary,
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         tr("Barcode scanning needs a working device camera. Enter the food manually instead."),
                         fontSize = 12.sp,
@@ -287,16 +287,16 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                         Icons.Filled.QrCodeScanner,
                         contentDescription = null,
                         tint = PulseColors.textMuted,
-                        modifier = Modifier.size(34.dp),
+                        modifier = Modifier.size(32.dp),
                     )
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         tr("Camera access needed"),
                         fontSize = 16.sp,
                         fontWeight = FontWeight.SemiBold,
                         color = PulseColors.textPrimary,
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Text(
                         tr("Allow camera access in Settings to scan barcodes, or enter the food manually instead."),
                         fontSize = 12.sp,

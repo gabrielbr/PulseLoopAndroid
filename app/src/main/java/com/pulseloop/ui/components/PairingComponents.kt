@@ -58,7 +58,7 @@ fun PrimaryButton(
         ),
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, Modifier.size(18.dp))
+            Icon(icon, contentDescription = null, Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
         }
         // Centered: a long translated title wraps to two lines inside the full-width button.
@@ -89,7 +89,7 @@ fun SecondaryButton(
         ),
     ) {
         if (icon != null) {
-            Icon(icon, contentDescription = null, Modifier.size(18.dp), tint = PulseColors.textSecondary)
+            Icon(icon, contentDescription = null, Modifier.size(20.dp), tint = PulseColors.textSecondary)
             Spacer(Modifier.width(8.dp))
         }
         // Centered: a long translated title wraps to two lines inside the full-width button.
@@ -108,7 +108,7 @@ fun CapabilityChips(blurb: String, modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         chips.forEach { chip ->

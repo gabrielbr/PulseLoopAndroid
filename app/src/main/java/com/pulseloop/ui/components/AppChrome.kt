@@ -236,52 +236,14 @@ fun greetingForHour(): String = when (Calendar.getInstance().get(Calendar.HOUR_O
     else -> tr("Good night")
 }
 
-/**
- * The iOS card eyebrow: colored dot + letterspaced ALL-CAPS label, with an optional
- * trailing slot (e.g. "Updated 5m ago", a legend, or a chip). Matches VitalCard's
- * header so hand-built tiles read identically to the vitals cards.
- */
-@Composable
-fun CardEyebrow(
-    label: String,
-    dotColor: Color,
-    modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = null,
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Box(
-            Modifier
-                .size(8.dp)
-                .clip(CircleShape)
-                .background(dotColor),
-        )
-        // The label takes the free width (instead of a Spacer) so a long translated label wraps
-        // rather than pushing the trailing slot off the card; the slot is bounded for the same reason.
-        Text(
-            label.uppercase(),
-            style = PulseType.eyebrow,
-            color = PulseColors.textSecondary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        trailing?.let { Box(Modifier.widthIn(max = 180.dp)) { it() } }
-    }
-}
-
 /** Uppercase letterspaced section header used between card groups (RootViews `SectionHeader`). */
 @Composable
 fun SectionHeaderCaps(title: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             title.uppercase(),
-            fontSize = 14.sp,
-            fontWeight = FontWeight.SemiBold,
-            letterSpacing = 1.sp,
+            // The one eyebrow style (12sp, 1sp tracking), not a hand-rolled 14sp variant.
+            style = PulseType.eyebrow,
             color = PulseColors.textSecondary,
             // Takes the free width (instead of a Spacer) so a long title wraps beside the action.
             modifier = Modifier.weight(1f),

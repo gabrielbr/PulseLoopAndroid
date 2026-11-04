@@ -250,12 +250,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     val result = load.value
 
     Column(Modifier.fillMaxSize()) {
-        androidx.compose.material3.CenterAlignedTopAppBar(
-            title = { Text(tr("Readiness"), style = com.pulseloop.ui.theme.PulseType.title) },
-            navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) } },
-            windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
-            colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = PulseColors.background),
-        )
+        com.pulseloop.ui.components.PulseTopBar(tr("Readiness"), onBack)
 
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
@@ -445,10 +440,12 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
     }
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-            .clickable { open = !open }.padding(16.dp),
+            .clickable(role = Role.Button, onClickLabel = if (open) tr("Hide") else tr("Show")) { open = !open }
+            .semantics { stateDescription = if (open) tr("Expanded") else tr("Collapsed") }
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.heightIn(min = 24.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(tr("Data behind this score"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
             Text(if (open) tr("Hide") else tr("Show"), fontSize = 14.sp, color = PulseColors.accent)
         }

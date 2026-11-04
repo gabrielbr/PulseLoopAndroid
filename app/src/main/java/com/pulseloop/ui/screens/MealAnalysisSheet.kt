@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -283,22 +284,9 @@ fun MealAnalysisDialog(
                 .background(PulseColors.background)
                 .systemBarsPadding(),
         ) {
-            // iOS: navigationTitle "AI meal log" (inline) + Cancel (MealAnalysisSheet.swift:70-74).
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    tr("AI meal log"),
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = PulseColors.textPrimary,
-                    modifier = Modifier.weight(1f),
-                )
-                PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) }
-            }
+            // The app's one pushed-screen bar: its back arrow is the way out (was a hand-rolled
+            // title row with a Cancel button).
+            com.pulseloop.ui.components.PulseTopBar(title = tr("AI meal log"), onBack = onDismiss)
             Column(
                 Modifier
                     .fillMaxSize()
@@ -329,7 +317,7 @@ fun MealAnalysisDialog(
                             Box(Modifier.fillMaxWidth()) {
                                 Image(
                                     bitmap = picked.asImageBitmap(),
-                                    contentDescription = null,
+                                    contentDescription = tr("Meal photo"),
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .height(220.dp)
@@ -339,7 +327,12 @@ fun MealAnalysisDialog(
                                     onClick = { image = null },
                                     modifier = Modifier.align(Alignment.TopEnd),
                                 ) {
-                                    Icon(Icons.Filled.Close, tr("Remove photo"), tint = Color.White)
+                                    // A scrim behind the glyph, so it reads on a bright photo.
+                                    Icon(
+                                        Icons.Filled.Close, tr("Remove photo"),
+                                        tint = PulseColors.textPrimary,
+                                        modifier = Modifier.background(PulseColors.background.copy(alpha = 0.7f), CircleShape).padding(4.dp),
+                                    )
                                 }
                             }
                         } else {
@@ -347,7 +340,7 @@ fun MealAnalysisDialog(
                             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 PulseButton(PulseButtonStyle.Outlined, onClick = { launchCamera() }, modifier = Modifier.weight(1f).fillMaxHeight()) {
                                     Icon(Icons.Filled.PhotoCamera, null, Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Text(tr("Camera"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
                                 PulseButton(PulseButtonStyle.Outlined,
@@ -359,7 +352,7 @@ fun MealAnalysisDialog(
                                     modifier = Modifier.weight(1f).fillMaxHeight(),
                                 ) {
                                     Icon(Icons.Filled.PhotoLibrary, null, Modifier.size(18.dp))
-                                    Spacer(Modifier.width(6.dp))
+                                    Spacer(Modifier.width(8.dp))
                                     Text(tr("Library"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                                 }
                             }
@@ -368,9 +361,8 @@ fun MealAnalysisDialog(
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 if (image == null) tr("OR DESCRIBE IT") else tr("ADD DETAIL (OPTIONAL)"),
-                                fontSize = 12.sp,
-                                letterSpacing = 1.4.sp,
-                                color = PulseColors.textMuted,
+                                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                                color = PulseColors.textSecondary,
                             )
                             OutlinedTextField(
                                 value = describeText,
@@ -382,14 +374,14 @@ fun MealAnalysisDialog(
                             )
                         }
 
-                        PulseButton(
+                        // Tonal: the app's one filled accent is the Actions button.
+                        PulseButton(PulseButtonStyle.Tonal,
                             onClick = { analyze() },
                             enabled = canAnalyze,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = PulseColors.accent),
                         ) {
                             Icon(Icons.Filled.AutoAwesome, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(tr("Analyze"))
                         }
 
@@ -421,7 +413,7 @@ fun MealAnalysisDialog(
                             // ProvenanceBadge(source: .llmEstimate) — "AI estimate", sparkles,
                             // accent (NutritionComponents.swift:231-264).
                             Surface(
-                                modifier = Modifier.dither(PulseColors.accent, 0.14f, RoundedCornerShape(50)),
+                                modifier = Modifier.dither(PulseColors.info, 0.14f, RoundedCornerShape(50)),
                                 shape = RoundedCornerShape(50),
                                 color = Color.Transparent,
                             ) {
@@ -429,13 +421,13 @@ fun MealAnalysisDialog(
                                     Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                 ) {
-                                    Icon(Icons.Filled.AutoAwesome, null, tint = PulseColors.accent, modifier = Modifier.size(12.dp))
+                                    Icon(Icons.Filled.AutoAwesome, null, tint = PulseColors.info, modifier = Modifier.size(12.dp))
                                     Spacer(Modifier.width(4.dp))
                                     Text(
                                         tr("AI estimate"),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = PulseColors.accent,
+                                        color = PulseColors.info,
                                     )
                                 }
                             }
@@ -485,14 +477,13 @@ fun MealAnalysisDialog(
                             }
                         }
                         val canSave = MealAnalysisLogic.canSave(name, calories)
-                        PulseButton(
+                        PulseButton(PulseButtonStyle.Tonal,
                             onClick = { save() },
                             enabled = canSave,
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = PulseColors.accent),
                         ) {
                             Icon(Icons.Filled.Check, null, Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(tr("Log meal"))
                         }
                         PulseButton(PulseButtonStyle.Text,
