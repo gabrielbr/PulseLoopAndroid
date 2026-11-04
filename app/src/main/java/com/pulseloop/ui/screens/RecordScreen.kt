@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.pulseloop.service.HeartRateZones
 import com.pulseloop.settings.UnitConverter
 import com.pulseloop.settings.UnitSystem
@@ -99,7 +100,7 @@ fun RecordScreen(
         // Large elapsed + HR
         Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(elapsed, style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(elapsed, fontSize = 40.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Spacer(Modifier.height(4.dp))
                 val hrText = heartRate?.let { "$it bpm" } ?: "-- bpm"
                 val zoneColor = when (hrZone) {
@@ -110,7 +111,7 @@ fun RecordScreen(
                 }
                 Text(hrText, style = MaterialTheme.typography.headlineLarge, color = zoneColor)
                 if (heartRateAdjusted) {
-                    Text("adjusted by your accuracy check", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(tr("adjusted by your accuracy check"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Text(tr(hrZone.label), style = MaterialTheme.typography.labelMedium, color = zoneColor)
             }

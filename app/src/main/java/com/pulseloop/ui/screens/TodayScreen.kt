@@ -702,7 +702,7 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
     val kcal = food?.kcal ?: 0.0
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(Formats.count(kcal.toInt()), fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary, maxLines = 1)
-        Text("kcal", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
+        Text(tr("kcal"), fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
     }
     val goal = food?.goalKcal?.takeIf { it > 0 }
     if (goal != null) {
@@ -715,7 +715,7 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
     Spacer(Modifier.weight(1f))
     if (food != null && food.meals > 0) {
         Text(
-            "P ${food.proteinG.toInt()} · C ${food.carbsG.toInt()} · F ${food.fatG.toInt()} g",
+            trf("P {0} · C {1} · F {2} g", food.proteinG.toInt(), food.carbsG.toInt(), food.fatG.toInt()),
             fontSize = 12.sp, color = PulseColors.textSecondary, maxLines = 1,
         )
     } else {

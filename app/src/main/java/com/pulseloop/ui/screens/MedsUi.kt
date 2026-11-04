@@ -99,7 +99,7 @@ fun MedsScreen(onBack: () -> Unit) {
                                     listOfNotNull(d.med.dose, d.state.label).joinToString(" · "),
                                     fontSize = 12.sp,
                                     color = when (d.state) {
-                                        Meds.State.TAKEN -> PulseColors.accent
+                                        Meds.State.TAKEN -> PulseColors.success
                                         Meds.State.MISSED -> PulseColors.warning
                                         else -> PulseColors.textMuted
                                     },

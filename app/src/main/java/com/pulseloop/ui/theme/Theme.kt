@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.pulseloop.R
 
 // GMind branding: Ubuntu Mono throughout, mint #43F3B7 as the one accent with ink-green
@@ -53,7 +54,15 @@ private fun darkScheme() = darkColorScheme(
  * height: a 13sp label inherited bodyLarge's 24sp and a wrapped line opened a gap under it.
  */
 private fun Typography.withFamily(family: FontFamily): Typography {
-    fun TextStyle.f() = copy(fontFamily = family, lineHeight = (lineHeight.value / fontSize.value).em)
+    // Every Material style lands on PulseType.SCALE too: its own 57/45/36/22/11sp sizes were
+    // reachable through `MaterialTheme.typography.*` and slipped past PulseTypeScaleTest, which
+    // only sees inline `fontSize` (audit, v2.11.58). The line-height ratio is kept.
+    fun TextStyle.f(): TextStyle {
+        val ratio = lineHeight.value / fontSize.value
+        val onScale = PulseType.SCALE.minByOrNull { kotlin.math.abs(it - fontSize.value) }!!
+        val size = if (fontSize.value < PulseType.SCALE.first()) PulseType.SCALE.first() else onScale
+        return copy(fontFamily = family, fontSize = size.sp, lineHeight = ratio.em)
+    }
     return copy(
         displayLarge = displayLarge.f(), displayMedium = displayMedium.f(), displaySmall = displaySmall.f(),
         headlineLarge = headlineLarge.f(), headlineMedium = headlineMedium.f(), headlineSmall = headlineSmall.f(),
@@ -63,7 +72,7 @@ private fun Typography.withFamily(family: FontFamily): Typography {
     )
 }
 
-private val PulseTypography = Typography().withFamily(UbuntuMono)
+internal val PulseTypography = Typography().withFamily(UbuntuMono)
 
 /**
  * Always the dark scheme: every screen draws on [PulseColors]' dark tokens, so a light Material

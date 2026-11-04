@@ -288,3 +288,28 @@ fun SectionHeaderCaps(title: String, modifier: Modifier = Modifier, action: (@Co
         action?.invoke()
     }
 }
+
+/**
+ * The top bar of every pushed screen: a back arrow, the title centred in `PulseType.title`, and
+ * optional actions. One component so pushed screens stop hand-rolling a Box + IconButton header
+ * in three slightly different type styles (audit, v2.11.58).
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun PulseTopBar(
+    title: String,
+    onBack: () -> Unit,
+    actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
+) {
+    androidx.compose.material3.CenterAlignedTopAppBar(
+        title = { Text(title, style = com.pulseloop.ui.theme.PulseType.title, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+        navigationIcon = {
+            androidx.compose.material3.IconButton(onClick = onBack) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.AutoMirrored.Filled.ArrowBack, com.pulseloop.ui.i18n.tr("Back"))
+            }
+        },
+        actions = actions,
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
+        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(containerColor = com.pulseloop.ui.theme.PulseColors.background),
+    )
+}

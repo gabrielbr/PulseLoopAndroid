@@ -266,7 +266,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                 ScoreRing(
                     value = score?.value,
                     color = score?.let { bandColor(it.band) } ?: PulseColors.readiness,
-                    size = 168.dp, stroke = 12.dp, centerSize = 48,
+                    size = 168.dp, stroke = 12.dp, centerSize = 40,
                     // An empty ring while loading, not the "no score" dash.
                     centerText = score?.value?.toString() ?: if (load.loaded) "—" else "",
                 )
@@ -385,15 +385,7 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
     val load = rememberActivityScoreLoad(db, Unit)
     val result = load.value
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
-            }
-            Text(
-                tr("Activity"), modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-            )
-        }
+        com.pulseloop.ui.components.PulseTopBar(tr("Activity"), onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -402,7 +394,7 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
                 ScoreRing(
                     value = result?.value,
                     color = result?.let { bandColor(it.band) } ?: PulseColors.steps,
-                    size = 168.dp, stroke = 12.dp, centerSize = 48,
+                    size = 168.dp, stroke = 12.dp, centerSize = 40,
                     centerText = result?.value?.toString() ?: if (load.loaded) "—" else "",
                 )
                 result?.let {
@@ -417,11 +409,9 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
                 )
             }
             result?.let { ContributorsCard(it.contributors) }
-            Text(
-                tr("Open today's activity"),
-                fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.steps,
-                modifier = Modifier.clip(RoundedCornerShape(4.dp)).clickable(onClick = onOpenActivity).padding(8.dp),
-            )
+            com.pulseloop.ui.components.PulseButton(com.pulseloop.ui.components.PulseButtonStyle.Text, onClick = onOpenActivity) {
+                Text(tr("Open today's activity"))
+            }
             Text(
                 tr("Activity is estimated by PulseLoop from your ring's steps and the workouts you log. It is not a medical measurement."),
                 fontSize = 12.sp, color = PulseColors.textMuted,
@@ -432,7 +422,7 @@ fun ActivityScoreScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenActivit
 }
 
 fun activityHeadline(result: com.pulseloop.service.ActivityScore.Result?): String {
-    if (result == null) return "No activity recorded yet. Sync your ring to see today's score."
+    if (result == null) return tr("No activity recorded yet. Sync your ring to see today's score.")
     val weakest = result.contributors.minByOrNull { it.score }?.takeIf { it.score < 70 }?.title?.lowercase()
     return when (result.band) {
         Readiness.Band.OPTIMAL -> tr("Great balance of movement and recovery. Keep it up.")
@@ -470,9 +460,9 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
                     add(line(tr("Night covered by the ring"), "${(night.coverage * 100).roundToInt()}%"))
                     add(line(tr("Heart-rate readings"), "${night.hrSamples}"))
                     add(line(tr("HRV readings"), "${night.hrvSamples}"))
-                    add(line(tr("Resting heart rate"), night.restingHr?.let { "${it.roundToInt()} bpm" } ?: "not measured"))
-                    add(line("HRV", night.hrv?.let { "${it.roundToInt()} ms" } ?: "not measured"))
-                } else add(line(tr("Last night"), "no sleep recorded"))
+                    add(line(tr("Resting heart rate"), night.restingHr?.let { "${it.roundToInt()} bpm" } ?: tr("not measured")))
+                    add(line(tr("HRV"), night.hrv?.let { "${it.roundToInt()} ms" } ?: tr("not measured")))
+                } else add(line(tr("Last night"), tr("no sleep recorded")))
                 inputs?.let { add(line(tr("Nights in your baseline"), "${it.history.count { n -> n.restingHr != null || n.hrv != null }}")) }
                 add(line(tr("Formula version"), "${com.pulseloop.service.Algorithms.VERSION}"))
             }

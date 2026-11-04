@@ -230,7 +230,11 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
             if (s == null) {
                 item {
                     if (loadFailed) {
-                        Text(tr("Couldn't load your health history."), color = PulseColors.warning, fontSize = 14.sp)
+                        // A dead end otherwise: say so, and offer the retry.
+                        Column {
+                            Text(tr("Couldn't load your health history."), color = PulseColors.warning, fontSize = 14.sp)
+                            com.pulseloop.ui.components.PulseButton(com.pulseloop.ui.components.PulseButtonStyle.Text, onClick = { refresh++ }) { Text(tr("Try again")) }
+                        }
                     } else {
                         // Only after a moment: on a quick read the line would just flash before the cards.
                         var slow by remember { mutableStateOf(false) }
@@ -481,7 +485,7 @@ private fun TrendsSection(db: PulseLoopDatabase) {
                     val bw = size.width / shown.size
                     shown.forEachIndexed { i, p ->
                         val h = ((p.value - lo) / range * size.height).toFloat().coerceAtLeast(2f)
-                        drawRect(PulseColors.accent, Offset(i * bw + bw * 0.15f, size.height - h), Size(bw * 0.7f, h))
+                        drawRect(PulseColors.info, Offset(i * bw + bw * 0.15f, size.height - h), Size(bw * 0.7f, h))
                     }
                 }
                 val last = shown.last()
@@ -538,12 +542,7 @@ fun BreatheScreen(onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background).padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.fillMaxWidth()) {
-            IconButton(onClick = { if (startedAt != null) finish(); onBack() }, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"))
-            }
-            Text(tr("Breathe"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
+        com.pulseloop.ui.components.PulseTopBar(tr("Breathe"), onBack = { if (startedAt != null) finish(); onBack() })
         Spacer(Modifier.weight(1f))
         val r = result
         when {

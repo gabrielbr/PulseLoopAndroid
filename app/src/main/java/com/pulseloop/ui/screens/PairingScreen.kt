@@ -263,8 +263,8 @@ fun PairingScreen(
             // The permission card explains a missing grant; don't also show the raw scan error.
             if (state.lastError != null && !connected && hasBlePermissions) {
                 Text(
-                    state.lastError ?: "",
-                    fontSize = 12.sp,
+                    pairingErrorText(state.lastError),
+                    fontSize = 14.sp,
                     color = PulseColors.danger,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth(),
@@ -621,17 +621,17 @@ private fun ConnectedCard(
     LaunchedEffect(Unit) { appeared = true }
     val haloScale by animateFloatAsState(
         targetValue = if (appeared) 1f else 0.7f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease),
         label = "haloScale",
     )
     val haloAlpha by animateFloatAsState(
         targetValue = if (appeared) 1f else 0f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease),
         label = "haloAlpha",
     )
     val checkScale by animateFloatAsState(
         targetValue = if (checkmarkFired || appeared) 1f else 0.3f,
-        animationSpec = spring(dampingRatio = 0.55f, stiffness = Spring.StiffnessMedium),
+        animationSpec = androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease),
         label = "checkScale",
     )
 
@@ -778,4 +778,20 @@ private fun Context.findActivity(): Activity? {
         current = current.baseContext
     }
     return null
+}
+
+
+/**
+ * The connection client's error as a state the user can act on. The raw text ("GATT connect
+ * failed: 133", "Scan failed: 2") names the engine and stays in the diagnostics panel below.
+ */
+private fun pairingErrorText(raw: String?): String {
+    val r = raw.orEmpty()
+    return when {
+        r.contains("permission", ignoreCase = true) -> tr("Bluetooth permission is off. Allow it to find your ring.")
+        r.contains("not powered on", ignoreCase = true) -> tr("Bluetooth is off. Turn it on to find your ring.")
+        r.contains("no longer available", ignoreCase = true) -> tr("Couldn't find the ring. Keep it close and scan again.")
+        r.startsWith("Scan failed") -> tr("Couldn't scan for rings. Try again.")
+        else -> tr("Couldn't connect. Keep the ring close and try again.")
+    }
 }

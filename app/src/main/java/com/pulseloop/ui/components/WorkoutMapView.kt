@@ -46,8 +46,8 @@ fun WorkoutMapView(
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("No route yet", style = MaterialTheme.typography.labelMedium, color = Color.White)
-                Text("Move outdoors to start tracking your route.", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                Text(com.pulseloop.ui.i18n.tr("No route yet"), style = MaterialTheme.typography.labelMedium, color = com.pulseloop.ui.theme.PulseColors.textPrimary)
+                Text(com.pulseloop.ui.i18n.tr("Move outdoors to start tracking your route."), style = MaterialTheme.typography.labelSmall, color = com.pulseloop.ui.theme.PulseColors.textSecondary)
             }
         }
     } else {
@@ -81,7 +81,7 @@ fun WorkoutMapView(
                 }
                 drawPath(
                     path = path,
-                    color = PulseColors.accent,
+                    color = PulseColors.distance,
                     style = Stroke(width = 4f, cap = StrokeCap.Round),
                 )
 

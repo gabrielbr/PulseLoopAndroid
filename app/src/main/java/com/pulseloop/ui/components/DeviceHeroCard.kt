@@ -126,11 +126,19 @@ fun DeviceHeroCard(
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 status.batteryText?.let { batteryText ->
+                    // Tinted by level: always green read "fine" at 5%.
+                    val pct = batteryText.filter { it.isDigit() }.toIntOrNull()
+                    val batteryTone = when {
+                        pct == null -> PulseColors.textSecondary
+                        pct <= 20 -> PulseColors.danger
+                        pct <= 50 -> PulseColors.warning
+                        else -> PulseColors.success
+                    }
                     Row(
                         Modifier
                             .clip(CircleShape)
-                            .dither(PulseColors.success, 0.12f)
-                            .padding(horizontal = 9.dp, vertical = 6.dp),
+                            .dither(batteryTone, 0.12f)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
@@ -138,13 +146,13 @@ fun DeviceHeroCard(
                             Icons.Filled.BatteryFull,
                             contentDescription = null,
                             modifier = Modifier.size(12.dp),
-                            tint = PulseColors.success,
+                            tint = batteryTone,
                         )
                         Text(
                             batteryText,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = PulseColors.success,
+                            color = batteryTone,
                         )
                     }
                 }

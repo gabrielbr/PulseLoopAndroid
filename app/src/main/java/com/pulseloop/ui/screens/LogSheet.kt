@@ -195,7 +195,7 @@ private fun QuickDrinks(db: PulseLoopDatabase, onMore: () -> Unit) {
         val last = logged
         Text(
             if (last != null) trf("Logged {0}", last.first.lowercase()) else "",
-            fontSize = 14.sp, color = PulseColors.accent, modifier = Modifier.weight(1f),
+            fontSize = 14.sp, color = PulseColors.success, modifier = Modifier.weight(1f),
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
         if (last != null) {

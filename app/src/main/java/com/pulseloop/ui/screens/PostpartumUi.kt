@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -295,7 +297,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 Postpartum.nextCheckIn(birth, today, history)?.let { next ->
                     Text(trf("Suggested next check-in: {0}", next.format(DateTimeFormatter.ofPattern("d MMM"))), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
-                PulseButton(onClick = { checkIn = true }) { Text(tr("Start check-in")) }
+                PulseButton(PulseButtonStyle.Tonal, onClick = { checkIn = true }) { Text(tr("Start check-in")) }
                 Text(tr("Your answers stay on this phone. They aren't in backups, diagnostics or Health Connect."), fontSize = 12.sp, color = PulseColors.textMuted)
             } }
             val lastEpds = history.lastOrNull()
@@ -437,7 +439,8 @@ private fun ResourcesCard(context: Context) {
 
 @Composable
 private fun ResourceRow(label: String, action: String, onClick: () -> Unit) {
-    Row(Modifier.fillMaxWidth().clickable(onClick = onClick).padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    // 48dp and a button role: these rows dial emergency lines, so they must be easy to hit and to find.
+    Row(Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick), verticalAlignment = Alignment.CenterVertically) {
         Text(label, fontSize = 14.sp, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
         Text(action, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = PulseColors.accent)
     }
@@ -511,11 +514,10 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
     val answers = remember { mutableStateListOf<Int?>().apply { repeat(form.items.size) { add(null) } } }
     var result by remember { mutableStateOf<Postpartum.EpdsResult?>(null) }
 
+    // System Back behaves like the arrow: it returns to Postpartum and keeps a result already shown.
+    androidx.activity.compose.BackHandler { onDone(result) }
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = { onDone(result) }, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            Text(tr("Mood check-in"), modifier = Modifier.align(Alignment.Center), fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        }
+        com.pulseloop.ui.components.PulseTopBar(tr("Mood check-in"), onBack = { onDone(result) })
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -533,15 +535,20 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
             form.items.forEachIndexed { i, item ->
                 Card {
                     Text("${i + 1}. ${item.text}", fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                    item.options.forEachIndexed { o, opt ->
-                        val on = answers[i] == o
-                        Text(
-                            opt.text, fontSize = 14.sp,
-                            color = if (on) PulseColors.onAccent else PulseColors.textPrimary,
-                            modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(6.dp))
-                                .background(if (on) PulseColors.accent else PulseColors.cardSoft)
-                                .clickable { answers[i] = o }.padding(horizontal = 12.dp, vertical = 10.dp),
-                        )
+                    // One radio group per question, so TalkBack says which answer is chosen.
+                    Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        item.options.forEachIndexed { o, opt ->
+                            val on = answers[i] == o
+                            Text(
+                                opt.text, fontSize = 14.sp,
+                                color = if (on) PulseColors.onAccent else PulseColors.textPrimary,
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(4.dp))
+                                    .background(if (on) PulseColors.accent else PulseColors.cardSoft)
+                                    .selectable(selected = on, role = androidx.compose.ui.semantics.Role.RadioButton) { answers[i] = o }
+                                    .wrapContentHeight(Alignment.CenterVertically)
+                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                            )
+                        }
                     }
                 }
             }

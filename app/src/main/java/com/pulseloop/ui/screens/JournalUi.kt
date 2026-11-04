@@ -145,7 +145,10 @@ private fun DaySwitch(yesterday: Boolean, onChange: (Boolean) -> Unit) {
                     modifier = Modifier
                         .background(if (on) PulseColors.accent else PulseColors.cardSoft)
                         .selectable(selected = on, role = Role.RadioButton) { onChange(isYesterday) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        // 48dp tall: the text alone was a ~28dp target.
+                        .heightIn(min = 48.dp)
+                        .wrapContentHeight(Alignment.CenterVertically)
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
         }

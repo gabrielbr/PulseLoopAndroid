@@ -28,7 +28,7 @@ object PendingActionExecutor {
 
         val sessions = db.activitySessionDao().recent(200)
         val session = sessions.firstOrNull { it.id == action.activityId }
-            ?: return "That workout no longer exists."
+            ?: return com.pulseloop.ui.i18n.tr("That workout no longer exists.")
 
         val typeLabel = activityLabels[session.type] ?: session.type
 
@@ -46,11 +46,11 @@ object PendingActionExecutor {
                         updatedAt = System.currentTimeMillis(),
                     )
                 )
-                "Deleted the $typeLabel session."
+                com.pulseloop.ui.i18n.trf("Deleted the {0} session.", com.pulseloop.ui.i18n.tr(typeLabel))
             }
             PendingActionKind.UPDATE_ACTIVITY_SESSION -> {
                 applyUpdates(db, action.updates, session)
-                "Updated the $typeLabel session."
+                com.pulseloop.ui.i18n.trf("Updated the {0} session.", com.pulseloop.ui.i18n.tr(typeLabel))
             }
         }
     }
@@ -64,7 +64,7 @@ object PendingActionExecutor {
      */
     private suspend fun executeMeal(action: PendingAction, db: PulseLoopDatabase): String {
         val entry = db.mealEntryDao().byId(action.activityId)
-            ?: return "That meal no longer exists."
+            ?: return com.pulseloop.ui.i18n.tr("That meal no longer exists.")
         return when (action.kind) {
             PendingActionKind.DELETE_MEAL_ENTRY -> {
                 val name = entry.name

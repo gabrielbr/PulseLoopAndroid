@@ -416,7 +416,7 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
             size = 112.dp,
             strokeWidth = 11.dp,
             ringSpacing = 5.dp,
-            labels = listOf("steps", "distance", "calories"),
+            labels = listOf(tr("steps"), tr("distance"), tr("calories")),
         )
     }
 }
@@ -821,7 +821,7 @@ private fun ActivityRecordsCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "RECORDS",
+                tr("RECORDS"),
                 style = com.pulseloop.ui.theme.PulseType.eyebrow, fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textSecondary,
             )

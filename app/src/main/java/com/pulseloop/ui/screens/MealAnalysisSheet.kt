@@ -316,7 +316,7 @@ fun MealAnalysisDialog(
                         FilterChip(
                             selected = mealType == t,
                             onClick = { mealType = t },
-                            label = { Text(t.replaceFirstChar { it.uppercase() }) },
+                            label = { Text(tr(t.replaceFirstChar { it.uppercase() })) },
                         )
                     }
                 }
@@ -376,7 +376,7 @@ fun MealAnalysisDialog(
                                 value = describeText,
                                 onValueChange = { describeText = it },
                                 label = { Text(if (image == null) tr("Describe your meal") else tr("Meal details")) },
-                                placeholder = { Text("e.g. two eggs, toast with butter, black coffee") },
+                                placeholder = { Text(tr("e.g. two eggs, toast with butter, black coffee")) },
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2,
                             )
@@ -776,7 +776,8 @@ object MealEstimator {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Result.Failure(trf("Analysis failed: {0}", e.message ?: e.javaClass.simpleName))
+                android.util.Log.w("MealAnalysis", "Meal analysis failed", e)
+                Result.Failure(tr("Couldn't analyse the meal. Check your connection and try again, or enter it by hand."))
             }
         }
 }

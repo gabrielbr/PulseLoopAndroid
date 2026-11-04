@@ -55,7 +55,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -366,12 +365,6 @@ private fun WelcomeStep(
             contentDescription = null,
             modifier = Modifier
                 .size(92.dp)
-                .shadow(
-                    18.dp,
-                    RoundedCornerShape(8.dp),
-                    ambientColor = PulseColors.accent,
-                    spotColor = PulseColors.accent,
-                )
                 .clip(RoundedCornerShape(8.dp)),
         )
         StepHeader(
@@ -550,7 +543,7 @@ private fun BaselineStep(finish: () -> Unit) {
     LaunchedEffect(Unit) { appeared = true }
     val medallionScale by animateFloatAsState(
         targetValue = if (appeared) 1f else 0.3f,
-        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
+        animationSpec = androidx.compose.animation.core.tween(com.pulseloop.ui.theme.Motion.EMPHASIS_MS, easing = com.pulseloop.ui.theme.Motion.ease),
         label = "medallionScale",
     )
 

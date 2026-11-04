@@ -220,7 +220,8 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     AccuracyCard {
                         Text(HealthConnectSource.label(context, src.packageName), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         Text(src.metrics.joinToString(", ") { it.metric.label }, fontSize = 14.sp, color = PulseColors.textSecondary)
-                        PulseButton(onClick = {
+                        // Tonal: one card per app, so filled would put several mint buttons on one screen.
+                        PulseButton(PulseButtonStyle.Tonal, onClick = {
                             HealthConnectSource.enable(context, src.packageName)
                             enabled = true
                             source = src.packageName
