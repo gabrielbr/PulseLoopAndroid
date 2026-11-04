@@ -103,7 +103,11 @@ object BedtimeGuidance {
         )
     }
 
-    fun fmt(t: LocalTime): String = "%02d:%02d".format(t.hour, t.minute)
+    /**
+     * A bed, wake or cutoff time in the phone's own 12/24-hour setting and locale. The caller reads
+     * the setting (`DateFormat.is24HourFormat(context)`); the default keeps tests deterministic.
+     */
+    fun fmt(t: LocalTime, is24Hour: Boolean = true): String = com.pulseloop.ui.components.PhoneFormat.clock(is24Hour, t)
 }
 
 object WeeklyReport {

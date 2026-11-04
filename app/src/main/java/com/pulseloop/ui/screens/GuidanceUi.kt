@@ -72,10 +72,7 @@ fun TonightCard(g: BedtimeGuidance.Result, sleepGoalMinutes: Int) {
     }
 }
 
-/** A clock time in the phone's own 12/24-hour setting (BedtimeGuidance.fmt is always 24-hour). */
+/** A clock time in the phone's own 12/24-hour setting and locale. */
 @Composable
-private fun clock(t: java.time.LocalTime): String {
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val pattern = if (android.text.format.DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm a"
-    return t.format(java.time.format.DateTimeFormatter.ofPattern(pattern))
-}
+private fun clock(t: java.time.LocalTime): String =
+    BedtimeGuidance.fmt(t, android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current))

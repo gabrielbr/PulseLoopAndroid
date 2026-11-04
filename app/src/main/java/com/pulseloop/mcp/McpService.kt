@@ -8,6 +8,11 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -32,6 +37,11 @@ import kotlinx.coroutines.runBlocking
  * Foreground-service type `dataSync`: the closest type that exists for minSdk 26 / targetSdk 35.
  * Android 15 caps `dataSync` at about 6 hours a day and then calls [onTimeout], which stops it,
  * so on those phones the 8-hour choice ends at the system's limit.
+ *
+ * While it runs it follows the phone's networks ([watchNetworks]): when an address comes or goes
+ * (Wi-Fi joined or left, a DHCP renewal, Tailscale up or down) it listens on the new set and the
+ * shown addresses update, so nobody has to turn it off and on again. The set is always read from
+ * [McpNet.localAddresses], which never includes mobile data.
  */
 class McpService : Service() {
 
@@ -49,6 +59,10 @@ class McpService : Service() {
     private var destroyed = false
     private val main = Handler(Looper.getMainLooper())
     private val autoOff = Runnable { stopSelf() }
+    /** Registered while the server runs; unregistered in [onDestroy]. */
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
+    /** Network callbacks arrive in bursts (lost, available, link properties): act once they settle. */
+    private val refresh = Runnable { Thread({ refreshAddresses() }, "pulseloop-mcp-rebind").start() }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -90,10 +104,53 @@ class McpService : Service() {
             }
             server = s
             statusFlow.value = Status(running = true, urls = bound.map { McpNet.url(it) }, offAt = prefs.offAt)
+            watchNetworks()
         } catch (e: Exception) {
             android.util.Log.w(TAG, "MCP server failed to start: ${e.javaClass.simpleName}")
             main.post { stopSelf() }
         }
+    }
+
+    /**
+     * Any network change, VPNs (Tailscale) and networks without internet (a home Wi-Fi with its
+     * uplink down) included, so the listener can follow the phone's addresses. A hotspot the
+     * phone serves isn't a network it joins and reports no change here; its address is picked up
+     * on the next change or start.
+     */
+    private fun watchNetworks() {
+        if (networkCallback != null) return
+        val cm = getSystemService(ConnectivityManager::class.java) ?: return
+        val cb = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) = scheduleRefresh()
+            override fun onLost(network: Network) = scheduleRefresh()
+            override fun onLinkPropertiesChanged(network: Network, linkProperties: LinkProperties) = scheduleRefresh()
+        }
+        val request = NetworkRequest.Builder()
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+            .removeCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
+            .build()
+        try {
+            cm.registerNetworkCallback(request, cb)
+            networkCallback = cb
+        } catch (e: Exception) {
+            // Without it the server keeps the addresses it started on, as it did before.
+            android.util.Log.w(TAG, "MCP network watch unavailable: ${e.javaClass.simpleName}")
+        }
+    }
+
+    private fun scheduleRefresh() {
+        main.removeCallbacks(refresh)
+        main.postDelayed(refresh, REFRESH_DELAY_MS)
+    }
+
+    /** Listens on the phone's current addresses and shows them. Off a network it keeps running with none. */
+    @Synchronized
+    private fun refreshAddresses() {
+        val s = server ?: return
+        if (destroyed) return
+        val bound = s.rebind(McpNet.localAddresses(), McpNet.PORT)
+        val urls = bound.map { McpNet.url(it) }
+        if (urls != statusFlow.value.urls) statusFlow.value = statusFlow.value.copy(running = true, urls = urls)
     }
 
     /** Android 15+: the daily `dataSync` allowance ran out. Stop now, or the system crashes the app. */
@@ -103,8 +160,13 @@ class McpService : Service() {
 
     override fun onDestroy() {
         main.removeCallbacks(autoOff)
+        main.removeCallbacks(refresh)
         synchronized(this) {
             destroyed = true
+            networkCallback?.let { cb ->
+                runCatching { getSystemService(ConnectivityManager::class.java)?.unregisterNetworkCallback(cb) }
+            }
+            networkCallback = null
             server?.stop()
             server = null
         }
@@ -146,6 +208,7 @@ class McpService : Service() {
         const val ACTION_STOP = "com.pulseloop.MCP_STOP"
         const val CHANNEL_ID = "mcp_server"
         const val NOTIFICATION_ID = 2201
+        private const val REFRESH_DELAY_MS = 1_000L
 
         private val statusFlow = MutableStateFlow(Status())
         val status: StateFlow<Status> get() = statusFlow

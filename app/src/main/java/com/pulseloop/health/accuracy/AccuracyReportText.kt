@@ -118,11 +118,9 @@ object AccuracyReportText {
      * What a coverage note says: which device was off and from when (`partly:` / `night_off:`),
      * or how many hours a partly worn day was compared over (`shared:`).
      */
-    private fun coverageNote(note: String, ref: String): String? {
+    private fun coverageNote(note: String, ref: String, is24Hour: Boolean): String? {
         fun device(who: String) = if (who == AccuracyScorer.WHO_RING) com.pulseloop.ui.i18n.tr("the ring") else ref
-        fun time(ms: String) = ms.toLongOrNull()?.let {
-            java.time.Instant.ofEpochMilli(it).atZone(java.time.ZoneId.systemDefault()).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
-        } ?: "?"
+        fun time(ms: String) = ms.toLongOrNull()?.let { com.pulseloop.ui.components.PhoneFormat.clock(is24Hour, it) } ?: "?"
         return when {
             note.startsWith(AccuracyScorer.NOTE_SHARED_PREFIX) -> note.removePrefix(AccuracyScorer.NOTE_SHARED_PREFIX).toLongOrNull()?.let {
                 com.pulseloop.ui.i18n.trf("compared over the {0} h both were on", "%.1f".format(it / 60.0))
@@ -137,8 +135,11 @@ object AccuracyReportText {
         }
     }
 
-    /** Why a day doesn't count, or how it was counted, for the per-day rows. */
-    fun dayNote(note: String?, ref: String): String? = note?.let { coverageNote(it, ref) } ?: when (note) {
+    /**
+     * Why a day doesn't count, or how it was counted, for the per-day rows. A time in it follows
+     * [is24Hour], which the screen reads from the phone's setting.
+     */
+    fun dayNote(note: String?, ref: String, is24Hour: Boolean = true): String? = note?.let { coverageNote(it, ref, is24Hour) } ?: when (note) {
         AccuracyScorer.NOTE_WAITING -> "waiting for $ref to deliver"
         AccuracyScorer.NOTE_NOT_WORN -> "not worn on both"
         AccuracyScorer.NOTE_NO_REF_NIGHT -> "no night from $ref"

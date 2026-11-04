@@ -42,7 +42,7 @@ the coach's context packet but drops its labs, postpartum, drinks and goal-plan 
 | Threat | Mitigation |
 |---|---|
 | Left on by accident | Off by default. Never started on boot; Android doesn't restart it (`START_NOT_STICKY`). While it runs an ongoing notification says "Sharing your health data with paired AI tools on this network. Tap to stop.", and a tap stops it. It turns itself off after 1, 4 or 8 hours (default 8; Android 15 ends a `dataSync` service sooner, at its daily limit, through `onTimeout`). Stopping for any reason clears the switch. |
-| Reached from the internet or over mobile data | Listens only on Wi-Fi, Ethernet, hotspot and Tailscale (`tun`) interfaces, never `rmnet`/`ccmni`. Binds only addresses `McpNet.allowedPeer` accepts: loopback, 10/8, 172.16/12, 192.168/16, link-local, 100.64/10 (Tailscale/CGNAT), IPv6 ULA. Each connection's peer is checked again and closed before anything is read. |
+| Reached from the internet or over mobile data | Listens only on Wi-Fi, Ethernet, hotspot and Tailscale (`tun`) interfaces, never `rmnet`/`ccmni`, re-checked on every network change while it runs. Binds only addresses `McpNet.allowedPeer` accepts: loopback, 10/8, 172.16/12, 192.168/16, link-local, 100.64/10 (Tailscale/CGNAT), IPv6 ULA. Each connection's peer is checked again and closed before anything is read. |
 | Someone else on the same Wi-Fi | Every request needs `Authorization: Bearer <token>`. Each paired tool has its own token: 32 random bytes, base64url, shown once. Only its SHA-256 is stored, compared in constant time against every pairing. Tokens are revoked one by one. |
 | A web page in a browser on the network (CSRF, DNS rebinding) | Any request with an `Origin` header is refused (403) before the token is even looked at. MCP clients don't send one; browsers do on cross-origin POSTs. The token is required anyway. |
 | Changing or deleting data | Only allowlisted read tools are listed or callable, and they run with `CoachFeatureFlags(writeToolsEnabled = false, liveMeasurementsEnabled = false, webSearchEnabled = false)` and `coordinator = null`, so even a misrouted call has no ring to talk to. `McpAllowlistTest` fails if a write tool's name reaches the allowlist, or if a new coach tool appears that nobody has classified. |
@@ -61,8 +61,16 @@ the coach's context packet but drops its labs, postpartum, drinks and goal-plan 
   including the token. Turn it off there, or use Tailscale.
 - **The paired tool** sees what it asks for, and its own data policy then applies to that health
   data. A cloud-backed assistant sends it to its provider.
-- **The address can change.** The server binds the addresses it found at start; after a Wi-Fi
-  change it must be turned off and on again.
+- **The address can change, and the server follows it.** While it runs, `McpService` watches
+  the phone's networks (a `ConnectivityManager.NetworkCallback`, VPNs included) and, a second
+  after a change settles, re-reads `McpNet.localAddresses` and calls `McpServer.rebind`: it stops
+  listening on an address the phone lost, binds a new one under the same `allowedPeer` rule, and
+  leaves unchanged ones alone. The settings screen's address list follows. Off every network it
+  keeps running with no listener until one comes back. The rule is unchanged: the address set
+  still comes only from Wi-Fi, Ethernet, hotspot and `tun` interfaces, never mobile data, and a
+  public address is never bound. A paired tool configured with the old address still needs the
+  new one; and a hotspot the phone serves reports no network change, so its address is picked
+  up at the next change or start.
 - **The notification can be hidden.** If notifications are denied, Android 13+ still runs the
   service but may not show its card; the switch on the settings screen still shows the truth.
 - **Readings may be demo rows.** The tools read what the screens read (real rows win once the

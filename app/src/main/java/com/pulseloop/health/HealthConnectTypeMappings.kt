@@ -701,7 +701,7 @@ object HealthConnectTypeMappings {
     // NutritionRecord's clinit bounds (verified from the 1.1.0 AAR): energy 0..1e8 cal; the macro
     // masses (protein/carbs/fat/fiber/sugar) 0..100,000 g; sodium is a micronutrient capped at
     // 100 g = 100,000 mg (and is built with Mass.milligrams, not grams). A meal comes only from the
-    // manual "Log Meal" dialog and is normally tiny, but a typo must not sink the whole 200-record
+    // manual "Log meal" dialog and is normally tiny, but a typo must not sink the whole 200-record
     // chunk, so an out-of-range meal is DROPPED (never clamped), like every other guard here.
 
     /**

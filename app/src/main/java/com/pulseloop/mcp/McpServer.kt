@@ -30,21 +30,48 @@ class McpServer(private val handler: McpHandler) {
     fun start(addresses: List<InetAddress>, port: Int): List<InetSocketAddress> {
         running = true
         val bound = ArrayList<InetSocketAddress>()
-        for (a in addresses) {
-            if (!McpNet.allowedPeer(a)) continue // never on a public address
-            val s = ServerSocket()
-            try {
-                s.reuseAddress = true
-                s.bind(InetSocketAddress(a, port), 8)
-            } catch (e: IOException) {
-                try { s.close() } catch (_: IOException) {}
-                continue
-            }
-            sockets.add(s)
-            bound.add(s.localSocketAddress as InetSocketAddress)
-            Thread({ accept(s) }, "pulseloop-mcp-accept").apply { isDaemon = true }.start()
-        }
+        for (a in addresses) bind(a, port)?.let { bound.add(it) }
         return bound
+    }
+
+    /**
+     * Follows the phone's addresses while running (Wi-Fi joined or left, a DHCP renewal, Tailscale
+     * up or down): stops listening on an address the phone no longer has, starts on a new one, and
+     * leaves the rest alone so a tool connected through them isn't dropped. The same rule as
+     * [start]: only private addresses. Returns everything it listens on afterwards — empty while
+     * the phone is on no network of its own, until one comes back. Does nothing once stopped.
+     */
+    @Synchronized
+    fun rebind(addresses: List<InetAddress>, port: Int): List<InetSocketAddress> {
+        if (!running) return emptyList()
+        val wanted = addresses.filter { McpNet.allowedPeer(it) }.distinct()
+        val iter = sockets.iterator()
+        while (iter.hasNext()) {
+            val s = iter.next()
+            if (s.inetAddress !in wanted) {
+                try { s.close() } catch (_: IOException) {} // its accept thread ends on the close
+                iter.remove()
+            }
+        }
+        val listening = sockets.map { it.inetAddress }
+        for (a in wanted) if (a !in listening) bind(a, port)
+        return sockets.map { it.localSocketAddress as InetSocketAddress }
+    }
+
+    /** One listening socket on [a], with its accept thread; null when [a] is public or taken. */
+    private fun bind(a: InetAddress, port: Int): InetSocketAddress? {
+        if (!McpNet.allowedPeer(a)) return null // never on a public address
+        val s = ServerSocket()
+        try {
+            s.reuseAddress = true
+            s.bind(InetSocketAddress(a, port), 8)
+        } catch (e: IOException) {
+            try { s.close() } catch (_: IOException) {}
+            return null
+        }
+        sockets.add(s)
+        Thread({ accept(s) }, "pulseloop-mcp-accept").apply { isDaemon = true }.start()
+        return s.localSocketAddress as InetSocketAddress
     }
 
     @Synchronized

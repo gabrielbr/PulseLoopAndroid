@@ -63,9 +63,6 @@ import com.pulseloop.health.accuracy.ReferenceSurveyText
 import com.pulseloop.ui.theme.PulseColors
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 /**
  * Settings → Accuracy check (docs/accuracy-check-plan.md). With no check open: grant read access,
@@ -267,9 +264,8 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
 
 /** Wording shared by the check screens. */
 internal object AccuracyUiText {
-    private val dateFmt = DateTimeFormatter.ofPattern("d MMM")
-
-    fun date(ms: Long): String = Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()).format(dateFmt)
+    /** "Oct 21" / "21 de out.": the locale's own order and month names, never a forced "d MMM". */
+    fun date(ms: Long): String = com.pulseloop.ui.components.PhoneFormat.date("MMMd", ms)
 
     fun span(c: AccuracyCheckEntity): String = "${date(c.startedAt)} – ${date(c.endedAt ?: c.plannedEndAt)}"
 
@@ -422,7 +418,8 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
 
 @Composable
 private fun MetricRow(m: MetricSurvey) {
-    val last = Instant.ofEpochMilli(m.lastAt).atZone(ZoneId.systemDefault()).format(DateTimeFormatter.ofPattern("d MMM HH:mm"))
+    val context = LocalContext.current
+    val last = com.pulseloop.ui.components.PhoneFormat.date("MMMd", m.lastAt) + " " + com.pulseloop.ui.components.PhoneFormat.clock(context, m.lastAt)
     Column(Modifier.fillMaxWidth().padding(top = 4.dp)) {
         Text(m.metric.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
         Text(
