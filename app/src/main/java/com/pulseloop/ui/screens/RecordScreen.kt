@@ -6,6 +6,7 @@ import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.theme.PulseColors
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -164,7 +165,15 @@ fun RecordScreen(
                     Text(tr("Pause"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            PulseButton(onClick = onFinish, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+            // At most one filled button on the screen: Resume while paused. Finish ends the
+            // session, so it is an outlined button in the error colour rather than a second fill.
+            PulseButton(
+                PulseButtonStyle.Outlined,
+                onClick = onFinish,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+            ) {
                 Icon(Icons.Filled.Stop, null)
                 Spacer(Modifier.width(8.dp))
                 Text(tr("Finish"), maxLines = 1, overflow = TextOverflow.Ellipsis)

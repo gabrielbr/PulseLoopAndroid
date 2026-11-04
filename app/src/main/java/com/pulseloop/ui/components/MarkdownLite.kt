@@ -26,7 +26,7 @@ import com.pulseloop.ui.theme.PulseColors
 
 /**
  * Minimal markdown renderer shared across the app (coach replies, the "What's new" update
- * dialog): `## ` headings as semibold lines, `- `/`* `/`• ` bullet lines with accent dots,
+ * dialog): `## ` headings as semibold lines, `- `/`* `/`• ` bullet lines with muted dots,
  * `**bold**` inline, `[text](url)` links flattened to their text, and `` `code` `` unwrapped.
  * Anything else renders as-is. Full markdown (tables, images) is intentionally out of scope —
  * this exists so release notes and assistant text read cleanly instead of showing raw `#`/`*`.
@@ -41,14 +41,14 @@ fun MarkdownLite(
     modifier: Modifier = Modifier,
     headingColor: Color = PulseColors.textPrimary,
     bodyColor: Color = PulseColors.textSecondary,
-    bulletColor: Color = PulseColors.accent,
+    bulletColor: Color = PulseColors.textSecondary,
     boldColor: Color = PulseColors.textPrimary,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
         text.split("\n").forEach { rawLine ->
             val line = rawLine.trimEnd()
             when {
-                line.isBlank() -> Spacer(Modifier.height(2.dp))
+                line.isBlank() -> Spacer(Modifier.height(4.dp))
                 line.startsWith("#") -> Text(
                     mdInline(line.trimStart('#', ' '), boldColor),
                     fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = headingColor,

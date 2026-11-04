@@ -312,7 +312,8 @@ private fun OnboardingTopBar(
                         .weight(1f)
                         .height(4.dp)
                         .clip(CircleShape)
-                        .background(if (item.index <= step.index) PulseColors.accent else PulseColors.cardSoft),
+                        // Progress is a state, not a tap target: no mint.
+                        .background(if (item.index <= step.index) PulseColors.textPrimary else PulseColors.elevated),
                 )
             }
         }
@@ -622,7 +623,7 @@ private fun BaselineStep(source: BaselineSource, finish: () -> Unit) {
                             Text("1", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = milestone.tint)
                         }
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(
                             milestone.title,
                             fontSize = 14.sp,

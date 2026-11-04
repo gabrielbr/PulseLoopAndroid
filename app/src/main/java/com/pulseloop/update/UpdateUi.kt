@@ -51,7 +51,14 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                 if (downloading) {
                     Text(trf("Downloading… {0}%", (progress * 100).toInt()), style = MaterialTheme.typography.bodyMedium)
                     Spacer(Modifier.height(8.dp))
-                    LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth())
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
+                        // Progress is a state, not a tap target: no mint (theme colours,
+                        // like the rest of this dialog).
+                        color = MaterialTheme.colorScheme.onSurface,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
                 } else {
                     MarkdownLite(
                         info.changelog,
@@ -63,7 +70,8 @@ fun UpdateDialog(info: UpdateInfo, onDismiss: () -> Unit) {
                         // be near-invisible on a light dialog.
                         headingColor = MaterialTheme.colorScheme.onSurface,
                         bodyColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        bulletColor = MaterialTheme.colorScheme.primary,
+                        // A bullet is not tappable, so it is not mint.
+                        bulletColor = MaterialTheme.colorScheme.onSurfaceVariant,
                         boldColor = MaterialTheme.colorScheme.onSurface,
                     )
                     error?.let {
