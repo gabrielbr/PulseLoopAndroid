@@ -1,6 +1,6 @@
 # Audit: On-device coach provider (step 1 of docs/on-device-model-and-mcp-plan.md)
 
-Date: 2026-11-04 · PR: (to fill) · Auditor: Claude (skills applied by hand from their checklists; no device or emulator in this session, so no screenshots)
+Date: 2026-11-04 · PR: #65 · Auditor: Claude (skills applied by hand from their checklists; no device or emulator in this session, so no screenshots)
 
 ## Scope
 
