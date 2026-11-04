@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -195,7 +197,7 @@ fun NutritionScreen(
             // reaches the earlier days the arrows open): Log meal, plus the AI ways in as icons.
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { showAddDialog = true },
                         modifier = Modifier.weight(1f).heightIn(min = 48.dp),
                     ) {
@@ -286,7 +288,7 @@ fun NutritionScreen(
             title = { Text(tr("Delete meal?")) },
             text = { Text(trf("\"{0}\" will be removed from this day's log.", meal.name)) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     mealToDelete = null
                     scope.launch {
                         db.mealEntryDao().deleteById(meal.id)
@@ -295,7 +297,7 @@ fun NutritionScreen(
                     }
                 }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { mealToDelete = null }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { mealToDelete = null }) { Text(tr("Cancel")) } },
         )
     }
 
@@ -521,7 +523,7 @@ fun MealLogDialog(
                         CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
                     }
-                    TextButton(onClick = { showScanner = true }, enabled = !lookingUp && !estimating) {
+                    PulseButton(PulseButtonStyle.Text, onClick = { showScanner = true }, enabled = !lookingUp && !estimating) {
                         Icon(Icons.Filled.QrCodeScanner, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(tr("Scan barcode"), maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -569,7 +571,7 @@ fun MealLogDialog(
                     }
                 }
                 if (aiAvailable) {
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { estimateWithAi() },
                         enabled = name.isNotBlank() && !estimating && !lookingUp,
                         modifier = Modifier.fillMaxWidth(),
@@ -607,7 +609,7 @@ fun MealLogDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = {
+            PulseButton(PulseButtonStyle.Text, onClick = {
                 val kcal = cal.toDoubleOrNull() ?: 0.0
                 val pp = pendingProduct
                 val ai = aiEstimate
@@ -671,7 +673,7 @@ fun MealLogDialog(
                 })
             }, enabled = valid) { Text(tr("Save")) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Cancel")) } },
+        dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 
     if (showScanner) {
@@ -745,11 +747,11 @@ private fun NextMealCard(
                 idea.note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textSecondary) }
                 // Same treatment as the Photo/Describe pair: two lines allowed, equal heights.
                 Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onLog, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                    PulseButton(onClick = onLog, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
                         Text(tr("Log this"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                     }
                     if (onDiscuss != null) {
-                        OutlinedButton(onClick = onDiscuss, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
+                        PulseButton(PulseButtonStyle.Outlined, onClick = onDiscuss, modifier = Modifier.weight(1f).fillMaxHeight(), contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)) {
                             Text(tr("Other ideas"), maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
                         }
                     }

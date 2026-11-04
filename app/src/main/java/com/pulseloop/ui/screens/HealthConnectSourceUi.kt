@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -17,11 +19,8 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -156,7 +155,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     fontSize = 12.sp, color = PulseColors.warning,
                 )
             } else if (!canRead) {
-                Button(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow access")) }
+                PulseButton(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow access")) }
             }
         }
 
@@ -186,13 +185,13 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Button(onClick = { importNow() }, enabled = !importing && canRead) { Text(tr("Import now")) }
+                    PulseButton(onClick = { importNow() }, enabled = !importing && canRead) { Text(tr("Import now")) }
                     if (missing.isNotEmpty()) {
-                        OutlinedButton(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow more")) }
+                        PulseButton(PulseButtonStyle.Outlined, onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow more")) }
                     }
                     if (importing) CircularProgressIndicator(Modifier.size(20.dp).align(Alignment.CenterVertically), strokeWidth = 2.dp)
                 }
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     HealthConnectSource.disable(context)
                     enabled = false
                     doScan()
@@ -214,14 +213,14 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                             tr("In the Oura app: Settings → Health Connect, and turn on sharing. Then come back and look again."),
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
-                        OutlinedButton(onClick = { doScan() }) { Text(tr("Look again")) }
+                        PulseButton(PulseButtonStyle.Outlined, onClick = { doScan() }) { Text(tr("Look again")) }
                     }
                 }
                 usable.forEach { src ->
                     AccuracyCard {
                         Text(HealthConnectSource.label(context, src.packageName), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                         Text(src.metrics.joinToString(", ") { it.metric.label }, fontSize = 14.sp, color = PulseColors.textSecondary)
-                        Button(onClick = {
+                        PulseButton(onClick = {
                             HealthConnectSource.enable(context, src.packageName)
                             enabled = true
                             source = src.packageName

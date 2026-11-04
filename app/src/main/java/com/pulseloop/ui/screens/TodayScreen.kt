@@ -15,7 +15,6 @@ import androidx.compose.material.pullrefresh.pullRefresh
 import androidx.compose.material.pullrefresh.rememberPullRefreshState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -724,7 +723,7 @@ private fun ColumnScope.NutritionTileBody(food: FoodTotals?, onLog: () -> Unit) 
     }
     // A real button, so it gets the 48dp target Material gives its components (a bare
     // clickable does not). It makes the tile a little taller; the row grows to match.
-    TextButton(
+    PulseButton(PulseButtonStyle.Text,
         onClick = onLog,
         contentPadding = PaddingValues(horizontal = 0.dp),
         modifier = Modifier.heightIn(min = 48.dp),

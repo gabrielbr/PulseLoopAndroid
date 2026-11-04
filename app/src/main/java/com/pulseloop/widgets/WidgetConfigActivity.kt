@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import com.pulseloop.ui.components.PulseButton
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -140,7 +140,7 @@ private fun ConfigScreen(
         }
 
         Spacer(Modifier.height(16.dp))
-        Button(onClick = { onDone(single, left, right) }, modifier = Modifier.fillMaxWidth()) {
+        PulseButton(onClick = { onDone(single, left, right) }, modifier = Modifier.fillMaxWidth()) {
             Text(tr("Add Widget"))
         }
     }

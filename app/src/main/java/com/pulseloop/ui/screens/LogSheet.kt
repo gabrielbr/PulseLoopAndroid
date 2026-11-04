@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 import com.pulseloop.ui.i18n.trf
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -197,7 +199,7 @@ private fun QuickDrinks(db: PulseLoopDatabase, onMore: () -> Unit) {
             maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
         if (last != null) {
-            androidx.compose.material3.TextButton(
+            PulseButton(PulseButtonStyle.Text,
                 onClick = { scope.launch { last.second.forEach { DrinksRepository.delete(db, it) }; logged = null } },
                 modifier = Modifier.heightIn(min = 48.dp),
             ) {

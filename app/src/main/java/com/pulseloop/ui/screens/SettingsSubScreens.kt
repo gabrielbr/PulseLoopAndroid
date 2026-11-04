@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -325,7 +327,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                     Spacer(Modifier.height(4.dp))
                     var providerExpanded by remember { mutableStateOf(false) }
                     Box {
-                        OutlinedButton(onClick = { providerExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        PulseButton(PulseButtonStyle.Outlined, onClick = { providerExpanded = true }, modifier = Modifier.fillMaxWidth()) {
                             Text(providerLabel, Modifier.weight(1f))
                             Icon(Icons.Filled.ArrowDropDown, null)
                         }
@@ -375,11 +377,11 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             keyboardActions = KeyboardActions(onDone = { if (value.isNotBlank()) save() }),
                         )
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Button(onClick = save, enabled = value.isNotBlank(), modifier = Modifier.weight(1f)) {
+                            PulseButton(onClick = save, enabled = value.isNotBlank(), modifier = Modifier.weight(1f)) {
                                 Text(if (saved) tr("Update Key") else tr("Save Key"))
                             }
                             if (saved) {
-                                OutlinedButton(onClick = onRemove, modifier = Modifier.weight(1f)) { Text(tr("Remove")) }
+                                PulseButton(PulseButtonStyle.Outlined, onClick = onRemove, modifier = Modifier.weight(1f)) { Text(tr("Remove")) }
                             }
                         }
                         if (justSaved) {
@@ -398,7 +400,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                         Spacer(Modifier.height(4.dp))
                         var expanded by remember { mutableStateOf(false) }
                         Box {
-                            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                            PulseButton(PulseButtonStyle.Outlined, onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
                                 Text(selected, Modifier.weight(1f))
                                 Icon(Icons.Filled.ArrowDropDown, null)
                             }
@@ -522,7 +524,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             // `response_format` — which depend on launch flags that no metadata
                             // endpoint exposes. The detected values are applied straight to the
                             // controls below, which stay editable.
-                            Button(
+                            PulseButton(
                                 onClick = {
                                     localProbeBusy = true; localProbeResult = null; localProbeNotes = emptyList()
                                     scope.launch {
@@ -826,7 +828,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text(tr("Coach Memory"), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        TextButton(onClick = { showMemory = !showMemory }) {
+                        PulseButton(PulseButtonStyle.Text, onClick = { showMemory = !showMemory }) {
                             Text(if (showMemory) tr("Hide") else trf("Show ({0})", memories.size))
                         }
                     }
@@ -860,13 +862,13 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
             title = { Text(tr("Delete memory?")) },
             text = { Text(trf("The coach will forget \"{0}\". This can't be undone.", key)) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     memoryToDelete = null
                     scope.launch { db.coachMemoryDao().deleteByKey(key) }
                 }) { Text(tr("Delete"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { memoryToDelete = null }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { memoryToDelete = null }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -877,10 +879,10 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
             title = { Text(tr("Enable Coach Check-Ins?")) },
             text = { Text(tr("Get a daily check-in from your coach. You can change this anytime in Settings → Notifications.")) },
             confirmButton = {
-                TextButton(onClick = { askEnableCheckIns = false; enableCheckIns() }) { Text(tr("Enable")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { askEnableCheckIns = false; enableCheckIns() }) { Text(tr("Enable")) }
             },
             dismissButton = {
-                TextButton(onClick = { askEnableCheckIns = false }) { Text(tr("Not now")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { askEnableCheckIns = false }) { Text(tr("Not now")) }
             },
         )
     }
@@ -1057,7 +1059,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                         Text(tr("Morning"), Modifier.weight(1f))
                         var amExpanded by remember { mutableStateOf(false) }
                         Box {
-                            OutlinedButton(enabled = coachEnabled, onClick = { amExpanded = true }) {
+                            PulseButton(PulseButtonStyle.Outlined, enabled = coachEnabled, onClick = { amExpanded = true }) {
                                 Text(String.format("%02d:00", morningHour))
                             }
                             DropdownMenu(expanded = amExpanded, onDismissRequest = { amExpanded = false }) {
@@ -1077,7 +1079,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                         Text(tr("Evening"), Modifier.weight(1f))
                         var pmExpanded by remember { mutableStateOf(false) }
                         Box {
-                            OutlinedButton(enabled = coachEnabled, onClick = { pmExpanded = true }) {
+                            PulseButton(PulseButtonStyle.Outlined, enabled = coachEnabled, onClick = { pmExpanded = true }) {
                                 Text(String.format("%02d:00", eveningHour))
                             }
                             DropdownMenu(expanded = pmExpanded, onDismissRequest = { pmExpanded = false }) {
@@ -1092,7 +1094,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
                     }
 
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         enabled = coachEnabled,
                         onClick = {
                             scope.launch {
@@ -1250,7 +1252,7 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit,
                 showUnits = true,
             )
             if (keyStore.unitSystem != null) {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     keyStore.unitSystem = null
                     profileDraft = draft.copy(units = keyStore.resolvedUnitSystem)
                     com.pulseloop.widgets.WidgetSnapshotPublisher.publish(context)
@@ -1277,7 +1279,7 @@ fun ProfileSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit,
                 }
             }
 
-            Button(
+            PulseButton(
                 onClick = {
                     scope.launch {
                         val current = profileDraft ?: return@launch
@@ -1374,7 +1376,7 @@ fun PhysiologySettingsScreen(onBack: () -> Unit) {
             TriStateRow(tr("Known lung condition"), lungCondition) { lungCondition = it; savedMsg = null }
         }
 
-        Button(
+        PulseButton(
             onClick = {
                 keyStore.athleteMode = athleteMode
                 keyStore.usesBetaBlockers = betaBlockers
@@ -1480,7 +1482,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                Button(
+                PulseButton(
                     onClick = {
                         scope.launch {
                             val sysI = bpSys.toIntOrNull() ?: 0
@@ -1518,7 +1520,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true, modifier = Modifier.weight(1.4f),
                     )
-                    Button(
+                    PulseButton(
                         onClick = {
                             scope.launch {
                                 val ref = glucoseRef.toDoubleOrNull()
@@ -1550,7 +1552,7 @@ fun CalibrationSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         modifier = Modifier.weight(1f),
                     )
                     if (glucoseOffset != 0.0) {
-                        TextButton(onClick = {
+                        PulseButton(PulseButtonStyle.Text, onClick = {
                             keyStore.glucoseOffsetMgdl = 0.0
                             keyStore.glucoseRefMgdl = 0.0
                             glucoseOffset = 0.0
@@ -1600,7 +1602,7 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
                 units = goalUnits,
                 includeWeeklyWorkouts = true,
             )
-            Button(
+            PulseButton(
                 onClick = {
                     scope.launch {
                         val existing = db.userGoalDao().get()
@@ -1767,7 +1769,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                     }
 
                     Spacer(Modifier.height(12.dp))
-                    Button(
+                    PulseButton(
                         enabled = cfgLoaded,
                         onClick = {
                             scope.launch {
@@ -1907,10 +1909,10 @@ private fun QuietHoursCard() {
                 )
                 Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = { picking = "start" }, modifier = Modifier.weight(1f)) {
+                    PulseButton(PulseButtonStyle.Outlined, onClick = { picking = "start" }, modifier = Modifier.weight(1f)) {
                         Text(trf("From {0}", formatMinutesOfDay(start)))
                     }
-                    OutlinedButton(onClick = { picking = "end" }, modifier = Modifier.weight(1f)) {
+                    PulseButton(PulseButtonStyle.Outlined, onClick = { picking = "end" }, modifier = Modifier.weight(1f)) {
                         Text(trf("Until {0}", formatMinutesOfDay(end)))
                     }
                 }
@@ -1931,7 +1933,7 @@ private fun QuietHoursCard() {
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showPermissionDialog = false
                     try {
                         val intent = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
@@ -1949,7 +1951,7 @@ private fun QuietHoursCard() {
                 }) { Text(tr("Open Settings")) }
             },
             dismissButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showPermissionDialog = false
                     if (!prefs.gateByZenMode) ZenModeListener.setEnabled(context, false)
                 }) { Text(tr("Cancel")) }
@@ -1969,7 +1971,7 @@ private fun QuietHoursCard() {
             title = { Text(if (which == "start") tr("Quiet from") else tr("Quiet until")) },
             text = { TimePicker(state = pickerState) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val minutes = pickerState.hour * 60 + pickerState.minute
                     if (which == "start") { start = minutes; prefs.startMinutes = minutes }
                     else { end = minutes; prefs.endMinutes = minutes }
@@ -1977,7 +1979,7 @@ private fun QuietHoursCard() {
                 }) { Text(tr("Done")) }
             },
             dismissButton = {
-                TextButton(onClick = { picking = null }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { picking = null }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -2063,7 +2065,7 @@ fun WearableSettingsScreen(
                 if (deviceLoaded && device == null) {
                     // No ring yet — route into the redesigned pairing screen (iOS #48).
                     Spacer(Modifier.height(12.dp))
-                    Button(onClick = onAddRing, modifier = Modifier.fillMaxWidth()) {
+                    PulseButton(onClick = onAddRing, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Filled.Add, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
                         Text(tr("Add a ring"))
@@ -2072,7 +2074,7 @@ fun WearableSettingsScreen(
 
                 if (isConnected) {
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { coordinator?.syncNow() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -2082,7 +2084,7 @@ fun WearableSettingsScreen(
                     }
                     if (supportsFindDevice) {
                         Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             onClick = { coordinator?.findRing() },
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -2092,7 +2094,7 @@ fun WearableSettingsScreen(
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { bleClient?.userDisconnect() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -2104,7 +2106,7 @@ fun WearableSettingsScreen(
                     bleState.connectionState != RingConnectionState.RECONNECTING
                 ) {
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { bleClient.userConnect() },
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -2137,7 +2139,7 @@ fun WearableSettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     Spacer(Modifier.height(12.dp))
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = { showForgetRing = true },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
@@ -2158,7 +2160,7 @@ fun WearableSettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         Spacer(Modifier.height(12.dp))
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             enabled = !resetting,
                             onClick = { showFactoryReset = true },
                             modifier = Modifier.fillMaxWidth(),
@@ -2185,7 +2187,7 @@ fun WearableSettingsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showForgetRing = false
                     scope.launch {
                         // Cancel background sync before unpair
@@ -2207,7 +2209,7 @@ fun WearableSettingsScreen(
                 }) { Text(tr("Forget"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showForgetRing = false }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showForgetRing = false }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -2224,7 +2226,7 @@ fun WearableSettingsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showFactoryReset = false
                     resetting = true
                     resetStatus = tr("Syncing latest data…")
@@ -2241,7 +2243,7 @@ fun WearableSettingsScreen(
                 }) { Text(tr("Reset ring"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { showFactoryReset = false }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showFactoryReset = false }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -2289,7 +2291,7 @@ private fun BackgroundSyncCard() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.height(12.dp))
-            OutlinedButton(
+            PulseButton(PulseButtonStyle.Outlined,
                 onClick = {
                     val intent = if (exempt) {
                         // Turning it back off is only possible from the system list.
@@ -2524,7 +2526,7 @@ fun PrivacyDataSettingsScreen(
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(
+                    PulseButton(
                         onClick = {
                             exportInProgress = true
                             scope.launch {
@@ -2554,7 +2556,7 @@ fun PrivacyDataSettingsScreen(
                         }
                         Text(if (exportInProgress) tr("Exporting…") else tr("Export All Data"))
                     }
-                    OutlinedButton(
+                    PulseButton(PulseButtonStyle.Outlined,
                         onClick = {
                             filePicker.launch(arrayOf("application/json"))
                         },
@@ -2584,7 +2586,7 @@ fun PrivacyDataSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedButton(
+                PulseButton(PulseButtonStyle.Outlined,
                     onClick = { pendingReset = ResetAction.ResetAppData },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
@@ -2594,7 +2596,7 @@ fun PrivacyDataSettingsScreen(
                     Text(tr("Reset App Data"))
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedButton(
+                PulseButton(PulseButtonStyle.Outlined,
                     onClick = { pendingReset = ResetAction.UnpairAndReset },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
@@ -2617,11 +2619,11 @@ fun PrivacyDataSettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                Button(onClick = { showSeedDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                PulseButton(onClick = { showSeedDialog = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Reseed Demo Data"))
                 }
                 Spacer(Modifier.height(8.dp))
-                OutlinedButton(onClick = { showClearDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                PulseButton(PulseButtonStyle.Outlined, onClick = { showClearDialog = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Clear Demo Data"), color = PulseColors.danger)
                 }
             }
@@ -2658,7 +2660,7 @@ fun PrivacyDataSettingsScreen(
                     Switch(checked = maskSensitive, onCheckedChange = null)
                 }
                 Spacer(Modifier.height(12.dp))
-                Button(
+                PulseButton(
                     onClick = {
                         scope.launch {
                             val db = PulseLoopDatabase.getInstance(context)
@@ -2688,7 +2690,7 @@ fun PrivacyDataSettingsScreen(
                 title = { Text(tr("Error")) },
                 text = { Text(msg) },
                 confirmButton = {
-                    TextButton(onClick = { statusMessage = null }) { Text("OK") }
+                    PulseButton(PulseButtonStyle.Text, onClick = { statusMessage = null }) { Text("OK") }
                 },
             )
         }
@@ -2698,7 +2700,7 @@ fun PrivacyDataSettingsScreen(
             title = { Text(tr("Import Complete")) },
             text = { Text(tr("Your data has been restored from the backup.")) },
             confirmButton = {
-                TextButton(onClick = { showImportSuccess = false }) { Text("OK") }
+                PulseButton(PulseButtonStyle.Text, onClick = { showImportSuccess = false }) { Text("OK") }
             },
         )
 
@@ -2709,9 +2711,9 @@ fun PrivacyDataSettingsScreen(
                 Text(tr("This permanently deletes everything currently in the app and replaces it with the contents of this file. This can't be undone."))
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showImportConfirm = false
-                    val uri = pendingImportUri ?: return@TextButton
+                    val uri = pendingImportUri ?: return@PulseButton
                     pendingImportUri = null
                     importInProgress = true
                     scope.launch {
@@ -2729,7 +2731,7 @@ fun PrivacyDataSettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showImportConfirm = false; pendingImportUri = null }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showImportConfirm = false; pendingImportUri = null }) { Text(tr("Cancel")) }
             },
         )
 
@@ -2740,7 +2742,7 @@ fun PrivacyDataSettingsScreen(
                 title = { Text(action.title) },
                 text = { Text(action.message) },
                 confirmButton = {
-                    TextButton(onClick = {
+                    PulseButton(PulseButtonStyle.Text, onClick = {
                         pendingReset = null
                         when (action) {
                             is ResetAction.UnpairRing -> performUnpair()
@@ -2752,7 +2754,7 @@ fun PrivacyDataSettingsScreen(
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { pendingReset = null }) { Text(tr("Cancel")) }
+                    PulseButton(PulseButtonStyle.Text, onClick = { pendingReset = null }) { Text(tr("Cancel")) }
                 },
             )
         }
@@ -2762,7 +2764,7 @@ fun PrivacyDataSettingsScreen(
             title = { Text(tr("Reseed Demo Data?")) },
             text = { Text(tr("This will replace all existing demo data. Your synced ring data — including sleep history — will not be affected.")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showSeedDialog = false
                     scope.launch {
                         DemoDataSeeder.seed(PulseLoopDatabase.getInstance(context))
@@ -2771,7 +2773,7 @@ fun PrivacyDataSettingsScreen(
                 }) { Text(tr("Reseed")) }
             },
             dismissButton = {
-                TextButton(onClick = { showSeedDialog = false }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showSeedDialog = false }) { Text(tr("Cancel")) }
             },
         )
 
@@ -2785,7 +2787,7 @@ fun PrivacyDataSettingsScreen(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showClearDialog = false
                     scope.launch {
                         DemoDataSeeder.clear(PulseLoopDatabase.getInstance(context))
@@ -2794,7 +2796,7 @@ fun PrivacyDataSettingsScreen(
                 }) { Text(tr("Clear"), color = PulseColors.danger) }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDialog = false }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showClearDialog = false }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -3014,8 +3016,8 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
                     NutrientStepper(tr("Fat (g)"), goal?.intakeFatG ?: 65.0, 5.0, 0.0, 300.0) { v ->
                         scope.launch { goal = goal?.copy(intakeFatG = v)?.also { db.userGoalDao().upsert(it); com.pulseloop.service.GoalSync.noteEdits(context, it) } }
                     }
-                    OutlinedButton(onClick = {
-                        val g = goal ?: return@OutlinedButton
+                    PulseButton(PulseButtonStyle.Outlined, onClick = {
+                        val g = goal ?: return@PulseButton
                         scope.launch {
                             val cal = g.intakeCalories ?: 2000.0
                             goal = g.copy(intakeProteinG = cal * 0.30 / 4.0, intakeCarbsG = cal * 0.40 / 4.0, intakeFatG = cal * 0.30 / 9.0)
@@ -3031,7 +3033,7 @@ fun NutritionSettingsScreen(onBack: () -> Unit, onNavigateToNutrition: () -> Uni
                 Column(Modifier.padding(16.dp)) {
                     Text(tr("Quick Access"), fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(8.dp))
-                    Button(
+                    PulseButton(
                         onClick = onNavigateToNutrition,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
@@ -3048,9 +3050,9 @@ private fun NutrientStepper(label: String, value: Double, step: Double, min: Dou
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { if (value > min) onChange((value - step).coerceAtLeast(min)) }) { Text("−", fontSize = 16.sp) }
+            PulseButton(PulseButtonStyle.Text, onClick = { if (value > min) onChange((value - step).coerceAtLeast(min)) }) { Text("−", fontSize = 16.sp) }
             Text("${value.roundToInt()}", fontWeight = FontWeight.Medium)
-            TextButton(onClick = { if (value < max) onChange((value + step).coerceAtMost(max)) }) { Text("+", fontSize = 16.sp) }
+            PulseButton(PulseButtonStyle.Text, onClick = { if (value < max) onChange((value + step).coerceAtMost(max)) }) { Text("+", fontSize = 16.sp) }
         }
     }
 }
@@ -3119,7 +3121,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 if (isConnected) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             onClick = {
                                 isUploading = true
                                 scope.launch {
@@ -3144,7 +3146,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                         ) {
                             Text(if (isUploading) tr("Syncing…") else tr("Sync Now"))
                         }
-                        OutlinedButton(
+                        PulseButton(PulseButtonStyle.Outlined,
                             onClick = { confirmDisconnect = true },
                             modifier = Modifier.weight(1f),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
@@ -3153,7 +3155,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                         }
                     }
                 } else {
-                    Button(
+                    PulseButton(
                         onClick = {
                             statusMessage = null
                             tokenStore.clearLastError()
@@ -3211,7 +3213,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
             title = { Text(tr("Disconnect Strava?")) },
             text = { Text(tr("PulseLoop will stop uploading workouts. Workouts already on Strava stay there.")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     confirmDisconnect = false
                     scope.launch {
                         // Revoke on Strava's side first, so PulseLoop also disappears
@@ -3228,7 +3230,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
                 }) { Text(tr("Disconnect"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDisconnect = false }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { confirmDisconnect = false }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -3376,7 +3378,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.error,
                         )
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = { openHealthConnectPlayStore(context) }, modifier = Modifier.fillMaxWidth()) {
+                        PulseButton(onClick = { openHealthConnectPlayStore(context) }, modifier = Modifier.fillMaxWidth()) {
                             Text(tr("Install Health Connect"))
                         }
                     }
@@ -3388,7 +3390,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                             color = MaterialTheme.colorScheme.error,
                         )
                         Spacer(Modifier.height(8.dp))
-                        Button(onClick = { openHealthConnectPlayStore(context) }, modifier = Modifier.fillMaxWidth()) {
+                        PulseButton(onClick = { openHealthConnectPlayStore(context) }, modifier = Modifier.fillMaxWidth()) {
                             Text(tr("Update Health Connect"))
                         }
                     }
@@ -3418,7 +3420,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         // showing the permission sheet at all, so the master switch silently does
                         // nothing. Both are resolved in the Health Connect app.
                         Spacer(Modifier.height(8.dp))
-                        TextButton(
+                        PulseButton(PulseButtonStyle.Text,
                             onClick = { openHealthConnectApp(context) },
                             modifier = Modifier.align(Alignment.Start),
                         ) { Text(tr("Open Health Connect")) }
@@ -3594,7 +3596,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                     }
                     Spacer(Modifier.height(8.dp))
                     val removing = prefs.removalStatus == HealthConnectPrefs.REMOVAL_IN_PROGRESS
-                    Button(
+                    PulseButton(
                         onClick = { showRemoveDialog = true },
                         enabled = !removing,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
@@ -3619,7 +3621,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(msg, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
-                    TextButton(onClick = { store.update { it.copy(removalStatus = null) } }, modifier = Modifier.widthIn(max = 120.dp)) {
+                    PulseButton(PulseButtonStyle.Text, onClick = { store.update { it.copy(removalStatus = null) } }, modifier = Modifier.widthIn(max = 120.dp)) {
                         Text(tr("Dismiss"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
@@ -3653,13 +3655,13 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
             // "Remove PulseLoop data", which resets it to NOT_ASKED and re-offers this dialog.
             text = { Text(tr("Exporting all history can take a while on the first run.")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     store.update { it.copy(backfillChoice = HealthConnectPrefs.BackfillChoice.EXPORT_ALL) }
                     HealthConnectExportWorker.enqueue(context) // answer the gate → run the pass
                 }) { Text(tr("Sync all history")) }
             },
             dismissButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     store.update { it.copy(backfillChoice = HealthConnectPrefs.BackfillChoice.EXPORT_NEW_ONLY) }
                     HealthConnectExportWorker.enqueue(context) // stamps watermarks, exports nothing
                 }) { Text(tr("Only new data from now on")) }
@@ -3676,7 +3678,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
             title = { Text(tr("Health Connect permissions revoked")) },
             text = { Text(tr("PulseLoop no longer has any Health Connect permissions. Reset the export so a later re-grant re-exports your history?")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     store.clearWatermarks()
                     store.update { it.copy(lastSyncAt = null, lastSyncSummary = null, revocationOfferDismissed = true) }
                     showRevokeResetDialog = false
@@ -3684,7 +3686,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                 }) { Text(tr("Reset export")) }
             },
             dismissButton = {
-                TextButton(onClick = { showRevokeResetDialog = false; store.update { it.copy(revocationOfferDismissed = true) } }) { Text(tr("Not now")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showRevokeResetDialog = false; store.update { it.copy(revocationOfferDismissed = true) } }) { Text(tr("Not now")) }
             },
         )
     }
@@ -3697,7 +3699,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
             title = { Text(tr("Remove PulseLoop data?")) },
             text = { Text(tr("This deletes every record PulseLoop wrote to Health Connect and resets the export. It cannot be undone, and your ring data in PulseLoop is not affected.")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     showRemoveDialog = false
                     // Enqueued, not launched in this screen's scope (review pass 5): a back-press
                     // mid-delete used to cancel the removal between record types, leaving some
@@ -3707,7 +3709,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                 }) { Text(tr("Remove")) }
             },
             dismissButton = {
-                TextButton(onClick = { showRemoveDialog = false }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showRemoveDialog = false }) { Text(tr("Cancel")) }
             },
         )
     }
@@ -3863,7 +3865,7 @@ private fun AutoBackupCard() {
                     trf("Folder: {0}", folderName ?: tr("not chosen")),
                     style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f),
                 )
-                TextButton(onClick = { picker.launch(null) }, modifier = Modifier.widthIn(max = 120.dp)) {
+                PulseButton(PulseButtonStyle.Text, onClick = { picker.launch(null) }, modifier = Modifier.widthIn(max = 120.dp)) {
                     Text(if (folderName == null) tr("Choose") else tr("Change"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
@@ -3878,7 +3880,7 @@ private fun AutoBackupCard() {
             }
             Text(status, style = MaterialTheme.typography.bodySmall,
                 color = if (com.pulseloop.data.AutoBackup.lastError(context) != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
-            OutlinedButton(
+            PulseButton(PulseButtonStyle.Outlined,
                 enabled = !running && folderName != null,
                 onClick = {
                     running = true

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import android.content.ActivityNotFoundException
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -20,16 +22,13 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -220,7 +219,7 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
                         .joinToString(" · "), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
             }
-            Button(
+            PulseButton(
                 onClick = { picker.launch(arrayOf("application/pdf")) },
                 enabled = !reading,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
@@ -316,12 +315,12 @@ fun LabReportsScreen(onBack: () -> Unit, onMarker: (String) -> Unit, onAskCoach:
             title = { Text(tr("Delete this report?")) },
             text = { Text(tr("Its markers and its PDF are removed from this phone.")) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     scope.launch { LabReports.delete(context, db, r) }
                     deleting = null
                 }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { deleting = null }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { deleting = null }) { Text(tr("Cancel")) } },
         )
     }
 }
@@ -412,7 +411,7 @@ fun LabMarkerScreen(markerKey: String, onBack: () -> Unit, onAskCoach: (markerNa
             LabNotice(trf("Outside the lab's range on {0}. Worth bringing to your doctor.", dayLabel(l.day)))
         }
 
-        OutlinedButton(onClick = { onAskCoach(m.name) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+        PulseButton(PulseButtonStyle.Outlined, onClick = { onAskCoach(m.name) }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Filled.AutoAwesome, null, tint = PulseColors.accent)
             Spacer(Modifier.width(8.dp))
             Text(tr("Ask the coach for a plan"), color = PulseColors.accent)
@@ -495,7 +494,7 @@ private fun LabReviewScreen(
                         fontSize = 16.sp, fontWeight = FontWeight.Bold,
                         color = if (draft.collectedOn == null) PulseColors.warning else PulseColors.textPrimary)
                 }
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val d = draft.collectedOn ?: LocalDate.now()
                     android.app.DatePickerDialog(context, { _, y, mo, day ->
                         onChange(draft.copy(collectedOn = LocalDate.of(y, mo + 1, day)))
@@ -533,8 +532,8 @@ private fun LabReviewScreen(
             Text(tr("Tap a row to fix or remove it."), fontSize = 12.sp, color = PulseColors.accent)
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(onClick = onDiscard, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) { Text(tr("Discard")) }
-            Button(
+            PulseButton(PulseButtonStyle.Outlined, onClick = onDiscard, modifier = Modifier.weight(1f)) { Text(tr("Discard")) }
+            PulseButton(
                 onClick = onSave,
                 enabled = draft.results.isNotEmpty(),
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp),
@@ -568,7 +567,7 @@ private fun LabReviewScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val n = num(value)
                     val updated = r.copy(
                         name = name.trim().ifBlank { r.name },
@@ -581,11 +580,11 @@ private fun LabReviewScreen(
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = {
+                    PulseButton(PulseButtonStyle.Text, onClick = {
                         onChange(draft.copy(results = draft.results.filterIndexed { i, _ -> i != index }))
                         editing = null
                     }) { Text(tr("Remove"), color = PulseColors.danger) }
-                    TextButton(onClick = { editing = null }) { Text(tr("Cancel")) }
+                    PulseButton(PulseButtonStyle.Text, onClick = { editing = null }) { Text(tr("Cancel")) }
                 }
             },
         )

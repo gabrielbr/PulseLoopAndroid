@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -30,10 +32,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
@@ -360,7 +360,7 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
                 trf("Two hours after against two hours before, over {0} sessions. Readings during a session aren't counted: slow breathing raises HRV while it lasts.", e.sessions),
             )
         }
-        OutlinedButton(onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text(tr("Start a breathing session")) }
+        PulseButton(PulseButtonStyle.Outlined, onClick = onBreathe, modifier = Modifier.fillMaxWidth()) { Text(tr("Start a breathing session")) }
     }
 }
 
@@ -568,7 +568,7 @@ fun BreatheScreen(onBack: () -> Unit) {
                 )
                 Text("%d:%02d".format(remaining / 60, remaining % 60), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 Spacer(Modifier.height(16.dp))
-                OutlinedButton(onClick = { finish() }) { Text(tr("End session")) }
+                PulseButton(PulseButtonStyle.Outlined, onClick = { finish() }) { Text(tr("End session")) }
             }
             r != null -> {
                 Text(tr("Session saved"), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
@@ -580,7 +580,7 @@ fun BreatheScreen(onBack: () -> Unit) {
                 }
                 Text(tr("Tagged as \"Meditation or relaxing\" in today's journal."), fontSize = 12.sp, color = PulseColors.textMuted)
                 Spacer(Modifier.height(16.dp))
-                Button(onClick = onBack) { Text(tr("Done")) }
+                PulseButton(onClick = onBack) { Text(tr("Done")) }
             }
             else -> {
                 Text(tr("Slow breathing: in for 4 seconds, out for 6."), fontSize = 16.sp, color = PulseColors.textSecondary)
@@ -595,7 +595,7 @@ fun BreatheScreen(onBack: () -> Unit) {
                     }
                 }
                 Spacer(Modifier.height(24.dp))
-                Button(onClick = { result = null; elapsedMs = 0L; startedAt = System.currentTimeMillis() }) { Text(tr("Start")) }
+                PulseButton(onClick = { result = null; elapsedMs = 0L; startedAt = System.currentTimeMillis() }) { Text(tr("Start")) }
             }
         }
         Spacer(Modifier.weight(1f))
@@ -653,7 +653,7 @@ internal fun StepCalibrationCard(db: PulseLoopDatabase) {
         when {
             !granted -> {
                 Text(tr("Your phone counts steps too. Comparing the two over a few days shows whether your ring over- or under-counts."), fontSize = 14.sp, color = PulseColors.textSecondary)
-                OutlinedButton(onClick = {
+                PulseButton(PulseButtonStyle.Outlined, onClick = {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) launcher.launch(android.Manifest.permission.ACTIVITY_RECOGNITION)
                 }, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare with my phone")) }
             }

@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -413,7 +415,7 @@ fun VitalsScreen(
                           }
                       }
                       var pickOpen by remember { mutableStateOf(false) }
-                      Button(
+                      PulseButton(
                           enabled = !measuring,
                           modifier = Modifier.widthIn(max = 160.dp),
                           onClick = { pickOpen = true },
@@ -433,7 +435,7 @@ fun VitalsScreen(
                           options[index].run()
                       }
                     } else {
-                    Button(
+                    PulseButton(
                         enabled = !measuring,
                         // Same reason as the bound above: the title is weighted, this isn't.
                         modifier = Modifier.widthIn(max = 208.dp),
@@ -1038,7 +1040,7 @@ private fun ReadingsCard(
                 }
             }
             if (readings.size > visibleCount) {
-                TextButton(
+                PulseButton(PulseButtonStyle.Text,
                     onClick = { visibleCount += READINGS_PAGE_SIZE },
                     modifier = Modifier.padding(start = 8.dp),
                 ) {
@@ -1070,13 +1072,13 @@ private fun ReadingsCard(
                 )
             },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     onDelete(reading)
                     pendingDelete = null
                 }) { Text(tr("Delete"), color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text(tr("Cancel")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { pendingDelete = null }) { Text(tr("Cancel")) }
             },
         )
     }

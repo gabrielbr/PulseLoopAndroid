@@ -1,6 +1,7 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.theme.dither
 import androidx.compose.foundation.background
@@ -18,7 +19,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -126,7 +126,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
         }
 
         item {
-            Button(
+            PulseButton(
                 onClick = {
                     saving = true
                     scope.launch {
@@ -147,7 +147,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
                     }
                 },
                 enabled = isValid && !saving,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth(),
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = PulseColors.accent),
             ) {

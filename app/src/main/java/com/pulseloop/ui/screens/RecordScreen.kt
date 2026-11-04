@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.theme.PulseColors
 import androidx.activity.compose.BackHandler
@@ -70,10 +72,10 @@ fun RecordScreen(
             title = { Text(tr("Workout in progress")) },
             text = { Text(tr("Your workout is still recording. Finish it now, or keep recording?")) },
             confirmButton = {
-                TextButton(onClick = { showLeaveDialog = false; onFinish() }) { Text(tr("Finish")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showLeaveDialog = false; onFinish() }) { Text(tr("Finish")) }
             },
             dismissButton = {
-                TextButton(onClick = { showLeaveDialog = false }) { Text(tr("Keep recording")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { showLeaveDialog = false }) { Text(tr("Keep recording")) }
             },
         )
     }
@@ -139,19 +141,19 @@ fun RecordScreen(
         // Action buttons
         Row(Modifier.fillMaxWidth().padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             if (isPaused) {
-                Button(onClick = onResume, Modifier.weight(1f).height(52.dp)) {
+                PulseButton(onClick = onResume, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Filled.PlayArrow, null)
                     Spacer(Modifier.width(8.dp))
                     Text(tr("Resume"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             } else {
-                OutlinedButton(onClick = onPause, Modifier.weight(1f).height(52.dp)) {
+                PulseButton(PulseButtonStyle.Outlined, onClick = onPause, modifier = Modifier.weight(1f)) {
                     Icon(Icons.Filled.Pause, null)
                     Spacer(Modifier.width(8.dp))
                     Text(tr("Pause"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
-            Button(onClick = onFinish, Modifier.weight(1f).height(52.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+            PulseButton(onClick = onFinish, modifier = Modifier.weight(1f), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                 Icon(Icons.Filled.Stop, null)
                 Spacer(Modifier.width(8.dp))
                 Text(tr("Finish"), maxLines = 1, overflow = TextOverflow.Ellipsis)

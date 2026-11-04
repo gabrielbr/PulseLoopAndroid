@@ -1,6 +1,8 @@
 package com.pulseloop.ui.onboarding
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -31,7 +33,6 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -352,7 +353,7 @@ private fun NumberPickerSheet(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     onSave(null)
                     onDismiss()
                 }) { Text(tr("Clear"), color = PulseColors.textSecondary) }
@@ -364,7 +365,7 @@ private fun NumberPickerSheet(
                     color = PulseColors.textPrimary,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     onSave(selection)
                     onDismiss()
                 }) { Text(tr("Done"), color = PulseColors.accent, fontWeight = FontWeight.SemiBold) }
@@ -426,7 +427,7 @@ private fun DecimalValueSheet(
                 Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     onSave(null)
                     onDismiss()
                 }) { Text(tr("Clear"), color = PulseColors.textSecondary) }
@@ -438,7 +439,7 @@ private fun DecimalValueSheet(
                     color = PulseColors.textPrimary,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(
+                PulseButton(PulseButtonStyle.Text,
                     enabled = parsedValue != null,
                     onClick = {
                         onSave(parsedValue)

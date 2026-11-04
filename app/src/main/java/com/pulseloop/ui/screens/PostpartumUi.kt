@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import android.content.Context
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -15,16 +17,13 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -94,7 +93,7 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
         if (enabled) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(tr("Baby's birth date"), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
-                TextButton(onClick = { picking = true }) { Text(birth?.format(fmt) ?: tr("Set")) }
+                PulseButton(PulseButtonStyle.Text, onClick = { picking = true }) { Text(birth?.format(fmt) ?: tr("Set")) }
             }
             Text(tr("Feeding"), fontSize = 14.sp, color = PulseColors.textSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -104,7 +103,7 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
                     Postpartum.Feeding.NONE to tr("Not breastfeeding"),
                 ).forEach { (f, label) -> Chip(label, feeding == f) { feeding = f; save() } }
             }
-            if (birth != null) OutlinedButton(onClick = onOpen, modifier = Modifier.fillMaxWidth()) { Text(tr("Open postpartum view")) }
+            if (birth != null) PulseButton(PulseButtonStyle.Outlined, onClick = onOpen, modifier = Modifier.fillMaxWidth()) { Text(tr("Open postpartum view")) }
         }
     }
 
@@ -115,13 +114,13 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
         DatePickerDialog(
             onDismissRequest = { picking = false },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     state.selectedDateMillis?.let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
                         ?.takeIf { !it.isAfter(LocalDate.now()) }?.let { birth = it; save() }
                     picking = false
                 }) { Text(tr("Save")) }
             },
-            dismissButton = { TextButton(onClick = { picking = false }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { picking = false }) { Text(tr("Cancel")) } },
         ) {
             Text(tr("When was your baby born?"), modifier = Modifier.padding(start = 24.dp, top = 16.dp), fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
             DatePicker(state = state, showModeToggle = false)
@@ -244,7 +243,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
             if (birth == null) {
                 Card {
                     Text(tr("Set your baby's birth date in your profile to see this view."), fontSize = 14.sp, color = PulseColors.textSecondary)
-                    Button(onClick = onOpenProfile) { Text(tr("Open profile")) }
+                    PulseButton(onClick = onOpenProfile) { Text(tr("Open profile")) }
                 }
                 return@Column
             }
@@ -296,7 +295,7 @@ fun PostpartumScreen(onBack: () -> Unit, onOpenProfile: () -> Unit) {
                 Postpartum.nextCheckIn(birth, today, history)?.let { next ->
                     Text(trf("Suggested next check-in: {0}", next.format(DateTimeFormatter.ofPattern("d MMM"))), fontSize = 12.sp, color = PulseColors.textMuted)
                 }
-                Button(onClick = { checkIn = true }) { Text(tr("Start check-in")) }
+                PulseButton(onClick = { checkIn = true }) { Text(tr("Start check-in")) }
                 Text(tr("Your answers stay on this phone. They aren't in backups, diagnostics or Health Connect."), fontSize = 12.sp, color = PulseColors.textMuted)
             } }
             val lastEpds = history.lastOrNull()
@@ -483,8 +482,8 @@ private fun EpdsGuidance(score: Int, selfHarm: Int) {
             // FlowRow: the two translated labels don't fit side by side, and a crisis button
             // pushed off the edge of the screen is the worst place for an overflow.
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { dial(context, "188") }) { Text(tr("Call CVV 188")) }
-                OutlinedButton(onClick = { dial(context, "192") }) { Text(tr("Call SAMU 192")) }
+                PulseButton(onClick = { dial(context, "188") }) { Text(tr("Call CVV 188")) }
+                PulseButton(PulseButtonStyle.Outlined, onClick = { dial(context, "192") }) { Text(tr("Call SAMU 192")) }
             }
         }
     }
@@ -527,7 +526,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
                     Text(trf("Your score: {0} of 30", r.score), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                     EpdsGuidance(r.score, r.selfHarm)
                 }
-                Button(onClick = { onDone(r) }, modifier = Modifier.fillMaxWidth()) { Text(tr("Done")) }
+                PulseButton(onClick = { onDone(r) }, modifier = Modifier.fillMaxWidth()) { Text(tr("Done")) }
                 return@Column
             }
             Text(form.instruction, fontSize = 14.sp, color = PulseColors.textSecondary)
@@ -546,7 +545,7 @@ private fun EpdsCheckIn(onDone: (Postpartum.EpdsResult?) -> Unit) {
                     }
                 }
             }
-            Button(
+            PulseButton(
                 enabled = answers.all { it != null },
                 onClick = {
                     val scores = form.items.mapIndexed { i, item -> item.options[answers[i]!!].score }

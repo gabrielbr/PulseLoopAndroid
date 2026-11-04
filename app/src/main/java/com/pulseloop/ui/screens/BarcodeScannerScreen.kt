@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.tr
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import android.Manifest
 import android.content.Context
@@ -30,9 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -237,7 +237,7 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                 color = PulseColors.textPrimary,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onDismiss) { Text(tr("Cancel")) }
+            PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) }
         }
         when (availability) {
             ScanAvailability.Granted ->
@@ -304,7 +304,7 @@ fun BarcodeScannerScreen(onScan: (String) -> Unit, onDismiss: () -> Unit) {
                         textAlign = TextAlign.Center,
                     )
                     Spacer(Modifier.height(16.dp))
-                    OutlinedButton(onClick = {
+                    PulseButton(PulseButtonStyle.Outlined, onClick = {
                         runCatching {
                             context.startActivity(
                                 Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)

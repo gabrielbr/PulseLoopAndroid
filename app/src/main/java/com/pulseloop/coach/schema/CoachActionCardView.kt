@@ -1,6 +1,8 @@
 package com.pulseloop.coach.schema
 
 import com.pulseloop.ui.theme.dither
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 import com.pulseloop.ui.theme.PulseColors
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -51,13 +53,13 @@ fun CoachActionCardView(
         Text(action.summary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface)
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
+            PulseButton(PulseButtonStyle.Outlined,
                 onClick = onCancel,
                 modifier = Modifier.weight(1f),
             ) {
                 Text("Cancel")
             }
-            Button(
+            PulseButton(
                 onClick = onConfirm,
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.buttonColors(containerColor = tone),

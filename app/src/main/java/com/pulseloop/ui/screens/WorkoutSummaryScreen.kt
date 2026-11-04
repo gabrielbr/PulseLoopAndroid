@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import com.pulseloop.ui.i18n.trf
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 
 import com.pulseloop.ui.i18n.tr
 
@@ -21,7 +23,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -30,10 +31,8 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.rememberDatePickerState
@@ -182,7 +181,7 @@ fun WorkoutSummaryScreen(
             title = { Text(tr("Delete workout?")) },
             text = { Text("This removes the session and its recorded route. This can't be undone.") },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     confirmDelete = false
                     scope.launch {
                         com.pulseloop.service.ActivityRollup.reverse(db, s)
@@ -194,7 +193,7 @@ fun WorkoutSummaryScreen(
                     }
                 }) { Text(tr("Delete"), color = PulseColors.danger) }
             },
-            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmDelete = false }) { Text(tr("Cancel")) } },
         )
     }
 
@@ -257,7 +256,7 @@ private fun EditWorkoutSheet(
 
             EditFieldRow(tr("Activity")) {
                 Box {
-                    OutlinedButton(onClick = { typeExpanded = true }) {
+                    PulseButton(PulseButtonStyle.Outlined, onClick = { typeExpanded = true }) {
                         Icon(ActivityMeta.icon(type), null, tint = PulseColors.accent, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(ActivityMeta.label(type))
@@ -291,10 +290,10 @@ private fun EditWorkoutSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
 
-            Button(
+            PulseButton(
                 onClick = { onSave(type, startedAt, endedAt) },
                 enabled = validationMessage == null,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
+                modifier = Modifier.fillMaxWidth(),
                 shape = CircleShape,
                 colors = ButtonDefaults.buttonColors(containerColor = PulseColors.accent),
             ) {
@@ -303,7 +302,7 @@ private fun EditWorkoutSheet(
                 Text(tr("Save changes"), fontWeight = FontWeight.SemiBold)
             }
 
-            TextButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+            PulseButton(PulseButtonStyle.Text, onClick = onDismiss, modifier = Modifier.fillMaxWidth()) {
                 Text(tr("Cancel"), color = PulseColors.textPrimary, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -340,7 +339,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
     var showTime by remember { mutableStateOf(false) }
     var pendingDayMillis by remember { mutableLongStateOf(valueMillis) }
 
-    TextButton(onClick = { showDate = true }) {
+    PulseButton(PulseButtonStyle.Text, onClick = { showDate = true }) {
         Text(formatDateTime(valueMillis), color = PulseColors.accent, fontWeight = FontWeight.Medium)
     }
 
@@ -355,7 +354,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
         DatePickerDialog(
             onDismissRequest = { showDate = false },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val dayStart = state.selectedDateMillis?.let { utcMidnightToLocalDayStart(it) }
                     if (dayStart != null) {
                         val cal = Calendar.getInstance().apply { timeInMillis = valueMillis }
@@ -370,7 +369,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
                     showTime = true
                 }) { Text(tr("Next")) }
             },
-            dismissButton = { TextButton(onClick = { showDate = false }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { showDate = false }) { Text(tr("Cancel")) } },
         ) { DatePicker(state = state, title = null) }
     }
 
@@ -389,7 +388,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
             // The dial doesn't fit a landscape dialog; the keyboard entry form does.
             text = { if (landscape) TimeInput(state = timeState) else TimePicker(state = timeState) },
             confirmButton = {
-                TextButton(onClick = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
                     val result = Calendar.getInstance().apply {
                         timeInMillis = pendingDayMillis
                         set(Calendar.HOUR_OF_DAY, timeState.hour)
@@ -400,7 +399,7 @@ internal fun DateTimeButton(valueMillis: Long, onChange: (Long) -> Unit) {
                     showTime = false
                 }) { Text(tr("Done")) }
             },
-            dismissButton = { TextButton(onClick = { showTime = false }) { Text(tr("Cancel")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { showTime = false }) { Text(tr("Cancel")) } },
         )
     }
 }
@@ -637,6 +636,6 @@ private fun MissingWorkout(onBack: () -> Unit) {
             fontSize = 14.sp, color = PulseColors.textMuted, textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
-        TextButton(onClick = onBack) { Text(tr("Back"), color = PulseColors.accent) }
+        PulseButton(PulseButtonStyle.Text, onClick = onBack) { Text(tr("Back"), color = PulseColors.accent) }
     }
 }

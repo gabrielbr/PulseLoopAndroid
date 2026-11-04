@@ -1,6 +1,8 @@
 package com.pulseloop.ui.screens
 
 import android.app.Activity
+import com.pulseloop.ui.components.PulseButtonStyle
+import com.pulseloop.ui.components.PulseButton
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -12,7 +14,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -87,8 +88,8 @@ fun LanguageSettingsScreen(onBack: () -> Unit) {
                     ),
                 )
             },
-            confirmButton = { TextButton(onClick = { confirming = null; switchTo(context, lang) }) { Text(tr("Bring it on")) } },
-            dismissButton = { TextButton(onClick = { confirming = null }) { Text(tr("Never mind")) } },
+            confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirming = null; switchTo(context, lang) }) { Text(tr("Bring it on")) } },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirming = null }) { Text(tr("Never mind")) } },
         )
     }
 }
