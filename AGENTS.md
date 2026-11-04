@@ -1158,11 +1158,17 @@ their data. Each rule fails silently if broken:
 - **Tokens are shown once and stored as SHA-256 only**, in `mcp_server` preferences. That file,
   and the on/off switch in it, are device state and security material: **never add them to
   `ArchivedSettings`** — a restore on a new phone must start off with nothing paired.
-- **Off by default, foreground while on, never back by itself**: `START_NOT_STICKY`, no boot
-  receiver, auto-off after the chosen hours (default 8), and stopping for any reason clears the
-  switch. On Android 15+ the choices stop at 6 h and a stored 8 reads as 6
-  (`McpConfig.autoOffHours`): a `dataSync` service gets about 6 h a day there. The notification's tap stops it. Type `dataSync` (Android 15 ends it at its daily
-  limit through `onTimeout`; keep that override).
+- **Off by default, foreground while on, and back by itself only when the user chose it**. A
+  timed session: `START_NOT_STICKY`, auto-off after the chosen hours (1/4/8; on Android 15+ the
+  choices stop at 6 h and a stored 8 reads as 6, `McpConfig.autoOffHours`, because a `dataSync`
+  service gets about 6 h a day there and ends through `onTimeout` — keep that override), and
+  stopping for any reason clears the switch. **Always on** (`McpPrefs.alwaysOn`) is the user's
+  explicit choice behind a confirm dialog: no auto-off, `START_STICKY`, `specialUse` foreground
+  type on Android 14+ (no daily limit, may start at boot; needs the
+  `PROPERTY_SPECIAL_USE_FGS_SUBTYPE` property), and `McpBootReceiver` restarts it after a reboot
+  or an update only when it was left on. Only the user's Stop clears `enabled` then. Never make
+  always on a default, never skip the dialog, and never hide the ongoing notification: it is how
+  someone sees that their health data is reachable. The notification's tap stops it.
 - **The `instructions` say it is not a diagnostic tool** and the numbers are estimates — the same
   rule the coach follows. Keep them in step with the coach's prompt.
 - The protocol, HTTP, address and token code has no Android imports and is JVM-tested; keep new

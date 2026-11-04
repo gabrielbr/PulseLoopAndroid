@@ -65,6 +65,25 @@ fun McpSettingsScreen(onBack: () -> Unit) {
     val status by McpService.status.collectAsState()
     var paired by remember { mutableStateOf(tokens.list()) }
     var hours by remember { mutableIntStateOf(prefs.autoOffHours) }
+    var alwaysOn by remember { mutableStateOf(prefs.alwaysOn) }
+    var askingAlwaysOn by remember { mutableStateOf(false) }
+    // Re-read when the screen comes back from the system's battery dialog.
+    var batteryExempt by remember { mutableStateOf(isBatteryExempt(context)) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        batteryExempt = isBatteryExempt(context)
+        onPauseOrDispose { }
+    }
+    // Always on that Android stopped (or refused to restart) comes back when this screen opens.
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        if (prefs.enabled && prefs.alwaysOn && !McpService.status.value.running) McpService.start(context)
+    }
+    // A changed choice applies at once while it runs: start() recomputes the off time and the
+    // service's type. While off it is simply kept for next time.
+    fun choose(always: Boolean, h: Int) {
+        alwaysOn = always; prefs.alwaysOn = always
+        if (!always) { hours = h; prefs.autoOffHours = h }
+        if (status.running || prefs.enabled) McpService.start(context)
+    }
     var askingLabel by remember { mutableStateOf(false) }
     var justPaired by remember { mutableStateOf<Pair<String, String>?>(null) } // label to token
     var revoking by remember { mutableStateOf<PairedTool?>(null) }
@@ -97,6 +116,7 @@ fun McpSettingsScreen(onBack: () -> Unit) {
             }
             Text(
                 when {
+                    status.running && status.offAt == McpConfig.NEVER -> tr("On until you turn it off, including after a restart.")
                     status.running -> trf("On until {0}", clock(status.offAt))
                     starting -> tr("Starting…")
                     status.unreachable -> tr("Not on Wi-Fi or Tailscale, so nothing could reach it. Connect and try again.")
@@ -105,14 +125,21 @@ fun McpSettingsScreen(onBack: () -> Unit) {
                 style = PulseType.body,
                 color = if (status.unreachable && !on) PulseColors.warning else PulseColors.textSecondary,
             )
-            Text(tr("Turns itself off after"), style = PulseType.eyebrow, color = PulseColors.textSecondary)
+            Text(tr("Stays on for"), style = PulseType.eyebrow, color = PulseColors.textSecondary)
             PulseSegmented(
-                options = McpPrefs.HOURS_CHOICES.map { it to trf("{0} h", it) },
-                selected = hours,
-                onSelect = { h -> hours = h; prefs.autoOffHours = h },
+                options = McpPrefs.HOURS_CHOICES.map { it to trf("{0} h", it) } + (ALWAYS to tr("Always")),
+                selected = if (alwaysOn) ALWAYS else hours,
+                onSelect = { h -> if (h == ALWAYS) askingAlwaysOn = true else choose(false, h) },
             )
-            if (status.running) {
-                Text(tr("A new time applies the next time it's turned on."), style = PulseType.label, color = PulseColors.textSecondary)
+            if (alwaysOn && !batteryExempt) {
+                Text(
+                    tr("Android may pause it while the phone sleeps. Allow it to run in the background so your tools can always reach it."),
+                    style = PulseType.label,
+                    color = PulseColors.textSecondary,
+                )
+                PulseButton(PulseButtonStyle.Outlined, onClick = { requestBatteryExemption(context) }, modifier = Modifier.fillMaxWidth()) {
+                    Text(tr("Allow background running"))
+                }
             }
         }
 
@@ -166,6 +193,25 @@ fun McpSettingsScreen(onBack: () -> Unit) {
                 Text(tr("Pair a tool"))
             }
         }
+    }
+
+    if (askingAlwaysOn) {
+        AlertDialog(
+            onDismissRequest = { askingAlwaysOn = false },
+            title = { Text(tr("Keep it always on?")) },
+            text = {
+                Text(
+                    tr("Paired tools on this network will be able to read your health data at any time, also after the phone restarts, until you turn it off here or tap Stop in its notification. The notification stays while it's on."),
+                    style = PulseType.body,
+                )
+            },
+            confirmButton = {
+                PulseButton(PulseButtonStyle.Text, onClick = { askingAlwaysOn = false; choose(true, hours) }) { Text(tr("Keep it on")) }
+            },
+            dismissButton = {
+                PulseButton(PulseButtonStyle.Text, onClick = { askingAlwaysOn = false }) { Text(tr("Cancel")) }
+            },
+        )
     }
 
     if (askingLabel) {
@@ -272,6 +318,24 @@ private fun McpCard(content: @Composable () -> Unit) {
 
 private val CLOCK = DateTimeFormatter.ofPattern("HH:mm")
 private val DAY = DateTimeFormatter.ofPattern("d MMM")
+
+/** The segmented control's key for "Always": no hour choice is 0. */
+private const val ALWAYS = 0
+
+private fun isBatteryExempt(context: Context): Boolean =
+    (context.getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager)
+        ?.isIgnoringBatteryOptimizations(context.packageName) == true
+
+/** The system's own "allow in the background" dialog; the settings list if a phone lacks it. */
+private fun requestBatteryExemption(context: Context) {
+    val ask = android.content.Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+        .setData(android.net.Uri.parse("package:" + context.packageName))
+    try {
+        context.startActivity(ask)
+    } catch (_: Exception) {
+        runCatching { context.startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)) }
+    }
+}
 
 private fun clock(ts: Long): String = Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()).format(CLOCK)
 private fun day(ts: Long): String = Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault()).format(DAY)
