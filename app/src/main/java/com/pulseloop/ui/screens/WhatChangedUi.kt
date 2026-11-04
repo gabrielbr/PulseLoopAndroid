@@ -1,5 +1,7 @@
 package com.pulseloop.ui.screens
 
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.CheckCircle
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr

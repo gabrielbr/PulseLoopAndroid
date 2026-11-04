@@ -1,5 +1,6 @@
 package com.pulseloop.ui.components
 
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
