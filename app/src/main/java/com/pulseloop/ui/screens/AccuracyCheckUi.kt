@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -223,11 +224,14 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
                 Text(tr("Past checks"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
                 past.forEach { c ->
                     Row(
-                        Modifier.fillMaxWidth().clickable { viewing = c.id }.padding(vertical = 6.dp),
+                        Modifier.fillMaxWidth()
+                            .heightIn(min = 48.dp)
+                            .clickable(role = androidx.compose.ui.semantics.Role.Button) { viewing = c.id }
+                            .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
-                            Text("${c.deviceLabel} vs ${c.referenceLabel}", fontSize = 14.sp, color = PulseColors.textPrimary)
+                            Text(trf("{0} vs {1}", c.deviceLabel, c.referenceLabel), fontSize = 14.sp, color = PulseColors.textPrimary)
                             Text(AccuracyUiText.span(c), fontSize = 12.sp, color = PulseColors.textMuted)
                         }
                         Text(
@@ -361,7 +365,7 @@ private fun StartDialog(
         onDismissRequest = onDismiss,
         title = { Text(tr("Start an accuracy check")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = label, onValueChange = { label = it }, singleLine = true,
                     label = { Text(tr("Reference device")) },
@@ -371,7 +375,7 @@ private fun StartDialog(
                 )
                 Text(tr("How long"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
                 // Four translated "N days" chips are wider than a dialog: let them wrap.
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccuracyCheckController.DURATIONS_DAYS.forEach { d ->
                         FilterChip(selected = days == d, onClick = { days = d }, label = { Text(trf("{0} days", d)) })
                     }
@@ -411,7 +415,8 @@ private fun SourceCard(context: Context, s: ReferenceSourceSurvey, onUse: (() ->
             )
         }
         s.metrics.forEach { MetricRow(it) }
-        if (onUse != null) PulseButton(onClick = onUse, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare my ring with this")) }
+        // Tonal: one card per candidate app, so filled would put several mint buttons on one screen.
+        if (onUse != null) PulseButton(PulseButtonStyle.Tonal, onClick = onUse, modifier = Modifier.fillMaxWidth()) { Text(tr("Compare my ring with this")) }
     }
 }
 
@@ -475,7 +480,8 @@ internal fun AccuracyCheckBanner(c: AccuracyCheckEntity, onOpen: () -> Unit) {
         trf("Accuracy check · day {0} of {1} · Health Connect export paused", day, total)
     } else tr("Accuracy report ready · choose what to do with the paused export")
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).clickable(onClick = onOpen).padding(12.dp),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text, fontSize = 12.sp, color = PulseColors.warning, modifier = Modifier.weight(1f))

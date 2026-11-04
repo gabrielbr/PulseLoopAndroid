@@ -364,7 +364,7 @@ private fun DrinksWelcome(onStart: () -> Unit) {
             }
         }
     }
-    PulseButton(
+    PulseButton(PulseButtonStyle.Tonal,
         onClick = {
             DrinkPrefs.baselinePerWeek = typical.toDouble()
             DrinkPrefs.weeklyLimit = limit.toDouble()
@@ -620,7 +620,7 @@ private fun PlanSheet(s: DrinksRepository.Snapshot, onDone: () -> Unit) {
         Text(tr("Plan tonight"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
         Text(tr("Pick the number before the first drink. It's easier to keep a number you chose beforehand."), fontSize = 14.sp, color = PulseColors.textSecondary)
         Stepper(tr("Drinks tonight"), if (plan == 0) tr("None") else "$plan", { plan = (plan - 1).coerceAtLeast(0) }, { plan = (plan + 1).coerceAtMost(12) })
-        PulseButton(onClick = { DrinkPrefs.setPlan(s.today, plan); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Save plan")) }
+        PulseButton(PulseButtonStyle.Tonal, onClick = { DrinkPrefs.setPlan(s.today, plan); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Save plan")) }
         if (s.planToday != null) {
             PulseButton(PulseButtonStyle.Text, onClick = { DrinkPrefs.setPlan(s.today, null); onDone() }, modifier = Modifier.fillMaxWidth()) { Text(tr("Clear plan")) }
         }
@@ -653,12 +653,12 @@ private fun MoreDrinkSheet(onLog: (DrinkType, Int, Long, Double?) -> Unit) {
     var price by remember { mutableStateOf(DrinkPrefs.pricePerDrink.takeIf { it > 0 }?.let { "%.2f".format(it) } ?: "") }
     Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(tr("Log drinks"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             DrinkType.entries.forEach { t -> Pill(t.label, type == t, PulseColors.drinks) { type = t } }
         }
         Text(trf("{0} ml at {1}% · about {2} kcal", type.volumeMl.roundToInt(), type.abvPct, type.kcal.roundToInt()), fontSize = 12.sp, color = PulseColors.textMuted)
         Stepper(tr("How many"), "$count", { count = (count - 1).coerceAtLeast(1) }, { count = (count + 1).coerceAtMost(12) })
-        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(0L to "Now", 1L to "1 h ago", 3L to "3 h ago", 12L to "Last night").forEach { (h, l) ->
                 Pill(tr(l), hoursAgo == h, PulseColors.drinks) { hoursAgo = h }
             }
@@ -669,7 +669,7 @@ private fun MoreDrinkSheet(onLog: (DrinkType, Int, Long, Double?) -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             singleLine = true, modifier = Modifier.fillMaxWidth(),
         )
-        PulseButton(
+        PulseButton(PulseButtonStyle.Tonal,
             onClick = { onLog(type, count, hoursAgo, price.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 }) },
             modifier = Modifier.fillMaxWidth(),
         ) { Text(trf("Log {0}", count)) }

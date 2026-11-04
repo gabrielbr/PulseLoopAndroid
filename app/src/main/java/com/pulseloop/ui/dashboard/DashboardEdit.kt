@@ -205,7 +205,7 @@ private fun EditBadge(
 fun HiddenMetricsTray(hidden: List<DashboardCard>, onRestore: (DashboardCard) -> Unit) {
     if (hidden.isEmpty()) return
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Text(com.pulseloop.ui.i18n.tr("HIDDEN"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
+        Text(com.pulseloop.ui.i18n.tr("HIDDEN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = com.pulseloop.ui.theme.PulseColors.textSecondary)
         hidden.forEach { card ->
             Row(
                 Modifier.fillMaxWidth().padding(vertical = 2.dp),

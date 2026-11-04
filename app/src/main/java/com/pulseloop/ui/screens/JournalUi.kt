@@ -71,7 +71,7 @@ fun JournalTagsCard(
 
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -175,15 +175,7 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
     }
 
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) {
-                Icon(Icons.Filled.ArrowBack, tr("Back"))
-            }
-            Text(
-                tr("Journal"), modifier = Modifier.align(Alignment.Center),
-                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold,
-            )
-        }
+        com.pulseloop.ui.components.PulseTopBar(title = tr("Journal"), onBack = onBack)
         Column(
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -192,15 +184,28 @@ fun JournalScreen(db: PulseLoopDatabase, onBack: () -> Unit, onOpenDrinks: (() -
             JournalTagsCard(db, today.minusDays(1), tr("Yesterday"))
             // The Alcohol tag is a yes/no; Drinks counts them, sets a limit and shows the dose.
             if (onOpenDrinks != null) {
-                Text(
-                    if (com.pulseloop.service.DrinkPrefs.enabled) tr("Open Drinks: this week, your plan and what drinking does to your nights")
-                    else tr("Want to drink less? Track drinks, set a weekly limit and see what each drink does to your nights"),
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.drinks,
-                    modifier = Modifier.clickable(onClick = onOpenDrinks).padding(vertical = 4.dp),
-                )
+                // A row with a button role, a 48dp target and a chevron (was bare clickable text).
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable(role = Role.Button, onClick = onOpenDrinks)
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        if (com.pulseloop.service.DrinkPrefs.enabled) tr("Open Drinks: this week, your plan and what drinking does to your nights")
+                        else tr("Want to drink less? Track drinks, set a weekly limit and see what each drink does to your nights"),
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    com.pulseloop.ui.components.Chevron()
+                }
             }
 
-            Text(tr("What affects you"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+            Text(tr("What affects you").uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
             val list = effects
             when {
                 list == null -> Unit

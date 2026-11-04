@@ -9,6 +9,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -23,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.ui.i18n.AppLanguage
@@ -44,11 +48,15 @@ fun LanguageSettingsScreen(onBack: () -> Unit) {
 
     SettingsSubScreen(title = tr("Language"), onBack = onBack) {
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card),
+            // A radio group: TalkBack reads "selected, 1 of 5" and each row is one 48dp target.
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).selectableGroup(),
         ) {
             AppLanguage.entries.forEach { lang ->
                 Row(
-                    Modifier.fillMaxWidth().clickable {
+                    Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(
+                        selected = L10n.language == lang,
+                        role = Role.RadioButton,
+                    ) {
                         when {
                             lang == L10n.language -> Unit
                             lang.voice == Voice.FUNNY -> confirming = lang
@@ -58,7 +66,7 @@ fun LanguageSettingsScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     RadioButton(selected = L10n.language == lang, onClick = null)
-                    Column(Modifier.padding(start = 12.dp, top = 6.dp, bottom = 6.dp)) {
+                    Column(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp)) {
                         Text(
                             if (lang == AppLanguage.SYSTEM) tr("System default") else lang.label,
                             fontSize = 16.sp, color = PulseColors.textPrimary,

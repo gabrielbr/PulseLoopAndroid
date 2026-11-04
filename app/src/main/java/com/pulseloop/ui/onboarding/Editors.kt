@@ -244,7 +244,7 @@ private fun FormCard(content: @Composable () -> Unit) {
             .clip(RoundedCornerShape(8.dp))
             .background(PulseColors.card)
             .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         content()
     }
@@ -270,6 +270,8 @@ private fun SegmentedRow(
             Box(
                 Modifier
                     .weight(1f)
+                    // 48dp: each segment is a target (it was about 36dp).
+                    .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .background(if (selected) PulseColors.accent else Color.Transparent)
                     .selectable(selected = selected, role = Role.RadioButton) { onSelect(index) }
@@ -296,7 +298,7 @@ private fun PickerRow(title: String, value: String?, onClick: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 50.dp)
+            .heightIn(min = 48.dp)
             .clickable(role = Role.Button, onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -316,12 +318,7 @@ private fun PickerRow(title: String, value: String?, onClick: () -> Unit) {
             maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.widthIn(max = 160.dp),
         )
-        Icon(
-            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = PulseColors.textMuted,
-        )
+        com.pulseloop.ui.components.Chevron()
     }
 }
 
@@ -379,6 +376,7 @@ private fun NumberPickerSheet(
                     Box(
                         Modifier
                             .fillMaxWidth()
+                            .heightIn(min = 48.dp)
                             .selectable(selected = selected, role = Role.RadioButton) { selection = value }
                             .then(if (selected) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(Color.Transparent))
                             .padding(vertical = 12.dp),

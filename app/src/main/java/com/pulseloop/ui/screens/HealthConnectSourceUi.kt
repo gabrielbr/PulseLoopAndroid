@@ -8,6 +8,7 @@ import com.pulseloop.ui.i18n.tr
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -33,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -106,7 +108,11 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
         scope.launch {
             note = when (val r = runCatching { HealthConnectSourceImporter.run(context) }.getOrNull()) {
                 is HealthConnectSourceImporter.Outcome.Done -> trf("Imported {0} readings.", "%,d".format(r.stored))
-                is HealthConnectSourceImporter.Outcome.Failed -> r.message
+                // The importer's message lists record types in English: logcat, not the screen.
+                is HealthConnectSourceImporter.Outcome.Failed -> {
+                    android.util.Log.w("HcSource", r.message)
+                    tr("Couldn't read most of your data from Health Connect. Try again in a moment.")
+                }
                 HealthConnectSourceImporter.Outcome.NoPermission -> tr("PulseLoop isn't allowed to read Health Connect any more.")
                 HealthConnectSourceImporter.Outcome.Unavailable -> tr("Health Connect isn't available on this phone.")
                 else -> tr("The import failed. Try again in a moment.")
@@ -155,7 +161,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     fontSize = 12.sp, color = PulseColors.warning,
                 )
             } else if (!canRead) {
-                PulseButton(onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow access")) }
+                PulseButton(PulseButtonStyle.Tonal, onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow access")) }
             }
         }
 
@@ -167,7 +173,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                 val count = remember(refresh) { HealthConnectSource.lastImportCount(context) }
                 Text(
                     last?.let {
-                        trf("Last import {0}", DateTimeFormatter.ofPattern("EEE d MMM, HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))) +
+                        trf("Last import {0}", localDateTime(context, it)) +
                             trf(" · {0} readings", "%,d".format(count))
                     } ?: tr("Not imported yet"),
                     fontSize = 14.sp, color = PulseColors.textSecondary,
@@ -185,7 +191,7 @@ fun HealthConnectSourceContent(onEnabled: (() -> Unit)? = null) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    PulseButton(onClick = { importNow() }, enabled = !importing && canRead) { Text(tr("Import now")) }
+                    PulseButton(PulseButtonStyle.Tonal, onClick = { importNow() }, enabled = !importing && canRead) { Text(tr("Import now")) }
                     if (missing.isNotEmpty()) {
                         PulseButton(PulseButtonStyle.Outlined, onClick = { launcher.launch(HealthConnectSource.request) }) { Text(tr("Allow more")) }
                     }
@@ -243,17 +249,30 @@ fun HealthConnectSourceHeroCard(onOpen: () -> Unit) {
     val context = LocalContext.current
     val pkg = HealthConnectSource.sourcePackage(context) ?: return
     val last = HealthConnectSource.lastImportAt(context)
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(PulseColors.card)
-            .clickable(onClick = onOpen).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+    // Same frame as the ring's hero card (8dp radius, hairline, chevron), so the hub reads the same
+    // whichever source feeds it.
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
+            .clickable(role = Role.Button, onClick = onOpen).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(tr("DATA SOURCE"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
-        Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-        Text(
-            last?.let { trf("Last import {0}", DateTimeFormatter.ofPattern("EEE HH:mm").format(Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()))) }
-                ?: tr("Waiting for the first import"),
-            fontSize = 14.sp, color = PulseColors.textSecondary,
-        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(tr("DATA SOURCE"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+            Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(
+                last?.let { trf("Last import {0}", localDateTime(context, it)) }
+                    ?: tr("Waiting for the first import"),
+                fontSize = 14.sp, color = PulseColors.textSecondary,
+            )
+        }
+        com.pulseloop.ui.components.Chevron()
     }
+}
+
+/** Date and time in the phone's own format: its locale, and its 12/24-hour setting. */
+private fun localDateTime(context: android.content.Context, millis: Long): String {
+    val date = java.util.Date(millis)
+    return android.text.format.DateFormat.getMediumDateFormat(context).format(date) + ", " +
+        android.text.format.DateFormat.getTimeFormat(context).format(date)
 }

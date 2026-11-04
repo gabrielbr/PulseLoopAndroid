@@ -68,7 +68,7 @@ fun VitalCard(
                 horizontal = if (compact) 16.dp else 24.dp,
                 vertical = 16.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 8.dp),
+            verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
         ) {
             CardHeader(state, compact, footerText)
             if (showsValueRow && !compact) ValueRow(state)

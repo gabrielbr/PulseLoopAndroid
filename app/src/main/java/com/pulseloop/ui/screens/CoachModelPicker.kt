@@ -7,6 +7,9 @@ import com.pulseloop.ui.components.PulseButton
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.*
@@ -130,13 +133,14 @@ fun CoachModelPicker(
     val unlisted = success != null && CoachModelCatalog.isUnlisted(provider, success, selected)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         val (status, color) = when {
-            savedKey.isBlank() -> "Save your key to see every model $providerName offers." to MaterialTheme.colorScheme.onSurfaceVariant
-            loading -> "Loading models from $providerName…" to MaterialTheme.colorScheme.onSurfaceVariant
+            savedKey.isBlank() -> trf("Save your key to see every model {0} offers.", providerName) to MaterialTheme.colorScheme.onSurfaceVariant
+            loading -> trf("Loading models from {0}…", providerName) to MaterialTheme.colorScheme.onSurfaceVariant
             listing is CoachModelCatalog.Result.Failure -> (listing as CoachModelCatalog.Result.Failure).message to PulseColors.danger
-            success != null -> "${success.entries.size} models available from $providerName" to MaterialTheme.colorScheme.onSurfaceVariant
+            success != null -> trf("{0} models available from {1}", success.entries.size, providerName) to MaterialTheme.colorScheme.onSurfaceVariant
             else -> "" to MaterialTheme.colorScheme.onSurfaceVariant
         }
-        Text(status, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(1f))
+        // Polite: the status changes as the listing loads, fails or arrives.
+        Text(status, style = MaterialTheme.typography.bodySmall, color = color, modifier = Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite })
         if (savedKey.isNotBlank() && !loading) {
             // Bounded so a long translated label can't squeeze the weighted status text.
             PulseButton(PulseButtonStyle.Text, onClick = { load(force = true) }, modifier = Modifier.widthIn(max = 140.dp)) {
@@ -169,7 +173,7 @@ private fun MenuHeader(text: String) {
         text,
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
     )
 }
 

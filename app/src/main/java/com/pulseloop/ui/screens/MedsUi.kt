@@ -22,6 +22,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,16 +68,10 @@ fun MedsScreen(onBack: () -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().background(PulseColors.background)) {
-        Box(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.CenterStart)) { Icon(Icons.AutoMirrored.Filled.ArrowBack, tr("Back")) }
-            // Kept clear of the back button: the translated title is long.
-            Text(
-                tr("Medications & supplements"), fontSize = 16.sp, fontWeight = FontWeight.Bold,
-                maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center,
-                modifier = Modifier.align(Alignment.Center).padding(horizontal = 56.dp),
-            )
-            // Adding is setup, not the daily job: it sits in the header so today's doses lead.
-            IconButton(onClick = { adding = true }, modifier = Modifier.align(Alignment.CenterEnd)) {
+        // The app's one pushed-screen bar (was hand-rolled). Adding is setup, not the daily job:
+        // it sits in the bar so today's doses lead.
+        com.pulseloop.ui.components.PulseTopBar(title = tr("Medications & supplements"), onBack = onBack) {
+            IconButton(onClick = { adding = true }) {
                 Icon(Icons.Filled.Add, tr("Add medication or supplement"), tint = PulseColors.textSecondary)
             }
         }
@@ -88,9 +85,9 @@ fun MedsScreen(onBack: () -> Unit) {
             if (doses.isNotEmpty()) {
                 Column(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Text(tr("TODAY"), fontSize = 12.sp, letterSpacing = 1.6.sp, color = PulseColors.textMuted)
+                    Text(tr("TODAY"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                     doses.forEach { d ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
@@ -121,7 +118,7 @@ fun MedsScreen(onBack: () -> Unit) {
             meds.forEach { m ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-                        .clickable { editing = m }.padding(16.dp),
+                        .clickable(role = Role.Button, onClickLabel = tr("Edit")) { editing = m }.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
@@ -132,7 +129,7 @@ fun MedsScreen(onBack: () -> Unit) {
                             Text(
                                 tr("While breastfeeding: check in e-lactancia or LactMed, and ask your clinician"),
                                 fontSize = 12.sp, color = PulseColors.accent,
-                                modifier = Modifier.clickable {
+                                modifier = Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) {
                                     runCatching {
                                         context.startActivity(
                                             android.content.Intent(
@@ -150,11 +147,12 @@ fun MedsScreen(onBack: () -> Unit) {
                             fontSize = 12.sp, color = PulseColors.textMuted,
                         )
                     }
+                    com.pulseloop.ui.components.Chevron()
                 }
             }
             // With nothing added yet, adding is the only thing to do here: keep the big button.
             if (medsLoaded != null && meds.isEmpty()) {
-                PulseButton(onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
+                PulseButton(PulseButtonStyle.Tonal, onClick = { adding = true }, modifier = Modifier.fillMaxWidth()) { Text(tr("Add medication or supplement")) }
             }
             Text(
                 tr("A record for you and your doctor. PulseLoop doesn't check interactions or doses; ask your pharmacist."),
@@ -183,30 +181,33 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
     var kind by remember { mutableStateOf(initial?.kind ?: "medication") }
     var times by remember { mutableStateOf(initial?.let { Meds.times(it).toSet() } ?: setOf("08:00")) }
     var active by remember { mutableStateOf(initial?.active ?: true) }
+    // Deleting a medication also deletes its dose record, so it asks first.
+    var confirmDelete by remember { mutableStateOf(false) }
     @Composable
     fun chip(label: String, on: Boolean, onClick: () -> Unit) {
         val shape = RoundedCornerShape(16.dp)
         Text(
             label, fontSize = 14.sp,
             color = if (on) PulseColors.onAccent else PulseColors.textSecondary,
-            modifier = Modifier.clip(shape).background(if (on) PulseColors.accent else PulseColors.cardSoft)
+            // 48dp of layout for the target; the drawn chip keeps its size. Announced as selected.
+            modifier = Modifier.minimumInteractiveComponentSize().clip(shape).background(if (on) PulseColors.accent else PulseColors.cardSoft)
                 .border(1.dp, if (on) PulseColors.accent else PulseColors.borderSubtle, shape)
-                .clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+                .selectable(selected = on, onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
         )
     }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (initial == null) tr("Add") else tr("Edit")) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(name, { name = it.take(60) }, label = { Text(tr("Name")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(dose, { dose = it.take(40) }, label = { Text(tr("Dose (optional)")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     chip(tr("Medication"), kind == "medication") { kind = "medication" }
                     chip(tr("Supplement"), kind == "supplement") { kind = "supplement" }
                 }
                 Text(tr("Times"), fontSize = 14.sp, color = PulseColors.textSecondary)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     (PRESET_TIMES + times).distinct().sorted().forEach { t ->
                         chip(t, t in times) { times = if (t in times) times - t else times + t }
                     }
@@ -216,7 +217,7 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
                         Text(tr("Active"), fontSize = 14.sp, modifier = Modifier.weight(1f))
                         androidx.compose.material3.Switch(checked = active, onCheckedChange = { active = it })
                     }
-                    onDelete?.let { del -> PulseButton(PulseButtonStyle.Text, onClick = del) {
+                    onDelete?.let { PulseButton(PulseButtonStyle.Text, onClick = { confirmDelete = true }) {
                         Icon(Icons.Filled.Delete, null, tint = PulseColors.danger, modifier = Modifier.size(16.dp))
                         Text(tr(" Delete"), color = PulseColors.danger)
                     } }
@@ -233,4 +234,15 @@ private fun MedDialog(initial: MedEntity?, onDismiss: () -> Unit, onSave: (MedEn
         },
         dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
+    if (confirmDelete && onDelete != null) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(trf("Delete {0}?", initial?.name.orEmpty())) },
+            text = { Text(tr("Its dose record goes too. To stop the reminders but keep the record, switch off Active instead.")) },
+            confirmButton = {
+                PulseButton(PulseButtonStyle.Text, onClick = { confirmDelete = false; onDelete() }) { Text(tr("Delete"), color = PulseColors.danger) }
+            },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { confirmDelete = false }) { Text(tr("Cancel")) } },
+        )
+    }
 }

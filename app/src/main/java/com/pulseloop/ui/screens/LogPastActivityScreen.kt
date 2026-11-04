@@ -65,28 +65,17 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
     val endedAt = startedAt + durationMinutes * 60_000L
     val isValid = durationMinutes > 0 && endedAt <= maximumDate
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().background(PulseColors.background),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                CircleIconButton(Icons.AutoMirrored.Filled.ArrowBack, tr("Back"), tint = PulseColors.textSecondary, onTap = onBack)
-                Spacer(Modifier.width(12.dp))
-                Text(tr("Log Past Activity"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(tr("What did you do?"), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text(
-                    tr("Choose an activity, when it started, and how long it lasted."),
-                    fontSize = 14.sp, color = PulseColors.textMuted,
-                )
-            }
-        }
+    val is24h = android.text.format.DateFormat.is24HourFormat(context)
 
+    Column(Modifier.fillMaxSize().background(PulseColors.background)) {
+    // The shared pushed-screen bar. The second 20sp title ("What did you do?") and its how-to
+    // line are gone: the three section labels below already say what to choose.
+    com.pulseloop.ui.components.PulseTopBar(title = tr("Log Past Activity"), onBack = onBack)
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
         item { SectionLabel(tr("Activity type")) }
         item {
             ActivityTypeGrid(selectedType) { type ->
@@ -104,7 +93,7 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
         item {
             EditFieldRow(tr("Ends")) {
                 Text(
-                    formatDateTime(endedAt),
+                    formatDateTime(endedAt, is24h),
                     fontSize = 14.sp,
                     color = if (isValid) PulseColors.textSecondary else PulseColors.warning,
                 )
@@ -159,14 +148,14 @@ fun LogPastActivityScreen(onBack: () -> Unit, onSaved: (String) -> Unit) {
         }
         item { Spacer(Modifier.height(24.dp)) }
     }
+    }
 }
 
 @Composable
 private fun SectionLabel(text: String) {
     Text(
         text.uppercase(),
-        fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
-        letterSpacing = 1.2.sp, color = PulseColors.textMuted,
+        style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
     )
 }
 
@@ -195,11 +184,11 @@ private fun ActivityTypeButton(type: String, isSelected: Boolean, onSelect: (Str
             .selectable(selected = isSelected, role = Role.RadioButton) { onSelect(type) }
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
             Modifier
-                .size(38.dp)
+                .size(40.dp)
                 .clip(CircleShape)
                 .background(if (isSelected) PulseColors.accent else PulseColors.card),
             contentAlignment = Alignment.Center,
@@ -238,7 +227,7 @@ private fun PastActivityDurationCard(minutes: Int, onChange: (Int) -> Unit) {
             DurationStepButton(Icons.Filled.Remove, tr("Decrease duration by 5 minutes"), enabled = !atFloor) { onChange(maxOf(5, minutes - 5)) }
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(durationText(minutes), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text(tr("DURATION"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
+                Text(tr("DURATION"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
             }
             DurationStepButton(Icons.Filled.Add, tr("Increase duration by 5 minutes"), enabled = true) { onChange(minutes + 5) }
         }
