@@ -432,7 +432,7 @@ private fun VisualizationCard(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     eyebrow.uppercase(),
                     style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,

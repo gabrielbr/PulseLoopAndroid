@@ -400,7 +400,7 @@ fun TrendChart(
                 // Current-value marker at the last primary point
                 primaryOffsets.lastOrNull()?.let { o ->
                     val c = if (zoneColoring) thresholds?.zoneFor(points.last())?.color ?: color else color
-                    drawCircle(Color.White, 7f, o)
+                    drawCircle(PulseColors.textPrimary, 7f, o)
                     drawCircle(c, 5f, o)
                 }
             }
@@ -443,12 +443,12 @@ fun TrendChart(
                 // Vertical guide
                 drawLine(outlineColor.copy(alpha = 0.6f), Offset(px, plotTop), Offset(px, plotBottom), 1.5f)
                 // Highlighted point(s)
-                drawCircle(Color.White, 7f, Offset(px, py))
+                drawCircle(PulseColors.textPrimary, 7f, Offset(px, py))
                 drawCircle(if (zoneColoring) thresholds?.zoneFor(points[idx])?.color ?: color else color, 5f, Offset(px, py))
                 val secVal = secondary.getOrNull(idx)
                 if (secVal != null) {
                     val py2 = yForValue(secVal)
-                    drawCircle(Color.White, 6f, Offset(px, py2))
+                    drawCircle(PulseColors.textPrimary, 6f, Offset(px, py2))
                     drawCircle(colorSecondary, 4f, Offset(px, py2))
                 }
 
