@@ -727,6 +727,13 @@ object MealEstimator {
                         "You can still search the database or enter the meal manually."),
                 )
             }
+            // The model on this phone answers coach questions only (its client refuses any other
+            // schema): say so plainly instead of a generic failure.
+            if (providerStore.providerMode == com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE) {
+                return@withContext Result.Failure(
+                    tr("The coach on this phone can't estimate meals. Pick a cloud or self-hosted coach in Settings → AI Coach, or enter the meal manually."),
+                )
+            }
             val model = CoachClientResolver.activeModel(providerStore.snapshot(), keyStore.model)
 
             val images = mutableListOf<CoachImagePayload>()

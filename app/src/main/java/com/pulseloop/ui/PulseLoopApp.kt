@@ -116,11 +116,14 @@ fun PulseLoopApp() {
                     val activeModel = com.pulseloop.coach.config.CoachClientResolver.activeModel(
                         providerSettings, apiKeyStore.model,
                     )
+                    // The on-device model gets no tools at all (its client ignores them), and
+                    // says so here too: no web search, no writes, no live ring measurements.
+                    val onDevice = providerSettings.providerMode == com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE
                     CoachFeatureFlags(
                         coachEnabled = apiKeyStore.coachEnabled && resolution.key != null,
-                        webSearchEnabled = apiKeyStore.webSearchEnabled,
+                        webSearchEnabled = apiKeyStore.webSearchEnabled && !onDevice,
                         writeToolsEnabled = false,  // safe default
-                        liveMeasurementsEnabled = true,
+                        liveMeasurementsEnabled = !onDevice,
                         model = activeModel,
                         settings = com.pulseloop.coach.config.CoachClientResolver.coachSettings(providerSettings, activeModel),
                         providerMode = providerSettings.providerMode,
@@ -476,6 +479,9 @@ fun PulseLoopApp() {
                             // (owner choice, issue #22).
                             var showCoachUsage by remember { mutableStateOf(false) }
                             CoachHeader(
+                                // Which brain answers, when it is the one on this phone.
+                                subtitle = if (providerStore.providerMode == com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE)
+                                    trf("On this phone · {0}", com.pulseloop.coach.ondevice.ModelDownload.DISPLAY_NAME) else null,
                                 onBack = { navController.popBackStack() },
                                 onNewChat = { coachVM.newConversation() },
                                 onOpenUsage = { showCoachUsage = true },
@@ -793,6 +799,9 @@ fun PulseLoopApp() {
                 }
                 paddedComposable("settings/accuracy-check") {
                     AccuracyCheckSettingsScreen(onBack = { navController.popBackStack() })
+                }
+                paddedComposable("settings/mcp") {
+                    McpSettingsScreen(onBack = { navController.popBackStack() })
                 }
                 paddedComposable("settings/nutrition") {
                     NutritionSettingsScreen(

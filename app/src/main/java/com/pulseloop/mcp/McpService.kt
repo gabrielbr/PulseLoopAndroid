@@ -1,0 +1,167 @@
+package com.pulseloop.mcp
+
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
+import android.os.Handler
+import android.os.IBinder
+import android.os.Looper
+import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import com.pulseloop.BuildConfig
+import com.pulseloop.coach.tools.ToolExecutionContext
+import com.pulseloop.data.PulseLoopDatabase
+import com.pulseloop.ui.i18n.tr
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.runBlocking
+
+/**
+ * Runs [McpServer] while the user has it on, always behind an ongoing notification that says so
+ * and stops it on a tap. Listens only on Wi-Fi, Ethernet, hotspot and Tailscale addresses, never
+ * on mobile data; turns itself off after the chosen time; never comes back by itself
+ * (`START_NOT_STICKY`, not started on boot). Not exported: only PulseLoop's own settings screen
+ * starts it. Threat model: docs/mcp-threat-model.md.
+ *
+ * Foreground-service type `dataSync`: the closest type that exists for minSdk 26 / targetSdk 35.
+ * Android 15 caps `dataSync` at about 6 hours a day and then calls [onTimeout], which stops it,
+ * so on those phones the 8-hour choice ends at the system's limit.
+ */
+class McpService : Service() {
+
+    data class Status(
+        val running: Boolean = false,
+        /** Where tools connect, e.g. `http://192.168.1.20:8765/mcp`; empty while off. */
+        val urls: List<String> = emptyList(),
+        /** The last start found no Wi-Fi or Tailscale address to listen on. */
+        val unreachable: Boolean = false,
+        val offAt: Long = 0L,
+    )
+
+    private var server: McpServer? = null
+    /** Set in [onDestroy]: a start thread that loses the race must not leave a server running. */
+    private var destroyed = false
+    private val main = Handler(Looper.getMainLooper())
+    private val autoOff = Runnable { stopSelf() }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val prefs = McpPrefs(this)
+        if (intent?.action == ACTION_STOP) {
+            prefs.enabled = false
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // A foreground service must be in the foreground within seconds of starting, whatever follows.
+        goForeground()
+        val now = System.currentTimeMillis()
+        if (!prefs.isOn(now)) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        main.removeCallbacks(autoOff)
+        main.postDelayed(autoOff, (prefs.offAt - now).coerceAtLeast(0L))
+        Thread({ startServer(prefs) }, "pulseloop-mcp-start").start()
+        return START_NOT_STICKY // not brought back by Android: the user turns it on
+    }
+
+    @Synchronized
+    private fun startServer(prefs: McpPrefs) {
+        if (server != null || destroyed) return
+        try {
+            val db = PulseLoopDatabase.getInstance(applicationContext)
+            val context = ToolExecutionContext(db = db, flags = McpCoachTools.FLAGS, coordinator = null)
+            val table = McpCoachTools.table(context) { runBlocking { McpSummary.build(db) } }
+            val handler = McpHandler(table, McpTokens(prefs), BuildConfig.VERSION_NAME, isOn = { prefs.isOn() })
+            val s = McpServer(handler)
+            val bound = s.start(McpNet.localAddresses(), McpNet.PORT)
+            if (bound.isEmpty()) {
+                s.stop()
+                statusFlow.value = Status(unreachable = true)
+                main.post { stopSelf() }
+                return
+            }
+            server = s
+            statusFlow.value = Status(running = true, urls = bound.map { McpNet.url(it) }, offAt = prefs.offAt)
+        } catch (e: Exception) {
+            android.util.Log.w(TAG, "MCP server failed to start: ${e.javaClass.simpleName}")
+            main.post { stopSelf() }
+        }
+    }
+
+    /** Android 15+: the daily `dataSync` allowance ran out. Stop now, or the system crashes the app. */
+    override fun onTimeout(startId: Int, fgsType: Int) {
+        stopSelf()
+    }
+
+    override fun onDestroy() {
+        main.removeCallbacks(autoOff)
+        synchronized(this) {
+            destroyed = true
+            server?.stop()
+            server = null
+        }
+        McpPrefs(this).apply { enabled = false; offAt = 0L }
+        statusFlow.value = statusFlow.value.copy(running = false, urls = emptyList(), offAt = 0L)
+        super.onDestroy()
+    }
+
+    private fun goForeground() {
+        val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ID, tr("AI tools on your network"), NotificationManager.IMPORTANCE_LOW)
+                .apply { description = tr("Shown while paired AI tools on your network can read your health data.") },
+        )
+        val stop = PendingIntent.getService(
+            this, 1, Intent(this, McpService::class.java).setAction(ACTION_STOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        val text = tr("Sharing your health data with paired AI tools on this network. Tap to stop.")
+        val n: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setContentTitle(tr("AI tools on your network"))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setContentIntent(stop)
+            .addAction(0, tr("Stop"), stop)
+            .build()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIFICATION_ID, n)
+        }
+    }
+
+    companion object {
+        private const val TAG = "McpService"
+        const val ACTION_STOP = "com.pulseloop.MCP_STOP"
+        const val CHANNEL_ID = "mcp_server"
+        const val NOTIFICATION_ID = 2201
+
+        private val statusFlow = MutableStateFlow(Status())
+        val status: StateFlow<Status> get() = statusFlow
+
+        /** Turns it on for [McpPrefs.autoOffHours]. Call from the settings screen only (foreground). */
+        fun start(context: Context) {
+            val prefs = McpPrefs(context)
+            prefs.enabled = true
+            prefs.offAt = System.currentTimeMillis() + prefs.autoOffHours * 3_600_000L
+            statusFlow.value = Status(offAt = prefs.offAt)
+            ContextCompat.startForegroundService(context, Intent(context, McpService::class.java))
+        }
+
+        fun stop(context: Context) {
+            McpPrefs(context).enabled = false
+            context.stopService(Intent(context, McpService::class.java))
+        }
+    }
+}

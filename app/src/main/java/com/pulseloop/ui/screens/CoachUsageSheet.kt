@@ -62,9 +62,9 @@ fun CoachUsageSheet(
         messages.forEach { it.modelUsed?.takeIf { m -> m.isNotEmpty() }?.let(seen::add) }
         if (seen.isEmpty()) listOf(fallbackModel) else seen.toList()
     }
-    val providerLabel = messages.firstNotNullOfOrNull { it.providerUsed }
+    val providerLabel = tr(messages.firstNotNullOfOrNull { it.providerUsed }
         ?.let { CoachProviderMode.fromRaw(it).label }
-        ?: fallbackProviderMode.label
+        ?: fallbackProviderMode.label)
     val showsCostNote = fallbackProviderMode == CoachProviderMode.OFFLINE_STUB ||
         accounted.any { (it.inputTokens != null || it.outputTokens != null) && it.costUSD == null }
 

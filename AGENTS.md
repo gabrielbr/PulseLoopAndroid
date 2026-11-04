@@ -1069,6 +1069,33 @@ because breaking it fails silently:
   from `PulseLoopApplication`). Ring rows carry no device id, so a later sweep could not split
   the two rings' data.
 
+## On-device coach: grounded, no tools, safety first
+
+**Read this before touching `coach/ondevice/` or the `ON_DEVICE` provider.** Design and as-built
+notes: `docs/on-device-model-and-mcp-plan.md`, Part 1.
+
+- **No tools and no writes on this provider.** `OnDeviceResponsesClient` never offers the
+  request's tools and never returns a function call, so no write tool or confirm card can come
+  from it; `PulseLoopApp`'s flags also turn off web search and live measurements for it. A 1B
+  model can't run the tool loop; don't wire it in "to see if it works".
+- **Safety runs before the model.** `OnDeviceSafety.route` sends crisis, emergency and
+  medicine/dose questions to fixed replies (CVV 188, SAMU 192, "ask your doctor or pharmacist")
+  without loading the model. Those replies are written in the router, not through `tr()`: no
+  voice catalog may rewrite them. New keywords go in both languages, already normalized, with a test.
+- **The reply is always a complete `coach_response`.** The client wraps the model's plain text
+  (`coachResponseJson`) so `parseFinal` accepts it on the first try. Asking the 1B model to write
+  JSON itself would spend repair rounds of slow generation and still fail.
+- **Only the coach chat may use it.** Any other `text.format` (meal estimate, lab report,
+  summary) is refused: a small model must not read a lab report or estimate a meal.
+- **The model is never in git, the APK or the backup.** It is downloaded on request, kept in
+  `noBackupFilesDir`, and re-downloadable; the data archive must not pick it up. Only the
+  provider choice (`coach_provider_mode`) rides in `ArchivedSettings`.
+- **Every download is SHA-256 checked** against the `.sha256` published beside it on the
+  pre-release, and is **Wi-Fi only by default** (`setAllowedOverMetered(false)`); mobile data is
+  the user's explicit choice.
+- **Keep `MAX_TOKENS` at the figure the file is proven with** (1280). A prompt past the window
+  crashes natively, which is why `OnDevicePrompt.fit` measures with the model's own tokenizer.
+
 ## Health Connect as the data source: one app, no ring, nothing back
 
 **Read this before touching `health/source/` or the export's exclusions.** Full design:
@@ -1089,6 +1116,39 @@ and each one fails silently if broken:
   writing next month would then echo.
 
 It is exclusive with a paired ring: a `DeviceIdentified` turns it off.
+
+## MCP on your network: read-only, paired, private addresses only
+
+**Read this before touching `mcp/` or `ui/screens/McpSettingsUi.kt`.** Threat model:
+`docs/mcp-threat-model.md`. Settings › Connected apps › AI tools on your network runs an MCP
+server on the phone (port 8765, `POST /mcp`) so the user's own Claude Desktop or Cursor can read
+their data. Each rule fails silently if broken:
+
+- **The tools are an explicit allowlist** (`McpCoachTools.ALLOWLIST`), never "whatever the
+  registry holds with writes off": `ToolRegistry`'s always-on set already contains writes
+  (`log_meal`, `set_goal`, `log_drink`, `save_food_preference`, `set_drink_plan`) and a
+  cache-writing network call (`search_food_database`). Add a name only after reading its
+  implementation; `McpAllowlistTest` fails on a write name and on any coach tool nobody has
+  classified. Calls run with all three flags off and `coordinator = null`.
+- **Never a tool for** API keys, raw packets, diagnostics, lab-report PDFs or the EPDS answers.
+  `summary` reuses `CoachContextBuilder.build` but drops labs, postpartum, drinks and the goal
+  plan; keep it that way.
+- **Refusal order is part of the design**: `Origin` header → 403, then token → 401, then path and
+  method, all before a tool runs. Peers outside loopback/private/link-local/100.64/10/ULA are
+  closed before a byte is read, and nothing binds a public address or a mobile-data interface.
+- **Bounds stay**: 4 connections, 15 s, 8 KB head, 256 KB body, no chunked bodies, no JSON-RPC
+  batches, one tool call at a time.
+- **Tokens are shown once and stored as SHA-256 only**, in `mcp_server` preferences. That file,
+  and the on/off switch in it, are device state and security material: **never add them to
+  `ArchivedSettings`** — a restore on a new phone must start off with nothing paired.
+- **Off by default, foreground while on, never back by itself**: `START_NOT_STICKY`, no boot
+  receiver, auto-off after the chosen hours (default 8), and stopping for any reason clears the
+  switch. The notification's tap stops it. Type `dataSync` (Android 15 ends it at its daily
+  limit through `onTimeout`; keep that override).
+- **The `instructions` say it is not a diagnostic tool** and the numbers are estimates — the same
+  rule the coach follows. Keep them in step with the coach's prompt.
+- The protocol, HTTP, address and token code has no Android imports and is JVM-tested; keep new
+  logic there rather than in the service.
 
 ## Every UI string goes through `tr()`, and the English text is the key
 

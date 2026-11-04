@@ -4,6 +4,10 @@ import com.pulseloop.coach.gemini.GeminiClient
 import com.pulseloop.coach.local.LocalEndpoint
 import com.pulseloop.coach.local.LocalOpenAICompatClient
 import com.pulseloop.coach.minimax.MiniMaxClient
+import com.pulseloop.coach.ondevice.ModelDownload
+import com.pulseloop.coach.ondevice.OnDeviceEngine
+import com.pulseloop.coach.ondevice.OnDeviceModelStore
+import com.pulseloop.coach.ondevice.OnDeviceResponsesClient
 import com.pulseloop.coach.openai.OpenAIResponsesClient
 import com.pulseloop.coach.openai.ResponsesClient
 import com.pulseloop.coach.openrouter.OpenRouterClient
@@ -39,6 +43,10 @@ object CoachClientResolver {
         minimaxKey: String? = null,
         localKey: String? = null,
         openAIClientFactory: (String) -> ResponsesClient = { OpenAIResponsesClient(it) },
+        /** On-device only: whether the model file is on the phone. Passed in so this stays pure-JVM. */
+        onDeviceReady: Boolean = false,
+        /** On-device only: the loaded-model engine (`OnDeviceModelStore`). */
+        onDeviceEngine: OnDeviceEngine = NoOnDeviceEngine,
     ): Resolution = when (settings.providerMode) {
         CoachProviderMode.USER_GEMINI_KEY -> {
             val key = geminiKey?.takeIf { it.isNotBlank() }
@@ -74,6 +82,9 @@ object CoachClientResolver {
                 readTimeoutSeconds = settings.localTimeoutSeconds,
             ))
         }
+        CoachProviderMode.ON_DEVICE ->
+            // No key and no server: the sentinel is the model file being on the phone.
+            Resolution(ON_DEVICE_KEY.takeIf { onDeviceReady }, OnDeviceResponsesClient(onDeviceEngine))
         else -> {
             // USER_OPENAI_KEY / OFFLINE_STUB / BACKEND_PROXY all use the OpenAI
             // key + factory, mirroring the iOS resolver.
@@ -82,20 +93,36 @@ object CoachClientResolver {
         }
     }
 
+    /** The readiness sentinel of [CoachProviderMode.ON_DEVICE] when its model is on the phone. */
+    const val ON_DEVICE_KEY = "on-device"
+
+    /** Stands in when no engine was passed (JVM tests of the other providers). */
+    internal object NoOnDeviceEngine : OnDeviceEngine {
+        override suspend fun <T> use(block: (com.pulseloop.coach.ondevice.LocalModel) -> T): T =
+            throw com.pulseloop.coach.openai.ResponsesError.Decoding(OnDeviceModelStore.NOT_READY)
+    }
+
     /** Convenience overload reading the app's persisted stores. */
     fun resolve(
         store: CoachProviderSettingsStore,
         apiKeyStore: ApiKeyStore,
         openAIClientFactory: (String) -> ResponsesClient = { OpenAIResponsesClient(it) },
-    ): Resolution = resolve(
-        settings = store.snapshot(),
-        openAIKey = apiKeyStore.apiKey,
-        geminiKey = store.geminiApiKey,
-        openRouterKey = store.openRouterApiKey,
-        minimaxKey = store.minimaxApiKey,
-        localKey = store.localApiKey,
-        openAIClientFactory = openAIClientFactory,
-    )
+    ): Resolution {
+        val settings = store.snapshot()
+        // Only touch the model store for the provider that uses it.
+        val onDevice = if (settings.providerMode == CoachProviderMode.ON_DEVICE) OnDeviceModelStore.get(store.appContext) else null
+        return resolve(
+            settings = settings,
+            openAIKey = apiKeyStore.apiKey,
+            geminiKey = store.geminiApiKey,
+            openRouterKey = store.openRouterApiKey,
+            minimaxKey = store.minimaxApiKey,
+            localKey = store.localApiKey,
+            openAIClientFactory = openAIClientFactory,
+            onDeviceReady = onDevice?.isReady() == true,
+            onDeviceEngine = onDevice ?: NoOnDeviceEngine,
+        )
+    }
 
     /**
      * A per-turn client factory for `CoachOrchestrator`. Gemini/OpenRouter
@@ -145,6 +172,8 @@ object CoachClientResolver {
             // Reported verbatim for attribution — including blank, which is a valid llama.cpp
             // setup. `CoachPricingCatalog` prices this provider at $0 regardless of the string.
             CoachProviderMode.LOCAL_OPENAI_COMPAT -> settings.resolvedLocalModel
+            // Priced at $0 by `CoachPricingCatalog`, like the local server.
+            CoachProviderMode.ON_DEVICE -> ModelDownload.MODEL_SLUG
             else -> openAIModel.ifEmpty { OpenAIModel.DEFAULT.slug }
         }
 }

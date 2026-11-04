@@ -18,7 +18,12 @@ private const val SLEEP_BACKFILL_DAYS = 6
  * into [RingDecodedEvent.HistoryMeasurement] samples (confirmed against zaggash's R11 rc2 capture);
  * their multi-frame replies reassemble via the next-frame follow-up in [handle].
  */
-class CRPSyncEngine(private val writer: RingCommandWriter?) : RingSyncEngine {
+class CRPSyncEngine(
+    private val writer: RingCommandWriter?,
+    /** The phone's clock, for the 20:00 sleep-day guard. Injectable so tests don't depend on when
+     *  they run: CI at 19:55–20:05 used to see the sleep queries skipped and fail. */
+    private val now: () -> java.time.Instant = { java.time.Instant.now() },
+) : RingSyncEngine {
 
     private var profile: UserProfileValues? = null
 
@@ -130,7 +135,7 @@ class CRPSyncEngine(private val writer: RingCommandWriter?) : RingSyncEngine {
         // decoder by the phone's when the reply lands. Straddling 20:00, the two disagree by a day
         // and the night is filed a day early again — #107's bug, after #109's one-time repair has
         // run. So a pass this close to 20:00 leaves sleep to the next one (~30 min later).
-        if (CRPDecoder.nearSleepDayRollover(java.time.Instant.now())) return
+        if (CRPDecoder.nearSleepDayRollover(now())) return
         send(CRPProtocol.queryHistorySleep())
         sendSleepBackfill()
     }
