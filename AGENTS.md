@@ -3,6 +3,14 @@
 Read this before touching ring/BLE hardware code (`app/src/main/java/com/pulseloop/ring/`,
 `app/src/main/java/com/pulseloop/wearables/`). Full detail: `docs/qring-ble-adoption.md`.
 
+## Merge your PR when the work is finished
+
+**The owner's standing instruction (2026-11-04): open a PR for every change and, once it's verified
+(CI green, the repo's own tests and checks run, no unresolved review threads), merge it yourself;
+don't leave it waiting.** Use a merge commit, the way `main`'s history does. A release is a separate
+step: the Release workflow (`release.yml`, `workflow_dispatch`) with the next `v{name}+{code}` tag,
+run when the owner asks for one. The same rule is in the Gabriel Design System's AGENTS.md.
+
 ## Commits carry no agent attribution
 
 **Do not add a `Co-Authored-By` trailer to commits in this repo** — not for Claude, not for any
