@@ -349,7 +349,7 @@ internal fun SleepBalanceSection(s: HealthInsightsRepository.SleepBalance) {
         } ?: Fact(tr("Sleep debt"), "—", tr("Needs 5 nights in the last 2 weeks"))
         s.bodyClock?.let { c ->
             Fact(tr("Body clock"), c.chronotype.label, trf("Usual sleep midpoint {0} · this week {1}", c.midpointLabel(), c.alignment.label.lowercase()) +
-                if (c.alignment != BodyClock.Alignment.ALIGNED) " (${if (c.recentShiftMin > 0) "+" else ""}${c.recentShiftMin} min)" else "")
+                if (c.alignment != BodyClock.Alignment.ALIGNED) " (" + trf("{0} min", (if (c.recentShiftMin > 0) "+" else "") + c.recentShiftMin) + ")" else "")
         }
     }
 }
@@ -361,7 +361,7 @@ private fun StressSection(s: HealthInsightsRepository.Snapshot, onBreathe: () ->
         s.resilience?.let { Fact(tr("Resilience"), it.level.label, trf("Daytime recovery against stress, and how well nights restore you ({0} days)", it.daysUsed)) }
         val sessions = remember { MindfulSessions.all(context) }
         val week = sessions.filter { it.startAt >= System.currentTimeMillis() - 7 * 86_400_000L }
-        Fact(tr("Breathing sessions this week"), "${week.size} · ${week.sumOf { it.minutes }} min")
+        Fact(tr("Breathing sessions this week"), "${week.size} · " + trf("{0} min", week.sumOf { it.minutes }))
         val effectDb = remember { PulseLoopDatabase.getInstance(context) }
         val effect by produceState<MindfulSessions.Effect?>(null) { value = runCatching { MindfulSessions.effect(context, effectDb) }.getOrNull() }
         effect?.let { e ->
@@ -423,8 +423,8 @@ private fun HabitsSection(h: HealthInsightsRepository.Habits, cardio: com.pulsel
         h.wake?.let { Fact(tr("Wake-up"), it) }
         h.sleepMin?.let { Fact(tr("Sleep"), SleepFormat.duration(it)) }
         h.steps?.let { Fact(tr("Steps"), "%,d".format(it)) }
-        h.activeMin?.let { Fact(tr("Active minutes"), "$it min") }
-        h.restingHr?.let { Fact(tr("Resting heart rate"), "${it.roundToInt()} bpm") }
+        h.activeMin?.let { Fact(tr("Active minutes"), trf("{0} min", it)) }
+        h.restingHr?.let { Fact(tr("Resting heart rate"), trf("{0} bpm", it.roundToInt())) }
         cardio?.let { c ->
             Fact(tr("Cardio capacity (VO₂max)"), "%.0f · %s".format(c.vo2max, c.level.label),
                 if (c.fromRing) tr("Measured by your ring") else tr("Estimated from resting heart rate and age"))
@@ -577,7 +577,7 @@ fun BreatheScreen(onBack: () -> Unit) {
             }
             r != null -> {
                 Text(tr("Session saved"), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("${r.minutes} min" + (r.avgHr?.let { trf(" · average {0} bpm", it) } ?: ""), fontSize = 16.sp, color = PulseColors.textSecondary)
+                Text(trf("{0} min", r.minutes) + (r.avgHr?.let { trf(" · average {0} bpm", it) } ?: ""), fontSize = 16.sp, color = PulseColors.textSecondary)
                 if (r.startHr != null && r.endHr != null) {
                     Text(trf("Heart rate {0} → {1} bpm", r.startHr, r.endHr), fontSize = 16.sp, color = PulseColors.textSecondary)
                 } else {
@@ -593,7 +593,7 @@ fun BreatheScreen(onBack: () -> Unit) {
                 Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(1, 3, 5, 10).forEach { m ->
                         val on = m == minutes
-                        Text("$m min", fontSize = 14.sp, color = if (on) PulseColors.onAccent else PulseColors.textPrimary,
+                        Text(trf("{0} min", m), fontSize = 14.sp, color = if (on) PulseColors.onAccent else PulseColors.textPrimary,
                             modifier = Modifier.minimumInteractiveComponentSize().clip(RoundedCornerShape(16.dp))
                                 .background(if (on) PulseColors.accent else PulseColors.card)
                                 .selectable(selected = on, role = Role.RadioButton) { minutes = m }.padding(horizontal = 16.dp, vertical = 8.dp))

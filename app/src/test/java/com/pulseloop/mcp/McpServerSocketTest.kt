@@ -1,6 +1,8 @@
 package com.pulseloop.mcp
 
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.net.InetAddress
@@ -25,6 +27,31 @@ class McpServerSocketTest {
     @Test
     fun `never listens on a public address`() {
         assertTrue(McpServer(McpHandler(FakeToolTable(), tokens, "1.0")).start(listOf(InetAddress.getByName("8.8.8.8")), 0).isEmpty())
+    }
+
+    @Test
+    fun `follows the phone's addresses while running`() {
+        val loopback = InetAddress.getLoopbackAddress()
+        // Before start (and after stop) a network change binds nothing.
+        assertTrue(server.rebind(listOf(loopback), 0).isEmpty())
+        val first = server.start(listOf(loopback), 0)
+        assertEquals(1, first.size)
+        // The same addresses again: the listener is kept, not re-made on a new port.
+        assertEquals(first, server.rebind(listOf(loopback), 0))
+        // A public address arriving is still never listened on.
+        assertEquals(first, server.rebind(listOf(loopback, InetAddress.getByName("8.8.8.8")), 0))
+        // The address went away: nothing listens there any more.
+        assertTrue(server.rebind(emptyList(), 0).isEmpty())
+        assertFalse(runCatching { Socket().use { it.connect(first[0], 500) } }.isSuccess)
+        // It came back: listening again, and answering.
+        val again = server.rebind(listOf(loopback), 0)
+        assertEquals(1, again.size)
+        val body = rpc(1, "tools/list")
+        val ok = http(again[0], "POST /mcp HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer $token\r\nContent-Type: application/json\r\n" +
+            "Content-Length: ${body.toByteArray().size}\r\n\r\n$body")
+        assertTrue(ok, ok.startsWith("HTTP/1.1 200 OK"))
+        server.stop()
+        assertTrue(server.rebind(listOf(loopback), 0).isEmpty())
     }
 
     @Test

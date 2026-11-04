@@ -387,12 +387,12 @@ object SleepFormat {
         return if (h <= 0) "${m}m" else "${h}h ${m.toString().padStart(2, '0')}m"
     }
 
-    fun clockTime(ts: Long): String {
-        val t = Instant.ofEpochMilli(ts).atZone(ZoneId.systemDefault())
-        val h = t.hour % 12; val displayH = if (h == 0) 12 else h
-        val ampm = if (t.hour < 12) "AM" else "PM"
-        return "$displayH:${t.minute.toString().padStart(2, '0')} $ampm"
-    }
+    /**
+     * A sleep or wake time in the phone's own 12/24-hour setting and locale (it used to be a
+     * hand-built "7:42 AM" for everyone). The caller reads the setting with
+     * `DateFormat.is24HourFormat(context)`.
+     */
+    fun clockTime(ts: Long, is24Hour: Boolean): String = com.pulseloop.ui.components.PhoneFormat.clock(is24Hour, ts)
 }
 
 // ── Coach Interpretation ──────────────────────────────────────────────────

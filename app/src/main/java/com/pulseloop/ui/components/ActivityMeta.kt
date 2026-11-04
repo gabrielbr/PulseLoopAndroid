@@ -143,9 +143,26 @@ object PhoneFormat {
      *  platform's own `DateFormat.getTimeFormat` builds it. */
     fun clock(is24Hour: Boolean, epochMillis: Long): String {
         val locale = java.util.Locale.getDefault()
-        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, if (is24Hour) "Hm" else "hm")
-        return java.text.SimpleDateFormat(pattern, locale).format(java.util.Date(epochMillis))
+        return java.text.SimpleDateFormat(clockPattern(is24Hour, locale), locale).format(java.util.Date(epochMillis))
     }
+
+    /** A wall-clock time with no date ("aim to be in bed by 22:45"), the same way. */
+    fun clock(is24Hour: Boolean, time: java.time.LocalTime): String {
+        val locale = java.util.Locale.getDefault()
+        // Formatted as milliseconds into a UTC day, so no time zone or DST gap can move the hour.
+        val f = java.text.SimpleDateFormat(clockPattern(is24Hour, locale), locale)
+        f.timeZone = java.util.TimeZone.getTimeZone("UTC")
+        return f.format(java.util.Date(time.toSecondOfDay() * 1000L))
+    }
+
+    /**
+     * The locale's own clock pattern for the 12/24-hour choice. Off a device (JVM unit tests,
+     * where the platform call answers null) it falls back to "HH:mm" / "h:mm a", so callers stay
+     * testable.
+     */
+    private fun clockPattern(is24Hour: Boolean, locale: java.util.Locale): String =
+        runCatching { android.text.format.DateFormat.getBestDateTimePattern(locale, if (is24Hour) "Hm" else "hm") }.getOrNull()
+            ?: if (is24Hour) "HH:mm" else "h:mm a"
 
     /**
      * A date from a skeleton ("EEEMMMd", "yMMMd", "EEEE", "EEEEMMMMd"), arranged the locale's way:
@@ -153,7 +170,7 @@ object PhoneFormat {
      */
     fun date(skeleton: String, date: java.time.temporal.TemporalAccessor): String {
         val locale = java.util.Locale.getDefault()
-        val pattern = android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton)
+        val pattern = runCatching { android.text.format.DateFormat.getBestDateTimePattern(locale, skeleton) }.getOrNull() ?: skeleton
         return java.time.format.DateTimeFormatter.ofPattern(pattern, locale).format(date)
     }
 

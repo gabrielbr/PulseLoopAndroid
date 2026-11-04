@@ -202,7 +202,7 @@ fun NutritionScreen(
                     ) {
                         Icon(Icons.Filled.Add, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text(tr("Log Meal"), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(tr("Log meal"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                     if (coachEnabled) {
                         FilledTonalIconButton(onClick = { analysisRequest = AnalysisRequest(startWithCamera = true) }, modifier = Modifier.size(48.dp)) {
@@ -528,7 +528,7 @@ fun MealLogDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(tr("Log Meal")) },
+        title = { Text(tr("Log meal")) },
         text = {
             // Scrolls so the fields stay reachable on short screens and with the keyboard up.
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
