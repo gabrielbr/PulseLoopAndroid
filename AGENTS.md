@@ -1386,6 +1386,13 @@ Rules a change must keep:
   shifted bounds or a changed guess must not resurface a dismissed stretch.
 - **Steps and heart stretches merge into one window** (`mergeActive`), so a run is never also
   offered as cardio.
+- **Another device's workouts are suggestions too** (`OtherDeviceWorkouts`): read from Health
+  Connect with a ring paired, never PulseLoop's own package, accepted under their `hc-` id so the
+  export skips them, and they win over a ring guess for the same time. Off while Health Connect is
+  the data source (that importer already brings them in).
+- **The heart rule is built for a 5-minute grid** (`heartSessions`): it survives a 12-minute dip
+  and needs three raised readings and a raised average. Don't go back to ending a stretch on one
+  low reading: that is what split strength sessions into pieces too short to count.
 - **Notify once, recent only** (`ActivityDetectionNotifier`): after a sync's `done`, for
   activity ending in the last 12 h, never twice for the same stretch, behind its own switch and
   channel. Today shows the newest as one line; the Activity tab's card is where it is answered.

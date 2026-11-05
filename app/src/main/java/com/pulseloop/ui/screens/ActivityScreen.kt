@@ -926,6 +926,51 @@ private const val ACTIVITY_RECORDS_PAGE_SIZE = 50
 
 
 /**
+ * One quiet row, once: let PulseLoop read workouts another device saved to Health Connect, so they
+ * are offered here (OtherDeviceWorkouts). Hidden when granted, dismissed, or not applicable.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OtherDeviceWorkoutsPrompt(onGranted: () -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("activity_detection", android.content.Context.MODE_PRIVATE) }
+    var dismissed by remember { mutableStateOf(prefs.getBoolean("otherDevicesDismissed", false)) }
+    var tick by remember { mutableIntStateOf(0) }
+    val show by produceState(false, tick, dismissed) {
+        value = !dismissed && com.pulseloop.service.OtherDeviceWorkouts.applies(context) &&
+            !com.pulseloop.service.OtherDeviceWorkouts.granted(context)
+    }
+    val launcher = rememberLauncherForActivityResult(
+        androidx.health.connect.client.PermissionController.createRequestPermissionResultContract(),
+    ) { granted ->
+        tick++
+        if (com.pulseloop.service.OtherDeviceWorkouts.READ in granted) onGranted()
+    }
+    if (!show) return
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)).padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(tr("Workouts from your other devices"), style = com.pulseloop.ui.theme.PulseType.title, color = PulseColors.textPrimary)
+        Text(
+            tr("If a watch or another app records your workouts in Health Connect, PulseLoop can offer them here to add with a tap."),
+            style = com.pulseloop.ui.theme.PulseType.body,
+            color = PulseColors.textSecondary,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PulseButton(PulseButtonStyle.Tonal, onClick = { launcher.launch(com.pulseloop.service.OtherDeviceWorkouts.REQUEST) }) {
+                Text(tr("Allow"))
+            }
+            PulseButton(PulseButtonStyle.Text, onClick = {
+                dismissed = true
+                prefs.edit().putBoolean("otherDevicesDismissed", true).apply()
+            }) { Text(tr("Not now")) }
+        }
+    }
+}
+
+/**
  * Workouts and naps the ring's data suggests, waiting for the user's answer. Nothing is recorded
  * until they confirm; a discard is remembered so the same stretch isn't offered again.
  */
@@ -940,6 +985,7 @@ private fun DetectedActivityCard() {
     val proposals by produceState<List<com.pulseloop.service.ActivityDetection.Proposal>>(emptyList(), tick) {
         value = runCatching { com.pulseloop.service.ActivityDetection.load(context, db) }.getOrDefault(emptyList())
     }
+    OtherDeviceWorkoutsPrompt(onGranted = { tick++ })
     if (proposals.isEmpty()) return
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)

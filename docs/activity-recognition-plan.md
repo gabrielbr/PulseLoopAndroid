@@ -59,6 +59,20 @@ are the strongest signal it has.
 5. **Rules kept from the first version:** nothing is ever logged without a tap, "Not this" is
    remembered, and a stretch that overlaps a recorded workout or a night is never offered.
 
+## Phase 1.5: shipped (v2.15.0)
+
+- **Workouts another device recorded** (`service/OtherDeviceWorkouts.kt`). With the user's
+  permission (one prompt on the Activity tab), workouts that a watch or another app saved to
+  Health Connect are offered as suggestions with their own type and times, even with a ring
+  paired. PulseLoop's own records are filtered out, an accepted one keeps its `hc-` id so the
+  export never writes it back, and a ring guess overlapping it is dropped. This is the reliable
+  path for a workout the ring alone can't see (strength, a session with few steps).
+- **The heart-rate rule fits a reading every few minutes.** A stretch starts at 30 % of
+  heart-rate reserve above the quiet level, survives lower readings for 12 minutes (a rest between
+  sets), ends after a 15-minute gap in readings, and counts at 20 minutes or more with at least
+  three raised readings and an average of 25 % of reserve. The old rule (40 %, ended by any
+  single lower reading) split a strength session into pieces too short to count.
+
 ## Phase 2: workouts the ring recorded itself
 
 Several families keep their own exercise records when the user starts a sport on the ring, or
@@ -73,6 +87,13 @@ When a stretch looks active, request the ring's finer HR history for that window
 offers one, or temporarily raise the all-day measuring interval. Sets and rests then become
 visible, and the strength call stops depending on a 5-minute grid. This needs per-family protocol
 work and hardware validation with the ring owners.
+
+**Status of phases 2 and 3 (2026-11-05):** not started. Both need the decompiled vendor apps
+(`decompiled-qring-official/`, `decompiled-jring-offical/`, …) to read the real opcodes, and those
+are not in git; a session without them must not guess (AGENTS.md). Colmi's all-day HR interval is
+already at its 5-minute floor (`ColmiEncoder.autoHeartRate` coerces to 5…60), so phase 3 can't be
+done by raising that interval on Colmi; it needs a per-family "denser history" read, if the vendor
+apps have one.
 
 ## Not planned
 
