@@ -36,6 +36,12 @@
     <!-- "AI tools on your network" (mcp/McpService): the read-only MCP server runs as a dataSync
          foreground service while the user has it on. docs/mcp-threat-model.md -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <!-- MCP "Always on" (Android 14+): a specialUse foreground service has no daily limit and may
+         start at boot; RECEIVE_BOOT_COMPLETED brings it back after a reboot, and the battery
+         exemption request lets the user keep it reachable while the phone sleeps. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
 
     <!-- Self-update: fetch the GitHub release manifest/APK and install it -->
@@ -169,8 +175,22 @@
              only PulseLoop's settings screen starts it. docs/mcp-threat-model.md -->
         <service
             android:name=".mcp.McpService"
-            android:foregroundServiceType="dataSync"
-            android:exported="false" />
+            android:foregroundServiceType="dataSync|specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="A local network server, switched on by the user, that lets the user's own AI tools read their health data." />
+        </service>
+
+        <!-- Restarts the MCP server after a reboot or an update, only when the user chose Always on. -->
+        <receiver
+            android:name=".mcp.McpBootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!-- Home-screen widgets (iOS #44): three Glance app widgets + the shared configure
              activity for the two configurable ones. -->

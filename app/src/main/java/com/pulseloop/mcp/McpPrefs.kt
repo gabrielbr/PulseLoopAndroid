@@ -18,7 +18,8 @@ class McpPrefs(context: Context) : McpTokenStorage {
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
-    /** Set while the service runs; cleared whenever it stops, so it never outlives the process. */
+    /** Set while the service runs. Cleared when it stops, except while [alwaysOn], where only the
+     *  user's own Stop clears it (so a reboot brings it back). */
     var enabled: Boolean
         get() = prefs.getBoolean(KEY_ENABLED, false)
         set(v) { prefs.edit().putBoolean(KEY_ENABLED, v).apply() }
@@ -32,6 +33,15 @@ class McpPrefs(context: Context) : McpTokenStorage {
     var autoOffHours: Int
         get() = McpConfig.autoOffHours(prefs.getInt(KEY_HOURS, McpConfig.defaultAutoOffHours(SDK)), SDK)
         set(v) { prefs.edit().putInt(KEY_HOURS, v).apply() }
+
+    /**
+     * The user chose "Always on": no auto-off, back after a reboot or an app update, and Android
+     * restarts it if it is killed. Stays chosen when the switch is turned off, so turning it back
+     * on keeps the choice.
+     */
+    var alwaysOn: Boolean
+        get() = prefs.getBoolean(KEY_ALWAYS_ON, false)
+        set(v) { prefs.edit().putBoolean(KEY_ALWAYS_ON, v).apply() }
 
     /** Whether a request may be answered now: switched on and not past its auto-off time. */
     fun isOn(now: Long = System.currentTimeMillis()): Boolean = enabled && now < offAt
@@ -50,6 +60,7 @@ class McpPrefs(context: Context) : McpTokenStorage {
         private const val KEY_ENABLED = "enabled"
         private const val KEY_OFF_AT = "offAt"
         private const val KEY_HOURS = "autoOffHours"
+        private const val KEY_ALWAYS_ON = "alwaysOn"
         private const val KEY_TOOLS = "pairedTools"
         private val SDK get() = android.os.Build.VERSION.SDK_INT
         /** The auto-off lengths this device offers (1, 4 and 8 h; 6 h instead of 8 on Android 15+). */

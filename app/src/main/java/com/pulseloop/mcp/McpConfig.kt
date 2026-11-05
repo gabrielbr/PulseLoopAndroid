@@ -52,4 +52,24 @@ object McpConfig {
         val capped = if (sdkInt >= DATA_SYNC_LIMIT_SDK) stored.coerceAtMost(DATA_SYNC_LIMIT_HOURS) else stored
         return capped.takeIf { it in autoOffChoices(sdkInt) } ?: defaultAutoOffHours(sdkInt)
     }
+
+    /**
+     * "Always on" uses the `specialUse` foreground-service type on Android 14+ (API 34), where it
+     * exists: unlike `dataSync` it has no daily limit (Android 15) and may start from
+     * `BOOT_COMPLETED`, which Android 15 forbids for `dataSync`. Below 14, `dataSync` has neither
+     * restriction. A timed session keeps `dataSync`.
+     */
+    const val SPECIAL_USE_SDK = 34
+
+    fun usesSpecialUse(alwaysOn: Boolean, sdkInt: Int): Boolean = alwaysOn && sdkInt >= SPECIAL_USE_SDK
+
+    /** [McpPrefs.offAt] while always on: never reached, so [McpPrefs.isOn] needs no second rule. */
+    const val NEVER = Long.MAX_VALUE
+
+    /** When a session that starts at [now] turns itself off. */
+    fun offAt(now: Long, alwaysOn: Boolean, hours: Int): Long =
+        if (alwaysOn) NEVER else now + hours * 3_600_000L
+
+    /** Whether to start the server again after a reboot or an app update. */
+    fun restartAfterBoot(enabled: Boolean, alwaysOn: Boolean): Boolean = enabled && alwaysOn
 }
