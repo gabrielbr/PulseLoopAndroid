@@ -17,12 +17,17 @@ import java.time.ZoneId
  */
 object ActivityDetection {
 
+    /** A workout another app saved to Health Connect: its record id (`hc-…`) and the app's name. */
+    data class External(val id: String, val app: String)
+
     data class Proposal(
         val kind: Kind, val startAt: Long, val endAt: Long, val detail: String,
         /** Every activity type, most likely first (ActivityClassifier); empty for a nap. */
         val guesses: List<String> = emptyList(),
         /** What the guess was made from, kept with the user's answer so later guesses learn. */
         val features: ActivityClassifier.Features? = null,
+        /** Set when another device recorded this workout (OtherDeviceWorkouts), not the ring's guess. */
+        val external: External? = null,
     ) {
         enum class Kind { WALK, RUN, CARDIO, NAP }
         /** The selected type: the classifier's first choice, else the kind's own. */
@@ -67,28 +72,60 @@ object ActivityDetection {
     }
 
     /**
-     * Cardio without many steps (cycling, a gym session): at least 20 minutes of readings at 40 %
-     * or more of heart-rate reserve above the user's quiet level, with gaps of at most 15 minutes.
+     * Cardio without many steps (cycling, a gym session), read off an all-day grid of a reading
+     * every few minutes:
+     * - a stretch starts at a reading at or above [ENTER_SHARE] of heart-rate reserve above the
+     *   user's quiet level, and keeps going through lower readings (rest between sets) for up to
+     *   [DIP_MS] after the last raised one;
+     * - it ends after [DIP_MS] with nothing raised, or a gap of more than [GAP_MS] in readings;
+     * - it counts when it spans 20 minutes or more, holds at least three raised readings, and its
+     *   readings average at least [MEAN_SHARE] of reserve, so one high reading in a calm hour
+     *   isn't a workout.
+     * The old rule (40 % of reserve, ended by any single lower reading) split a strength session
+     * into pieces too short to count.
      */
     fun heartSessions(hr: List<Pair<Long, Double>>, quiet: Double, hrMax: Double): List<Proposal> {
-        val threshold = quiet + 0.4 * (hrMax - quiet)
+        val reserve = (hrMax - quiet).coerceAtLeast(1.0)
+        val enter = quiet + ENTER_SHARE * reserve
+        val meanFloor = quiet + MEAN_SHARE * reserve
         val out = mutableListOf<Proposal>()
-        var start: Long? = null; var last = 0L; var peak = 0.0
+        var start: Long? = null
+        var lastRaised = 0L; var lastSeen = 0L; var raised = 0; var peak = 0.0
+        val inStretch = mutableListOf<Double>()
         fun close() {
-            val s = start ?: return
-            if (last - s >= 20 * 60_000L) out += Proposal(Proposal.Kind.CARDIO, s, last, trf("Heart rate up to {0} bpm", peak.toInt()))
-            start = null; peak = 0.0
+            val s = start
+            if (s != null) {
+                // Readings after the last raised one are the cool-down, not the workout.
+                val mean = inStretch.average()
+                if (lastRaised - s >= 20 * 60_000L && raised >= 3 && mean >= meanFloor) {
+                    out += Proposal(Proposal.Kind.CARDIO, s, lastRaised, trf("Heart rate up to {0} bpm", peak.toInt()))
+                }
+            }
+            start = null; raised = 0; peak = 0.0; inStretch.clear()
         }
         for ((t, bpm) in hr.sortedBy { it.first }) {
-            if (bpm >= threshold) {
-                if (start != null && t - last > 15 * 60_000L) close()
+            if (start != null && (t - lastSeen > GAP_MS || t - lastRaised > DIP_MS)) close()
+            if (bpm >= enter) {
                 if (start == null) start = t
-                last = t; peak = maxOf(peak, bpm)
-            } else if (start != null && t - last > 5 * 60_000L) close()
+                lastRaised = t; raised++; peak = maxOf(peak, bpm)
+                inStretch += bpm
+            } else if (start != null) {
+                inStretch += bpm
+            }
+            lastSeen = t
         }
         close()
         return out
     }
+
+    /** Share of heart-rate reserve that starts or extends a raised stretch. */
+    const val ENTER_SHARE = 0.30
+    /** Share of reserve a whole stretch must average. */
+    const val MEAN_SHARE = 0.25
+    /** How long a stretch survives lower readings (a rest between sets). */
+    const val DIP_MS = 12 * 60_000L
+    /** A longer silence in readings ends it: the ring wasn't measuring. */
+    const val GAP_MS = 15 * 60_000L
 
     /**
      * Naps: between 11:00 and 19:00, at least 25 minutes where heart rate stays at or below the
@@ -227,7 +264,12 @@ object ActivityDetection {
             ).joinToString(" · ")
             Proposal(kind, w.first, w.last, detail, guesses, f)
         }
-        val proposals = activities + (if (quiet != null) naps(recentHr, buckets, quiet, zone) else emptyList())
+        // Workouts another device recorded win over the ring's guess for the same time.
+        val external = runCatching { OtherDeviceWorkouts.proposals(OtherDeviceWorkouts.read(c, from, now)) }
+            .getOrDefault(emptyList())
+            .map { it.copy(features = ActivityClassifier.features(it.startAt, it.endAt, recentSteps, recentHr, quiet ?: 60.0, hrMax)) }
+        val proposals = external + OtherDeviceWorkouts.withoutOverlaps(activities, external) +
+            (if (quiet != null) naps(recentHr, buckets, quiet, zone) else emptyList())
         val sessions = db.activitySessionDao().recent(50).map { it.startedAt..(it.endedAt ?: it.startedAt) }
         return open(proposals, sessions + nights, answered(c)).sortedByDescending { it.startAt }
     }
@@ -240,6 +282,23 @@ suspend fun ActivityDetection.accept(c: Context, db: PulseLoopDatabase, p: Activ
         val day = Instant.ofEpochMilli(p.startAt).atZone(zone).toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
         val tag = JournalInsights.Tag.NAP.key
         db.journalDao().upsert(com.pulseloop.data.entity.JournalEntryEntity(com.pulseloop.data.entity.JournalEntryEntity.idFor(day, tag), day, tag))
+    } else if (p.external != null) {
+        // Keeps the Health Connect id, so the export never writes it back under PulseLoop's name.
+        if (db.activitySessionDao().byId(p.external.id) == null) {
+            val session = com.pulseloop.data.entity.ActivitySessionEntity(
+                id = p.external.id,
+                type = type,
+                statusRaw = "finished",
+                startedAt = p.startAt,
+                endedAt = p.endAt,
+                notes = trf("Recorded by {0}", p.external.app),
+                useGps = false,
+            )
+            val summarized = ActivityAggregates.recompute(db, session)
+            db.activitySessionDao().upsert(summarized)
+            ActivityRollup.credit(db, summarized)
+        }
+        p.features?.let { learn(c, it, type) }
     } else {
         ManualActivityService.create(db, type, p.startAt, p.minutes.toDouble(), notes = tr("Detected by PulseLoop and confirmed"))
         // The answer teaches the next guess for a stretch like this one.
