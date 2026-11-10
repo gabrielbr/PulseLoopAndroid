@@ -26,7 +26,7 @@ data class DeviceHeroStatus(
         DISCONNECT,
         CONNECT,
         SET_UP,
-        /** A connect attempt is in flight (connecting / reconnecting / scanning). */
+        /** A connect attempt is in flight (connecting / scanning). */
         PENDING,
     }
 
@@ -38,8 +38,9 @@ data class DeviceHeroStatus(
             Action.PENDING -> tr("Connecting…")
         }
 
-    /** The action button is inert while a connection attempt is in flight, so a tap can't
-     *  cancel or restart an in-progress (re)connect. */
+    /** The action button is inert while a single connection attempt is in flight, so a tap
+     *  can't cancel or restart it. Automatic recovery (RECONNECTING) can run for minutes, so it
+     *  offers Disconnect instead (issue #124). */
     val actionEnabled: Boolean get() = action != Action.PENDING
 
     companion object {
@@ -66,8 +67,11 @@ data class DeviceHeroStatus(
                 RingConnectionState.CONNECTED -> {
                     statusLine = tr("Connected"); statusTint = PulseColors.success
                 }
-                RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> {
+                RingConnectionState.CONNECTING -> {
                     statusLine = tr("Connecting…"); statusTint = PulseColors.warning
+                }
+                RingConnectionState.RECONNECTING -> {
+                    statusLine = tr("Reconnecting…"); statusTint = PulseColors.warning
                 }
                 RingConnectionState.SCANNING -> {
                     statusLine = tr("Searching…"); statusTint = PulseColors.warning
@@ -90,9 +94,9 @@ data class DeviceHeroStatus(
             val syncText = lastSyncAt?.let { trf("Synced {0}", relativeShort(it, now)) }
 
             val action = when (state) {
-                RingConnectionState.CONNECTED -> Action.DISCONNECT
+                RingConnectionState.CONNECTED,
+                RingConnectionState.RECONNECTING -> Action.DISCONNECT
                 RingConnectionState.CONNECTING,
-                RingConnectionState.RECONNECTING,
                 RingConnectionState.SCANNING -> Action.PENDING
                 RingConnectionState.IDLE,
                 RingConnectionState.DISCONNECTED,
