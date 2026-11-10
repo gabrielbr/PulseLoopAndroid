@@ -63,6 +63,8 @@ import com.pulseloop.coach.config.MiniMaxModel
 import com.pulseloop.coach.config.OpenRouterModel
 import com.pulseloop.data.DemoDataSeeder
 import com.pulseloop.data.PulseLoopDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.pulseloop.data.entity.UserGoalEntity
 import com.pulseloop.health.HealthConnectAvailability
 import com.pulseloop.health.HealthConnectPermissions
@@ -83,11 +85,13 @@ import com.pulseloop.service.GlucoseUnit
 import com.pulseloop.service.MetricZone
 import com.pulseloop.service.RingSyncCoordinator
 import com.pulseloop.service.RingSyncWorker
+import com.pulseloop.service.ScheduledSpo2Worker
 import com.pulseloop.service.VitalColorToken
 import com.pulseloop.service.VitalSample
 import com.pulseloop.service.ZoneSeverity
 import com.pulseloop.settings.ApiKeyStore
 import com.pulseloop.settings.QuietHoursPrefs
+import com.pulseloop.settings.ScheduledSpo2Prefs
 import com.pulseloop.settings.UnitSystem
 import com.pulseloop.settings.ZenModeListener
 import com.pulseloop.ui.components.DeviceHeroStatus
@@ -832,6 +836,11 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             Column(Modifier.weight(1f)) {
                                 Text(tr("Web Search"))
                                 Text(tr("Uses additional tokens"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                // Free-tier Gemini keys can be refused Google Search grounding (HTTP 429)
+                                // while every other call works; the coach then answers without it (issue #123).
+                                if (providerMode == CoachProviderMode.USER_GEMINI_KEY) {
+                                    Text(tr("Google Search grounding may need a paid Gemini plan — free-tier keys can be refused, and the coach then answers without web results."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                             Switch(checked = webSearch, onCheckedChange = null)
                         }
@@ -1688,8 +1697,17 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
         .collectAsState(initial = null).value
     val device: com.pulseloop.data.entity.DeviceEntity? = deviceLoad?.orElse(null)
     val capabilities = device?.capabilities.orEmpty()
-    val minimumInterval = if (device?.deviceType == RingDeviceType.YCBT) 30 else 5
-    val intervalSteps = ((60 - minimumInterval) / 5 - 1).coerceAtLeast(0)
+    // Both YCBT-protocol families get the raised bounds: `COLMI_SMART_HEALTH` rides the same
+    // [com.pulseloop.ring.YCBTDriver], so its ring can carry the same settings (issue #103,
+    // Albabit's `colmi-smarthealth` unit was capped at 5–60 until 2026-10-23).
+    val isYcbtProtocol = device?.deviceType in setOf(RingDeviceType.YCBT, RingDeviceType.COLMI_SMART_HEALTH)
+    val minimumInterval = if (isYcbtProtocol) 30 else 5
+    // 120 min is the only interval beyond the vendor app's own menu (which stops at 60) that is
+    // tested on hardware: the ring ACKed `01 0c 01 78` and read at 10:00 and 12:00 (issue #103,
+    // 2026-10-22). Nothing longer until someone tries it, and YCBT-protocol rings only — it is
+    // not the vendor app's behaviour, it is one ring's.
+    val maximumHrInterval = if (isYcbtProtocol) 120 else 60
+    val intervalSteps = ((maximumHrInterval - minimumInterval) / 5 - 1).coerceAtLeast(0)
     // Only offered where the ring's protocol actually carries a separate blood-oxygen interval —
     // elsewhere the slider moved, the value saved, and "Saved & sent to ring ✓" appeared over a
     // setting nothing on the wire could express (issue #66).
@@ -1698,8 +1716,12 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     // so it needs its own step count: reusing the HR one put ticks 5.45 min apart, none of which
     // the 5-minute snap could land on.
     val spo2IntervalSteps = ((60 - (minimumInterval - 5)) / 5 - 1).coerceAtLeast(0)
+    // Same exclusion as [RingDeviceType.YCBT]: the YCBT wire format has no stress-monitor
+    // setting ([com.pulseloop.ring.YCBTEncoder.monitorCommands] carries HR/BP/temp/SpO₂/HRV
+    // only), so a toggle here would be a no-op the ring never sees — the capability bit alone
+    // is not enough to offer it.
     val supportsStressSetting = WearableCapability.STRESS in capabilities &&
-        device?.deviceType != RingDeviceType.YCBT
+        !isYcbtProtocol
 
     var cfgHrEnabled by remember { mutableStateOf(true) }
     var cfgHrInterval by remember { mutableStateOf(5) }
@@ -1709,6 +1731,11 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     var cfgStress by remember { mutableStateOf(true) }
     var cfgHrv by remember { mutableStateOf(true) }
     var cfgTemp by remember { mutableStateOf(true) }
+    val scheduledSpo2Prefs = remember { ScheduledSpo2Prefs(context) }
+    val supportsScheduledSpo2 = ScheduledSpo2Prefs.isSupported(device)
+    var cfgAppSpo2 by remember { mutableStateOf(false) }
+    var cfgAppSpo2Interval by remember { mutableStateOf(ScheduledSpo2Prefs.DEFAULT_INTERVAL_MINUTES) }
+    var cfgHideEstimatedSpo2 by remember { mutableStateOf(true) }
     var cfgLoaded by remember { mutableStateOf(false) }
     var cfgSavedMsg by remember { mutableStateOf<String?>(null) }
 
@@ -1717,7 +1744,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
         cfgLoaded = false
         val config = db.deviceMeasurementConfigDao().byDevice(id)
         cfgHrEnabled = config?.hrEnabled ?: true
-        cfgHrInterval = (config?.hrIntervalMinutes ?: minimumInterval).coerceIn(minimumInterval, 60)
+        cfgHrInterval = (config?.hrIntervalMinutes ?: minimumInterval).coerceIn(minimumInterval, maximumHrInterval)
         cfgSpo2 = (config?.spo2Enabled ?: true) && WearableCapability.SPO2 in capabilities
         cfgSpo2Interval = (config?.spo2IntervalMinutes ?: 0).let {
             if (it <= 0) 0 else it.coerceIn(minimumInterval, 60)
@@ -1725,6 +1752,9 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
         cfgStress = (config?.stressEnabled ?: true) && supportsStressSetting
         cfgHrv = (config?.hrvEnabled ?: true) && WearableCapability.HRV in capabilities
         cfgTemp = (config?.temperatureEnabled ?: true) && WearableCapability.TEMPERATURE in capabilities
+        cfgAppSpo2 = scheduledSpo2Prefs.enabled
+        cfgAppSpo2Interval = scheduledSpo2Prefs.intervalMinutes
+        cfgHideEstimatedSpo2 = scheduledSpo2Prefs.hideEstimated
         cfgLoaded = true
     }
 
@@ -1768,8 +1798,8 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         Slider(
                             enabled = cfgLoaded,
                             value = cfgHrInterval.toFloat(),
-                            onValueChange = { cfgHrInterval = ((it / 5).toInt() * 5).coerceIn(minimumInterval, 60); cfgSavedMsg = null },
-                            valueRange = minimumInterval.toFloat()..60f,
+                            onValueChange = { cfgHrInterval = ((it / 5).toInt() * 5).coerceIn(minimumInterval, maximumHrInterval); cfgSavedMsg = null },
+                            valueRange = minimumInterval.toFloat()..maximumHrInterval.toFloat(),
                             steps = intervalSteps,
                         )
                     }
@@ -1782,7 +1812,9 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         // running both monitors hourly that is most of the battery (issue #66).
                         if (cfgSpo2 && supportsSpo2Interval) {
                             Text(
-                                if (cfgSpo2Interval <= 0) tr("Same as heart rate") else trf("Every {0} min", cfgSpo2Interval),
+                                // The blood-oxygen command keeps the 60-min ceiling whatever the
+                                // heart-rate slider shows (no evidence past 60 on that key).
+                                if (cfgSpo2Interval <= 0) tr("Same as heart rate, at most every 60 min") else trf("Every {0} min", cfgSpo2Interval),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
@@ -1798,6 +1830,52 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                                 },
                                 valueRange = (minimumInterval - 5).toFloat()..60f,
                                 steps = spo2IntervalSteps,
+                            )
+                        }
+                        // Issue #103: this ring's own SpO₂ is computed from heart rate, so the app
+                        // can run the ring's real spot measurement on the schedule instead.
+                        if (supportsScheduledSpo2) {
+                            VitalToggle(tr("Measure SpO₂ from the app"), cfgAppSpo2) {
+                                cfgAppSpo2 = it
+                                cfgSavedMsg = null
+                            }
+                            if (cfgAppSpo2) {
+                                Text(
+                                    tr("This ring's all-day SpO₂ is estimated from heart rate. When on, PulseLoop starts a real spot measurement on the schedule below, between the ring's own readings, about a minute each, which uses more battery. Android may delay or skip runs while the phone is asleep."),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                // Independent of the ring's SpO₂ interval: the app starts these runs
+                                // itself, so the ring's limits don't apply (issue #103). Each run is
+                                // ~50 s of red LED, which is what 2–3 h spacing is for.
+                                Text(
+                                    if (cfgAppSpo2Interval == 60) tr("Every hour") else trf("Every {0} hours", cfgAppSpo2Interval / 60),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                                Slider(
+                                    enabled = cfgLoaded,
+                                    value = cfgAppSpo2Interval.toFloat(),
+                                    onValueChange = {
+                                        cfgAppSpo2Interval = ScheduledSpo2Prefs.sanitizeIntervalMinutes(kotlin.math.round(it / 60f).toInt() * 60)
+                                        cfgSavedMsg = null
+                                    },
+                                    valueRange = 60f..180f,
+                                    steps = 1,
+                                )
+                            }
+                            // Shown on every supported ring, on or off: estimated readings are
+                            // shown labelled by default (AGENTS.md "A derived metric must say it is
+                            // derived"); hiding them is the user's choice (divergence from upstream,
+                            // which defaulted to hidden and only offered this with app SpO₂ on).
+                            VitalToggle(tr("Hide estimated SpO₂"), cfgHideEstimatedSpo2) {
+                                cfgHideEstimatedSpo2 = it
+                                cfgSavedMsg = null
+                            }
+                            Text(
+                                tr("Display only real spot measurements on charts and vitals cards, hiding the hourly estimates."),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
@@ -1819,7 +1897,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                                 db.deviceMeasurementConfigDao().upsert(
                                     com.pulseloop.data.entity.DeviceMeasurementConfigEntity(
                                         deviceId = device.id,
-                                        hrIntervalMinutes = cfgHrInterval.coerceIn(minimumInterval, 60),
+                                        hrIntervalMinutes = cfgHrInterval.coerceIn(minimumInterval, maximumHrInterval),
                                         hrEnabled = cfgHrEnabled,
                                         spo2Enabled = cfgSpo2 && WearableCapability.SPO2 in capabilities,
                                         spo2IntervalMinutes = if (!supportsSpo2Interval || cfgSpo2Interval <= 0) 0
@@ -1831,6 +1909,10 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                                     )
                                 )
                                 coordinator?.applyMeasurementSettings()
+                                scheduledSpo2Prefs.enabled = cfgAppSpo2 && supportsScheduledSpo2
+                                scheduledSpo2Prefs.intervalMinutes = cfgAppSpo2Interval
+                                scheduledSpo2Prefs.hideEstimated = cfgHideEstimatedSpo2
+                                ScheduledSpo2Worker.reschedule(context.applicationContext)
                                 cfgSavedMsg = if (coordinator?.isConnected == true)
                                     tr("Saved & sent to ring ✓") else tr("Saved — will sync on next connect")
                             }
@@ -2151,9 +2233,18 @@ fun WearableSettingsScreen(
                         Spacer(Modifier.width(4.dp))
                         Text(tr("Disconnect"))
                     }
-                } else if (bleClient?.hasLastKnownRing == true &&
-                    bleState.connectionState != RingConnectionState.RECONNECTING
-                ) {
+                } else if (bleState.connectionState == RingConnectionState.RECONNECTING) {
+                    // Automatic recovery can scan for minutes; let the user stop it (issue #124).
+                    Spacer(Modifier.height(12.dp))
+                    PulseButton(PulseButtonStyle.Outlined,
+                        onClick = { bleClient?.userDisconnect() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.Close, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(tr("Disconnect"))
+                    }
+                } else if (bleClient?.hasLastKnownRing == true) {
                     Spacer(Modifier.height(12.dp))
                     PulseButton(PulseButtonStyle.Outlined,
                         onClick = { bleClient.userConnect() },
@@ -3389,6 +3480,19 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
         }
     }
 
+    // Issue #103: a YCBT-protocol ring derives respiratory rate from heart rate, so that row is
+    // shown as not exported (VitalsExporter.shouldExportRespRate holds it back regardless).
+    var currentRealDevice by remember { mutableStateOf<com.pulseloop.data.entity.DeviceEntity?>(null) }
+    LaunchedEffect(Unit) {
+        currentRealDevice = withContext(Dispatchers.IO) {
+            PulseLoopDatabase.getInstance(context).deviceDao().currentReal()
+        }
+    }
+    val isYcbtDevice = currentRealDevice?.deviceType in setOf(
+        com.pulseloop.ring.RingDeviceType.YCBT,
+        com.pulseloop.ring.RingDeviceType.COLMI_SMART_HEALTH,
+    )
+
     SettingsSubScreen(title = tr("Health Connect"), onBack = onBack) {
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
@@ -3518,11 +3622,12 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         )
                     }
                     if (typesOpen) for ((row, label) in rows) {
+                        val isRespRateOnYcbt = row == HealthConnectPermissions.DataTypeRow.RESPIRATORY_RATE && isYcbtDevice
                         val rowPerms = HealthConnectPermissions.permissionsForRow(row)
-                        val rowGranted = rowPerms.isEmpty() || rowPerms.any { it in granted }
+                        val rowGranted = !isRespRateOnYcbt && (rowPerms.isEmpty() || rowPerms.any { it in granted })
                         Row(
                             Modifier.fillMaxWidth().padding(vertical = 4.dp)
-                            .switchRow(checked = prefs.toggleFor(row), enabled = rowGranted, onCheckedChange = { on ->
+                            .switchRow(checked = if (isRespRateOnYcbt) false else prefs.toggleFor(row), enabled = rowGranted, onCheckedChange = { on ->
                                     store.update { p -> p.withToggleFor(row, on) }
                                     // Re-enabling a VITALS kind must backfill the readings recorded while it
                                     // was off: the VITALS group watermark is driven by the *enabled* kinds
@@ -3540,7 +3645,13 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         ) {
                             Column(Modifier.weight(1f)) {
                                 Text(tr(label), style = MaterialTheme.typography.bodyMedium)
-                                if (!rowGranted) {
+                                if (isRespRateOnYcbt) {
+                                    Text(
+                                        tr("Derived from heart rate by current ring — export disabled"),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                } else if (!rowGranted) {
                                     Text(
                                         tr("Awaiting permission"),
                                         style = MaterialTheme.typography.bodySmall,
@@ -3558,7 +3669,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                                     )
                                 }
                             }
-                            Switch(checked = prefs.toggleFor(row), enabled = rowGranted, onCheckedChange = null)
+                            Switch(checked = if (isRespRateOnYcbt) false else prefs.toggleFor(row), enabled = rowGranted, onCheckedChange = null)
                         }
                         if (row == HealthConnectPermissions.DataTypeRow.HEART_RATE_VARIABILITY) {
                             // Plan §7 open item: the rings' HRV metric is vendor-undocumented, and

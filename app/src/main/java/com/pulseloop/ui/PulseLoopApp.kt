@@ -143,7 +143,7 @@ fun PulseLoopApp() {
 
         // ── ViewModels ───────────────────────────────────────────────────
         val todayVM = remember { TodayViewModel(db, apiKeyStore) }
-        val vitalsVM = remember { VitalsViewModel(db, apiKeyStore) }
+        val vitalsVM = remember { VitalsViewModel(db, apiKeyStore, com.pulseloop.settings.ScheduledSpo2Prefs(context)) }
         val sleepVM = remember {
             val appContext = context.applicationContext
             SleepViewModel(db, gapBridge = { com.pulseloop.service.SleepGapBridge.fromSettings(appContext) })
@@ -157,6 +157,9 @@ fun PulseLoopApp() {
                     com.pulseloop.coach.attachments.CoachAttachmentStore.payloads(context, refs)
                 },
                 environmentSnapshot = { weatherContextService.snapshot() },
+                deleteAttachments = { refs ->
+                    refs.forEach { com.pulseloop.coach.attachments.CoachAttachmentStore.delete(context, it) }
+                },
             )
         }
 
@@ -227,7 +230,7 @@ fun PulseLoopApp() {
                 // process restart — the live GATT is gone, so the views would otherwise show a
                 // false "Connected". Reset until a real connection re-confirms it.
                 db.deviceDao().current()?.let { dev ->
-                    if (dev.stateRaw == "CONNECTED" || dev.stateRaw == "CONNECTING") {
+                    if (dev.stateRaw in setOf("CONNECTED", "CONNECTING", "RECONNECTING")) {
                         db.deviceDao().upsert(dev.copy(stateRaw = "DISCONNECTED", updatedAt = System.currentTimeMillis()))
                     }
                 }
@@ -246,6 +249,8 @@ fun PulseLoopApp() {
                 // The breastfeeding allowance grows at six months and ends at twelve.
                 runCatching { com.pulseloop.ui.screens.syncCalorieGoal(context.applicationContext) }
                 runCatching { com.pulseloop.health.ProfileAging.refresh(db) }
+                // Opt-in app-started spot SpO₂ (issue #103); revives the chain if it was cancelled.
+                com.pulseloop.service.ScheduledSpo2Worker.ensureScheduled(context.applicationContext)
 
                 // NOTE: demo data is never auto-seeded. A clean install starts empty so the UI
                 // reflects only real ring data. Demo data is seeded exclusively via the
@@ -487,6 +492,7 @@ fun PulseLoopApp() {
                             // frosted glass bar the other tabs use so the chat scrolls under it
                             // (owner choice, issue #22).
                             var showCoachUsage by remember { mutableStateOf(false) }
+                            var showCoachHistory by remember { mutableStateOf(false) }
                             CoachHeader(
                                 // Which brain answers, when it is the one on this phone.
                                 subtitle = if (providerStore.providerMode == com.pulseloop.coach.config.CoachProviderMode.ON_DEVICE)
@@ -494,7 +500,20 @@ fun PulseLoopApp() {
                                 onBack = { navController.popBackStack() },
                                 onNewChat = { coachVM.newConversation() },
                                 onOpenUsage = { showCoachUsage = true },
+                                onOpenHistory = { showCoachHistory = true },
                             )
+                            if (showCoachHistory) {
+                                val history by coachVM.history.collectAsState(initial = emptyList())
+                                val coachState by coachVM.state.collectAsState()
+                                com.pulseloop.ui.screens.CoachHistorySheet(
+                                    conversations = history,
+                                    currentId = coachState.conversationId,
+                                    onOpen = { id -> coachVM.openConversation(id); showCoachHistory = false },
+                                    onDelete = { id -> coachVM.deleteConversation(id) },
+                                    onDeleteAll = { coachVM.deleteAllConversations(); showCoachHistory = false },
+                                    onDismiss = { showCoachHistory = false },
+                                )
+                            }
                             if (showCoachUsage) {
                                 var usageData by remember {
                                     mutableStateOf<Pair<com.pulseloop.data.entity.CoachConversationEntity, List<com.pulseloop.data.entity.CoachMessageEntity>>?>(null)

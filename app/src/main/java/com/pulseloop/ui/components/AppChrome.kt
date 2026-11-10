@@ -172,7 +172,8 @@ fun ConnectionStatusPill(
     val label = sourceLabel ?: when (state) {
         RingConnectionState.CONNECTED ->
             if (batteryPercent != null && batteryPercent > 0) trf("Connected · {0}%", batteryPercent) else tr("Connected")
-        RingConnectionState.CONNECTING, RingConnectionState.RECONNECTING -> tr("Connecting…")
+        RingConnectionState.CONNECTING -> tr("Connecting…")
+        RingConnectionState.RECONNECTING -> tr("Reconnecting…")
         RingConnectionState.FAILED -> tr("Sync failed")
         else -> if (idleNow) {
             if (batteryPercent != null && batteryPercent > 0) trf("Idle · {0}%", batteryPercent) else tr("Idle")

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -51,6 +52,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -202,6 +204,8 @@ fun CoachScreen(
 fun CoachHeader(
     onNewChat: () -> Unit,
     onOpenUsage: (() -> Unit)? = null,
+    /** Opens the past-conversations sheet (issue #131). */
+    onOpenHistory: (() -> Unit)? = null,
     onBack: (() -> Unit)? = null,
     /** Replaces "Using your latest ring sync", e.g. "On this phone · Gemma 3 1B". */
     subtitle: String? = null,
@@ -235,16 +239,31 @@ fun CoachHeader(
             )
         }
         Column(Modifier.weight(1f)) {
-            Text(tr("PulseLoop Coach"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-            Text(subtitle ?: tr("Using your latest ring sync"), fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(
+                tr("PulseLoop Coach"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                subtitle ?: tr("Using your latest ring sync"), fontSize = 12.sp, color = PulseColors.textMuted,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
         }
-        if (onOpenUsage != null) {
-            RoundIconTarget(visualSize = 36.dp, onClick = onOpenUsage) {
-                Icon(Icons.Filled.Info, tr("Usage & cost"), tint = PulseColors.textSecondary, modifier = Modifier.size(16.dp))
+        // The actions sit side by side with no extra gap: each 48dp target already pads its 36dp
+        // circle, so three of them (usage, past conversations, new chat) still leave the title room.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (onOpenUsage != null) {
+                RoundIconTarget(visualSize = 36.dp, onClick = onOpenUsage) {
+                    Icon(Icons.Filled.Info, tr("Usage & cost"), tint = PulseColors.textSecondary, modifier = Modifier.size(16.dp))
+                }
             }
-        }
-        RoundIconTarget(visualSize = 36.dp, onClick = onNewChat) {
-            Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(20.dp))
+            if (onOpenHistory != null) {
+                RoundIconTarget(visualSize = 36.dp, onClick = onOpenHistory) {
+                    Icon(Icons.Filled.History, tr("Past conversations"), tint = PulseColors.textSecondary, modifier = Modifier.size(20.dp))
+                }
+            }
+            RoundIconTarget(visualSize = 36.dp, onClick = onNewChat) {
+                Icon(Icons.Filled.Add, tr("New chat"), tint = PulseColors.textSecondary, modifier = Modifier.size(20.dp))
+            }
         }
     }
 }

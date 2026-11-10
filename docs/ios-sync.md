@@ -29,10 +29,27 @@ the work list, and assembling one from all three is how items get missed.
 |---|---|
 | **Canonical iOS repo** | `github.com/saksham2001/PulseLoopiOS` (always `main`) |
 | **Fork baseline (iOS)** | `600c7a8` — Merge PR #6, 2026-06-20 |
-| **Last triaged iOS commit** | `8833ee0` — Merge PR #140 (coach model catalog, Oct 2026) |
-| **Last triage date** | 2026-10-14 — see [2026-10-14 triage](#2026-10-14-triage-since-124877f--8833ee0-1-first-parent) |
+| **Last triaged iOS commit** | `8d8d8b6` — Merge PR #122 (HealthKit export completion, 2026-10-29) |
+| **Last triage date** | 2026-11-10 — see [2026-11-10 triage](#2026-11-10-triage-since-8833ee0--8d8d8b6-2-first-parent) |
 | **Last port date** | 2026-10-14 — PR #140 coach model catalog + per-model reasoning levels, plus live per-provider model lists (`52c25e9`). 2026-08-23 — PR #96 nutrition **complete**: barcode scanner + AI meal analysis (`e80c76c`) on top of the OFF client (`a13238d`) and five coach tools (`05d8833`); plus the self-hosted-provider schema fix they exposed (`d3d1371`). 2026-08-22 — #130 RWfit JieLi history (`c9be848`), Workout pause intervals (`71f251e`), PR #94 `CoachNotificationDataTrigger` (`9d43227`), PR #93 hardening (`c95b6e8`) |
 | **Range covered** | **2026-10-14:** 1 first-parent item since `124877f`: PR #140 → ported. **2026-10-07:** 5 first-parent items since `439ca81`: PRs #133, #138, #101 + 2 direct commits (`89024c8` version, `21ff323` docs) → 3 PRs leave Android work, none ported yet (see the Outstanding list). **Previously:** 12 first-parent items since `0d1b965` (2026-07-18): PRs #73, #94–#100, #130, #131, #93 + 1 direct commit (`160c775`) → **all 12 ported** (#130 was backed out as fabricated, then rebuilt from the vendor decompile — see its row below). Verified against a live `git fetch` on 2026-08-23: `origin/main` is `439ca81` and local `main` is 0 commits behind, so upstream is fully triaged and ported |
+
+---
+
+## 2026-11-10 triage (since `8833ee0` → `8d8d8b6`, 2 first-parent)
+
+| iOS PR | Merge | What | Verdict | Android |
+|---|---|---|---|---|
+| #139 | `dfd5751` | Colmi Ring 2 Pro: on-demand HRV, stress, temperature | **ALREADY-HAVE** | It is the iOS port of Android #100; `WearableModel.COLMI_RING_2_PRO` is on `main` |
+| #122 | `8d8d8b6` | Apple Health export of respiratory rate, VO₂max, glucose, blood pressure (BP as a correlation) | **ALREADY-HAVE** | `VitalsExporter` writes all four to Health Connect; HC's `BloodPressureRecord` holds both halves in one record, so the pairing problem doesn't exist here |
+
+**Original Android repo (foureight84/PulseLoopAndroid), same day.** This fork split from it at
+`fc69ac9` (2026-10-14). Its 8 later merges were ported by hand onto this fork's redesigned UI:
+#128 Bedtime without the schedule (v2.15.1), and #125 CRP reconnect after teardown, #127 Gemini
+grounding 429 retry, #129 estimated hourly SpO₂ label, #130 extend a sleep record, #133 coach
+past conversations, #134 + `3f39c09` scheduled SpO₂ (v2.16.0). One deliberate divergence: hidden
+estimated SpO₂ defaults to **off** here (shown, labelled), and the switch shows on every supported
+ring. Next upstream-Android triage starts after `3f39c09`.
 
 ---
 
