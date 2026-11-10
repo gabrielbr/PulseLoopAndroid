@@ -832,6 +832,11 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
                             Column(Modifier.weight(1f)) {
                                 Text(tr("Web Search"))
                                 Text(tr("Uses additional tokens"), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                // Free-tier Gemini keys can be refused Google Search grounding (HTTP 429)
+                                // while every other call works; the coach then answers without it (issue #123).
+                                if (providerMode == CoachProviderMode.USER_GEMINI_KEY) {
+                                    Text(tr("Google Search grounding may need a paid Gemini plan — free-tier keys can be refused, and the coach then answers without web results."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                             }
                             Switch(checked = webSearch, onCheckedChange = null)
                         }
@@ -2151,9 +2156,18 @@ fun WearableSettingsScreen(
                         Spacer(Modifier.width(4.dp))
                         Text(tr("Disconnect"))
                     }
-                } else if (bleClient?.hasLastKnownRing == true &&
-                    bleState.connectionState != RingConnectionState.RECONNECTING
-                ) {
+                } else if (bleState.connectionState == RingConnectionState.RECONNECTING) {
+                    // Automatic recovery can scan for minutes; let the user stop it (issue #124).
+                    Spacer(Modifier.height(12.dp))
+                    PulseButton(PulseButtonStyle.Outlined,
+                        onClick = { bleClient?.userDisconnect() },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.Close, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(tr("Disconnect"))
+                    }
+                } else if (bleClient?.hasLastKnownRing == true) {
                     Spacer(Modifier.height(12.dp))
                     PulseButton(PulseButtonStyle.Outlined,
                         onClick = { bleClient.userConnect() },

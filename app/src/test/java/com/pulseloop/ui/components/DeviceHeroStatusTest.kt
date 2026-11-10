@@ -104,7 +104,6 @@ class DeviceHeroStatusTest {
     fun `pending states disable the action`() {
         for (state in listOf(
             RingConnectionState.CONNECTING,
-            RingConnectionState.RECONNECTING,
             RingConnectionState.SCANNING,
         )) {
             val s = DeviceHeroStatus.make(
@@ -115,5 +114,25 @@ class DeviceHeroStatusTest {
             assertEquals("Connecting…", s.actionTitle)
             assertEquals(false, s.actionEnabled)
         }
+    }
+
+    @Test
+    fun `automatic recovery tells the user it is still reconnecting`() {
+        val status = DeviceHeroStatus.make(
+            state = RingConnectionState.RECONNECTING, connectedName = null,
+            knownName = "Colmi R11", batteryPercent = null, lastSyncAt = null, now = now,
+        )
+        assertEquals("Reconnecting…", status.statusLine)
+    }
+
+    @Test
+    fun `automatic recovery can be stopped with disconnect`() {
+        val status = DeviceHeroStatus.make(
+            state = RingConnectionState.RECONNECTING, connectedName = null,
+            knownName = "Colmi R11", batteryPercent = null, lastSyncAt = null, now = now,
+        )
+        assertEquals(DeviceHeroStatus.Action.DISCONNECT, status.action)
+        assertEquals("Disconnect", status.actionTitle)
+        assertEquals(true, status.actionEnabled)
     }
 }
