@@ -1888,69 +1888,75 @@ private fun QuietHoursCard() {
 
     SubScreenCard {
         Column(Modifier.padding(16.dp)) {
+            Text(tr("Sleep trimming"), style = PulseType.title)
+            Text(
+                tr("A still wrist reads as sleep, so an evening on the sofa can run the night high. " +
+                    "Trimmed minutes are never imported — changing these later won't bring them back."),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(12.dp))
+            // Independent of the schedule below (issue #126), so the Notification-access prompt
+            // has to work from here with the schedule off.
+            Row(
+                Modifier.fillMaxWidth()
+                .switchRow(checked = gateByZenMode, onCheckedChange = { desired ->
+                        if (desired) {
+                            ZenModeListener.setEnabled(context, true)
+                            if (ZenModeListener.isAccessGranted(context)) {
+                                gateByZenMode = true
+                                prefs.gateByZenMode = true
+                            } else {
+                                showPermissionDialog = true
+                            }
+                        } else {
+                            gateByZenMode = false
+                            prefs.gateByZenMode = false
+                            ZenModeListener.setEnabled(context, false)
+                        }
+                    }),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        tr("Track Bedtime / DND mode"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        tr("Keep only sleep inside Android's Bedtime or Do Not Disturb.") + " " +
+                            if (enabled) tr("Nights without it use the schedule.") else tr("Nights without it are kept whole."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(checked = gateByZenMode, onCheckedChange = null)
+            }
+            Spacer(Modifier.height(12.dp))
             Row(
                 Modifier.fillMaxWidth()
                 .switchRow(checked = enabled, onCheckedChange = { enabled = it; prefs.enabled = it }),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(tr("Sleep quiet hours"), style = PulseType.title, modifier = Modifier.weight(1f))
+                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                    Text(
+                        tr("Sleep quiet hours"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                    )
+                    Text(
+                        if (gateByZenMode) tr("Daily schedule for nights without Bedtime/DND.")
+                        else tr("Keep only sleep inside a daily schedule. Naps outside it are skipped."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Switch(checked = enabled, onCheckedChange = null)
             }
-            Text(
-                tr("When on, sleep the ring records outside the window is trimmed off on import — a " +
-                    "still wrist reads as sleep, so an evening on the sofa can log a phantom session " +
-                    "and run the night high. Set the start to when you actually go to bed. Naps " +
-                    "outside the window are skipped too. Already-imported nights are never touched, " +
-                    "and what the gate skips while it is narrower stays skipped."),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
             if (enabled) {
-                Spacer(Modifier.height(12.dp))
-                Row(
-                    Modifier.fillMaxWidth()
-                    .switchRow(checked = gateByZenMode, onCheckedChange = { desired ->
-                            if (desired) {
-                                ZenModeListener.setEnabled(context, true)
-                                if (ZenModeListener.isAccessGranted(context)) {
-                                    gateByZenMode = true
-                                    prefs.gateByZenMode = true
-                                } else {
-                                    showPermissionDialog = true
-                                }
-                            } else {
-                                gateByZenMode = false
-                                prefs.gateByZenMode = false
-                                ZenModeListener.setEnabled(context, false)
-                            }
-                        }),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column(Modifier.weight(1f).padding(end = 8.dp)) {
-                        Text(
-                            tr("Track Bedtime / DND mode"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Text(
-                            tr("Automatically align quiet hours with Android's Bedtime or Do Not Disturb mode."),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Switch(checked = gateByZenMode, onCheckedChange = null)
-                }
-
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    if (gateByZenMode) tr("Fallback schedule (used when no Bedtime/DND mode was active):")
-                    else tr("Quiet hours schedule:"),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Spacer(Modifier.height(4.dp))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     PulseButton(PulseButtonStyle.Outlined, onClick = { picking = "start" }, modifier = Modifier.weight(1f)) {
                         Text(trf("From {0}", formatMinutesOfDay(start)))
