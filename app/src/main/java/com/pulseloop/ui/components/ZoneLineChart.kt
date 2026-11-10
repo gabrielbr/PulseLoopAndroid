@@ -85,7 +85,14 @@ fun ZoneLineChart(
         .filter { it > yDomain.start && it < yDomain.endInclusive }
         .distinct().sorted()
     // Computed once per data set rather than on every draw pass.
-    val runs = remember(samples, maxGapMs) { ZoneLineSplitter.segmentsByGap(samples.map { it.timestampMs }, maxGapMs) }
+    // The break threshold scales with the series' own cadence (issue #103), so 120/180-min readings
+    // stay connected in a day view while real gaps still break the line.
+    val runs = remember(samples, maxGapMs) {
+        val timestamps = samples.map { it.timestampMs }
+        val sampleInterval = ZoneLineSplitter.sampleIntervalMs(timestamps)
+        val effectiveMaxGapMs = ZoneLineSplitter.maxGapMs(span, sampleInterval).coerceAtLeast(maxGapMs)
+        ZoneLineSplitter.segmentsByGap(timestamps, effectiveMaxGapMs)
+    }
     val summary = remember(samples, label) {
         val values = samples.map { it.value }
         val fmt = if (values.all { it % 1.0 == 0.0 }) "%.0f" else "%.1f"

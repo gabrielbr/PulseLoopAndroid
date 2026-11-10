@@ -44,6 +44,10 @@ object ArchivedSettings {
         "rest_mode" to emptySet(),
         // Whether the coach may use the lab results.
         "lab_reports" to emptySet(),
+        // Issue #103: whether estimated hourly SpO₂ is shown at all, and the app-started spot SpO₂
+        // the user chose (on/off, every 1–3 h). The worker re-checks the ring before each run, so
+        // a restore onto a phone with another ring (or none) measures nothing.
+        "scheduled_spo2" to emptySet(),
         // Never "mcp_server": the network server's switch and paired-tool tokens are device state
         // and security material, so a restore starts off with nothing paired (docs/mcp-threat-model.md).
     )

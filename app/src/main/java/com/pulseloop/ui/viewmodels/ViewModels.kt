@@ -663,7 +663,11 @@ class ActivityViewModel(db: PulseLoopDatabase) : ViewModel() {
  * Uses reactive polling so data appears as soon as the ring syncs.
  */
 @OptIn(kotlinx.coroutines.FlowPreview::class)
-class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore? = null) : ViewModel() {
+class VitalsViewModel(
+    private val db: PulseLoopDatabase,
+    private val apiKeyStore: ApiKeyStore? = null,
+    private val scheduledSpo2Prefs: com.pulseloop.settings.ScheduledSpo2Prefs? = null,
+) : ViewModel() {
     data class VitalsState(
         /** The user's own 30-day usual range per metric (service/UsualRange), for chart bands. */
         val usualRanges: Map<com.pulseloop.service.MetricKind, ClosedFloatingPointRange<Double>> = emptyMap(),
@@ -756,7 +760,7 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
     }
 
     private suspend fun refresh(db: PulseLoopDatabase) {
-        _state.value = buildState(db, apiKeyStore).copy(loaded = true)
+        _state.value = buildState(db, apiKeyStore, scheduledSpo2Prefs).copy(loaded = true)
     }
 
     companion object {
@@ -767,7 +771,11 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
      * ([com.pulseloop.widgets.WidgetSnapshotPublisher]) — a widget tile is built from exactly the
      * same series fetches, offsets, and capability gating as its Vitals/Today card.
      */
-    suspend fun buildState(db: PulseLoopDatabase, apiKeyStore: ApiKeyStore? = null): VitalsState {
+    suspend fun buildState(
+        db: PulseLoopDatabase,
+        apiKeyStore: ApiKeyStore? = null,
+        scheduledSpo2Prefs: com.pulseloop.settings.ScheduledSpo2Prefs? = null,
+    ): VitalsState {
         val now = System.currentTimeMillis()
         val twentyFourHoursAgo = now - 24 * 3600_000L
         val device = db.deviceDao().current()
@@ -839,6 +847,15 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         val spo2Estimated = if (spo2.isEmpty()) emptySet()
             else EstimatedSpo2.estimatedTimestamps(db.measurementDao(), twentyFourHoursAgo, now, now)
 
+        // Issue #103: the user can hide those estimates (Settings → Measurement frequency), so
+        // the cards, charts and widgets show only real spot measurements.
+        val hideEstimated = scheduledSpo2Prefs?.hideEstimated ?: false
+        val displayedSpo2 = if (hideEstimated && spo2Estimated.isNotEmpty()) {
+            spo2.filterNot { it.timestamp in spo2Estimated }
+        } else {
+            spo2
+        }
+
         // Temperature on the Colmi family is the same static-capability trap as stress above:
         // every Colmi model is catalogued with TEMPERATURE, but some have no sensor. An R06
         // (`R06_1.00.06_240921`) never answers the legacy temperature request and doesn't set the
@@ -864,8 +881,8 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
         return VitalsState(
             usualRanges = usualRanges,
             hrSamples = hr.map { it.value },
-            spo2Samples = spo2.map { it.value },
-            spo2IsEstimated = spo2.any { it.timestamp in spo2Estimated },
+            spo2Samples = displayedSpo2.map { it.value },
+            spo2IsEstimated = !hideEstimated && displayedSpo2.any { it.timestamp in spo2Estimated },
             hrvSamples = hrv.map { it.value },
             stressSamples = stress.map { it.value }.ifEmpty { derivedStress },
             stressIsDerived = stress.isEmpty() && derivedStress.isNotEmpty(),
@@ -873,7 +890,7 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             tempSamples = temp.map { it.value },
             latestHr = hr.lastOrNull()?.value?.toInt(),
             restingHr = HeartRateZones.restingHeartRate(hr.map { it.value }),
-            latestSpo2 = spo2.lastOrNull()?.value?.toInt(),
+            latestSpo2 = displayedSpo2.lastOrNull()?.value?.toInt(),
             latestHrv = hrv.lastOrNull()?.value,
             latestStress = stress.lastOrNull()?.value ?: derivedStress.lastOrNull(),
             latestFatigue = fatigue.lastOrNull()?.value,
@@ -891,7 +908,7 @@ class VitalsViewModel(private val db: PulseLoopDatabase, private val apiKeyStore
             bpDiaSamples = bpDia.map { it.value },
             glucoseSamples = gluc.map { it.value + glucoseOffset },
             hrSeries = hr.map { VitalSample(it.timestamp, it.value) },
-            spo2Series = spo2.map { VitalSample(it.timestamp, it.value) },
+            spo2Series = displayedSpo2.map { VitalSample(it.timestamp, it.value) },
             hrvSeries = hrv.map { VitalSample(it.timestamp, it.value) },
             stressSeries = stress.map { VitalSample(it.timestamp, it.value) }.ifEmpty { derivedStressSeries },
             fatigueSeries = fatigue.map { VitalSample(it.timestamp, it.value) },
@@ -1232,6 +1249,7 @@ class VitalDetailViewModel(
     private val metric: String,
     private val apiKeyStore: ApiKeyStore? = null,
     private val unitSystem: UnitSystem = UnitSystem.METRIC,
+    private val scheduledSpo2Prefs: com.pulseloop.settings.ScheduledSpo2Prefs? = null,
 ) : ViewModel() {
 
     enum class Trend { UP, DOWN, FLAT }
@@ -1289,6 +1307,8 @@ class VitalDetailViewModel(
         /** True when the ring supplied this from its own log, so a re-sync could restore it —
          *  which is why deleting it also writes a tombstone. Shown as provenance in the list. */
         val fromHistory: Boolean = false,
+        /** True when this hourly SpO₂ reading was computed from heart rate rather than measured. */
+        val isEstimated: Boolean = false,
     )
 
     private val _state = MutableStateFlow(DetailState())
@@ -1484,15 +1504,20 @@ class VitalDetailViewModel(
             // chart carries the same disclaimer. Only hourly rows count; spot readings never do.
             val estimatedSpo2 = if (kind == MeasurementKind.SPO2 && samples.isNotEmpty())
                 EstimatedSpo2.estimatedTimestamps(dao, windowStart, windowEnd) else emptySet()
-            val times = if (derived.isNotEmpty()) derived.map { it.timestampMs } else samples.map { it.timestamp }
-            val points = if (derived.isNotEmpty()) derived.map { it.value } else samples.map { convert(it.value) }
+            val hideEstimated = kind == MeasurementKind.SPO2 && scheduledSpo2Prefs?.hideEstimated == true
+            val effectiveSamples = if (hideEstimated && estimatedSpo2.isNotEmpty())
+                samples.filterNot { it.timestamp in estimatedSpo2 } else samples
+            val times = if (derived.isNotEmpty()) derived.map { it.timestampMs } else effectiveSamples.map { it.timestamp }
+            val points = if (derived.isNotEmpty()) derived.map { it.value } else effectiveSamples.map { convert(it.value) }
             val labels = buildLabels(times, period)
 
             val prevSamples = dao.range(kindName, prevStart, prevEnd)
+            val prevEffective = if (hideEstimated && estimatedSpo2.isNotEmpty())
+                prevSamples.filterNot { it.timestamp in estimatedSpo2 } else prevSamples
             val prevDerived = if (derived.isNotEmpty()) derivedStressIn(prevStart, prevEnd) else emptyList()
             val prevAvg = when {
                 prevDerived.isNotEmpty() -> prevDerived.map { it.value }.average()
-                prevSamples.isNotEmpty() -> convert(prevSamples.map { it.value }.average())
+                prevEffective.isNotEmpty() -> convert(prevEffective.map { it.value }.average())
                 else -> null
             }
             val thisAvg = if (points.isNotEmpty()) points.average() else null
@@ -1529,8 +1554,9 @@ class VitalDetailViewModel(
                     timestamp = it.timestamp,
                     value = convert(it.value),
                     fromHistory = it.id.startsWith(MeasurementDeletionDao.HISTORY_ID_PREFIX),
+                    isEstimated = it.timestamp in estimatedSpo2,
                 )
-            }.asReversed()
+            }.let { if (hideEstimated) it.filterNot { r -> r.isEstimated } else it }.asReversed()
 
             _state.update { it.copy(
                 anchor = anchor,
@@ -1544,7 +1570,7 @@ class VitalDetailViewModel(
                 resting = resting,
                 trend = trend,
                 engineZones = engineZones,
-                isDerived = derived.isNotEmpty() || samples.any { it.timestamp in estimatedSpo2 },
+                isDerived = derived.isNotEmpty() || (!hideEstimated && samples.any { it.timestamp in estimatedSpo2 }),
                 usualRange = usualRange,
                 adjustedNote = when (kind) {
                     MeasurementKind.HEART_RATE -> corrections.describe(setOf(
