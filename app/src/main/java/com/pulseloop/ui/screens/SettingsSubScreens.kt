@@ -1863,16 +1863,20 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                                     valueRange = 60f..180f,
                                     steps = 1,
                                 )
-                                VitalToggle(tr("Hide estimated SpO₂"), cfgHideEstimatedSpo2) {
-                                    cfgHideEstimatedSpo2 = it
-                                    cfgSavedMsg = null
-                                }
-                                Text(
-                                    tr("Display only real spot measurements on charts and vitals cards, hiding the hourly estimates."),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
                             }
+                            // Shown on every supported ring, on or off: estimated readings are
+                            // shown labelled by default (AGENTS.md "A derived metric must say it is
+                            // derived"); hiding them is the user's choice (divergence from upstream,
+                            // which defaulted to hidden and only offered this with app SpO₂ on).
+                            VitalToggle(tr("Hide estimated SpO₂"), cfgHideEstimatedSpo2) {
+                                cfgHideEstimatedSpo2 = it
+                                cfgSavedMsg = null
+                            }
+                            Text(
+                                tr("Display only real spot measurements on charts and vitals cards, hiding the hourly estimates."),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
                     if (supportsStressSetting) {

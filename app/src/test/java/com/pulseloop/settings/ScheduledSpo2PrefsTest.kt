@@ -44,14 +44,14 @@ class ScheduledSpo2PrefsTest {
     }
 
     @Test
-    fun `hideEstimated defaults to true and round trips`() {
+    fun `hideEstimated defaults to false and round trips`() {
         val fakePrefs = FakeSharedPreferences()
         val prefs = ScheduledSpo2Prefs(fakePrefs)
-        assertTrue(prefs.hideEstimated)
-        prefs.hideEstimated = false
         assertFalse(prefs.hideEstimated)
         prefs.hideEstimated = true
         assertTrue(prefs.hideEstimated)
+        prefs.hideEstimated = false
+        assertFalse(prefs.hideEstimated)
     }
 
     @Test

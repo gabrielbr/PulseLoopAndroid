@@ -38,10 +38,11 @@ class ScheduledSpo2Prefs internal constructor(private val prefs: android.content
 
     /**
      * Whether to hide estimated hourly SpO₂ (computed by the ring from heart rate) and only
-     * display real spot measurements. Defaults to true.
+     * display real spot measurements. Defaults to false: estimated readings are shown, labelled
+     * "Estimated" (AGENTS.md "A derived metric must say it is derived"). Upstream defaulted to true.
      */
     var hideEstimated: Boolean
-        get() = prefs.getBoolean(KEY_HIDE_ESTIMATED, true)
+        get() = prefs.getBoolean(KEY_HIDE_ESTIMATED, false)
         set(value) { prefs.edit().putBoolean(KEY_HIDE_ESTIMATED, value).apply() }
 
     companion object {
