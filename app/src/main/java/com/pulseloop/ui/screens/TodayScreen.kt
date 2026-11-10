@@ -486,6 +486,13 @@ private fun ChartTile(card: VitalCardState, values: List<Double>, modifier: Modi
                 )
             }
         }
+        // Issue #103: hourly SpO₂ computed from heart rate is labelled on every surface it reaches.
+        if (card.isEstimated) {
+            Text(
+                tr("Estimated from heart rate"), fontSize = 12.sp, color = PulseColors.warning,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+        }
         Spacer(Modifier.weight(1f))
         if (card.isEmpty) {
             Text(card.statusText, fontSize = 12.sp, color = PulseColors.textMuted)
