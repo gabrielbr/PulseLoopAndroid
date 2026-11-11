@@ -339,4 +339,19 @@ class JringHistorySyncTest {
         )
         sync.cancel()
     }
+
+    @Test
+    fun `the ring's workout log is the day's last request and A5 ends it`() = runBlocking {
+        val writer = FakeWriter()
+        val sync = makeSync(writer, settleMs = 40)
+        sync.workoutHistory = true
+        sync.start(listOf(1, 0))
+        sync.noteFrame(activityFrame()); delay(120)
+        sync.noteFrame(hrFinishedFrame())
+        assertEquals(listOf(0x10 to 1, 0x16 to 1, 0x25 to 1), writer.requests)
+        sync.noteFrame(ByteArray(20).also { it[0] = 0x25 })
+        sync.noteFrame(ByteArray(20).also { it[0] = 0xA5.toByte(); it[1] = 0xFF.toByte() })
+        assertEquals(listOf(0x10 to 1, 0x16 to 1, 0x25 to 1, 0x10 to 0), writer.requests)
+        sync.cancel()
+    }
 }

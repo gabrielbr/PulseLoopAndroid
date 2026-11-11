@@ -200,6 +200,7 @@ class JringSyncEngine(
                 historySync.sensorHistory = event.capabilities.hasPressureHistory
                 historySync.oxygenHistory = event.capabilities.hasOxygenOfflineHistory
                 historySync.temperatureHistory = event.capabilities.hasTemperature
+                historySync.workoutHistory = true
             }
             else -> {}
         }

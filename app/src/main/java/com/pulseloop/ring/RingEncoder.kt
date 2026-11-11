@@ -103,6 +103,10 @@ object RingEncoder {
      *  only when 0x20 bit 81 (`FUNCTION_HAS_OXYGEN_OFFLINE`) is set. */
     fun makeOxygenHistoryQueryCommand(dayOffset: Int = 0): ByteArray = dayQuery(0x40, dayOffset)
 
+    /** Workouts the ring recorded in sport mode, one day (0x25): `getMultipleSportData(day)`
+     *  (`BluetoothLeService.e(int)`: `bArr[0] = 37`). The vendor's last request of each day. */
+    fun makeRingWorkoutQueryCommand(dayOffset: Int = 0): ByteArray = dayQuery(0x25, dayOffset)
+
     private fun dayQuery(opcode: Int, dayOffset: Int): ByteArray {
         val cmd = ByteArray(20)
         cmd[0] = opcode.toByte()

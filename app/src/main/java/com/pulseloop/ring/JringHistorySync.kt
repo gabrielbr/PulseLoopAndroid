@@ -57,7 +57,12 @@ class JringHistorySync(
 
     /** The legs of one day, in the order the vendor asks for them (`FragmentMain`'s
      *  `ACTION_NOTIFY_BLE_SYNC_DATA_BY_DAY_END` chain: 1 → 2 → 12 → 13 → advanced sensor). */
-    private enum class Leg { ACTIVITY, HEART_RATE, TEMPERATURE, OXYGEN, SENSOR }
+    private enum class Leg { ACTIVITY, HEART_RATE, TEMPERATURE, OXYGEN, SENSOR, WORKOUTS }
+
+    /** Workouts recorded on the ring (0x25, `getMultipleSportData(day)`), the vendor's last request
+     *  of each day. The vendor asks unconditionally; the driver turns this on once the ring has
+     *  answered 0x20, so a ring that never does isn't asked for logs it may not keep. */
+    @Volatile var workoutHistory: Boolean = false
 
     /** Offline skin temperature (0x39, `getDataByDay(12, day)`), gated on 0x20 bit 10. */
     @Volatile var temperatureHistory: Boolean = false
@@ -140,11 +145,13 @@ class JringHistorySync(
                 // 15 one-minute readings per frame; the frame holding 23:45 is the day's last.
                 if (holdsLastSlot(data, slots = 15, stepMinutes = 1)) nextLegAfter(Leg.OXYGEN) else restartSettle()
             }
+            OPCODE_WORKOUTS -> if (leg == Leg.WORKOUTS) restartSettle()
+            OPCODE_WORKOUTS_END -> if (leg == Leg.WORKOUTS) advance()
             OPCODE_SENSOR -> {
                 if (leg != Leg.SENSOR) return
                 // The vendor ends the day's log when a slot lands on 23:45 (the last of the day)
                 // and otherwise on its 2000 ms idle timer; a past day ends here, today settles.
-                if (holdsLastSlot(data, slots = 3, stepMinutes = 15)) advance() else restartSettle()
+                if (holdsLastSlot(data, slots = 3, stepMinutes = 15)) nextLegAfter(Leg.SENSOR) else restartSettle()
             }
         }
     }
@@ -185,6 +192,7 @@ class JringHistorySync(
             Leg.TEMPERATURE to temperatureHistory,
             Leg.OXYGEN to oxygenHistory,
             Leg.SENSOR to sensorHistory,
+            Leg.WORKOUTS to workoutHistory,
         )
         val next = optional.firstOrNull { (l, on) -> on && l.ordinal > done.ordinal }?.first
         if (next == null) { advance(); return }
@@ -193,6 +201,7 @@ class JringHistorySync(
         writer?.enqueue(when (next) {
             Leg.TEMPERATURE -> encoder.makeTemperatureHistoryQueryCommand(dayOffset = day)
             Leg.OXYGEN -> encoder.makeOxygenHistoryQueryCommand(dayOffset = day)
+            Leg.WORKOUTS -> encoder.makeRingWorkoutQueryCommand(dayOffset = day)
             else -> encoder.makeSensorHistoryQueryCommand(dayOffset = day)
         })
         armStall()
@@ -258,6 +267,9 @@ class JringHistorySync(
         private const val OPCODE_SLEEP = 0x11
         private const val OPCODE_HEART_RATE = 0x16
         private const val OPCODE_SENSOR = 0x55
+        private const val OPCODE_WORKOUTS = 0x25
+        /** `A5 FF`: the day's workout minutes are done (`onGetMultipleSportData(0, …)`). */
+        private const val OPCODE_WORKOUTS_END = 0xA5
         private const val OPCODE_TEMPERATURE = 0x39
         private const val OPCODE_OXYGEN = 0x40
         private const val OPCODE_DAY_FAILED = 0xB9

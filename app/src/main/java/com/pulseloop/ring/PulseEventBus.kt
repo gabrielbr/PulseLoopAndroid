@@ -143,6 +143,8 @@ sealed class PulseEvent {
     /** The ring's on-finger / skin-contact state changed. `worn == false` ⇒ an optical spot
      *  measurement can't produce a reading, so the coordinator fast-fails it (issue #29). */
     data class WearState(val worn: Boolean) : PulseEvent()
+    /** A minute of a workout the ring recorded itself (jring `0x25`), kept by [com.pulseloop.service.RingWorkoutLog]. */
+    data class RingWorkoutMinute(val sportType: Int, val value: Int, val timestampMs: Long) : PulseEvent()
 }
 
 enum class RingConnectionState { IDLE, SCANNING, CONNECTING, CONNECTED, DISCONNECTED, RECONNECTING, FAILED }

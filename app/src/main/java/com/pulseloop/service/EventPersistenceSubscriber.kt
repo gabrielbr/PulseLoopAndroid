@@ -446,6 +446,8 @@ class EventPersistenceSubscriber(
             is PulseEvent.SpotVitalNoReading -> {}
             is PulseEvent.RealtimeStreamStopped -> {}
             is PulseEvent.WearState -> {} // Product orchestration only (fast-fail a measure); not persisted.
+            // Offered on the Activity tab, added on a tap (ActivityDetection); kept until then.
+            is PulseEvent.RingWorkoutMinute -> RingWorkoutLog.record(context, event.sportType, event.value, event.timestampMs)
             // Both persisted by DiagnosticsSubscriber, which also stamps and bounds them.
             is PulseEvent.RawPacket -> {}
             is PulseEvent.Diagnostic -> {}

@@ -79,6 +79,22 @@ Temperature is therefore granted per unit from the `0x20` reply (`bitmapGatedCap
 Only the surface (skin) value is stored. The "body" value is the ring's own model of core
 temperature, so we leave it out.
 
+**Workouts recorded on the ring (`0x25`)** are the vendor's last request of each day
+(`getMultipleSportData(day)`).
+- **Frame:** a timestamp, then six one-minute slots. Each slot's sport type is split into a low
+  nibble in the slot and a high nibble packed into bytes 17–19.
+- **Value:** 12 bits per slot. It is steps for walk, run and climb, and calories ÷ 10 for every
+  other sport (`FragmentMain`, types 101/102/104).
+- **End:** `A5 FF` ends the day.
+- **The parser is reconstructed:** jadx marks it "decompiled incorrectly", so the layout comes from
+  its arithmetic. `JringRingWorkoutTest` round-trips it, and it still needs a hardware capture.
+
+In PulseLoop, `RingWorkoutLog` keeps the minutes for 10 days and groups them into sessions: the
+same sport, pauses of 3 minutes or less, and 3 or more minutes long. The Activity tab offers them
+like another device's workouts: "Recorded by your ring", one tap to add, and a `ring-` id that the
+export does send. PulseLoop never starts the ring's sport mode itself, so these can't duplicate its
+own recordings.
+
 Imported since 2.16.2 as a third step per day in `JringHistorySync` (activity/sleep → HR → `0x55`),
 decoded by `RingDecoder.decodeSensorHistory`. Same rules as the vendor: BP only when both halves
 are non-zero, every other value only when non-zero.
