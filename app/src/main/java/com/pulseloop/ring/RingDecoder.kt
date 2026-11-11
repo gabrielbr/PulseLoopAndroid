@@ -61,6 +61,12 @@ class RingDecoder(private val clock: JringClock? = null) {
             0x39 -> decodeTemperatureHistory(bytes)  // offline skin temperature, 3× 5-min slots
             0x40 -> decodeOxygenHistory(bytes)  // offline SpO₂, 15× 1-min readings
             0xB9 -> listOf(RingDecodedEvent.HistorySyncProgress(stage = "day_unavailable"))
+            0x25 -> decodeRingWorkouts(bytes)  // sport-mode minutes, 6 per frame
+            // The vendor parses 0x13 as onGetCurSportData(1, …) and its handler then drops every
+            // call but type 0 (`DupMainActivity.onGetCurSportData`), so its fields mean nothing we
+            // can rely on. Named, not imported: undecoded it was logged `unknown` and exported whole.
+            0x13 -> listOf(RingDecodedEvent.UnusedHealthFrame(commandId = 0x13u))
+            0xA5 -> listOf(RingDecodedEvent.HistorySyncProgress(stage = "ring_workouts_done"))
             0xF6 -> listOf(decodeFirmwareVersion(bytes))
             else -> listOf(RingDecodedEvent.Unknown(commandId = packet.commandId, raw = bytes))
         }
@@ -243,6 +249,8 @@ class RingDecoder(private val clock: JringClock? = null) {
             val fatigue = bytes[5].toInt() and 0xFF
             val stress = if (bytes.size > 6) bytes[6].toInt() and 0xFF else 0
             val bloodSugarRaw = if (bytes.size > 7) bytes[7].toInt() and 0xFF else 0
+            // byte[8] is HRV (vendor `onReceiveSensorData` i8, stored as type 19 when > 0).
+            val hrv = if (bytes.size > 8) bytes[8].toInt() and 0xFF else 0
 
             if (hr > 0) add(RingDecodedEvent.HeartRateSample(bpm = hr, _timestamp = now))
             if (systolic > 0 || diastolic > 0) add(RingDecodedEvent.HistoryMeasurement(
@@ -264,6 +272,11 @@ class RingDecoder(private val clock: JringClock? = null) {
                 _timestamp = now,
             ))
             if (stress > 0) add(RingDecodedEvent.StressSample(value = stress, _timestamp = now))
+            if (hrv in 10..200) add(RingDecodedEvent.HistoryMeasurement(
+                kind_field = MeasurementKind.HRV,
+                value = hrv.toDouble(),
+                _timestamp = now,
+            ))
             // Blood sugar: byte[7] = mmol/L × 10 → store mg/dL = (raw / 10) × 18.016
             if (bloodSugarRaw > 0) add(RingDecodedEvent.HistoryMeasurement(
                 kind_field = MeasurementKind.BLOOD_SUGAR,
@@ -312,6 +325,40 @@ class RingDecoder(private val clock: JringClock? = null) {
             // A frame of empty slots still belongs to the stream: say so, so it isn't logged as
             // `unknown` and exported in clear (AGENTS.md, diagnostics masking).
             if (isEmpty()) add(RingDecodedEvent.HistorySyncProgress(stage = "sensor_history"))
+        }
+    }
+
+    // ── 0x25: Workouts recorded on the ring ───────────────────────────────
+
+    /**
+     * The vendor SDK's "25" branch → `onGetMultipleSportData(1, time, type, value)`, rebuilt from
+     * a decompile jadx marks as "decompiled incorrectly", so the layout is read from the arithmetic:
+     *
+     *   [1..4] the first minute (u32 LE, ring-local epoch); six one-minute slots of two bytes at
+     *   5, 7, 9, 11, 13, 15. For slot i with bytes (lo, hi):
+     *   - sport type = (lo & 0x0F) | high nibble, the high nibbles packed in bytes 17–19:
+     *     slot 0 `b17 & 0xF0`, slot 1 `(b17 & 0x0F) << 4`, slot 2 `b18 & 0xF0`,
+     *     slot 3 `(b18 & 0x0F) << 4`, slot 4 `b19 & 0xF0`, slot 5 `(b19 & 0x0F) << 4`;
+     *   - value = (hi << 4) + (lo >> 4), 12 bits.
+     *
+     * Type 0 is a minute outside any workout (the vendor's +100 maps it to 100, which it skips).
+     * `A5 FF` ends the day.
+     */
+    private fun decodeRingWorkouts(bytes: ByteArray): List<RingDecodedEvent> {
+        if (bytes.size < 20) return listOf(unknown(0x25, bytes))
+        val base = ringDate(u32le(bytes, 1).toLong())
+        val packed = intArrayOf(bytes[17].toInt() and 0xFF, bytes[18].toInt() and 0xFF, bytes[19].toInt() and 0xFF)
+        return buildList {
+            for (i in 0 until 6) {
+                val lo = bytes[5 + i * 2].toInt() and 0xFF
+                val hi = bytes[6 + i * 2].toInt() and 0xFF
+                val p = packed[i / 2]
+                val high = if (i % 2 == 0) p and 0xF0 else (p and 0x0F) shl 4
+                val type = (lo and 0x0F) or high
+                val value = (hi shl 4) + (lo shr 4)
+                if (type in 1..139) add(RingDecodedEvent.RingWorkoutMinute(type, value, base.plusSeconds(i * 60L)))
+            }
+            if (isEmpty()) add(RingDecodedEvent.HistorySyncProgress(stage = "ring_workouts"))
         }
     }
 

@@ -79,6 +79,34 @@ Temperature is therefore granted per unit from the `0x20` reply (`bitmapGatedCap
 Only the surface (skin) value is stored. The "body" value is the ring's own model of core
 temperature, so we leave it out.
 
+**Workouts recorded on the ring (`0x25`)** are the vendor's last request of each day
+(`getMultipleSportData(day)`).
+- **Frame:** a timestamp, then six one-minute slots. Each slot's sport type is split into a low
+  nibble in the slot and a high nibble packed into bytes 17–19.
+- **Value:** 12 bits per slot. It is steps for walk, run and climb, and calories ÷ 10 for every
+  other sport (`FragmentMain`, types 101/102/104).
+- **End:** `A5 FF` ends the day.
+- **The parser is reconstructed:** jadx marks it "decompiled incorrectly", so the layout comes from
+  its arithmetic. `JringRingWorkoutTest` round-trips it, and it still needs a hardware capture.
+
+In PulseLoop, `RingWorkoutLog` keeps the minutes for 10 days and groups them into sessions: the
+same sport, pauses of 3 minutes or less, and 3 or more minutes long. The Activity tab offers them
+like another device's workouts: "Recorded by your ring", one tap to add, and a `ring-` id that the
+export does send. PulseLoop never starts the ring's sport mode itself, so these can't duplicate its
+own recordings.
+
+**What else the vendor parses.** Every reply opcode the SDK handles was checked against
+PulseLoop's decoder (2026-11-11). Two changes came out of it:
+- **`0x24` byte 8 is HRV.** The vendor stores it as type 19 when it is above 0; PulseLoop now
+  keeps it, in 10–200 ms.
+- **`0x13`** arrives about every sync. The SDK parses it as `onGetCurSportData(1, …)`, but the
+  app's handler drops everything except type 0, so its fields have no reliable meaning. It is
+  named `unused_health_frame` so diagnostics mask it. Before this, it was exported whole as
+  `unknown`.
+
+The rest are settings acknowledgements, ECG (bit 9, not set on the owner's ring), or watch-only
+features (dials, contacts, AI, Wi-Fi). There is nothing left to import.
+
 Imported since 2.16.2 as a third step per day in `JringHistorySync` (activity/sleep → HR → `0x55`),
 decoded by `RingDecoder.decodeSensorHistory`. Same rules as the vendor: BP only when both halves
 are non-zero, every other value only when non-zero.
@@ -284,8 +312,8 @@ statistics.
 
 Independent of BP and glucose; listed so the "everything about this ring" pass is in one place.
 
-1. **HRV from the spot measurement.** The decoder comment says `0x24` byte 8 is HRV, and nothing
-   reads it. Decode it as `HistoryMeasurement(HRV)` when > 0 and plausible (10–200 ms). It's an
+1. **HRV from the spot measurement.** Done in 2.16.3: `0x24` byte 8 is decoded as HRV (10–200 ms).
+   Before that, the decoder comment said byte 8 was HRV and nothing read it. Decode it as `HistoryMeasurement(HRV)` when > 0 and plausible (10–200 ms). It's an
    occasional spot value, not a nightly series, so it won't fill Readiness' HRV balance on its
    own. Confirm the byte against a capture first.
 2. **Denser all-day heart rate.**

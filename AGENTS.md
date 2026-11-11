@@ -83,7 +83,9 @@ computes them from the profile (`0x02`) and a cuff reference (`0x33`, default 12
 That reference is sent to the ring, **never added to readings**. The ring's 15-minute log of those
 estimates is `0x55`, gated on `0x20` bit 83. After each day's heart rate, `JringHistorySync`
 imports it together with offline temperature (`0x39`, bit 10) and offline SpO₂ (`0x40`, bit 81),
-in the vendor's order. A unit that sets bit 10 is granted TEMPERATURE at runtime. Details: `docs/jring-56ff-plan.md`, "What the vendor app does with BP and sugar".
+in the vendor's order, and then the workouts the ring recorded in sport mode (`0x25`). Those are
+offered on the Activity tab and added on a tap, like another device's workouts (`RingWorkoutLog`).
+A unit that sets bit 10 is granted TEMPERATURE at runtime. Details: `docs/jring-56ff-plan.md`, "What the vendor app does with BP and sugar".
 
 ## Colmi/Yawell OS-bonding is a hand-curated allowlist — not "match QRing exactly"
 

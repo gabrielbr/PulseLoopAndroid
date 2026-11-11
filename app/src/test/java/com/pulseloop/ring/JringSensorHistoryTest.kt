@@ -98,4 +98,17 @@ class JringSensorHistoryTest {
         assertEquals(setOf(WearableCapability.TEMPERATURE), granted)
         assertTrue(WearableCapability.TEMPERATURE in JringCoordinator.bitmapGatedCapabilities)
     }
+
+    @Test fun spotMeasurementKeepsItsHrvByte() {
+        val f = ByteArray(20).also { it[0] = 0x24; it[1] = 70; it[2] = 118; it[3] = 76; it[8] = 42 }
+        val hrv = history(decoder.decode(f)).filter { it.kind_field == MeasurementKind.HRV }
+        assertEquals(listOf(42.0), hrv.map { it.value })
+    }
+
+    @Test fun the0x13FrameIsNamedSoDiagnosticsMaskIt() {
+        val raw = ByteArray(20)
+        "139ca0f46abe010000cc0600007017".chunked(2).forEachIndexed { i, h -> raw[i] = h.toInt(16).toByte() }
+        val events = decoder.decode(raw)
+        assertEquals("unused_health_frame", events.single().kind)
+    }
 }

@@ -97,6 +97,8 @@ sealed class RingDecodedEvent {
         is HeartRateSample -> this._timestamp
         is HeartRateComplete -> this._timestamp
         is SportTelemetry -> this._timestamp
+        is RingWorkoutMinute -> this._timestamp
+        is UnusedHealthFrame -> Instant.EPOCH
         is Spo2Progress -> this._timestamp
         is Spo2Result -> this._timestamp
         is Spo2Complete -> this._timestamp
@@ -171,6 +173,29 @@ sealed class RingDecodedEvent {
      * [HeartRateSample] when it is plausible; a warm-up frame carries bpm 0 but still carries the
      * workout's live step count, distance and calories, which must not reach a report in clear.
      */
+    /**
+     * One minute of a workout the ring recorded in its own sport mode (jring `0x25`).
+     * [sportType] is the vendor's sport index (1 walk, 2 run, 3 cycling, …); [value] is steps for
+     * walk, run and climb and calories ÷ 10 for every other sport, as the vendor reads it.
+     */
+    /** A health-bearing frame we recognise but don't use (jring `0x13`). Named so diagnostics
+     *  mask it rather than export it whole as `unknown`. */
+    data class UnusedHealthFrame(val commandId: UByte) : RingDecodedEvent() {
+        override val kind = "unused_health_frame"
+        override val confidence = DecodeConfidence.PARTIAL
+        override val debugJSON = """{"cmd":$commandId}"""
+    }
+
+    data class RingWorkoutMinute(
+        val sportType: Int,
+        val value: Int,
+        val _timestamp: Instant,
+    ) : RingDecodedEvent() {
+        override val kind = "ring_workout_minute"
+        override val confidence = DecodeConfidence.KNOWN
+        override val debugJSON = """{"sportType":$sportType}"""
+    }
+
     data class SportTelemetry(
         val bpm: Int,
         val _timestamp: Instant

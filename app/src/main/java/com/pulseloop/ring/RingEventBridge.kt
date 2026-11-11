@@ -100,6 +100,11 @@ object RingEventBridge {
         // Sport telemetry is a diagnostics marker; its bpm arrives as its own HeartRateSample.
         is RingDecodedEvent.SportTelemetry -> emptyList()
 
+        is RingDecodedEvent.UnusedHealthFrame -> emptyList()
+
+        is RingDecodedEvent.RingWorkoutMinute ->
+            listOf(PulseEvent.RingWorkoutMinute(decoded.sportType, decoded.value, decoded._timestamp.toEpochMilli()))
+
         is RingDecodedEvent.TimeSyncAck, is RingDecodedEvent.CommandAck, is RingDecodedEvent.Unknown ->
             emptyList()
 

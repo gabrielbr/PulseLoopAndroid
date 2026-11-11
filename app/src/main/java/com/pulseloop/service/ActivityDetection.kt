@@ -268,7 +268,11 @@ object ActivityDetection {
         val external = runCatching { OtherDeviceWorkouts.proposals(OtherDeviceWorkouts.read(c, from, now)) }
             .getOrDefault(emptyList())
             .map { it.copy(features = ActivityClassifier.features(it.startAt, it.endAt, recentSteps, recentHr, quiet ?: 60.0, hrMax)) }
-        val proposals = external + OtherDeviceWorkouts.withoutOverlaps(activities, external) +
+        // Workouts the ring recorded itself, unless another device recorded the same time.
+        val ringRecorded = OtherDeviceWorkouts.withoutOverlaps(RingWorkoutLog.proposals(c, from, now), external)
+            .map { it.copy(features = ActivityClassifier.features(it.startAt, it.endAt, recentSteps, recentHr, quiet ?: 60.0, hrMax)) }
+        val recorded = external + ringRecorded
+        val proposals = recorded + OtherDeviceWorkouts.withoutOverlaps(activities, recorded) +
             (if (quiet != null) naps(recentHr, buckets, quiet, zone) else emptyList())
         val sessions = db.activitySessionDao().recent(50).map { it.startedAt..(it.endedAt ?: it.startedAt) }
         return open(proposals, sessions + nights, answered(c)).sortedByDescending { it.startAt }
@@ -283,7 +287,8 @@ suspend fun ActivityDetection.accept(c: Context, db: PulseLoopDatabase, p: Activ
         val tag = JournalInsights.Tag.NAP.key
         db.journalDao().upsert(com.pulseloop.data.entity.JournalEntryEntity(com.pulseloop.data.entity.JournalEntryEntity.idFor(day, tag), day, tag))
     } else if (p.external != null) {
-        // Keeps the Health Connect id, so the export never writes it back under PulseLoop's name.
+        // Keeps the record's own id: an `hc-` one (another app's) is skipped by the export, so it
+        // is never written back under PulseLoop's name; a `ring-` one is the user's ring and is exported.
         if (db.activitySessionDao().byId(p.external.id) == null) {
             val session = com.pulseloop.data.entity.ActivitySessionEntity(
                 id = p.external.id,
