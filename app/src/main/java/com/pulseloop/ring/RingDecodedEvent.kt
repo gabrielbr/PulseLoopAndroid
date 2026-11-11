@@ -97,6 +97,8 @@ sealed class RingDecodedEvent {
         is HeartRateSample -> this._timestamp
         is HeartRateComplete -> this._timestamp
         is SportTelemetry -> this._timestamp
+        is RingWorkoutMinute -> this._timestamp
+        is UnusedHealthFrame -> Instant.EPOCH
         is Spo2Progress -> this._timestamp
         is Spo2Result -> this._timestamp
         is Spo2Complete -> this._timestamp
