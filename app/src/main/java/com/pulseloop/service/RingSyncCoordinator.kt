@@ -251,6 +251,9 @@ class RingSyncCoordinator(
         /** Max time to wait for the pre-factory-reset history sync before resetting anyway. */
         const val SYNC_BEFORE_RESET_TIMEOUT_MS = 30_000L
         const val RESTART_GAP_MS = 2_000L
+        /** A rebooting ring stops advertising for a few seconds; the reconnect's own backoff
+         *  covers a slower boot. */
+        const val RESTART_REBOOT_GAP_MS = 8_000L
     }
 
     private val engine: RingSyncEngine? get() = client.syncEngine
@@ -497,18 +500,26 @@ class RingSyncCoordinator(
      * connect sequence afresh — clock, background-logging settings, user profile, then a full
      * history pass. That is everything the app itself can re-tell a ring, and it works for every
      * family. It is the safe answer to "something on the ring side is stuck" for rings whose
-     * vendor reset command we have not verified (jring, YCBT, LuckRing): those keep their
-     * `factoryReset()` a no-op rather than send a guessed opcode (AGENTS.md).
+     * vendor reboot command we have not verified: those only reconnect. Jring also reboots itself
+     * first ([RingSyncEngine.restartDevice], the vendor's "Restart device").
      *
      * Nothing is erased: the ring keeps its stored history and the next pass re-reads it.
      */
     fun restartRing() {
         scope.launch {
+            // A family with a verified reboot command (jring 0x0E mode 3) restarts the ring
+            // itself first; wait until the frame has actually left the queue before tearing the
+            // link down, and give the ring time to boot before reconnecting.
+            var rebooting = false
+            if (isConnected && engine?.restartDevice() == true) {
+                client.awaitOpsFlushed()
+                rebooting = true
+            }
             client.disconnect()
             // Let the old GATT handle close before the new connect (the client closes it
             // ~500 ms after disconnect; CRP's teardown monitor takes longer and is waited on
             // by the client itself).
-            kotlinx.coroutines.delay(RESTART_GAP_MS)
+            kotlinx.coroutines.delay(if (rebooting) RESTART_REBOOT_GAP_MS else RESTART_GAP_MS)
             client.userConnect()
         }
     }

@@ -45,6 +45,7 @@ object JringCoordinator : WearableCoordinator {
         WearableCapability.MANUAL_SPO2,
         WearableCapability.REALTIME_HEART_RATE,
         WearableCapability.FIND_DEVICE,
+        WearableCapability.FACTORY_RESET,    // 0x0E mode 4, the vendor's "Factory reset"
         // NOTE: No TEMPERATURE — the Jring (SR08-class PPG ring) has no skin-temperature
         // sensor. In the official app temperature is gated by the 0x20 capability bit
         // FUNCTION_TEMPERATURE (zArr[10]), which these rings do not set; it exists in the
@@ -269,7 +270,11 @@ class JringSyncEngine(
         writer?.enqueue(cmd)
     }
 
-    // Jring has no power-off or factory-reset capabilities — no-ops
-    override fun powerOff() {}
-    override fun factoryReset() {}
+    // 0x0E device modes, from the vendor app (RingEncoder.makeDeviceModeCommand).
+    override fun powerOff() { writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.POWER_OFF)) }
+    override fun factoryReset() { writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.FACTORY_RESET)) }
+    override fun restartDevice(): Boolean {
+        writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.RESTART))
+        return true
+    }
 }

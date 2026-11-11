@@ -2295,9 +2295,9 @@ fun WearableSettingsScreen(
                     Text(tr("Ring management"), style = PulseType.title)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        tr("Restart reconnects the ring and sends it its clock and monitoring " +
-                            "settings again. Nothing is erased. Try it if the ring stops recording " +
-                            "or syncing."),
+                        tr("Restart reboots the ring if it supports that, reconnects it, and sends it " +
+                            "its clock and monitoring settings again. Nothing is erased. Try it if " +
+                            "the ring stops recording or syncing."),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -1467,7 +1467,7 @@
  "Rest Mode on": "Modo Descanso ativo",
  "Rest Mode on until {0}": "Modo Descanso ativo até {0}",
  "Rest days let your body adapt to training. One or two easier days a week is enough for most people.": "Dias de descanso permitem que o corpo se adapte ao treino. Um ou dois dias mais leves por semana bastam para a maioria das pessoas.",
- "Restart reconnects the ring and sends it its clock and monitoring settings again. Nothing is erased. Try it if the ring stops recording or syncing.": "Reiniciar reconecta o anel e envia de novo o relógio e as configurações de monitoramento. Nada é apagado. Use se o anel parar de registrar ou de sincronizar.",
+ "Restart reboots the ring if it supports that, reconnects it, and sends it its clock and monitoring settings again. Nothing is erased. Try it if the ring stops recording or syncing.": "Reiniciar reinicia o anel, se ele permitir, reconecta e envia de novo o relógio e as configurações de monitoramento. Nada é apagado. Use se o anel parar de registrar ou de sincronizar.",
  "Restart ring": "Reiniciar anel",
  "Restarting…": "Reiniciando…",
  "Restfulness": "Tranquilidade",

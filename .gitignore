@@ -12,3 +12,5 @@ gradle/.DS_Store
 .DS_Store
 .kotlin/
 .claude/worktrees/
+# Decompiled vendor apps: the vendor's code, read locally, never committed (AGENTS.md).
+decompiled-*/

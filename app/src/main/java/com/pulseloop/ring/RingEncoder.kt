@@ -10,6 +10,21 @@ import java.util.TimeZone
 object RingEncoder {
 
     fun makeStatusCommand(): ByteArray = hexToBytes("0c00000000000000000000000000000000000000")
+
+    /**
+     * Device mode (0x0E), the vendor SDK's `setDeviceMode(int)` (`BluetoothLeService.m`, reached
+     * through `IRemoteService.setDeviceMode`). Each mode is the opcode plus a fixed 8-byte key,
+     * zero-padded to 20 bytes, written on the same path as 0x19/0x3A. The vendor app's buttons
+     * name the modes: 2 = "Device off" (`SettingMoreActivity.OnClicktvLow`), 3 = "Restart device"
+     * (`OnClicktvRestart`), 4 = "Factory reset" / "Reset device" (`FragmentSetting.OnClicktvLow`
+     * and `OnClicktvReset`). Mode 1 is only sent from the OTA wallpaper flow and is not used here.
+     */
+    fun makeDeviceModeCommand(mode: JringDeviceMode): ByteArray {
+        val cmd = ByteArray(20)
+        cmd[0] = 0x0E
+        mode.key.forEachIndexed { i, b -> cmd[i + 1] = b.toByte() }
+        return cmd
+    }
     fun makeLocaleCommand(locale: String = "en-US"): ByteArray {
         val localeBytes = locale.toByteArray(Charsets.US_ASCII)
         val cmd = ByteArray(20)
@@ -276,4 +291,11 @@ object RingEncoder {
      */
     fun ByteArray.toHexString(): String =
         joinToString("") { String.format("%02x", it) }
+}
+
+/** The vendor's `setDeviceMode` keys (see [RingEncoder.makeDeviceModeCommand]). */
+enum class JringDeviceMode(val key: IntArray) {
+    POWER_OFF(intArrayOf(0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10)),
+    RESTART(intArrayOf(0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0)),
+    FACTORY_RESET(intArrayOf(0x12, 0x34, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34)),
 }
