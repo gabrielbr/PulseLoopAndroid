@@ -176,6 +176,14 @@ sealed class RingDecodedEvent {
      * [sportType] is the vendor's sport index (1 walk, 2 run, 3 cycling, …); [value] is steps for
      * walk, run and climb and calories ÷ 10 for every other sport, as the vendor reads it.
      */
+    /** A health-bearing frame we recognise but don't use (jring `0x13`). Named so diagnostics
+     *  mask it rather than export it whole as `unknown`. */
+    data class UnusedHealthFrame(val commandId: UByte) : RingDecodedEvent() {
+        override val kind = "unused_health_frame"
+        override val confidence = DecodeConfidence.PARTIAL
+        override val debugJSON = """{"cmd":$commandId}"""
+    }
+
     data class RingWorkoutMinute(
         val sportType: Int,
         val value: Int,

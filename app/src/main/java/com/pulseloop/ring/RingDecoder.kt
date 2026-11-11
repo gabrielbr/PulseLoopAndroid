@@ -62,6 +62,10 @@ class RingDecoder(private val clock: JringClock? = null) {
             0x40 -> decodeOxygenHistory(bytes)  // offline SpO₂, 15× 1-min readings
             0xB9 -> listOf(RingDecodedEvent.HistorySyncProgress(stage = "day_unavailable"))
             0x25 -> decodeRingWorkouts(bytes)  // sport-mode minutes, 6 per frame
+            // The vendor parses 0x13 as onGetCurSportData(1, …) and its handler then drops every
+            // call but type 0 (`DupMainActivity.onGetCurSportData`), so its fields mean nothing we
+            // can rely on. Named, not imported: undecoded it was logged `unknown` and exported whole.
+            0x13 -> listOf(RingDecodedEvent.UnusedHealthFrame(commandId = 0x13u))
             0xA5 -> listOf(RingDecodedEvent.HistorySyncProgress(stage = "ring_workouts_done"))
             0xF6 -> listOf(decodeFirmwareVersion(bytes))
             else -> listOf(RingDecodedEvent.Unknown(commandId = packet.commandId, raw = bytes))
@@ -245,6 +249,8 @@ class RingDecoder(private val clock: JringClock? = null) {
             val fatigue = bytes[5].toInt() and 0xFF
             val stress = if (bytes.size > 6) bytes[6].toInt() and 0xFF else 0
             val bloodSugarRaw = if (bytes.size > 7) bytes[7].toInt() and 0xFF else 0
+            // byte[8] is HRV (vendor `onReceiveSensorData` i8, stored as type 19 when > 0).
+            val hrv = if (bytes.size > 8) bytes[8].toInt() and 0xFF else 0
 
             if (hr > 0) add(RingDecodedEvent.HeartRateSample(bpm = hr, _timestamp = now))
             if (systolic > 0 || diastolic > 0) add(RingDecodedEvent.HistoryMeasurement(
@@ -266,6 +272,11 @@ class RingDecoder(private val clock: JringClock? = null) {
                 _timestamp = now,
             ))
             if (stress > 0) add(RingDecodedEvent.StressSample(value = stress, _timestamp = now))
+            if (hrv in 10..200) add(RingDecodedEvent.HistoryMeasurement(
+                kind_field = MeasurementKind.HRV,
+                value = hrv.toDouble(),
+                _timestamp = now,
+            ))
             // Blood sugar: byte[7] = mmol/L × 10 → store mg/dL = (raw / 10) × 18.016
             if (bloodSugarRaw > 0) add(RingDecodedEvent.HistoryMeasurement(
                 kind_field = MeasurementKind.BLOOD_SUGAR,
