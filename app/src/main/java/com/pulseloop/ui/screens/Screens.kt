@@ -673,6 +673,8 @@ fun VitalDetailScreen(
     onBack: () -> Unit,
     db: com.pulseloop.data.PulseLoopDatabase,
     apiKeyStore: com.pulseloop.settings.ApiKeyStore? = null,
+    /** Opens Settings → Calibration; BP and glucose point there from their detail screen. */
+    onCalibrate: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val units = apiKeyStore?.resolvedUnitSystem ?: com.pulseloop.settings.UnitSystem.METRIC
@@ -930,7 +932,54 @@ fun VitalDetailScreen(
                 if (!(metric == "stress" && state.isDerived)) {
                     metricDisclaimer(metric, state.isDerived)?.let { disclaimer -> item { DisclaimerCard(disclaimer) } }
                 }
+                // 8. The calibration these estimates are read against, and the way to change it.
+                if ((metric == "bp" || metric == "glucose") && onCalibrate != null && apiKeyStore != null) {
+                    item { CalibrationStatusCard(metric, apiKeyStore, gUnit, onCalibrate) }
+                }
             }
+        }
+    }
+}
+
+/**
+ * What the BP or glucose estimate is calibrated against, read from the stored calibration, and a
+ * button to Settings → Calibration. The ring itself can't be asked: its 0x33 reply is only an
+ * acknowledgement (vendor `onSetBPAdjust(1)`), so the app's stored reference, which it sends on
+ * every connect, is the calibration there is to show. Glucose has no ring-side calibration at all;
+ * its offset is applied by the app at display time.
+ */
+@Composable
+private fun CalibrationStatusCard(
+    metric: String,
+    store: com.pulseloop.settings.ApiKeyStore,
+    gUnit: com.pulseloop.service.GlucoseUnit,
+    onCalibrate: () -> Unit,
+) {
+    val status = if (metric == "bp") {
+        val s = store.bpAdjustSystolic
+        val d = store.bpAdjustDiastolic
+        if (s > 0 && d > 0) trf("Calibrated to your cuff reading of {0}/{1} mmHg. The ring adjusts its estimates to it.", s, d)
+        else tr("Not calibrated. Enter a reading from a validated cuff so the ring adjusts its estimates to you.")
+    } else {
+        val ref = store.glucoseRefMgdl
+        if (ref > 0) {
+            val shown = if (gUnit == com.pulseloop.service.GlucoseUnit.MMOL) "%.1f mmol/L".format(ref / 18.0182)
+            else "%.0f mg/dL".format(ref)
+            trf("Calibrated to your meter reading of {0}. The app shifts the ring's estimate to match it.", shown)
+        } else tr("Not calibrated. Enter a meter or lab reading to shift the ring's estimate to match it.")
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(PulseColors.card)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(tr("Calibration"), style = com.pulseloop.ui.theme.PulseType.eyebrow)
+        Text(status, style = MaterialTheme.typography.bodyMedium, color = PulseColors.textPrimary)
+        PulseButton(onClick = onCalibrate, style = PulseButtonStyle.Tonal, modifier = Modifier.fillMaxWidth()) {
+            Text(tr("Calibrate"))
         }
     }
 }

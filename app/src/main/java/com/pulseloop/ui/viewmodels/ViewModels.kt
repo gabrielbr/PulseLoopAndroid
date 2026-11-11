@@ -197,8 +197,11 @@ class TodayViewModel(db: PulseLoopDatabase, private val apiKeyStore: ApiKeyStore
                 try {
                     val sys = db.measurementDao().latest(MeasurementKind.BLOOD_PRESSURE_SYSTOLIC.name)
                     val dia = db.measurementDao().latest(MeasurementKind.BLOOD_PRESSURE_DIASTOLIC.name)
-                    val systolic = sys?.toInt()?.plus(apiKeyStore?.bpAdjustSystolic ?: 0)
-                    val diastolic = dia?.toInt()?.plus(apiKeyStore?.bpAdjustDiastolic ?: 0)
+                    // The stored cuff values are a *reference* the ring calibrates against
+                    // (0x33, sent on connect), not an offset: adding them here turned 117/73 into
+                    // 237/153 once someone calibrated. The ring's reading is already adjusted.
+                    val systolic = sys?.toInt()
+                    val diastolic = dia?.toInt()
                     _state.update {
                         if (it.bloodPressureSystolic == systolic && it.bloodPressureDiastolic == diastolic) it
                         else it.copy(

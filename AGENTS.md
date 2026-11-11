@@ -78,6 +78,12 @@ in Ring & sync sends mode 3 and then reconnects (`RingSyncEngine.restartDevice`)
 without a verified reboot, it only reconnects. YCBT and LuckRing still have no reset; add one
 the same way, from their own decompiles.
 
+The same decompile shows the app passes the ring's BP and sugar through unchanged. The ring
+computes them from the profile (`0x02`) and a cuff reference (`0x33`, default 120/80, write-only).
+That reference is sent to the ring, **never added to readings**. The ring's 15-minute log of those
+estimates is `0x55`, gated on `0x20` bit 83, and is imported as the third step per day in
+`JringHistorySync`. Details: `docs/jring-56ff-plan.md`, "What the vendor app does with BP and sugar".
+
 ## Colmi/Yawell OS-bonding is a hand-curated allowlist — not "match QRing exactly"
 
 **This is the one rule in this file most likely to get silently reverted by a future "generalize

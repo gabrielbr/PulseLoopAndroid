@@ -263,4 +263,60 @@ class JringHistorySyncTest {
         )
         sync.cancel()
     }
+
+    // ── 0x55 offline sensor log (BP, stress, sugar, HRV) ─────────────────
+
+    /** A 0x55 frame whose first slot is at [minuteOfDay] in the ring's local clock. */
+    private fun sensorFrame(minuteOfDay: Int): ByteArray {
+        val epoch = 1_794_355_200L + minuteOfDay * 60L   // 2026-11-11 00:00 local-as-UTC
+        return ByteArray(20).also {
+            it[0] = 0x55
+            for (b in 0 until 4) it[1 + b] = ((epoch shr (8 * b)) and 0xFF).toByte()
+        }
+    }
+
+    @Test
+    fun `with the sensor log on, a day's heart rate is followed by its 0x55 request`() = runBlocking {
+        val writer = FakeWriter()
+        val sync = makeSync(writer, settleMs = 50)
+        sync.sensorHistory = true
+        sync.start(listOf(1, 0))
+
+        sync.noteFrame(activityFrame())
+        delay(150)
+        sync.noteFrame(hrFinishedFrame())
+        assertEquals(listOf(0x10 to 1, 0x16 to 1, 0x55 to 1), writer.requests)
+
+        // The 23:15 frame carries 23:15, 23:30 and 23:45: the day's last slot ends the leg at once.
+        sync.noteFrame(sensorFrame(23 * 60 + 15))
+        assertEquals(listOf(0x10 to 1, 0x16 to 1, 0x55 to 1, 0x10 to 0), writer.requests)
+        sync.cancel()
+    }
+
+    @Test
+    fun `an earlier 0x55 frame keeps the leg open until the stream settles`() = runBlocking {
+        val writer = FakeWriter()
+        val sync = makeSync(writer, settleMs = 80)
+        sync.sensorHistory = true
+        sync.start(listOf(0))
+        sync.noteFrame(activityFrame()); delay(200)
+        sync.noteFrame(hrFinishedFrame())
+
+        sync.noteFrame(sensorFrame(9 * 60))
+        delay(30)
+        assertTrue("still streaming", sync.isRunning)
+        delay(200)
+        assertFalse("settled: today's pass is done", sync.isRunning)
+    }
+
+    @Test
+    fun `without the capability bit no 0x55 is sent`() = runBlocking {
+        val writer = FakeWriter()
+        val sync = makeSync(writer, settleMs = 50)
+        sync.start(listOf(0))
+        sync.noteFrame(activityFrame()); delay(150)
+        sync.noteFrame(hrFinishedFrame())
+        assertEquals(listOf(0x10 to 0, 0x16 to 0), writer.requests)
+        assertFalse(sync.isRunning)
+    }
 }

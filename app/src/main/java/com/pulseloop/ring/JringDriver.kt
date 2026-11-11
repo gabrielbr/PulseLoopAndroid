@@ -125,8 +125,8 @@ class JringSyncEngine(
     private val encoder = RingEncoder
 
     /** The ring's self-reported feature bits (0x20 reply), or `null` if it never answered.
-     *  Nothing branches on these yet — captured so a future offline-history sync chain can gate
-     *  its extra per-day queries once the bit ordering is confirmed against real hardware. */
+     *  Bit 83 gates the per-day 0x55 sensor log ([JringHistorySync.sensorHistory]); the vendor
+     *  builds the same array least-significant bit first (`utils.m.b`, mask {1,2,4,…,128}). */
     private var bandCapabilities: JringBandCapabilities? = null
 
     override fun runStartup() {
@@ -193,7 +193,10 @@ class JringSyncEngine(
                 0 -> if (event.state == 0) writer?.enqueue(encoder.makeBindAppStartCommand()) // INIT → APP_START
                 2 -> writer?.enqueue(encoder.makeBindSuccessCommand())                         // ACK → SUCCESS
             }
-            is RingDecodedEvent.BandFunction -> bandCapabilities = event.capabilities
+            is RingDecodedEvent.BandFunction -> {
+                bandCapabilities = event.capabilities
+                historySync.sensorHistory = event.capabilities.hasPressureHistory
+            }
             else -> {}
         }
     }

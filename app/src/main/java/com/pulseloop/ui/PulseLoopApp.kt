@@ -956,6 +956,7 @@ fun PulseLoopApp() {
                         onBack = { navController.popBackStack() },
                         db = db,
                         apiKeyStore = apiKeyStore,
+                        onCalibrate = { navController.navigate("settings/calibration") { launchSingleTop = true } },
                     )
                 }
                 paddedComposable("onboarding") {

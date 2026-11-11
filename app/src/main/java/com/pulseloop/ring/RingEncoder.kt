@@ -87,6 +87,18 @@ object RingEncoder {
         cmd[1] = dayOffset.coerceIn(0, 27).toByte()
         return cmd
     }
+    /**
+     * Offline sensor history for one day (0x55), the vendor SDK's `getAdvSensorOfflineData(day)`
+     * (`BluetoothLeService.c(int)`: `bArr[0] = 85; bArr[1] = day`). Same day offset as 0x10/0x16.
+     * The vendor asks for it only when the 0x20 capability bit 83 (`FUNCTION_HAS_PRESSURE`) is set,
+     * after the day's heart rate. The reply layout is in `RingDecoder.decodeSensorHistory`.
+     */
+    fun makeSensorHistoryQueryCommand(dayOffset: Int = 0): ByteArray {
+        val cmd = ByteArray(20)
+        cmd[0] = 0x55
+        cmd[1] = dayOffset.coerceIn(0, 27).toByte()
+        return cmd
+    }
     fun makeHeartRateStartCommand(): ByteArray = hexToBytes("14b4000000000000000000000000000000000000")
     fun makeHeartRateStopCommand(): ByteArray = hexToBytes("1500000000000000000000000000000000000000")
     /**
