@@ -184,7 +184,7 @@ class JringHistorySync(
             ((data[3].toLong() and 0xFF) shl 16) or ((data[4].toLong() and 0xFF) shl 24)
         val minuteOfDay = Math.floorMod(raw, 86_400L) / 60
         // Three slots per frame, 15 minutes apart.
-        return (0 until 3).any { minuteOfDay + it * 15 == LAST_SLOT_MINUTE }
+        return (0 until 3).any { minuteOfDay + it * 15L == LAST_SLOT_MINUTE.toLong() }
     }
 
     // MARK: - Timers
