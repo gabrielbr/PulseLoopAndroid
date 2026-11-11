@@ -91,12 +91,12 @@ data class TrendSummary(
             // Sub-unit deltas keep one decimal (truncated, matching iOS Int-cast); larger deltas round.
             val rounded = if (abs(delta) < 1 && delta != 0.0) (delta * 10).toInt() / 10.0 else roundAwayFromZero(delta)
             if (abs(rounded) < 0.5) {
-                return TrendSummary(TrendDirection.STABLE, trf("Stable {0}", suffix), "→")
+                return TrendSummary(TrendDirection.STABLE, trf("Stable {0}", tr(suffix)), "→")
             }
             val unit = if (unitLabel.isEmpty()) "" else " $unitLabel"
             val sign = if (rounded > 0) "+" else "−"
             val magnitude = if (abs(rounded) % 1.0 == 0.0) "${abs(rounded).toInt()}" else "${abs(rounded)}"
-            val text = "$sign$magnitude$unit $suffix"
+            val text = "$sign$magnitude$unit ${tr(suffix)}"
             return TrendSummary(
                 direction = if (rounded > 0) TrendDirection.RISING else TrendDirection.FALLING,
                 deltaText = text,
@@ -219,7 +219,7 @@ object VitalsCardFactory {
         return VitalCardState(
             metric = MetricKind.HEART_RATE, title = MetricKind.HEART_RATE.title,
             valueText = valueText, latestValue = latest,
-            unitText = if (latest != null) "bpm range" else null,
+            unitText = if (latest != null) tr("bpm range") else null,
             statusText = interp?.displayLabel ?: tr("No reading"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = "$resting · $peak",
@@ -245,7 +245,7 @@ object VitalsCardFactory {
         return VitalCardState(
             metric = MetricKind.SPO2, title = MetricKind.SPO2.title,
             valueText = averageLabel(samples, latest), latestValue = latest,
-            unitText = if (latest != null) "% avg" else null,
+            unitText = if (latest != null) tr("% avg") else null,
             statusText = interp?.displayLabel ?: tr("No reading"),
             statusToken = interp?.statusColorToken ?: VitalColorToken.Neutral,
             subtitleText = subtitle,
@@ -529,14 +529,29 @@ object VitalsCardFactory {
         return listOf(ReferenceBand(lower, upper, normal.colorToken))
     }
 
-    private fun lastUpdated(dateMs: Long?, nowMs: Long): String? {
+    /**
+     * When the newest stored reading was taken, as a clock time ("Last reading 14:28"), not an age.
+     * "Updated 2h ago" read as a stale sync when the sync had just run and the ring simply had
+     * recorded nothing newer (ring off the finger, or moving too much to read); the reading's own
+     * time says what the app actually knows. Older than today adds the weekday, older than a
+     * week the date. Formats follow the default Locale, which L10n sets.
+     */
+    internal fun lastUpdated(
+        dateMs: Long?,
+        nowMs: Long,
+        zone: java.time.ZoneId = java.time.ZoneId.systemDefault(),
+    ): String? {
         if (dateMs == null) return null
-        val minutes = ((nowMs - dateMs) / 60_000L).toInt()
-        if (minutes < 1) return "Updated just now"
-        if (minutes < 60) return "Updated ${minutes}m ago"
-        val hours = minutes / 60
-        if (hours < 24) return "Updated ${hours}h ago"
-        return "Updated ${hours / 24}d ago"
+        val at = java.time.Instant.ofEpochMilli(dateMs).atZone(zone)
+        val today = java.time.Instant.ofEpochMilli(nowMs).atZone(zone).toLocalDate()
+        val time = at.format(java.time.format.DateTimeFormatter.ofLocalizedTime(java.time.format.FormatStyle.SHORT))
+        val days = java.time.temporal.ChronoUnit.DAYS.between(at.toLocalDate(), today)
+        val label = when {
+            days <= 0L -> time
+            days < 7L -> at.format(java.time.format.DateTimeFormatter.ofPattern("EEE")) + " " + time
+            else -> at.format(java.time.format.DateTimeFormatter.ofPattern("d MMM"))
+        }
+        return trf("Last reading {0}", label)
     }
 
     // Unit conversions (iOS UnitsFormatter). °C is canonical for temperature; mg/dL for glucose.
