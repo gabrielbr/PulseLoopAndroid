@@ -34,8 +34,9 @@ import kotlinx.coroutines.launch
  * settle/stall timers are only its fallback.
  *
  * Per day: `0x10/offset` → the day's activity+sleep stream → settles → `0x16/offset` → the day's
- * HR stream → `0xFF` (or settles) → `0x55/offset` when the ring keeps an offline sensor log
- * ([sensorHistory]) → its 23:45 slot (or settles) → next day. A day that answers nothing at all still gets its HR
+ * HR stream → `0xFF` (or settles) → each offline log the ring advertises, in the vendor's order:
+ * temperature `0x39` ([temperatureHistory]), SpO₂ `0x40` ([oxygenHistory]), BP/stress/sugar/HRV
+ * `0x55` ([sensorHistory]); each ends on its 23:45 slot or when it settles → next day. A day that answers nothing at all still gets its HR
  * request, because `16 00` was previously sent unconditionally and today's HR must not become
  * collateral of a silent `0x10`.
  *
@@ -54,8 +55,15 @@ class JringHistorySync(
     private val encoder = RingEncoder
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-    /** The legs of one day, in the order the vendor asks for them. */
-    private enum class Leg { ACTIVITY, HEART_RATE, SENSOR }
+    /** The legs of one day, in the order the vendor asks for them (`FragmentMain`'s
+     *  `ACTION_NOTIFY_BLE_SYNC_DATA_BY_DAY_END` chain: 1 → 2 → 12 → 13 → advanced sensor). */
+    private enum class Leg { ACTIVITY, HEART_RATE, TEMPERATURE, OXYGEN, SENSOR }
+
+    /** Offline skin temperature (0x39, `getDataByDay(12, day)`), gated on 0x20 bit 10. */
+    @Volatile var temperatureHistory: Boolean = false
+
+    /** Offline SpO₂ (0x40, `getDataByDay(13, day)`), gated on 0x20 bit 81. */
+    @Volatile var oxygenHistory: Boolean = false
 
     /**
      * Whether to ask each day for the ring's offline sensor log (0x55: BP, stress, sugar, HRV).
@@ -120,14 +128,23 @@ class JringHistorySync(
                 if (leg != Leg.HEART_RATE) return
                 // The one genuine end-of-stream signal in this protocol — take it rather than
                 // waiting out the settle window.
-                if (data.size >= 2 && (data[1].toInt() and 0xFF) == HR_SYNC_FINISHED) endHeartRateLeg()
+                if (data.size >= 2 && (data[1].toInt() and 0xFF) == HR_SYNC_FINISHED) nextLegAfter(Leg.HEART_RATE)
                 else restartSettle()
+            }
+            OPCODE_TEMPERATURE -> if (leg == Leg.TEMPERATURE) restartSettle()
+            // The vendor's "getdayabyday failed" reply: the ring has no temperature log for that
+            // day (`BluetoothLeService` "b9" → `onGetDataByDayEnd(12, 0)`). Move on.
+            OPCODE_DAY_FAILED -> if (leg == Leg.TEMPERATURE) nextLegAfter(Leg.TEMPERATURE)
+            OPCODE_OXYGEN -> {
+                if (leg != Leg.OXYGEN) return
+                // 15 one-minute readings per frame; the frame holding 23:45 is the day's last.
+                if (holdsLastSlot(data, slots = 15, stepMinutes = 1)) nextLegAfter(Leg.OXYGEN) else restartSettle()
             }
             OPCODE_SENSOR -> {
                 if (leg != Leg.SENSOR) return
                 // The vendor ends the day's log when a slot lands on 23:45 (the last of the day)
                 // and otherwise on its 2000 ms idle timer; a past day ends here, today settles.
-                if (lastSlotOfDay(data)) advance() else restartSettle()
+                if (holdsLastSlot(data, slots = 3, stepMinutes = 15)) advance() else restartSettle()
             }
         }
     }
@@ -158,13 +175,26 @@ class JringHistorySync(
         armStall()
     }
 
-    /** The day's heart rate is done: its sensor log next if the ring keeps one, else next day. */
-    private fun endHeartRateLeg() {
+    /**
+     * After [done], ask for the day's next offline log the ring keeps, in the vendor's order, or
+     * move to the next day. Each is gated on the 0x20 bit the vendor gates it on.
+     */
+    private fun nextLegAfter(done: Leg) {
         val day = currentDay ?: return
-        if (!sensorHistory) { advance(); return }
+        val optional = listOf(
+            Leg.TEMPERATURE to temperatureHistory,
+            Leg.OXYGEN to oxygenHistory,
+            Leg.SENSOR to sensorHistory,
+        )
+        val next = optional.firstOrNull { (l, on) -> on && l.ordinal > done.ordinal }?.first
+        if (next == null) { advance(); return }
         cancelTimers()
-        leg = Leg.SENSOR
-        writer?.enqueue(encoder.makeSensorHistoryQueryCommand(dayOffset = day))
+        leg = next
+        writer?.enqueue(when (next) {
+            Leg.TEMPERATURE -> encoder.makeTemperatureHistoryQueryCommand(dayOffset = day)
+            Leg.OXYGEN -> encoder.makeOxygenHistoryQueryCommand(dayOffset = day)
+            else -> encoder.makeSensorHistoryQueryCommand(dayOffset = day)
+        })
         armStall()
     }
 
@@ -172,19 +202,17 @@ class JringHistorySync(
     private fun legSettled() {
         when (leg) {
             Leg.ACTIVITY -> beginHeartRateLeg()
-            Leg.HEART_RATE -> endHeartRateLeg()
-            Leg.SENSOR -> advance()
+            else -> nextLegAfter(leg)
         }
     }
 
-    /** Whether a 0x55 frame holds the 23:45 slot, read in the ring's own local clock. */
-    private fun lastSlotOfDay(data: ByteArray): Boolean {
+    /** Whether a frame's slots include 23:45, read in the ring's own local clock. */
+    private fun holdsLastSlot(data: ByteArray, slots: Int, stepMinutes: Int): Boolean {
         if (data.size < 5) return false
         val raw = (data[1].toLong() and 0xFF) or ((data[2].toLong() and 0xFF) shl 8) or
             ((data[3].toLong() and 0xFF) shl 16) or ((data[4].toLong() and 0xFF) shl 24)
         val minuteOfDay = Math.floorMod(raw, 86_400L) / 60
-        // Three slots per frame, 15 minutes apart.
-        return (0 until 3).any { minuteOfDay + it * 15L == LAST_SLOT_MINUTE.toLong() }
+        return (0 until slots).any { minuteOfDay + it.toLong() * stepMinutes == LAST_SLOT_MINUTE.toLong() }
     }
 
     // MARK: - Timers
@@ -230,6 +258,9 @@ class JringHistorySync(
         private const val OPCODE_SLEEP = 0x11
         private const val OPCODE_HEART_RATE = 0x16
         private const val OPCODE_SENSOR = 0x55
+        private const val OPCODE_TEMPERATURE = 0x39
+        private const val OPCODE_OXYGEN = 0x40
+        private const val OPCODE_DAY_FAILED = 0xB9
         /** 23:45 — the vendor's end-of-day slot for the 0x55 log. */
         private const val LAST_SLOT_MINUTE = 23 * 60 + 45
         /** `0x16` subtype `0xFF` — "sync finished" (`RingDecoder.decodeHeartRateHistory`). */

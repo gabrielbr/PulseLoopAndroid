@@ -93,9 +93,19 @@ object RingEncoder {
      * The vendor asks for it only when the 0x20 capability bit 83 (`FUNCTION_HAS_PRESSURE`) is set,
      * after the day's heart rate. The reply layout is in `RingDecoder.decodeSensorHistory`.
      */
-    fun makeSensorHistoryQueryCommand(dayOffset: Int = 0): ByteArray {
+    fun makeSensorHistoryQueryCommand(dayOffset: Int = 0): ByteArray = dayQuery(0x55, dayOffset)
+
+    /** Offline temperature for one day (0x39): `getDataByDay(12, day)` (`BluetoothLeService.a(int,int)`:
+     *  type 12 → `bArr[0] = 57`). Asked only when 0x20 bit 10 (`FUNCTION_TEMPERATURE`) is set. */
+    fun makeTemperatureHistoryQueryCommand(dayOffset: Int = 0): ByteArray = dayQuery(0x39, dayOffset)
+
+    /** Offline SpO₂ for one day (0x40): `getDataByDay(13, day)` (type 13 → `bArr[0] = 64`). Asked
+     *  only when 0x20 bit 81 (`FUNCTION_HAS_OXYGEN_OFFLINE`) is set. */
+    fun makeOxygenHistoryQueryCommand(dayOffset: Int = 0): ByteArray = dayQuery(0x40, dayOffset)
+
+    private fun dayQuery(opcode: Int, dayOffset: Int): ByteArray {
         val cmd = ByteArray(20)
-        cmd[0] = 0x55
+        cmd[0] = opcode.toByte()
         cmd[1] = dayOffset.coerceIn(0, 27).toByte()
         return cmd
     }

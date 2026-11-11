@@ -319,4 +319,24 @@ class JringHistorySyncTest {
         assertEquals(listOf(0x10 to 0, 0x16 to 0), writer.requests)
         assertFalse(sync.isRunning)
     }
+
+    @Test
+    fun `with every offline log on, a day runs in the vendor's order`() = runBlocking {
+        val writer = FakeWriter()
+        val sync = makeSync(writer, settleMs = 40)
+        sync.temperatureHistory = true
+        sync.oxygenHistory = true
+        sync.sensorHistory = true
+        sync.start(listOf(1))
+        sync.noteFrame(activityFrame()); delay(120)
+        sync.noteFrame(hrFinishedFrame())
+        // The ring has no temperature log for that day.
+        sync.noteFrame(ByteArray(20).also { it[0] = 0xB9.toByte() })
+        delay(120)   // nothing further may go out while the SpO₂ leg waits for its first frame
+        assertEquals(
+            listOf(0x10 to 1, 0x16 to 1, 0x39 to 1, 0x40 to 1),
+            writer.requests,
+        )
+        sync.cancel()
+    }
 }

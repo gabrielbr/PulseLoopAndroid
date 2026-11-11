@@ -56,4 +56,46 @@ class JringSensorHistoryTest {
         assertEquals(2, cmd[1].toInt())
         assertEquals(20, cmd.size)
     }
+
+    // ── 0x39 offline temperature, 0x40 offline SpO₂, and the owner's 0x20 reply ──
+
+    @Test fun temperatureKeepsSkinValuesFiveMinutesApart() {
+        val f = ByteArray(20).also {
+            it[0] = 0x39
+            val t = 1_794_355_200L + 9 * 3600L
+            for (b in 0 until 4) it[1 + b] = ((t shr (8 * b)) and 0xFF).toByte()
+            fun put(o: Int, v: Int) { it[o] = (v and 0xFF).toByte(); it[o + 1] = (v shr 8).toByte() }
+            put(5, 3412); put(7, 3655)      // slot 0: 34.12 skin, 36.55 body
+            put(9, 0); put(11, 0)           // slot 1: no reading
+            put(13, 3398); put(15, 3650)    // slot 2
+        }
+        val temps = history(decoder.decode(f)).filter { it.kind_field == MeasurementKind.TEMPERATURE }
+        assertEquals(listOf(34.12, 33.98), temps.map { it.value })
+        assertEquals(600L, temps[1]._timestamp.epochSecond - temps[0]._timestamp.epochSecond)
+    }
+
+    @Test fun oxygenIsFifteenOneMinuteReadingsInBand() {
+        val f = ByteArray(20).also {
+            it[0] = 0x40
+            val t = 1_794_355_200L + 2 * 3600L
+            for (b in 0 until 4) it[1 + b] = ((t shr (8 * b)) and 0xFF).toByte()
+            for (k in 0 until 15) it[5 + k] = 97.toByte()
+            it[5 + 3] = 0; it[5 + 4] = 12   // empty and implausible
+        }
+        val spo2 = history(decoder.decode(f)).filter { it.kind_field == MeasurementKind.SPO2 }
+        assertEquals(13, spo2.size)
+        assertEquals(14 * 60L, spo2.last()._timestamp.epochSecond - spo2.first()._timestamp.epochSecond)
+    }
+
+    @Test fun ownersBandFunctionGrantsTemperature() {
+        // The 0x20 reply from the owner's ring (firmware 003A002AV138), 2026-11-11.
+        val raw = ByteArray(20)
+        "2062ec0738090abebb02001b".chunked(2).forEachIndexed { i, h -> raw[i] = h.toInt(16).toByte() }
+        val events = decoder.decode(raw)
+        val caps = events.filterIsInstance<RingDecodedEvent.BandFunction>().single().capabilities
+        assertTrue(caps.hasTemperature && caps.hasOxygenOfflineHistory && caps.hasPressureHistory)
+        val granted = events.filterIsInstance<RingDecodedEvent.SupportFunctions>().single().capabilities
+        assertEquals(setOf(WearableCapability.TEMPERATURE), granted)
+        assertTrue(WearableCapability.TEMPERATURE in JringCoordinator.bitmapGatedCapabilities)
+    }
 }

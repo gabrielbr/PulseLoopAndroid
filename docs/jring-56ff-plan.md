@@ -65,6 +65,20 @@ don't hide sugar).
 - **Bit order:** the vendor builds the `0x20` bit array least-significant bit first (`utils.m.b`,
   masks 1…128). That confirms `JringBandCapabilities.bit()`. The owner's ring (V138) sets bit 83.
 
+**Offline SpO₂ (`0x40`) and temperature (`0x39`)** come from the same per-day chain. The vendor
+asks after heart rate in this order: temperature (bit 10, `getDataByDay(12)` = `39 <day>`), SpO₂
+(bit 81, `getDataByDay(13)` = `40 <day>`), then the `0x55` sensor log.
+- **`0x40` reply:** a slot time, then 15 one-minute readings, one byte each.
+- **`0x39` reply:** a slot time, then three 5-minute slots of surface and body temperature
+  (u16 LE, °C × 100).
+- **No data:** a ring with no log for that day answers `B9` ("getdayabyday failed").
+
+The owner's ring sets bits 10, 81, 83 and 84, so it advertises all three logs. That includes
+temperature, which the family's baseline leaves out because SR08-class rings don't set bit 10.
+Temperature is therefore granted per unit from the `0x20` reply (`bitmapGatedCapabilities`).
+Only the surface (skin) value is stored. The "body" value is the ring's own model of core
+temperature, so we leave it out.
+
 Imported since 2.16.2 as a third step per day in `JringHistorySync` (activity/sleep → HR → `0x55`),
 decoded by `RingDecoder.decodeSensorHistory`. Same rules as the vendor: BP only when both halves
 are non-zero, every other value only when non-zero.
@@ -294,7 +308,7 @@ Independent of BP and glucose; listed so the "everything about this ring" pass i
      bits until a capture confirms it.
    - **Update 2026-11-11:** the bit order is confirmed from the vendor code (LSB first), and the
      `0x55` offline sensor history is implemented (see "What the vendor app does" above).
-     Offline SpO₂ (bit 81, `getDataByDay(13, day)`) is still open.
+     Offline SpO₂ (bit 81) and temperature (bit 10) followed in the same release.
 
 ## Order and size
 

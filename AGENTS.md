@@ -81,8 +81,9 @@ the same way, from their own decompiles.
 The same decompile shows the app passes the ring's BP and sugar through unchanged. The ring
 computes them from the profile (`0x02`) and a cuff reference (`0x33`, default 120/80, write-only).
 That reference is sent to the ring, **never added to readings**. The ring's 15-minute log of those
-estimates is `0x55`, gated on `0x20` bit 83, and is imported as the third step per day in
-`JringHistorySync`. Details: `docs/jring-56ff-plan.md`, "What the vendor app does with BP and sugar".
+estimates is `0x55`, gated on `0x20` bit 83. After each day's heart rate, `JringHistorySync`
+imports it together with offline temperature (`0x39`, bit 10) and offline SpO₂ (`0x40`, bit 81),
+in the vendor's order. A unit that sets bit 10 is granted TEMPERATURE at runtime. Details: `docs/jring-56ff-plan.md`, "What the vendor app does with BP and sugar".
 
 ## Colmi/Yawell OS-bonding is a hand-curated allowlist — not "match QRing exactly"
 
