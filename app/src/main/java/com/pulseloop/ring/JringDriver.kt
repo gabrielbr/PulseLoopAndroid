@@ -46,11 +46,13 @@ object JringCoordinator : WearableCoordinator {
         WearableCapability.REALTIME_HEART_RATE,
         WearableCapability.FIND_DEVICE,
         WearableCapability.FACTORY_RESET,    // 0x0E mode 4, the vendor's "Factory reset"
-        // NOTE: No TEMPERATURE — the Jring (SR08-class PPG ring) has no skin-temperature
-        // sensor. In the official app temperature is gated by the 0x20 capability bit
-        // FUNCTION_TEMPERATURE (zArr[10]), which these rings do not set; it exists in the
-        // shared SDK only for smartwatch variants.
+        // NOTE: No TEMPERATURE in the baseline. The vendor gates it on the 0x20 bit
+        // FUNCTION_TEMPERATURE (zArr[10]), and SR08-class rings don't set it. Some units do
+        // (firmware 003A002AV138 does), so it is granted per unit through
+        // [bitmapGatedCapabilities] when the 0x20 reply sets the bit (RingDecoder.decodeBandFunction).
     )
+
+    override val bitmapGatedCapabilities: Set<WearableCapability> = setOf(WearableCapability.TEMPERATURE)
 
     override val iconSystemName = "circle.hexagongrid.circle.fill"
 
@@ -125,8 +127,8 @@ class JringSyncEngine(
     private val encoder = RingEncoder
 
     /** The ring's self-reported feature bits (0x20 reply), or `null` if it never answered.
-     *  Nothing branches on these yet — captured so a future offline-history sync chain can gate
-     *  its extra per-day queries once the bit ordering is confirmed against real hardware. */
+     *  Bit 83 gates the per-day 0x55 sensor log ([JringHistorySync.sensorHistory]); the vendor
+     *  builds the same array least-significant bit first (`utils.m.b`, mask {1,2,4,…,128}). */
     private var bandCapabilities: JringBandCapabilities? = null
 
     override fun runStartup() {
@@ -193,7 +195,12 @@ class JringSyncEngine(
                 0 -> if (event.state == 0) writer?.enqueue(encoder.makeBindAppStartCommand()) // INIT → APP_START
                 2 -> writer?.enqueue(encoder.makeBindSuccessCommand())                         // ACK → SUCCESS
             }
-            is RingDecodedEvent.BandFunction -> bandCapabilities = event.capabilities
+            is RingDecodedEvent.BandFunction -> {
+                bandCapabilities = event.capabilities
+                historySync.sensorHistory = event.capabilities.hasPressureHistory
+                historySync.oxygenHistory = event.capabilities.hasOxygenOfflineHistory
+                historySync.temperatureHistory = event.capabilities.hasTemperature
+            }
             else -> {}
         }
     }

@@ -1,6 +1,6 @@
 # JRing (56ff) plan: estimated BP and glucose, offsets, recalibration, and the rest of the ring
 
-Status: plan, not started. Written 2026-10-20.
+Status: plan, partly built. Written 2026-10-20; vendor-app findings added 2026-11-11.
 
 The 56ff ring's combined spot measurement (`0x23` → `0x24`) returns heart rate, blood pressure,
 SpO₂, fatigue, stress and blood sugar in one reply. Heart rate and SpO₂ come from the optical
@@ -19,6 +19,100 @@ So this plan treats both as **estimates**: written as estimates wherever they ap
 with a user offset, checked against real readings when the user has them, and left as they
 are today in the coach and the Health Connect export (decided 2026-10-20).
 
+## What the vendor app does with BP and sugar (read 2026-11-11)
+
+Read from JRing 2.0.8 (`com.jaga.ibraceletplus.jyring`), decompiled locally with jadx 1.5.1
+(`decompiled-jring-offical/`, gitignored; see AGENTS.md). The question was whether the app invents
+these numbers or the ring sends them.
+
+**The app does not fake them.** It shows exactly what the ring sends.
+- The SDK hands bytes 1–8 of the `0x24` reply to `onReceiveSensorData` unchanged
+  (`BluetoothLeService`, the `"24"` branch).
+- The app stores them as received: HR, BP pair, SpO₂, fatigue, stress, sugar ÷ 10, HRV
+  (`DupMainActivity.onReceiveSensorData`).
+- The app's only random-number code is demo generators that nothing calls:
+  - fake temperature (`FragmentMain.startTest`);
+  - fake steps for one week in 2024 (`loadDemoTask`);
+  - fake sleep for 13 Oct 2025 under a made-up MAC (`loadDemoSleepTask`).
+
+  None of them touches BP or sugar.
+
+**The ring computes both numbers itself, and the app supplies its inputs.**
+- `0x02` user info: age, sex, height, weight (`BluetoothLeService.a0`).
+- `0x33` BP reference: the vendor's "BP adjust" screen (`BpAdjustActivity`) sends a cuff value,
+  defaulting to **120/80** (`CommonAttributes.P_USER_BPADJUST_SBP/DBP`).
+  - The ring only acknowledges it (`onSetBPAdjust(1)`) and has no command that reads it back.
+  - The vendor applies no app-side BP offset.
+- Sugar has an on/off switch (`setSugarMode`) and no calibration command.
+
+So BP is an estimate anchored to a reference, and sugar is a figure with no sensor behind it.
+A practical check:
+1. Measure twice while still.
+2. Change the profile's age by 20 years.
+3. Measure twice more.
+
+If BP or sugar moves while the body didn't, the number comes from the profile. A cuff and a
+finger-prick meter settle it. We keep both, labelled as estimates (owner's decision 2026-11-11:
+don't hide sugar).
+
+**The ring keeps an offline log of these estimates every 15 minutes (`0x55`).**
+- **Request:** `getAdvSensorOfflineData(day)` = `55 <dayOffset>`. The vendor sends it only when the
+  `0x20` bit 83 (`FUNCTION_HAS_PRESSURE`) is set, after the day's heart rate.
+- **Reply:** `[1..4]` the slot time (u32 LE, the ring's local wall clock). Then three slots of
+  five bytes at 5, 10 and 15: systolic, diastolic, stress, sugar × 10, HRV. The slots are
+  15 minutes apart.
+- **End of day:** the vendor ends it on the 23:45 slot, or after a 2000 ms idle timer.
+- **Bit order:** the vendor builds the `0x20` bit array least-significant bit first (`utils.m.b`,
+  masks 1…128). That confirms `JringBandCapabilities.bit()`. The owner's ring (V138) sets bit 83.
+
+**Offline SpO₂ (`0x40`) and temperature (`0x39`)** come from the same per-day chain. The vendor
+asks after heart rate in this order: temperature (bit 10, `getDataByDay(12)` = `39 <day>`), SpO₂
+(bit 81, `getDataByDay(13)` = `40 <day>`), then the `0x55` sensor log.
+- **`0x40` reply:** a slot time, then 15 one-minute readings, one byte each.
+- **`0x39` reply:** a slot time, then three 5-minute slots of surface and body temperature
+  (u16 LE, °C × 100).
+- **No data:** a ring with no log for that day answers `B9` ("getdayabyday failed").
+
+The owner's ring sets bits 10, 81, 83 and 84, so it advertises all three logs. That includes
+temperature, which the family's baseline leaves out because SR08-class rings don't set bit 10.
+Temperature is therefore granted per unit from the `0x20` reply (`bitmapGatedCapabilities`).
+Only the surface (skin) value is stored. The "body" value is the ring's own model of core
+temperature, so we leave it out.
+
+Imported since 2.16.2 as a third step per day in `JringHistorySync` (activity/sleep → HR → `0x55`),
+decoded by `RingDecoder.decodeSensorHistory`. Same rules as the vendor: BP only when both halves
+are non-zero, every other value only when non-zero.
+
+**Device modes (`0x0E`).** The vendor's `setDeviceMode`, confirmed by the buttons that send each
+mode: 2 = device off, 3 = restart, 4 = factory reset. Used since 2.16.1 (Restart ring, Factory
+reset).
+
+**A bug this review found.** `TodayViewModel` added the stored cuff *reference* to each BP reading,
+as if it were an offset. Once someone calibrated, a 117/73 reading would have come out as 237/153.
+Nothing displayed those fields, so no wrong number reached the screen; fixed in 2.16.2. The
+reference goes to the ring (`0x33`) and nowhere else.
+
+## Firmware (looked up 2026-11-11)
+
+The vendor app checks for firmware at
+`http://download.keeprapid.com/apps/smartband/keepfit/fwupdater/<en|zh>/<model>/update.json`
+(`Ota.java`, `CommonAttributes.fw_upgrade_xml`). `<model>` is the first 8 characters of the ring's
+firmware string. For the owner's ring (`003A002AV138`) that is `003A002A`. The manifest says:
+
+- **Current version:** `003A002AV138`. That is what the ring already runs, so there is no newer
+  firmware.
+- **File:** `fwrelease/003A002A/V138.bin`, 136,320 bytes. Its MD5 `3c797b1d…0ddf` matches the
+  manifest.
+- **Chip:** `chipType: "dialog"`, a Dialog Semiconductor (Renesas) BLE SoC.
+
+The image starts with a short header (`70 61`, with "1.138" in ASCII). After that it is
+**encrypted or compressed**: 7.99 bits/byte of entropy and no readable strings. So it can't be read
+for its BP or sugar algorithm without the decryption key, which the app doesn't carry: OTA sends
+the file as-is. A web search (2026-11-11) found no public reverse-engineering of this SDK
+(`com.sxr.sdk.ble.keepfit`), the app or this firmware.
+
+The binary was downloaded only to check it; it is not kept in the repo.
+
 ## What exists today
 
 | Piece | Where | State |
@@ -27,6 +121,8 @@ are today in the coach and the Health Connect export (decided 2026-10-20).
 | BP cuff calibration sent to ring | `RingEncoder.makeBPAdjustCommand` (`0x33`, LE u16 sys/dia), `CalibrationSettingsScreen` | Done. Stores `bpAdjustSystolic/Diastolic`, **no date** |
 | Glucose offset | `ApiKeyStore.glucoseOffsetMgdl`, applied at display in `ViewModels.kt` | Done. Stored rows stay raw |
 | Estimate disclaimers | `Screens.kt` detail copy and amber card | Done on the detail screen only |
+| Calibration shown where the estimate is | `Screens.kt` `CalibrationStatusCard` on the BP and glucose detail screens | Done (2.16.2): the stored cuff/meter reference and a button to Calibration |
+| Offline BP/stress/sugar/HRV history | `0x55`, `JringHistorySync`, `RingDecoder.decodeSensorHistory` | Done (2.16.2), gated on `0x20` bit 83 |
 | Card quality badge | `VitalCardState`: glucose ESTIMATED / NEEDS_CALIBRATION, BP likewise | Done, but no expiry |
 | Health Connect export | `VitalsExporter` exports `BLOOD_SUGAR` and BP pairs | Exports ring estimates as `BloodGlucoseRecord` / `BloodPressureRecord`, raw. Kept as is by decision |
 | Health Connect import | `HealthConnectBodyImport` (weight, body composition) | No BP or glucose |
@@ -210,6 +306,9 @@ Independent of BP and glucose; listed so the "everything about this ring" pass i
      ring advertises.
    - **Caveat:** the bit order within a byte is still unconfirmed, so nothing may depend on these
      bits until a capture confirms it.
+   - **Update 2026-11-11:** the bit order is confirmed from the vendor code (LSB first), and the
+     `0x55` offline sensor history is implemented (see "What the vendor app does" above).
+     Offline SpO₂ (bit 81) and temperature (bit 10) followed in the same release.
 
 ## Order and size
 

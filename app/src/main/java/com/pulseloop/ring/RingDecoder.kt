@@ -51,12 +51,16 @@ class RingDecoder(private val clock: JringClock? = null) {
             0x11 -> listOf(decodeSleepTimeline(bytes))
             0x14 -> listOf(decodeLiveHeartRate(bytes, now))
             0x16 -> decodeHeartRateHistory(bytes)  // multi-packet protocol
-            0x20 -> listOf(decodeBandFunction(bytes))
+            0x20 -> decodeBandFunction(bytes)
             0x24 -> decodeCombinedSensor(bytes, now)  // 5 metrics in one packet
             0x27 -> listOf(RingDecodedEvent.HeartRateComplete(_timestamp = now))
             0x28 -> listOf(RingDecodedEvent.Spo2Complete(_timestamp = now))
             0x3F -> listOf(decodeSpo2Result(bytes, now))
             0x4B -> listOf(decodeBindNotify(bytes))  // ring-side bind/unbind handshake
+            0x55 -> decodeSensorHistory(bytes)  // offline BP/stress/sugar/HRV, 3× 15-min slots
+            0x39 -> decodeTemperatureHistory(bytes)  // offline skin temperature, 3× 5-min slots
+            0x40 -> decodeOxygenHistory(bytes)  // offline SpO₂, 15× 1-min readings
+            0xB9 -> listOf(RingDecodedEvent.HistorySyncProgress(stage = "day_unavailable"))
             0xF6 -> listOf(decodeFirmwareVersion(bytes))
             else -> listOf(RingDecodedEvent.Unknown(commandId = packet.commandId, raw = bytes))
         }
@@ -269,6 +273,97 @@ class RingDecoder(private val clock: JringClock? = null) {
         }
     }
 
+    // ── 0x55: Offline sensor history ──────────────────────────────────────
+
+    /**
+     * The ring's own every-15-minutes log of its estimates, from the vendor SDK's 0x55 branch
+     * (`BluetoothLeService`, `str3 == "55"` → `onGetAdvSensorOfflineData`):
+     *
+     *   [0] 0x55, [1..4] slot time (u32 LE, the ring's local-wall-clock epoch, see [JringClock]),
+     *   then three slots of five bytes at 5, 10, 15:
+     *   systolic, diastolic, stress, blood sugar (mmol/L × 10), HRV.
+     *   Slot n is 15 minutes after slot 0.
+     *
+     * The vendor app stores BP only when both halves are non-zero and every other value only when
+     * non-zero (`DupMainActivity.onGetAdvSensorOfflineData`), with no other change; so do we.
+     * These are the same figures the live 0x24 measurement returns, so they are estimates, and
+     * the UI labels them as such.
+     */
+    private fun decodeSensorHistory(bytes: ByteArray): List<RingDecodedEvent> {
+        if (bytes.size < 20) return listOf(unknown(0x55, bytes))
+        val base = ringDate(u32le(bytes, 1).toLong())
+        return buildList {
+            for (slot in 0 until 3) {
+                val o = 5 + slot * 5
+                val at = base.plusSeconds(slot * 15L * 60L)
+                val sys = bytes[o].toInt() and 0xFF
+                val dia = bytes[o + 1].toInt() and 0xFF
+                val stress = bytes[o + 2].toInt() and 0xFF
+                val sugar = bytes[o + 3].toInt() and 0xFF
+                val hrv = bytes[o + 4].toInt() and 0xFF
+                if (sys > 0 && dia > 0) {
+                    add(RingDecodedEvent.HistoryMeasurement(MeasurementKind.BLOOD_PRESSURE_SYSTOLIC, sys.toDouble(), at))
+                    add(RingDecodedEvent.HistoryMeasurement(MeasurementKind.BLOOD_PRESSURE_DIASTOLIC, dia.toDouble(), at))
+                }
+                if (stress > 0) add(RingDecodedEvent.HistoryMeasurement(MeasurementKind.STRESS, stress.toDouble(), at))
+                if (sugar > 0) add(RingDecodedEvent.HistoryMeasurement(MeasurementKind.BLOOD_SUGAR, (sugar / 10.0) * 18.016, at))
+                if (hrv > 0) add(RingDecodedEvent.HistoryMeasurement(MeasurementKind.HRV, hrv.toDouble(), at))
+            }
+            // A frame of empty slots still belongs to the stream: say so, so it isn't logged as
+            // `unknown` and exported in clear (AGENTS.md, diagnostics masking).
+            if (isEmpty()) add(RingDecodedEvent.HistorySyncProgress(stage = "sensor_history"))
+        }
+    }
+
+    // ── 0x39: Offline temperature ─────────────────────────────────────────
+
+    /**
+     * The vendor SDK's "39" branch → `onGetDataByDay(12, t, surface, body)`:
+     * `[1..4]` slot time (ring-local epoch), then three 5-minute slots of four bytes at 5, 9, 13:
+     * surface temperature (u16 LE, °C × 100) and body temperature (u16 LE, °C × 100).
+     *
+     * Only the surface value is stored, as [MeasurementKind.TEMPERATURE]: that is what the card
+     * shows for every other ring (skin temperature). The "body" figure is the ring's own model of
+     * core temperature, a second estimate on top of the first, and is left out. Out of 25–45 °C
+     * (0 included) means no reading.
+     */
+    private fun decodeTemperatureHistory(bytes: ByteArray): List<RingDecodedEvent> {
+        if (bytes.size < 20) return listOf(unknown(0x39, bytes))
+        val base = ringDate(u32le(bytes, 1).toLong())
+        return buildList {
+            for (slot in 0 until 3) {
+                val o = 5 + slot * 4
+                val surface = ((bytes[o].toInt() and 0xFF) or ((bytes[o + 1].toInt() and 0xFF) shl 8)) / 100.0
+                if (surface in 25.0..45.0) add(RingDecodedEvent.HistoryMeasurement(
+                    MeasurementKind.TEMPERATURE, surface, base.plusSeconds(slot * 300L),
+                ))
+            }
+            if (isEmpty()) add(RingDecodedEvent.HistorySyncProgress(stage = "temperature_history"))
+        }
+    }
+
+    // ── 0x40: Offline SpO₂ ────────────────────────────────────────────────
+
+    /**
+     * The vendor SDK's "40" branch → `onGetOxygenOfflineData(t, value)`: `[1..4]` slot time
+     * (ring-local epoch), then fifteen one-minute readings at bytes 5–19, one byte each, percent.
+     * The vendor keeps 1–100 (`FragmentMain`, type 13); we keep 70–100, the band used for every
+     * other ring's SpO₂, so a stray low byte can't read as a desaturation.
+     */
+    private fun decodeOxygenHistory(bytes: ByteArray): List<RingDecodedEvent> {
+        if (bytes.size < 20) return listOf(unknown(0x40, bytes))
+        val base = ringDate(u32le(bytes, 1).toLong())
+        return buildList {
+            for (i in 0 until 15) {
+                val v = bytes[5 + i].toInt() and 0xFF
+                if (v in 70..100) add(RingDecodedEvent.HistoryMeasurement(
+                    MeasurementKind.SPO2, v.toDouble(), base.plusSeconds(i * 60L),
+                ))
+            }
+            if (isEmpty()) add(RingDecodedEvent.HistorySyncProgress(stage = "oxygen_history"))
+        }
+    }
+
     // ── 0x3F: SpO₂ Result ─────────────────────────────────────────────────
 
     private fun decodeSpo2Result(bytes: ByteArray, now: Instant): RingDecodedEvent {
@@ -317,9 +412,16 @@ class RingDecoder(private val clock: JringClock? = null) {
 
     // ── 0x20: Capability Bitmask ─────────────────────────────────────────
 
-    private fun decodeBandFunction(bytes: ByteArray): RingDecodedEvent {
-        if (bytes.size < 2) return unknown(0x20, bytes)
-        return RingDecodedEvent.BandFunction(JringBandCapabilities(bytes.copyOfRange(1, bytes.size)))
+    private fun decodeBandFunction(bytes: ByteArray): List<RingDecodedEvent> {
+        if (bytes.size < 2) return listOf(unknown(0x20, bytes))
+        val caps = JringBandCapabilities(bytes.copyOfRange(1, bytes.size))
+        // A unit that sets bit 10 has a temperature log the app can read (0x39), so it gets the
+        // card; the family baseline leaves TEMPERATURE out because most of these rings don't.
+        val reported = buildSet { if (caps.hasTemperature) add(WearableCapability.TEMPERATURE) }
+        return listOfNotNull(
+            RingDecodedEvent.BandFunction(caps),
+            reported.takeIf { it.isNotEmpty() }?.let { RingDecodedEvent.SupportFunctions(it) },
+        )
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
