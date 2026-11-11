@@ -244,6 +244,12 @@ interface RingSyncEngine {
     fun setGoal(steps: Int)
     fun powerOff()
     fun factoryReset()
+    /**
+     * Ask the ring to reboot itself, if its vendor app has a verified command for it. Returns
+     * whether one was sent; a family without one returns false and "Restart ring" falls back to
+     * reconnecting only. Never implement this with a guessed opcode (AGENTS.md).
+     */
+    fun restartDevice(): Boolean = false
     /** Push user anthropometrics (age/sex/height/weight) so on-device BP/sugar/calorie
      *  algorithms have real inputs. No-op if unsupported. */
     fun setUserInfo(ageYears: Int, isMale: Boolean, heightCm: Int, weightKg: Int) {}

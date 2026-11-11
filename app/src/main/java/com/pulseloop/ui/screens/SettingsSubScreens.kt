@@ -2153,6 +2153,28 @@ fun WearableSettingsScreen(
     var showForgetRing by remember { mutableStateOf(false) }
     var resetting by remember { mutableStateOf(false) }
     var resetStatus by remember { mutableStateOf("") }
+    // Restart = drop the link and connect again (RingSyncCoordinator.restartRing). It is done when
+    // the ring has gone away and come back; the 45 s cap ends the spinner if it never returns.
+    var restarting by remember { mutableStateOf(false) }
+    var restartSawDrop by remember { mutableStateOf(false) }
+    val snackbar = com.pulseloop.ui.components.LocalAppSnackbar.current
+    LaunchedEffect(restarting, bleState.connectionState) {
+        if (!restarting) return@LaunchedEffect
+        if (bleState.connectionState != RingConnectionState.CONNECTED) {
+            restartSawDrop = true
+        } else if (restartSawDrop) {
+            restarting = false
+            snackbar?.show(tr("Ring restarted. Syncing now."))
+        }
+    }
+    LaunchedEffect(restarting) {
+        if (!restarting) return@LaunchedEffect
+        kotlinx.coroutines.delay(45_000)
+        if (restarting) {
+            restarting = false
+            snackbar?.show(tr("The ring didn't come back. Keep it near the phone and try again."))
+        }
+    }
 
     // Exact model preferred; falls back to the family / advertised-name heuristic.
     val wearableDisplayName = WearableModel.model(bleState.activeWearableModelID)?.displayName
@@ -2272,6 +2294,28 @@ fun WearableSettingsScreen(
                 Column(Modifier.padding(16.dp)) {
                     Text(tr("Ring management"), style = PulseType.title)
                     Spacer(Modifier.height(8.dp))
+                    Text(
+                        tr("Restart reboots the ring if it supports that, reconnects it, and sends it " +
+                            "its clock and monitoring settings again. Nothing is erased. Try it if " +
+                            "the ring stops recording or syncing."),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    PulseButton(PulseButtonStyle.Outlined,
+                        enabled = !restarting && !resetting && bleClient?.hasLastKnownRing == true,
+                        onClick = {
+                            restartSawDrop = false
+                            restarting = true
+                            coordinator?.restartRing()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(Icons.Filled.Refresh, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text(if (restarting) tr("Restarting…") else tr("Restart ring"))
+                    }
+                    Spacer(Modifier.height(16.dp))
                     Text(
                         tr("Forget unbinds the ring and removes it from the app so it can be paired " +
                             "elsewhere. The app stays connected automatically the rest of the time."),

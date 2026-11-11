@@ -63,6 +63,21 @@ Same lesson, different field: a name pattern is one convention, so keep it in on
 `modelForAdvertisedName` returns a card at all, and whether `ColmiSmartHealthCoordinator` accepts
 the name — and the two copies that used to exist drifted into the same bug.
 
+## Decompiled vendor apps stay out of git; jring's device modes come from one
+
+`decompiled-*/` is gitignored: a decompiled vendor app is the vendor's code, so read it locally and
+cite it, never commit it. `decompiled-jring-offical/` is JRing 2.0.8
+(`com.jaga.ibraceletplus.jyring`), decompiled with jadx 1.5.1, and does have Java sources (an
+older note calls it dex-only). Its SDK is `com.sxr.sdk.ble.keepfit` (`BluetoothLeService`,
+`IRemoteService`).
+
+Restart and factory reset for jring are the vendor's `setDeviceMode` (`0x0E` + an 8-byte key,
+`RingEncoder.makeDeviceModeCommand`). The mode numbers are confirmed by the vendor buttons that
+send them: 2 "Device off", 3 "Restart device", 4 "Factory reset" / "Reset device". "Restart ring"
+in Ring & sync sends mode 3 and then reconnects (`RingSyncEngine.restartDevice`). For a family
+without a verified reboot, it only reconnects. YCBT and LuckRing still have no reset; add one
+the same way, from their own decompiles.
+
 ## Colmi/Yawell OS-bonding is a hand-curated allowlist — not "match QRing exactly"
 
 **This is the one rule in this file most likely to get silently reverted by a future "generalize
