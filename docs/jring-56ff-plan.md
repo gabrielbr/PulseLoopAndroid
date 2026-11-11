@@ -78,6 +78,27 @@ as if it were an offset. Once someone calibrated, a 117/73 reading would have co
 Nothing displayed those fields, so no wrong number reached the screen; fixed in 2.16.2. The
 reference goes to the ring (`0x33`) and nowhere else.
 
+## Firmware (looked up 2026-11-11)
+
+The vendor app checks for firmware at
+`http://download.keeprapid.com/apps/smartband/keepfit/fwupdater/<en|zh>/<model>/update.json`
+(`Ota.java`, `CommonAttributes.fw_upgrade_xml`). `<model>` is the first 8 characters of the ring's
+firmware string. For the owner's ring (`003A002AV138`) that is `003A002A`. The manifest says:
+
+- **Current version:** `003A002AV138`. That is what the ring already runs, so there is no newer
+  firmware.
+- **File:** `fwrelease/003A002A/V138.bin`, 136,320 bytes. Its MD5 `3c797b1d…0ddf` matches the
+  manifest.
+- **Chip:** `chipType: "dialog"`, a Dialog Semiconductor (Renesas) BLE SoC.
+
+The image starts with a short header (`70 61`, with "1.138" in ASCII). After that it is
+**encrypted or compressed**: 7.99 bits/byte of entropy and no readable strings. So it can't be read
+for its BP or sugar algorithm without the decryption key, which the app doesn't carry: OTA sends
+the file as-is. A web search (2026-11-11) found no public reverse-engineering of this SDK
+(`com.sxr.sdk.ble.keepfit`), the app or this firmware.
+
+The binary was downloaded only to check it; it is not kept in the repo.
+
 ## What exists today
 
 | Piece | Where | State |
