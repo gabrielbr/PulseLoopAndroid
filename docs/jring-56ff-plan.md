@@ -107,6 +107,21 @@ PulseLoop's decoder (2026-11-11). Two changes came out of it:
 The rest are settings acknowledgements, ECG (bit 9, not set on the owner's ring), or watch-only
 features (dials, contacts, AI, Wi-Fi). There is nothing left to import.
 
+**Confirmed on the owner's ring (2.16.3 export, 2026-11-12).** Every new request was answered:
+- **Frames:** `0x39` 127, `0x40` 54 and `0x55` 85 frames carried data, and none decoded as
+  `unknown`.
+- **Order:** each day ran in the vendor's order (10 → 16 → 39 → 40 → 55 → 25).
+- **Full-day replies:** today's `0x40` stream ran up to an empty 23:45 frame, so the ring sends
+  the whole day, future slots included. That frame ended the leg at once, as designed.
+- **Workouts:** `0x25` answered one empty frame per day, because no workout was recorded in sport
+  mode. The slot layout is still unconfirmed.
+- **Late frames:** one `0x55` frame arrived 2 ms after its 23:45 frame. It was already in flight,
+  was decoded anyway, and is harmless because the import is idempotent.
+- **Background syncs:** this export also showed every background sync cut at about 15 s, before
+  the offline logs were reached. `RingSyncWorker` disconnected on a fixed timer, so it now holds
+  the link while `RingSyncEngine.historyPassRunning` is true, for up to 90 s more. The whole
+  chain for three days took about 50 s in the foreground.
+
 Imported since 2.16.2 as a third step per day in `JringHistorySync` (activity/sleep → HR → `0x55`),
 decoded by `RingDecoder.decodeSensorHistory`. Same rules as the vendor: BP only when both halves
 are non-zero, every other value only when non-zero.

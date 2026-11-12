@@ -250,6 +250,13 @@ interface RingSyncEngine {
      * reconnecting only. Never implement this with a guessed opcode (AGENTS.md).
      */
     fun restartDevice(): Boolean = false
+
+    /**
+     * Whether a multi-step history pass is still in flight, so the background worker can hold the
+     * link until it finishes instead of cutting it at a fixed time. Families that don't page their
+     * history report false and keep the worker's fixed window.
+     */
+    val historyPassRunning: Boolean get() = false
     /** Push user anthropometrics (age/sex/height/weight) so on-device BP/sugar/calorie
      *  algorithms have real inputs. No-op if unsupported. */
     fun setUserInfo(ageYears: Int, isMale: Boolean, heightCm: Int, weightKg: Int) {}

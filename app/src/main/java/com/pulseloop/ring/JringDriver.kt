@@ -281,6 +281,8 @@ class JringSyncEngine(
     // 0x0E device modes, from the vendor app (RingEncoder.makeDeviceModeCommand).
     override fun powerOff() { writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.POWER_OFF)) }
     override fun factoryReset() { writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.FACTORY_RESET)) }
+    override val historyPassRunning: Boolean get() = historySync.isRunning
+
     override fun restartDevice(): Boolean {
         writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.RESTART))
         return true
