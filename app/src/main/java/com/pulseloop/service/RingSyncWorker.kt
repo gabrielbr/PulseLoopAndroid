@@ -29,7 +29,10 @@ class RingSyncWorker(
 
     companion object {
         private const val WORK_NAME = "ring_background_sync"
-        private const val SYNC_TIMEOUT_SECONDS = 45L
+        private const val SYNC_TIMEOUT_SECONDS = 150L
+        /** How long past the fixed window to wait for a paged history pass to finish (jring: up to
+         *  six requests per day, three days on a fresh connection, measured at ~50 s). */
+        private const val HISTORY_PASS_EXTRA_MS = 90_000L
         private const val TAG = "RingSyncWorker"
 
         @Volatile
@@ -130,6 +133,16 @@ class RingSyncWorker(
                 // Let data stream in after connect, but yield ownership promptly if the app opens.
                 repeat(15) {
                     delay(1000L)
+                    if (isAppForeground()) return@withTimeout Result.success()
+                }
+                // A paged history pass (jring's per-day chain of offline logs) outlasts the fixed
+                // window: a 2026-11-12 export showed every background pass cut at ~15 s, before
+                // temperature, SpO₂, the sensor log or workouts were asked for. Hold the link
+                // while it runs, bounded.
+                var extra = 0L
+                while (bleClient.syncEngine?.historyPassRunning == true && extra < HISTORY_PASS_EXTRA_MS) {
+                    delay(1000L)
+                    extra += 1000L
                     if (isAppForeground()) return@withTimeout Result.success()
                 }
 
