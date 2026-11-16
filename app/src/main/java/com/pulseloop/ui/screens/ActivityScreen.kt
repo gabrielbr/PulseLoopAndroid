@@ -148,8 +148,16 @@ fun ActivityScreen(
         }
     }
 
+    // The workouts of the day on screen, not always today's: the day arrows move the whole tab,
+    // and a list fixed to today hid every past workout behind the history button.
     val todayStart = com.pulseloop.util.TimeUtil.startOfTodayLocal()
-    val todayWorkouts = remember(state.finishedWorkouts, todayStart) { state.finishedWorkouts.filter { it.startedAt >= todayStart } }
+    val dayStart = shownDayStart(state)
+    val isToday = dayStart == todayStart
+    val dayEnd = java.time.Instant.ofEpochMilli(dayStart).atZone(java.time.ZoneId.systemDefault())
+        .toLocalDate().plusDays(1).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+    val todayWorkouts = remember(state.finishedWorkouts, dayStart, dayEnd) {
+        state.finishedWorkouts.filter { it.startedAt in dayStart until dayEnd }
+    }
     val todayIdx = ((Calendar.getInstance().get(Calendar.DAY_OF_WEEK) - 1) + 6) % 7
     // recentDays is newest-first; index 0..6 = Monday..Sunday of this week's steps.
     val stepsByWeekday = weeklySteps(state, todayIdx)
@@ -196,7 +204,7 @@ fun ActivityScreen(
 
         item {
             Text(
-                tr("TODAY"),
+                if (isToday) tr("TODAY") else dayHeaderLabel(dayStart).uppercase(),
                 style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
             )
         }
@@ -215,8 +223,15 @@ fun ActivityScreen(
                     // Until the sessions have loaded the card keeps its size but says nothing, so
                     // "no workouts" never flashes for a day that has them.
                     val shown = Modifier.alpha(if (state.workoutsLoaded) 1f else 0f)
-                    Text(tr("No workouts recorded today"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = shown)
-                    Text(tr("Start one manually when your ring misses an activity."), fontSize = 12.sp, color = PulseColors.textMuted, modifier = shown)
+                    Text(
+                        if (isToday) tr("No workouts recorded today") else trf("No workouts recorded on {0}", dayHeaderLabel(dayStart)),
+                        fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = shown,
+                    )
+                    // On a past day the way in is Log Past Activity, not recording one now.
+                    Text(
+                        if (isToday) tr("Start one manually when your ring misses an activity.") else tr("Add one with Log Past Activity."),
+                        fontSize = 12.sp, color = PulseColors.textMuted, modifier = shown,
+                    )
                 }
             }
         } else {
