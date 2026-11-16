@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.calm.lookCard
 import com.pulseloop.ui.i18n.trf
 
 import com.pulseloop.ui.i18n.tr
@@ -249,11 +250,17 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
     val load = rememberReadinessLoad(db, Unit)
     val result = load.value
 
-    Column(Modifier.fillMaxSize()) {
-        com.pulseloop.ui.components.PulseTopBar(tr("Readiness"), onBack)
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // The new look (docs/new-look-plan.md, "Readiness"): calm bar, page, gutter, 720dp cap, Inter.
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
+    Column(Modifier.fillMaxSize().then(if (calm) Modifier.background(com.pulseloop.ui.calm.CalmColors.page) else Modifier)) {
+        if (calm) com.pulseloop.ui.calm.CalmTopBar(tr("Readiness"), onBack)
+        else com.pulseloop.ui.components.PulseTopBar(tr("Readiness"), onBack)
 
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .then(if (calm) Modifier.wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier)
+                .padding(horizontal = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             val score = result as? Readiness.Result.Score
@@ -266,7 +273,7 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                     centerText = score?.value?.toString() ?: if (load.loaded) "—" else "",
                 )
                 score?.let {
-                    Text(it.band.label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = bandColor(it.band))
+                    Text(it.band.label, style = if (calm) com.pulseloop.ui.calm.CalmType.sectionTitle else androidx.compose.ui.text.TextStyle(fontSize = 16.sp, fontWeight = FontWeight.SemiBold), color = bandColor(it.band))
                 }
                 if (com.pulseloop.service.Postpartum.active()) {
                     Text(
@@ -288,8 +295,10 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
             score?.let { ReadinessCopy.coverageNote(it) }?.let { note ->
                 Text(
                     note, fontSize = 14.sp, color = PulseColors.warning,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(4.dp))
-                        .dither(PulseColors.warning, 0.12f).padding(12.dp),
+                    // The new look's note is a plain raised block; the dither is the old look's.
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(if (calm) com.pulseloop.ui.calm.CalmShape.radius else 4.dp))
+                        .then(if (calm) Modifier.background(com.pulseloop.ui.calm.CalmColors.cardRaised) else Modifier.dither(PulseColors.warning, 0.12f))
+                        .padding(if (calm) 16.dp else 12.dp),
                 )
             }
 
@@ -297,27 +306,28 @@ fun ReadinessScreen(db: PulseLoopDatabase, onBack: () -> Unit) {
                 ContributorsCard(score.contributors.map { it.asScoreContributor() })
                 if (score.missing.isNotEmpty()) {
                     Text(
-                        tr("Not enough data yet: ") + score.missing.joinToString { it.title.lowercase() } + ".",
-                        fontSize = 12.sp, color = PulseColors.textMuted,
+                        tr("Not enough data yet: ") + score.missing.joinToString { t -> t.title.let { if (it.length > 1 && it[0].isUpperCase() && it[1].isUpperCase()) it else it.lowercase() } } + ".",
+                        fontSize = if (calm) 14.sp else 12.sp, color = com.pulseloop.ui.calm.Look.textMuted,
                     )
                 }
             }
 
             if (result is Readiness.Result.Withheld) {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
+                    Modifier.fillMaxWidth().lookCard(oldBorder = false).padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text(tr("Why there's no score today"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+                    Text(tr("Why there's no score today"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = com.pulseloop.ui.calm.Look.textMuted)
                     result.reasons.forEach { Text("• $it", fontSize = 14.sp, color = PulseColors.textSecondary) }
                 }
             }
 
             DataBehindScore(db, result)
 
-            Text(ReadinessCopy.DERIVED_FOOTER, fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(ReadinessCopy.DERIVED_FOOTER, fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
             Spacer(Modifier.height(24.dp))
         }
+    }
     }
 }
 
@@ -327,12 +337,14 @@ fun ContributorsCard(contributors: List<ScoreContributor>, title: String = tr("C
     if (contributors.isEmpty()) return
     var expanded by remember(contributors) { mutableStateOf<String?>(null) }
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)) {
+        val calm = com.pulseloop.ui.calm.Look.calm
+        if (calm) Text(title, style = com.pulseloop.ui.calm.CalmType.sectionTitle, color = com.pulseloop.ui.calm.Look.text, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+        else Text(title, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textMuted)
+        Column(Modifier.fillMaxWidth().lookCard(oldBorder = false)) {
             contributors.forEachIndexed { i, c ->
                 ContributorRow(c, expanded == c.title) { expanded = if (expanded == c.title) null else c.title }
                 if (i < contributors.lastIndex) {
-                    Box(Modifier.fillMaxWidth().height(1.dp).background(PulseColors.borderSubtle))
+                    Box(Modifier.fillMaxWidth().padding(horizontal = if (calm) 16.dp else 0.dp).height(1.dp).background(com.pulseloop.ui.calm.Look.border))
                 }
             }
         }
@@ -349,13 +361,13 @@ private fun ContributorRow(c: ScoreContributor, expanded: Boolean, onTap: () -> 
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(c.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+            Text(c.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = com.pulseloop.ui.calm.Look.text, modifier = Modifier.weight(1f))
             Text(c.band.label, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = bandColor(c.band))
         }
         ProgressBar(c.score / 100f, bandColor(c.band))
-        Text(c.detail, fontSize = 12.sp, color = PulseColors.textSecondary)
+        Text(c.detail, fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
         if (expanded) {
-            Text(c.explanation, fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.padding(top = 4.dp))
+            Text(c.explanation, fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary, modifier = Modifier.padding(top = 4.dp))
         }
     }
 }
@@ -439,14 +451,14 @@ private fun DataBehindScore(db: PulseLoopDatabase, result: Readiness.Result?) {
         value = runCatching { com.pulseloop.service.ReadinessRepository.loadInputs(db) }.getOrNull()
     }
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
+        Modifier.fillMaxWidth().lookCard(oldBorder = false)
             .clickable(role = Role.Button, onClickLabel = if (open) tr("Hide") else tr("Show")) { open = !open }
             .semantics { stateDescription = if (open) tr("Expanded") else tr("Collapsed") }
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Row(Modifier.heightIn(min = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(tr("Data behind this score"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+            Text(tr("Data behind this score"), fontSize = 14.sp, fontWeight = FontWeight.Medium, color = com.pulseloop.ui.calm.Look.text, modifier = Modifier.weight(1f))
             Text(if (open) tr("Hide") else tr("Show"), fontSize = 14.sp, color = PulseColors.accent)
         }
         if (open) {

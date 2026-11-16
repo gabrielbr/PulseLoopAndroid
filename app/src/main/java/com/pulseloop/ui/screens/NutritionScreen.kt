@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.calm.lookCard
 import com.pulseloop.ui.i18n.trf
 import com.pulseloop.ui.components.PulseButtonStyle
 import com.pulseloop.ui.components.PulseButton
@@ -123,20 +124,28 @@ fun NutritionScreen(
         }
     }
 
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // The new look (docs/new-look-plan.md, "Nutrition"): calm bar, page, gutter, 720dp cap, Inter.
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
     Scaffold(
-        containerColor = PulseColors.background,
+        containerColor = com.pulseloop.ui.calm.Look.page,
         // Insets are already applied by the route wrapper (see SettingsSubScreen).
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
-            if (!asTab) com.pulseloop.ui.components.PulseTopBar(title = tr("Nutrition"), onBack = onBack)
+            if (!asTab) {
+                if (calm) com.pulseloop.ui.calm.CalmTopBar(tr("Nutrition"), onBack)
+                else com.pulseloop.ui.components.PulseTopBar(title = tr("Nutrition"), onBack = onBack)
+            }
         },
     ) { padding ->
         LazyColumn(
-            Modifier.fillMaxSize().padding(padding),
+            Modifier.fillMaxSize().padding(padding)
+                .then(if (calm) Modifier.wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier),
             verticalArrangement = Arrangement.spacedBy(12.dp),
             // As a tab, the last card scrolls clear of the Actions button.
             contentPadding = PaddingValues(
-                start = 16.dp, top = 16.dp + topBarPadding, end = 16.dp,
+                start = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp, top = 16.dp + topBarPadding,
+                end = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
                 bottom = if (asTab) 16.dp + bottomBarPadding else 16.dp,
             ),
         ) {
@@ -158,13 +167,14 @@ fun NutritionScreen(
                 val hasCalorieGoal = goal?.intakeCalories != null
                 val goalCal = goal?.intakeCalories ?: 2000.0
                 val pct = if (goalCal > 0) (totalCal / goalCal).coerceAtMost(1.0) else 0.0
-                Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
+                Box(Modifier.fillMaxWidth().lookCard(oldBorder = false)) {
                     // Invisible rather than absent while loading, so the card keeps its height.
                     Column(
-                        Modifier.padding(16.dp).then(if (dayLoaded && goalLoaded) Modifier else Modifier.alpha(0f)),
+                        Modifier.padding(if (calm) 20.dp else 16.dp).then(if (dayLoaded && goalLoaded) Modifier else Modifier.alpha(0f)),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Text("${totalCal.roundToInt()} kcal", fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        if (calm) Text(trf("{0} kcal", totalCal.roundToInt()), style = com.pulseloop.ui.calm.CalmType.score, color = com.pulseloop.ui.calm.CalmColors.text)
+                        else Text("${totalCal.roundToInt()} kcal", fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         Text(
                             if (hasCalorieGoal) trf("of {0}", goalCal.roundToInt())
                             else trf("No goal set · {0} is a typical day", goalCal.roundToInt()),
@@ -176,7 +186,7 @@ fun NutritionScreen(
                             progress = { pct.toFloat() },
                             modifier = Modifier.fillMaxWidth().height(8.dp),
                             color = PulseColors.calories,
-                            trackColor = PulseColors.cardSoft,
+                            trackColor = if (calm) com.pulseloop.ui.calm.CalmColors.cardRaised else PulseColors.cardSoft,
                         )
                         Spacer(Modifier.height(8.dp))
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -272,17 +282,20 @@ fun NutritionScreen(
                 val typeMeals = meals.filter { it.mealTypeRaw == type }
                 if (typeMeals.isNotEmpty()) {
                     item {
-                        Text(tr(type.replaceFirstChar { it.uppercase() }), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PulseColors.textSecondary)
+                        if (calm) Text(tr(type.replaceFirstChar { it.uppercase() }), style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.CalmColors.text, modifier = Modifier.padding(top = 8.dp))
+                        else Text(tr(type.replaceFirstChar { it.uppercase() }), fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = PulseColors.textSecondary)
                     }
                     items(typeMeals, key = { it.id }) { meal ->
-                        Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = PulseColors.card)) {
-                            Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.fillMaxWidth().lookCard(oldBorder = false)) {
+                            Row(Modifier.padding(start = if (calm) 16.dp else 12.dp, top = 12.dp, bottom = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(meal.name, fontWeight = FontWeight.Medium)
-                                    Text("${meal.calories.roundToInt()} kcal · P${meal.proteinG.roundToInt()} C${meal.carbsG.roundToInt()} F${meal.fatG.roundToInt()}", fontSize = 12.sp, color = PulseColors.textMuted)
+                                    Text(meal.name, fontWeight = FontWeight.Medium, color = com.pulseloop.ui.calm.Look.text)
+                                    Text("${meal.calories.roundToInt()} kcal · P${meal.proteinG.roundToInt()} C${meal.carbsG.roundToInt()} F${meal.fatG.roundToInt()}", fontSize = if (calm) 14.sp else 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
                                 }
                                 IconButton(onClick = { mealToDelete = meal }) {
-                                    Icon(Icons.Filled.Delete, trf("Delete {0}", meal.name), tint = PulseColors.danger, modifier = Modifier.size(20.dp))
+                                    // Quiet in the new look: a red bin on every meal shouted about a rare action. The
+                                    // confirm dialog keeps the red.
+                                    Icon(Icons.Filled.Delete, trf("Delete {0}", meal.name), tint = if (calm) com.pulseloop.ui.calm.CalmColors.textMuted else PulseColors.danger, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }
@@ -291,6 +304,7 @@ fun NutritionScreen(
             }
 
         }
+    }
     }
 
     mealToDelete?.let { meal ->
@@ -735,15 +749,13 @@ private fun NextMealCard(
     onLog: () -> Unit,
     onDiscuss: (() -> Unit)?,
 ) {
-    Card(
-        Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = PulseColors.card),
-        // Mint is for what's tapped: the card itself isn't, so its frame is the quiet one.
-        border = androidx.compose.foundation.BorderStroke(1.dp, PulseColors.borderSubtle),
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // Mint is for what's tapped: the card itself isn't, so its frame is the quiet one.
+    Box(Modifier.fillMaxWidth().lookCard()) {
+        Column(Modifier.padding(if (calm) 20.dp else 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The new look names the card as its heading, in sentence case; the slot follows it.
+            if (calm) Text(trf("Next meal idea · {0}", tr(idea.slot.replaceFirstChar { it.uppercase() })), style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.CalmColors.text)
+            else Text(trf("NEXT MEAL IDEA · {0}", idea.slot.uppercase()), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
             if (idea.items.isEmpty()) {
                 Text(idea.note ?: "", fontSize = 14.sp, color = PulseColors.textPrimary)
             } else {

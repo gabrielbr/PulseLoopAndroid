@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.calm.lookCard
 import com.pulseloop.ui.i18n.trf
 import com.pulseloop.ui.components.PulseButtonStyle
 import com.pulseloop.ui.components.PulseButton
@@ -103,7 +104,8 @@ internal fun Section(
     var open by androidx.compose.runtime.saveable.rememberSaveable(title) { mutableStateOf(summary == null) }
     val collapsible = summary != null
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
+        Modifier.fillMaxWidth().then(Modifier.lookCard(oldBorder = false))
+            .padding(if (com.pulseloop.ui.calm.Look.calm) 20.dp else 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         content = {
             if (collapsible) {
@@ -114,8 +116,8 @@ internal fun Section(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(title, style = com.pulseloop.ui.theme.PulseType.title, color = PulseColors.textPrimary)
-                        if (!open) Text(summary!!, fontSize = 12.sp, color = PulseColors.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text(title, style = if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.CalmType.title else com.pulseloop.ui.theme.PulseType.title, color = com.pulseloop.ui.calm.Look.text)
+                        if (!open) Text(summary!!, fontSize = if (com.pulseloop.ui.calm.Look.calm) 14.sp else 12.sp, color = com.pulseloop.ui.calm.Look.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                     val turn by androidx.compose.animation.core.animateFloatAsState(
                         if (open) 180f else 0f,
@@ -138,7 +140,9 @@ internal fun Section(
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) { content() }
                 }
             } else {
-                Text(title.uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+                // In the new look the section's name is its heading, in sentence case.
+                if (com.pulseloop.ui.calm.Look.calm) Text(title, style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.Look.text)
+                else Text(title.uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 content()
             }
         },
@@ -146,11 +150,11 @@ internal fun Section(
 }
 
 @Composable
-internal fun Fact(label: String, value: String, note: String? = null, color: Color = PulseColors.textPrimary) {
+internal fun Fact(label: String, value: String, note: String? = null, color: Color = com.pulseloop.ui.calm.Look.text) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
         Column(Modifier.weight(1f)) {
-            Text(label, fontSize = 14.sp, color = PulseColors.textSecondary)
-            note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
+            Text(label, fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
+            note?.let { Text(it, fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted) }
         }
         // Bounded: a translated value ("Moderada · 3h 20m") must not squeeze the label column.
         Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = color, textAlign = TextAlign.End, modifier = Modifier.widthIn(max = 160.dp))
@@ -201,12 +205,12 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
     }
     var restUntil by remember { mutableStateOf(RestMode.until(context)) }
 
-    Column(Modifier.fillMaxSize().background(PulseColors.background)) {
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // The new look (docs/new-look-plan.md, "My Health"): calm bar, page, gutter, 720dp cap, Inter.
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
+    Column(Modifier.fillMaxSize().background(com.pulseloop.ui.calm.Look.page)) {
         val shareScope = rememberCoroutineScope()
-        com.pulseloop.ui.components.PulseTopBar(
-            title = tr("My Health"),
-            onBack = onBack,
-            actions = {
+        val shareAction: @Composable RowScope.() -> Unit = {
                 IconButton(
                     onClick = {
                         shareScope.launch {
@@ -222,13 +226,14 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                             }
                         }
                     },
-                ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, tr("Share my week"), tint = PulseColors.textSecondary) }
-            },
-        )
+                ) { Icon(androidx.compose.material.icons.Icons.Filled.Share, tr("Share my week"), tint = com.pulseloop.ui.calm.Look.textSecondary) }
+        }
+        if (calm) com.pulseloop.ui.calm.CalmTopBar(tr("My Health"), onBack, shareAction)
+        else com.pulseloop.ui.components.PulseTopBar(title = tr("My Health"), onBack = onBack, actions = shareAction)
         // Lazy: each section composes as it scrolls in, instead of every chart and DB read at once.
         androidx.compose.foundation.lazy.LazyColumn(
-            Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            if (calm) Modifier.fillMaxSize().wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             val s = snap
@@ -263,7 +268,7 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                         s.areas.forEach { a ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(a.title, style = com.pulseloop.ui.theme.PulseType.title, color = PulseColors.textPrimary)
+                                    Text(a.title, style = if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.CalmType.title else com.pulseloop.ui.theme.PulseType.title, color = com.pulseloop.ui.calm.Look.text)
                                     Text(a.detail, fontSize = 12.sp, color = PulseColors.textSecondary)
                                 }
                                 Text(a.rating.label, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = ratingColor(a.rating), textAlign = TextAlign.End, maxLines = 2, modifier = Modifier.widthIn(max = 120.dp))
@@ -281,12 +286,13 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                 item {
                     Text(
                         tr("Estimates from your ring compared with your own recent normal, not medical measurements."),
-                        fontSize = 14.sp, color = PulseColors.textSecondary,
+                        fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary,
                     )
                 }
                 item { Spacer(Modifier.height(24.dp)) }
             }
         }
+    }
     }
 }
 
@@ -301,14 +307,16 @@ private fun RadarEntryRow(r: SymptomRadar.Result?, restUntil: java.time.LocalDat
         else -> r.level.label
     } + if (restUntil != null) " · " + tr("Rest Mode on") else ""
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen).padding(vertical = 8.dp),
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).lookCard()
+            .clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen).padding(20.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(tr("Symptom Radar"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(line, fontSize = 14.sp, color = PulseColors.textSecondary)
+            // Only shown in the new look (MyHealthScreen), so it speaks it.
+            Text(tr("Symptom Radar"), style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.CalmColors.text)
+            Text(line, style = com.pulseloop.ui.calm.CalmType.bodySmall, color = com.pulseloop.ui.calm.CalmColors.textSecondary)
         }
-        com.pulseloop.ui.components.Chevron()
+        com.pulseloop.ui.components.Chevron(tint = com.pulseloop.ui.calm.CalmColors.textSecondary)
     }
 }
 
@@ -638,15 +646,15 @@ private const val INHALE_MS = 4_000L
 @Composable
 fun MyHealthEntryCard(title: String, subtitle: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-            .clickable(role = Role.Button, onClick = onClick).padding(16.dp),
+        Modifier.fillMaxWidth().then(Modifier.lookCard(oldBorder = false))
+            .clickable(role = Role.Button, onClick = onClick).padding(if (com.pulseloop.ui.calm.Look.calm) 20.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(subtitle, fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(title, fontSize = 16.sp, fontWeight = if (com.pulseloop.ui.calm.Look.calm) FontWeight.SemiBold else FontWeight.Bold, color = com.pulseloop.ui.calm.Look.text)
+            Text(subtitle, fontSize = if (com.pulseloop.ui.calm.Look.calm) 14.sp else 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
         }
-        com.pulseloop.ui.components.Chevron()
+        com.pulseloop.ui.components.Chevron(tint = com.pulseloop.ui.calm.Look.textMuted)
     }
 }
 
