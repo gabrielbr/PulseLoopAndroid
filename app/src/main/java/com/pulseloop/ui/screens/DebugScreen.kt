@@ -218,7 +218,7 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text(tr("Try the new look"), style = MaterialTheme.typography.bodyMedium)
-                            Text(tr("Screens that have moved to it so far: Symptom Radar."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(tr("Screens that have moved to it so far: Today, Symptom Radar."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Switch(checked = com.pulseloop.ui.calm.NewLook.on, onCheckedChange = null)
                     }

@@ -53,3 +53,21 @@ couldn't reach that repo, so it is recorded here until it is moved there.
   biometrics under strain, and "Recently": the last 35 days as a timeline
   (`SymptomRadar.history`, computed as of each day, so a day never reads nights after it). With
   the new look on, My Health shows one row that opens it instead of the inline section.
+- **Today** (`ui/screens/CalmToday.kt`, wired in `TodayScreen` behind the switch). The owner chose
+  an Oura-style restructure (2026-11-16), not a restyle of the grid:
+  - Readiness leads as one statement: the number (`CalmType.score`, 40sp), its band and the
+    sentence that explains it. Tap opens Readiness.
+  - Sleep and Activity follow as two score rows in one card (number coloured by band, the band's
+    word beside it, so colour is never the only signal). Customize cards still decides whether
+    each shows; while editing they join the list below so they can be hidden.
+  - The coach's brief or the unusual-night alert, then the one-line pieces (detected workout,
+    programs, Rest Mode) and the evening cards, as before.
+  - Every other card is one full-width row: name and verdict, the value, and a small trend line
+    (`CalmSparkline`, the last 60 readings, hidden from TalkBack because the value says it).
+    Nutrition and Drinks keep their one-tap "+ Log meal" / "+ drink" so no common action gains
+    a tap. Estimates keep their "Estimated from heart rate" note.
+  - `CalmTypography` gives the whole tab Inter, including the shared pieces not yet converted.
+
+Still in the old style inside the new Today (convert with their own screens): the program chips,
+Rest Mode line, bedtime, food and tag cards, the accuracy-check banner and the Customize controls.
+
