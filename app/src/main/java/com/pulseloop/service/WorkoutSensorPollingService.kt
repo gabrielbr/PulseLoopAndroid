@@ -6,7 +6,8 @@ import kotlinx.coroutines.*
 
 /**
  * Ported from [WorkoutSensorPollingService] in WorkoutSensorPollingService.swift.
- * Periodically polls the ring for HR (~60s) and SpO2 (~5min) during a workout.
+ * Periodically polls the ring for HR (~60s) and SpO2 (~5min) during a workout, each only while no
+ * workout heart-rate stream is running.
  */
 class WorkoutSensorPollingService(
     private val coordinator: RingSyncCoordinator,
@@ -52,7 +53,10 @@ class WorkoutSensorPollingService(
                     nextHRPoll = System.currentTimeMillis() + if (didRead) hrIntervalMs else disconnectedRetryMs
                 }
 
-                if (!isPolling && now >= nextSpO2Poll) {
+                // Not while the workout's heart-rate stream runs: the ring has one optical
+                // sensor, so each SpO2 reading stops the stream for up to a minute, every five
+                // minutes. Neither the vendor's run screen nor a watch measures SpO2 mid-workout.
+                if (!isPolling && now >= nextSpO2Poll && !coordinator.workoutHRActive) {
                     val didRead = poll("spo2") { coordinator.measureSpO2() }
                     nextSpO2Poll = System.currentTimeMillis() + if (didRead) spo2IntervalMs else disconnectedRetryMs
                 }

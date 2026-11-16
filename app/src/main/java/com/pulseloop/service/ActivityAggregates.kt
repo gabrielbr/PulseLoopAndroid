@@ -34,6 +34,8 @@ object ActivityAggregates {
         } else null
         val distanceMeters = resolveDistanceMeters(session, acceptedCount, routeDistance)
 
+        val hrSamples = hrRows.map { WorkoutHeart.Sample(it.timestamp, it.value) }
+        val heart = WorkoutHeart.summary(hrSamples, end, profileEntity?.age)
         val calories = WorkoutMetricsEngine.calories(
             type = session.type,
             durationSeconds = duration,
@@ -44,9 +46,11 @@ object ActivityAggregates {
         return session.copy(
             calories = calories,
             distanceMeters = distanceMeters,
-            avgHeartRate = hrRows.map { it.value }.average0(),
-            maxHeartRate = hrRows.maxOfOrNull { it.value },
-            minHeartRate = hrRows.minOfOrNull { it.value },
+            // Weighted by time (WorkoutHeart): a second-by-second stream must not outvote the
+            // ring's log for the rest of the session.
+            avgHeartRate = heart?.average,
+            maxHeartRate = heart?.max,
+            minHeartRate = WorkoutHeart.weighted(hrSamples, end).minOfOrNull { it.bpm },
             avgSpO2 = spo2Rows.map { it.value }.average0(),
             latestSpO2 = spo2Rows.lastOrNull()?.value,
             gpsPointCount = acceptedCount,

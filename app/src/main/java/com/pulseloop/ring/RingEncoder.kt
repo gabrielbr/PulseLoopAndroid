@@ -115,6 +115,30 @@ object RingEncoder {
     }
     fun makeHeartRateStartCommand(): ByteArray = hexToBytes("14b4000000000000000000000000000000000000")
     fun makeHeartRateStopCommand(): ByteArray = hexToBytes("1500000000000000000000000000000000000000")
+
+    /**
+     * Continuous heart rate for a workout: the vendor's `setHeartRateMode(true, 0, mode)`
+     * (`RunRecordActivity.startHeartrateMode`). Bytes 1-4 are a duration in seconds, little-endian,
+     * and 0 means "until stopped". Byte 5 is the sport mode (1 walk, 2 run, 3 cycle, 4 climb,
+     * 5 golf/swim). [makeHeartRateStartCommand]'s `b4` is the vendor's 180-second spot check
+     * (`FragmentMain.startTestHeart`, `CommonAttributes.sport_situps` = 180), which is why a workout
+     * started with it lost its heart rate after three minutes.
+     */
+    fun makeWorkoutHeartRateStartCommand(sportMode: Int): ByteArray =
+        ByteArray(20).also { it[0] = 0x14; it[5] = sportMode.toByte() }
+
+    /** Ends [makeWorkoutHeartRateStartCommand]: the vendor's `setHeartRateMode(false, 0, mode)`. */
+    fun makeWorkoutHeartRateStopCommand(sportMode: Int): ByteArray =
+        ByteArray(20).also { it[0] = 0x15; it[5] = sportMode.toByte() }
+
+    /** The vendor's sport mode for a PulseLoop activity type (`RunRecordActivity`'s mapping; any
+     *  other type gets its default, walk). */
+    fun jringSportMode(activityType: String): Int = when (activityType) {
+        "run" -> 2
+        "cycle" -> 3
+        "hike" -> 4
+        else -> 1
+    }
     /**
      * One-shot combined-sensor measurement (0x23). byte[1] is a *mode* selector, not a generic
      * start flag (vendor `setBloodPressureMode`/`setSpoMode` write 0x23 with a different byte[1]):

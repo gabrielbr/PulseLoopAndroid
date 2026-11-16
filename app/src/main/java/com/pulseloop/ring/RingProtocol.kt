@@ -86,6 +86,10 @@ data class JringBandCapabilities(val bytes: ByteArray) {
     val hasOxygenOfflineHistory: Boolean get() = bit(81)
     val hasPressureHistory: Boolean get() = bit(83)
 
+    /** `FUNCTION_SPORT_FROM_APP` (`DupMainActivity`, zArr[56]): the ring runs a phone-started
+     *  workout with continuous heart rate. Without it the vendor shows no heart rate on a run. */
+    val supportsSportFromApp: Boolean get() = bit(56)
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is JringBandCapabilities) return false

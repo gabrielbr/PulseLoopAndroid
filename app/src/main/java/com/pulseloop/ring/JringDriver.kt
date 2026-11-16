@@ -201,6 +201,10 @@ class JringSyncEngine(
                 historySync.oxygenHistory = event.capabilities.hasOxygenOfflineHistory
                 historySync.temperatureHistory = event.capabilities.hasTemperature
                 historySync.workoutHistory = true
+                val pendingType = workoutActivityType
+                if (pendingType != null && workoutSportMode == null && event.capabilities.supportsSportFromApp) {
+                    startWorkoutHeartRate(pendingType)
+                }
             }
             else -> {}
         }
@@ -221,6 +225,39 @@ class JringSyncEngine(
 
     override fun startHeartRate() {
         writer?.enqueue(encoder.makeHeartRateStartCommand())
+    }
+
+    /** The sport mode a running workout stream was started with, or null when none is. */
+    private var workoutSportMode: Int? = null
+    /** The running workout's type, kept so a `0x20` reply that lands after the start (a reconnect
+     *  mid-workout restarts the stream before the ring has re-sent its feature bits) can still
+     *  move it onto the continuous stream. */
+    private var workoutActivityType: String? = null
+
+    /**
+     * Workout heart rate the way the vendor's run screen does it: continuous, in the sport's mode,
+     * when the ring sets `FUNCTION_SPORT_FROM_APP` (bit 56). A ring that hasn't answered `0x20`, or
+     * doesn't set the bit, keeps the old 180-second start: the vendor shows no heart rate at all
+     * on such a ring, so there is nothing better to match.
+     */
+    override fun startWorkoutHeartRate(activityType: String) {
+        workoutActivityType = activityType
+        if (bandCapabilities?.supportsSportFromApp == true) {
+            val mode = encoder.jringSportMode(activityType)
+            workoutSportMode = mode
+            writer?.enqueue(encoder.makeWorkoutHeartRateStartCommand(mode))
+        } else {
+            workoutSportMode = null
+            startHeartRate()
+        }
+    }
+
+    override fun stopWorkoutHeartRate() {
+        workoutActivityType = null
+        val mode = workoutSportMode ?: return stopHeartRate()
+        workoutSportMode = null
+        writer?.enqueue(encoder.makeWorkoutHeartRateStopCommand(mode))
+        writer?.enqueue(encoder.makeAutomaticHeartRateCommand(enabled = true, cadenceMinutes = 30))
     }
 
     override fun stopHeartRate() {
