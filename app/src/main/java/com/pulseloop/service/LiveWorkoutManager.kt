@@ -52,6 +52,13 @@ class LiveWorkoutManager(
 
     init {
         polling.onPollCompleted = { refreshNotification() }
+        // A workout left running by a process that died (update install, memory, crash) is
+        // closed at its last recorded moment, so it shows on the Activity tab (WorkoutRecovery).
+        val upAt = System.currentTimeMillis()
+        scope.launch {
+            runCatching { WorkoutRecovery.recover(db, startedBefore = upAt) }
+                .onFailure { android.util.Log.w("LiveWorkoutManager", "Workout recovery failed: ${it.message}") }
+        }
         // Notification actions (pause/resume/finish) arrive through the bus — the service has no
         // access to the real workout logic, so it posts and we apply (iOS App Group pattern).
         scope.launch {
