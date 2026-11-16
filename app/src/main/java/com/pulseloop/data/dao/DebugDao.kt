@@ -14,6 +14,7 @@ interface DebugDao {
         SELECT 'measurements' AS name, count(*) AS count FROM measurements
         UNION ALL SELECT 'activity_daily', count(*) FROM activity_daily
         UNION ALL SELECT 'sleep_sessions', count(*) FROM sleep_sessions
+        UNION ALL SELECT 'activity_sessions', count(*) FROM activity_sessions
         UNION ALL SELECT 'devices', count(*) FROM devices
         UNION ALL SELECT 'raw_packets', count(*) FROM raw_packets
         UNION ALL SELECT 'wearable_logs', count(*) FROM wearable_logs
@@ -24,6 +25,9 @@ interface DebugDao {
         SELECT * FROM (SELECT 'measurements' AS tableName, timestamp, kindRaw || ': ' || value || ' ' || unit || ' · ' || sourceRaw AS detail FROM measurements
         UNION ALL SELECT 'activity_daily', updatedAt, steps || ' steps · ' || source FROM activity_daily
         UNION ALL SELECT 'sleep_sessions', startAt, totalMinutes || ' minutes · ' || sourceRaw FROM sleep_sessions
+        UNION ALL SELECT 'activity_sessions', startedAt, type || ' · ' || statusRaw || ' · ' ||
+            COALESCE(CAST((endedAt - startedAt) / 60000 AS INTEGER) || ' min', 'no end') ||
+            ' · HR ' || COALESCE(CAST(avgHeartRate AS INTEGER), '—') FROM activity_sessions
         UNION ALL SELECT 'devices', updatedAt, deviceTypeRaw || ' · ' || stateRaw || ' · ' || COALESCE(firmwareVersion, 'firmware unknown') FROM devices
         ) WHERE tableName = :table
         ORDER BY timestamp DESC LIMIT 40
