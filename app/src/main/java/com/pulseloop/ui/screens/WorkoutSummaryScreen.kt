@@ -63,6 +63,9 @@ import com.pulseloop.settings.UnitSystem
 import com.pulseloop.ui.components.ActivityMeta
 import com.pulseloop.ui.components.WorkoutMapView
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.calm.Look
+import com.pulseloop.ui.calm.lookCard
+import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -90,6 +93,9 @@ fun WorkoutSummaryScreen(
     // Separate from `session == null`, which is also the state while the first load runs.
     var loaded by remember { mutableStateOf(false) }
     var points by remember { mutableStateOf<List<ActivityGpsPointEntity>>(emptyList()) }
+    var hrSamples by remember { mutableStateOf<List<com.pulseloop.service.WorkoutHeart.Sample>>(emptyList()) }
+    var profile by remember { mutableStateOf<com.pulseloop.data.entity.UserProfileEntity?>(null) }
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     var confirmDelete by remember { mutableStateOf(false) }
     var editing by remember { mutableStateOf(false) }
     // Set when applyEdit refuses the save, so the sheet says so instead of silently staying open.
@@ -108,12 +114,16 @@ fun WorkoutSummaryScreen(
                 .filter { it.accepted && it.timestamp in loaded.startedAt..end }
                 .sortedBy { it.timestamp }
         }
+        hrSamples = if (loaded == null) emptyList() else db.measurementDao()
+            .range(com.pulseloop.ring.MeasurementKind.HEART_RATE.name, loaded.startedAt, loaded.endedAt ?: System.currentTimeMillis())
+            .map { com.pulseloop.service.WorkoutHeart.Sample(it.timestamp, it.value) }
+        profile = db.userProfileDao().get()
     }
 
     LaunchedEffect(sessionId) { reload(); loaded = true }
 
     val s = session ?: run {
-        if (loaded) MissingWorkout(onBack) else Box(Modifier.fillMaxSize().background(PulseColors.background))
+        if (loaded) MissingWorkout(onBack) else Box(Modifier.fillMaxSize().background(Look.page))
         return
     }
     // Duration excludes pauses and is clamped at 0 (iOS clamps in ActivityMeta.duration's
@@ -122,7 +132,8 @@ fun WorkoutSummaryScreen(
 
     val is24h = android.text.format.DateFormat.is24HourFormat(context)
 
-    Column(Modifier.fillMaxSize().background(PulseColors.background)) {
+    com.pulseloop.ui.calm.CalmTypography(enabled = Look.calm) {
+    Column(Modifier.fillMaxSize().background(Look.page)) {
     // The shared pushed-screen bar (was a hand-rolled row of circles): Back, then the screen's
     // own actions on the trailing edge.
     com.pulseloop.ui.components.PulseTopBar(title = tr("Workout"), onBack = onBack) {
@@ -146,34 +157,48 @@ fun WorkoutSummaryScreen(
                 IconButton(onClick = { editing = true }) { Icon(Icons.Filled.Edit, tr("Edit workout"), tint = PulseColors.textSecondary) }
                 IconButton(onClick = { confirmDelete = true }) { Icon(Icons.Filled.Delete, tr("Delete workout"), tint = PulseColors.danger) }
     }
+    val corrections = rememberAccuracyCorrections()
+    val figures = remember(s, hrSamples, profile, corrections) { workoutFigures(s, durationSec, hrSamples, profile, corrections) }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Which workout, then the tabs. Left-aligned and quiet: the figures below are the point.
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Box(
                     // Decoration, not a tap target: no mint.
-                    Modifier.size(72.dp).clip(CircleShape).dither(PulseColors.textSecondary, 0.18f),
+                    Modifier.size(48.dp).clip(CircleShape).dither(PulseColors.textSecondary, 0.18f),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(ActivityMeta.icon(s.type), null, tint = PulseColors.textPrimary, modifier = Modifier.size(32.dp))
+                    Icon(ActivityMeta.icon(s.type), null, tint = Look.text, modifier = Modifier.size(24.dp))
                 }
-                Text(ActivityMeta.label(s.type), fontSize = 24.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                Text(dateRange(s, is24h), fontSize = 14.sp, color = PulseColors.textMuted)
+                Column {
+                    Text(ActivityMeta.label(s.type), style = androidx.compose.material3.MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp, fontWeight = FontWeight.SemiBold), color = Look.text)
+                    Text(dateRange(s, is24h), style = androidx.compose.material3.MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp), color = Look.textSecondary)
+                }
             }
         }
-        item { SummaryHeroBand(s, durationSec, units) }
-        item { StatsGrid(s) }
-        if (s.useGps) {
-            item { WorkoutMapView(points = points) }
-            // Splits follow iOS's ActivityMetricSet — shown for pace/speed activities, not sport.
-            if (ActivityMeta.metricSet(s.type).showsSplits) {
-                item { SplitsCard(points, units, s.type) }
+        item { WorkoutTabs(tab) { tab = it } }
+        if (tab == 0) {
+            item { WorkoutSummaryTab(figures) }
+            if (s.useGps) {
+                item { GpsBand(s, durationSec, units) }
+                item { WorkoutMapView(points = points) }
+                // Splits follow iOS's ActivityMetricSet — shown for pace/speed activities, not sport.
+                if (ActivityMeta.metricSet(s.type).showsSplits) {
+                    item { SplitsCard(points, units, s.type) }
+                }
             }
+        } else {
+            item { WorkoutHeartTab(figures, profile?.age) }
         }
+        corrections.describe(setOf(
+            com.pulseloop.health.accuracy.ComparisonMetric.HR_REST, com.pulseloop.health.accuracy.ComparisonMetric.HR_ACTIVE,
+        ))?.let { item { AdjustedCaption(it) } }
         item { Spacer(Modifier.height(48.dp)) }
+    }
     }
     }
 
@@ -442,103 +467,57 @@ private fun dateRange(s: ActivitySessionEntity, is24h: Boolean): String {
     return "$day · ${fmt.clock(is24h, s.startedAt)} – ${fmt.clock(is24h, ended)}"
 }
 
-/** Three large headline stats: GPS → distance/duration/pace-or-speed (calories for sport);
- *  indoor → duration/active/calories. The third GPS metric follows iOS's ActivityMetricSet:
- *  pace for foot activities, speed for cycling, calories when neither applies. */
+/** A GPS workout's distance and its pace (foot) or speed (cycling), following iOS's
+ *  ActivityMetricSet. Duration and calories are already in the Summary card above. */
 @Composable
-private fun SummaryHeroBand(s: ActivitySessionEntity, durationSec: Int?, units: UnitSystem) {
-    data class M(val value: String, val label: String, val tint: Color)
-    val corrections = rememberAccuracyCorrections()
-    val dur = durationSec?.let { ActivityMeta.duration(it) } ?: "—"
-    val metrics = if (s.useGps) {
-        val metricSet = ActivityMeta.metricSet(s.type)
-        val dist = s.distanceMeters?.let { "%.2f".format(UnitConverter.distance(it, units)) }
-        val third = when {
-            metricSet.showsPace ->
-                M(ActivityMeta.pace(s.distanceMeters, durationSec, units) ?: "—", tr("Pace").uppercase() + " " + ActivityMeta.paceUnit(units), PulseColors.textPrimary)
-            metricSet.showsSpeed -> {
-                val parts = ActivityMeta.speedParts(s.distanceMeters, durationSec, units)
-                M(parts?.first ?: "—", parts?.second ?: tr("Speed").uppercase(), PulseColors.textPrimary)
-            }
-            else -> M(s.calories?.let { "${it.toInt()}" } ?: "—", tr("CALORIES"), PulseColors.calories)
+private fun GpsBand(s: ActivitySessionEntity, durationSec: Int?, units: UnitSystem) {
+    val metricSet = ActivityMeta.metricSet(s.type)
+    val metrics = buildList {
+        add(Pair(s.distanceMeters?.let { "%.2f".format(UnitConverter.distance(it, units)) } ?: "—", tr("Distance") + " · " + UnitConverter.distanceUnit(units)))
+        when {
+            metricSet.showsPace -> add(Pair(ActivityMeta.pace(s.distanceMeters, durationSec, units) ?: "—", tr("Pace") + " · " + ActivityMeta.paceUnit(units)))
+            metricSet.showsSpeed -> ActivityMeta.speedParts(s.distanceMeters, durationSec, units)
+                .let { add(Pair(it?.first ?: "—", tr("Speed") + (it?.second?.let { u -> " · " + u.lowercase() } ?: ""))) }
         }
-        listOf(
-            M(dist ?: "—", UnitConverter.distanceUnit(units).uppercase(java.util.Locale.ROOT), PulseColors.distance),
-            M(dur, tr("DURATION"), PulseColors.textPrimary),
-            third,
-        )
-    } else {
-        listOf(
-            M(dur, tr("DURATION"), PulseColors.textPrimary),
-            // Was "ACTIVE MIN", which is the duration again in minutes. Average heart rate is the
-            // figure an indoor workout has instead of distance; the grid below then skips it.
-            M(s.avgHeartRate?.let { "${corrections.heartRate(it).toInt()}" } ?: "—", tr("Avg HR").uppercase(), PulseColors.heartRate),
-            M(s.calories?.let { "${it.toInt()}" } ?: "—", tr("CALORIES"), PulseColors.calories),
-        )
     }
-    val shape = RoundedCornerShape(8.dp)
     Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(vertical = 16.dp, horizontal = 8.dp),
+        Modifier.fillMaxWidth().lookCard().padding(vertical = 16.dp, horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        metrics.forEachIndexed { i, m ->
+        metrics.forEachIndexed { i, (value, label) ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(m.value, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, color = m.tint, maxLines = 1)
-                Text(m.label, style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textMuted, maxLines = 2, textAlign = TextAlign.Center)
+                Text(value, style = androidx.compose.material3.MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp, fontWeight = FontWeight.SemiBold), color = Look.text, maxLines = 1)
+                Text(label, style = androidx.compose.material3.MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp), color = Look.textSecondary, maxLines = 2, textAlign = TextAlign.Center)
             }
-            if (i != metrics.lastIndex) {
-                Box(Modifier.width(1.dp).height(40.dp).background(PulseColors.borderSubtle))
-            }
+            if (i != metrics.lastIndex) Box(Modifier.width(1.dp).height(40.dp).background(Look.border))
         }
     }
 }
 
-/** Secondary stat tiles, 3-per-row (WorkoutMetricsSections.statsGrid). */
-@Composable
-private fun StatsGrid(s: ActivitySessionEntity) {
-    // Accuracy corrections at display only: the stored summary is what Health Connect and Strava get.
-    val corrections = rememberAccuracyCorrections()
-    fun hr(v: Double?) = v?.let { "${corrections.heartRate(it).toInt()}" } ?: "—"
-    val stats = buildList {
-        if (s.useGps) add(tr("Calories") to (s.calories?.let { "${it.toInt()}" } ?: "—"))
-        // Indoor workouts already lead with it in the band above.
-        if (s.useGps) add(tr("Avg HR") to hr(s.avgHeartRate))
-        add(tr("Max HR") to hr(s.maxHeartRate))
-        add(tr("Min HR") to hr(s.minHeartRate))
-        add("SpO₂" to (s.latestSpO2?.let { "${corrections.spo2(it).toInt()}%" } ?: "—"))
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        corrections.describe(setOf(
-            com.pulseloop.health.accuracy.ComparisonMetric.HR_REST, com.pulseloop.health.accuracy.ComparisonMetric.HR_ACTIVE,
-            com.pulseloop.health.accuracy.ComparisonMetric.SPO2,
-        ))?.let { AdjustedCaption(it) }
-        stats.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                row.forEach { (label, value) ->
-                    val shape = RoundedCornerShape(8.dp)
-                    Column(
-                        Modifier
-                            .weight(1f)
-                            .clip(shape)
-                            .background(PulseColors.card)
-                            .border(1.dp, PulseColors.borderSubtle, shape)
-                            .padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Text(value, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                        Text(label.uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textMuted)
-                    }
-                }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
+/** Both tabs' figures from the session and its heart-rate rows. Corrections are applied to the
+ *  readings first (display only), so the average, zones, load and chart agree with each other. */
+internal fun workoutFigures(
+    s: ActivitySessionEntity,
+    durationSec: Int?,
+    raw: List<com.pulseloop.service.WorkoutHeart.Sample>,
+    profile: com.pulseloop.data.entity.UserProfileEntity?,
+    corrections: com.pulseloop.health.accuracy.Corrections,
+): WorkoutFigures {
+    val heartModel = com.pulseloop.service.WorkoutHeart
+    val end = s.endedAt ?: System.currentTimeMillis()
+    val samples = raw.map { it.copy(bpm = corrections.heartRate(it.bpm)) }
+    val heart = heartModel.summary(samples, end, profile?.age)
+    val load = heartModel.trainingLoad(samples, end, profile?.age, profile?.sex, profile?.hrRestingBaseline)
+    val minutes = (durationSec ?: 0) / 60.0
+    val resting = heartModel.restingCalories(minutes, profile?.sex, profile?.age, profile?.weightKg, profile?.heightCm)
+    val total = s.calories
+    val active = if (total != null && resting != null && total > resting) total - resting else null
+    // One point per 15 s: a 1 Hz stream would draw thousands of segments for nothing.
+    val curve = samples.filter { it.bpm in heartModel.MIN_BPM..heartModel.MAX_BPM }
+        .groupBy { (it.atMs - s.startedAt) / 15_000L }
+        .toSortedMap()
+        .map { (bucket, xs) -> bucket * 0.25 to xs.map { it.bpm }.average() }
+    return WorkoutFigures(total, active, durationSec, heart, load, curve, ((end - s.startedAt) / 60_000.0))
 }
 
 /** Per-km (or per-mi) splits with relative pace bars; fastest split highlighted (SplitsTable). */

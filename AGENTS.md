@@ -87,6 +87,12 @@ in the vendor's order, and then the workouts the ring recorded in sport mode (`0
 offered on the Activity tab and added on a tap, like another device's workouts (`RingWorkoutLog`).
 A unit that sets bit 10 is granted TEMPERATURE at runtime. Details: `docs/jring-56ff-plan.md`, "What the vendor app does with BP and sugar".
 
+**A jring workout's heart rate is the vendor's sport mode, not its 180-second check.** `0x14` is
+`setHeartRateMode`: bytes 1-4 a duration in seconds (0 = until stopped), byte 5 the sport mode.
+`14 b4…` is the vendor's spot check, so workouts used to stream for three minutes. Workouts send
+duration 0 and the sport's mode when `0x20` bit 56 (`FUNCTION_SPORT_FROM_APP`) is set, as
+`RunRecordActivity` does. Details: `docs/jring-56ff-plan.md`, "Workout heart rate".
+
 ## Colmi/Yawell OS-bonding is a hand-curated allowlist — not "match QRing exactly"
 
 **This is the one rule in this file most likely to get silently reverted by a future "generalize

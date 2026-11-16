@@ -375,3 +375,38 @@ diagnostics export taken after a combined measurement, and one after a full hist
 2. Decided 2026-10-20: Health Connect export and the coach stay as they are today.
 3. Glucose recalibration reminder: deliberately left out (see Phase 2). Revisit only if the user
    imports real glucose and the agreement check shows the estimate tracking it.
+
+## Workout heart rate: continuous sport mode, not the 180-second check (2026-11-16)
+
+**Report.** A 46-minute gym session read average 76 / max 97 bpm against a Huawei watch's 116 / 149
+on the same workout, and calories and the new training load followed it down.
+
+**Cause.** PulseLoop started a workout's heart rate with `14 b4 00 00 00 00`. In the vendor SDK,
+`setHeartRateMode(on, seconds, mode)` (`BluetoothLeService`, the `setHeartRateMode2` builder)
+writes `0x14`, then `seconds` as a little-endian u32 in bytes 1-4, then `mode` in byte 5; `0x15`
+with the same mode byte stops it. `b4` is 180 seconds: it is the vendor's **spot check**
+(`FragmentMain.startTestHeart` passes `CommonAttributes.sport_situps` = 180, mode 0). So every
+workout streamed for three minutes, the warm-up, and the rest of the session only had the ring's
+own log.
+
+**What the vendor does for a workout.** `RunRecordActivity.startHeartrateMode(true)` calls
+`setHeartRateMode(true, 0, heartrate_mode)`: duration 0 (until stopped), and the sport mode
+1 walk, 2 run, 3 cycle, 4 climb, 5 golf or swim (any other sport gets 1). Stop sends the same with
+`false`. It does this only when the ring's `0x20` reply sets bit 56 (`FUNCTION_SPORT_FROM_APP`,
+`DupMainActivity` `zArr[56]`); without it the vendor shows no heart rate on a run at all. The
+owner's ring sets bit 56 (2026-11-11 export: `20 62ec0738090abebb02001b…`).
+
+**In PulseLoop.** `JringSyncEngine.startWorkoutHeartRate` sends
+`RingEncoder.makeWorkoutHeartRateStartCommand(jringSportMode(type))` when bit 56 is set, and
+falls back to the old start otherwise; a `0x20` reply landing after a mid-workout reconnect moves
+the stream across. Stop sends `0x15` in the same mode, then re-arms the 30-minute log as before.
+SpO₂ is no longer polled while a workout stream runs (one optical sensor; the vendor's run screen
+doesn't measure it either). `JringWorkoutHeartRateTest` pins the frames. Still to confirm on
+hardware: that a session's stream lasts the whole workout.
+
+**Summary figures.** Averages, maximum, zone minutes and the training load are weighted by time
+(`WorkoutHeart`), so a 1 Hz stream can't outvote the ring's log, and a reading stands for at most
+two minutes.
+
+Source: JRing 2.0.8 (`com.jaga.ibraceletplus.jyring`), decompiled locally with jadx 1.5.1 into the
+gitignored `decompiled-jring-offical/`.
