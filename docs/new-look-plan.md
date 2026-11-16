@@ -98,4 +98,10 @@ balance card and the My Health entry card.
 
 Every converted screen gets an impeccable pass (audit, critique, polish) before it ships; Vitals
 and Sleep had theirs redone in `audits/2026-11-16-impeccable-pass-vitals-sleep-activity.md`.
+- **Nutrition, My Health, Readiness** (behind the switch). Shared pieces moved first, through
+  `Look` / `lookCard()` (calm/Look.kt): My Health's `Section` and `Fact`, the My Health entry card
+  (also on Vitals, Sleep and Activity) and `ContributorsCard` (Readiness, Sleep, Activity). Then
+  each screen's bar, page, gutter, cap and Inter, the readiness band word, the day's kcal as the
+  statement, and sentence-case headings where caps kickers were. Audit:
+  `audits/2026-11-16-new-look-nutrition-myhealth-readiness.md`.
 
