@@ -105,3 +105,12 @@ and Sleep had theirs redone in `audits/2026-11-16-impeccable-pass-vitals-sleep-a
   statement, and sentence-case headings where caps kickers were. Audit:
   `audits/2026-11-16-new-look-nutrition-myhealth-readiness.md`.
 
+- **Settings** (the hub, behind the switch in `SettingsScreen`). The calm bar, page, gutter,
+  720dp cap and Inter. Group names in sentence case instead of caps kickers, and none over a group
+  whose one row already says it ("Notifications", "AI Coach"). Rows keep their icons but in one
+  quiet raised tile, because the per-row colours meant nothing. The ring card takes the calm card
+  and a full-width outlined Connect / Set up button instead of the dithered pill; its battery
+  keeps the level's colour on the icon and number. The data-source card drops its caps kicker.
+  These are the shared `SettingsSection` / `SettingsRow` / `DeviceHeroCard`, so they follow the
+  look wherever they appear. Still old-styled: every sub-screen (`SettingsSubScreens.kt`), next.
+  Audit: `audits/2026-11-16-new-look-settings.md`.

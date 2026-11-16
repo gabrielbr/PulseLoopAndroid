@@ -33,6 +33,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.calm.CalmColors
+import com.pulseloop.ui.calm.Look
+import com.pulseloop.ui.calm.lookCard
 
 /**
  * Ported from SettingsComponents.swift (iOS #49).
@@ -53,28 +56,37 @@ data class SettingsRowItem(
 @Composable
 fun SettingsSection(title: String, rows: List<SettingsRowItem>) {
     if (rows.isEmpty()) return
+    val calm = Look.calm
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        // The design system's one tracked caps label (PulseType.eyebrow), not a hand-rolled one.
-        Text(
-            title.uppercase(),
-            style = com.pulseloop.ui.theme.PulseType.eyebrow,
-            color = PulseColors.textSecondary,
-            modifier = Modifier.padding(start = 16.dp),
-        )
+        if (calm) {
+            // The new look: a sentence-case group name, and none at all when the group's one row
+            // already says it ("Notifications" over "Notifications" said it twice).
+            if (!(rows.size == 1 && rows[0].title == title)) {
+                Text(
+                    title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Look.textSecondary,
+                    modifier = Modifier.padding(start = 4.dp),
+                )
+            }
+        } else {
+            // The design system's one tracked caps label (PulseType.eyebrow), not a hand-rolled one.
+            Text(
+                title.uppercase(),
+                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                color = PulseColors.textSecondary,
+                modifier = Modifier.padding(start = 16.dp),
+            )
+        }
 
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(PulseColors.card)
-                .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
-        ) {
+        Column(Modifier.fillMaxWidth().lookCard()) {
             rows.forEachIndexed { index, row ->
                 SettingsRow(row)
                 if (index < rows.size - 1) {
                     HorizontalDivider(
-                        color = PulseColors.borderSubtle,
-                        thickness = 0.5.dp,
+                        color = Look.border,
+                        thickness = if (calm) 1.dp else 0.5.dp,
                         modifier = Modifier.padding(start = 64.dp), // align with the row's text column
                     )
                 }
@@ -83,18 +95,22 @@ fun SettingsSection(title: String, rows: List<SettingsRowItem>) {
     }
 }
 
-/** A single row: tinted icon in a rounded box, title, optional trailing value, chevron. */
+/**
+ * A single row: icon tile, title, optional trailing value, chevron. The old look tints each tile
+ * in its own colour; the new look draws one quiet raised tile, since the colours carried no meaning.
+ */
 @Composable
 fun SettingsRow(item: SettingsRowItem) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
+    val calm = Look.calm
 
     Row(
         Modifier
             .fillMaxWidth()
-            .background(if (pressed) PulseColors.elevated else Color.Transparent)
+            .background(if (pressed) (if (calm) CalmColors.cardRaised else PulseColors.elevated) else Color.Transparent)
             .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = item.action)
-            .heightIn(min = 52.dp)
+            .heightIn(min = if (calm) 56.dp else 52.dp)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -102,11 +118,11 @@ fun SettingsRow(item: SettingsRowItem) {
         Box(
             Modifier
                 .size(32.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .dither(item.tint, 0.14f),
+                .clip(RoundedCornerShape(if (calm) 8.dp else 4.dp))
+                .then(if (calm) Modifier.background(CalmColors.cardRaised) else Modifier.dither(item.tint, 0.14f)),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(item.icon, contentDescription = null, Modifier.size(20.dp), tint = item.tint)
+            Icon(item.icon, contentDescription = null, Modifier.size(20.dp), tint = if (calm) Look.textSecondary else item.tint)
         }
 
         // The title takes the free width (it used to be unweighted beside a weighted Spacer, so a
@@ -114,7 +130,7 @@ fun SettingsRow(item: SettingsRowItem) {
         Text(
             item.title,
             fontSize = 16.sp,
-            color = PulseColors.textPrimary,
+            color = Look.text,
             modifier = Modifier.weight(1f),
         )
 
@@ -122,7 +138,7 @@ fun SettingsRow(item: SettingsRowItem) {
             Text(
                 trailing,
                 fontSize = 14.sp,
-                color = PulseColors.textSecondary,
+                color = Look.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.widthIn(max = 140.dp),

@@ -1,5 +1,6 @@
 package com.pulseloop.ui.screens
 
+import com.pulseloop.ui.calm.lookCard
 import com.pulseloop.ui.i18n.trf
 import com.pulseloop.ui.components.PulseButtonStyle
 import com.pulseloop.ui.components.PulseButton
@@ -249,22 +250,25 @@ fun HealthConnectSourceHeroCard(onOpen: () -> Unit) {
     val context = LocalContext.current
     val pkg = HealthConnectSource.sourcePackage(context) ?: return
     val last = HealthConnectSource.lastImportAt(context)
-    // Same frame as the ring's hero card (8dp radius, hairline, chevron), so the hub reads the same
+    // Same frame as the ring's hero card (radius, hairline, chevron), so the hub reads the same
     // whichever source feeds it.
+    val calm = com.pulseloop.ui.calm.Look.calm
+    val lastLine = last?.let { trf("Last import {0}", localDateTime(context, it)) } ?: tr("Waiting for the first import")
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-            .clickable(role = Role.Button, onClick = onOpen).padding(16.dp),
+        Modifier.fillMaxWidth().lookCard()
+            .clickable(role = Role.Button, onClick = onOpen).padding(if (calm) 20.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(tr("DATA SOURCE"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
-            Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-            Text(
-                last?.let { trf("Last import {0}", localDateTime(context, it)) }
-                    ?: tr("Waiting for the first import"),
-                fontSize = 14.sp, color = PulseColors.textSecondary,
-            )
+            if (calm) {
+                // No caps kicker over the name: the name leads, and the line under it says what it is.
+                Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = com.pulseloop.ui.calm.Look.text)
+                Text(tr("Data source") + " · " + lastLine, fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
+            } else {
+                Text(tr("DATA SOURCE"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+                Text(trf("{0} via Health Connect", HealthConnectSource.label(context, pkg)), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(lastLine, fontSize = 14.sp, color = PulseColors.textSecondary)
+            }
         }
         com.pulseloop.ui.components.Chevron()
     }

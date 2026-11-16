@@ -36,6 +36,8 @@ import com.pulseloop.ring.RingBLEClient
 import com.pulseloop.ring.RingConnectionState
 import com.pulseloop.ring.RingDeviceType
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.calm.Look
+import com.pulseloop.ui.calm.lookCard
 import com.pulseloop.wearables.WearableModel
 
 /**
@@ -69,14 +71,13 @@ fun DeviceHeroCard(
         idle = bleState.idleSince != null,
     )
 
+    val calm = Look.calm
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+            .lookCard()
+            .padding(if (calm) 20.dp else 16.dp),
+        verticalArrangement = Arrangement.spacedBy(if (calm) 12.dp else 8.dp),
     ) {
         Row(
             Modifier
@@ -98,7 +99,7 @@ fun DeviceHeroCard(
                     status.title,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = PulseColors.textPrimary,
+                    color = Look.text,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -113,7 +114,7 @@ fun DeviceHeroCard(
                     Text(
                         syncText,
                         fontSize = 12.sp,
-                        color = PulseColors.textSecondary,
+                        color = Look.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -136,7 +137,8 @@ fun DeviceHeroCard(
                     Row(
                         Modifier
                             .clip(CircleShape)
-                            .dither(batteryTone, 0.12f)
+                            // The new look keeps the level's colour on the icon and number only.
+                            .then(if (calm) Modifier.background(com.pulseloop.ui.calm.CalmColors.cardRaised) else Modifier.dither(batteryTone, 0.12f))
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -163,7 +165,32 @@ fun DeviceHeroCard(
         // Disconnect lives. Setup/reconnect remain available here only when not connected, and
         // automatic recovery offers Disconnect so the user can stop it (issue #124).
         if (!connected) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            val onAction = {
+                when (status.action) {
+                    DeviceHeroStatus.Action.CONNECT -> onConnect()
+                    DeviceHeroStatus.Action.SET_UP -> onSetUp()
+                    // Reached while RECONNECTING: stops automatic recovery through
+                    // the same sticky userDisconnect path as the Settings button.
+                    DeviceHeroStatus.Action.DISCONNECT -> onDisconnect()
+                    // Already inert: actionEnabled is false while a connect is in flight.
+                    DeviceHeroStatus.Action.PENDING -> {}
+                }
+            }
+            if (calm) {
+                // The new look: the calm outlined button across the card (the screen's own action;
+                // the one filled mint stays the Actions button), not a dithered pill in the corner.
+                PulseButton(
+                    PulseButtonStyle.Outlined,
+                    onClick = onAction,
+                    enabled = status.actionEnabled,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(com.pulseloop.ui.calm.CalmShape.radius),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Look.border),
+                    colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                        contentColor = Look.text, disabledContentColor = Look.textMuted,
+                    ),
+                ) { Text(status.actionTitle, fontSize = 16.sp, fontWeight = FontWeight.SemiBold) }
+            } else Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Text(
                     status.actionTitle,
                     fontSize = 14.sp,
@@ -173,17 +200,7 @@ fun DeviceHeroCard(
                         .heightIn(min = 48.dp)
                         .clip(CircleShape)
                         .then(if (status.actionEnabled) Modifier.dither(PulseColors.accent, 0.18f) else Modifier.background(PulseColors.elevated))
-                        .clickable(enabled = status.actionEnabled, role = Role.Button) {
-                            when (status.action) {
-                                DeviceHeroStatus.Action.CONNECT -> onConnect()
-                                DeviceHeroStatus.Action.SET_UP -> onSetUp()
-                                // Reached while RECONNECTING: stops automatic recovery through
-                                // the same sticky userDisconnect path as the Settings button.
-                                DeviceHeroStatus.Action.DISCONNECT -> onDisconnect()
-                                // Already inert: actionEnabled is false while a connect is in flight.
-                                DeviceHeroStatus.Action.PENDING -> {}
-                            }
-                        }
+                        .clickable(enabled = status.actionEnabled, role = Role.Button, onClick = onAction)
                         .padding(horizontal = 12.dp)
                         .wrapContentHeight(),
                 )
