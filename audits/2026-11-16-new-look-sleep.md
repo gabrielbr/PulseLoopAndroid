@@ -4,6 +4,10 @@ Date: 2026-11-16 · PR: see the PR linking this file · Auditor: Claude Code. im
 the skill loaded (context with PRODUCT.md, `audit.native.md`, `critique.md`, `craft-floor.md`,
 `android.md`); ux-user-flows, graphic-design-fundamentals and less-is-more were applied by hand.
 
+> **Correction (2026-11-16):** the impeccable scores below were written from source with the
+> playbook loaded earlier in the session, not from a fresh audit, critique and polish pass on this
+> screen. That pass was done afterwards: `audits/2026-11-16-impeccable-pass-vitals-sleep-activity.md`.
+
 ## Scope
 
 Sleep, behind Debug → New look. The structure stays (carousel, hypnogram, stages, records,

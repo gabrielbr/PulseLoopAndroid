@@ -90,4 +90,12 @@ the My Health entry card and the Customize controls.
 
 Still old-styled inside Sleep: the range selector, the day header, the records card, the sleep
 balance card and the My Health entry card.
+- **Activity** (behind the switch in `ActivityScreen`). Same structure and actions. One card
+  surface (`activityCard()`), metric colours on dots rather than on caps labels, Inter values,
+  plain raised icon tiles on workout rows, a section title for the day's workouts, and the weekly
+  goal card led by its heading. Still old-styled: the day header, the Record row's icon buttons,
+  the detected-activity and cardio-load cards, the records card and the dialogs.
+
+Every converted screen gets an impeccable pass (audit, critique, polish) before it ships; Vitals
+and Sleep had theirs redone in `audits/2026-11-16-impeccable-pass-vitals-sleep-activity.md`.
 

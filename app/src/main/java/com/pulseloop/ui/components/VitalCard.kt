@@ -178,7 +178,8 @@ private fun ValueRow(state: VitalCardState) {
             val calmStatus = com.pulseloop.ui.calm.NewLook.on
             Text(
                 if (calmStatus) state.statusText else state.statusText.uppercase(),
-                style = if (calmStatus) com.pulseloop.ui.calm.CalmType.title else com.pulseloop.ui.theme.PulseType.eyebrow,
+                // A step under the card's title, so the two don't compete (impeccable pass).
+                style = if (calmStatus) com.pulseloop.ui.calm.CalmType.bodySmall else com.pulseloop.ui.theme.PulseType.eyebrow,
                 fontWeight = FontWeight.SemiBold,
                 
                 color = state.statusToken.toColor(),

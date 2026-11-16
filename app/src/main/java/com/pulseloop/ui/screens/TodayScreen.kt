@@ -236,7 +236,7 @@ fun TodayScreen(
                 val alert = guidance?.offSignals?.takeIf { com.pulseloop.service.VitalsCheck.shouldAlert(it) }
                 val summary = state.coachSummary
                 CalmGlance(
-                    alert = alert?.let { tr("Unusual last night: ") + it.joinToString(", ") { s -> s.title.lowercase() } },
+                    alert = alert?.let { tr("Unusual last night: ") + it.joinToString(", ") { s -> s.inSentence } },
                     insight = if (coachEnabled && summary != null) listOf(summary.title, summary.body).filter { it.isNotBlank() }.joinToString(". ")
                         else if (readinessLoad.loaded && readiness == null) hero.summary else null,
                     insightPending = coachEnabled && summary == null && !readinessLoad.loaded,

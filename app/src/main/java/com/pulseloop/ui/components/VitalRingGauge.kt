@@ -196,11 +196,12 @@ fun VitalRingGauge(
                 )
             }
             if (centerStatus != null) {
+                val calm = com.pulseloop.ui.calm.NewLook.on
                 Text(
-                    centerStatus.uppercase(),
+                    if (calm) centerStatus else centerStatus.uppercase(),
                     fontSize = onScale(size.value * 0.08f),
                     fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 1.sp,
+                    letterSpacing = if (calm) 0.sp else 1.sp,
                     color = valueColor,
                     // A translated zone label can outgrow the ring's hole: wrap it centred, never
                     // more than two lines, instead of spilling over the arc.
