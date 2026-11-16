@@ -1481,6 +1481,21 @@ serving, AI-estimate source); changing a number marks it `userEdited`, as a barc
 - **The window theme is dark** (`Theme.PulseLoop`), so cold start doesn't flash white, and
   predictive Back is on (`enableOnBackInvokedCallback`).
 
+## The new look: behind a switch, one screen at a time
+
+**Read this before restyling a screen.** Plan and tokens: `docs/new-look-plan.md`. The owner chose
+(2026-11-16) a calmer, shadcn-style look for PulseLoop only: dark only, mint kept, Inter.
+
+- **Its tokens and components are in `ui/calm/`.** A converted screen uses `CalmColors`,
+  `CalmType`, `CalmShape` and the `Calm*` components, never `PulseColors` greys or literal sizes.
+  Sizes stay on `PulseType.SCALE`, buttons are still `PulseButton`, text still goes through `tr()`.
+- **`NewLook.on` decides, per screen.** Off by default until every screen has moved; then the
+  default flips and the old styling is deleted in one PR. Don't flip it early.
+- **A state over time is a `StateTimeline`**, not a new chart. Its layout is `StateTimelineModel`,
+  which is pure and tested.
+- **It departs from the design system on purpose.** Record that in the design-system repo's
+  `docs/divergences.md` when a session can reach it.
+
 ## Motion: one transition, a small vocabulary
 
 - **Every navigation destination goes through `DitherTransitionBox`** (`theme/DitherTransition.kt`),

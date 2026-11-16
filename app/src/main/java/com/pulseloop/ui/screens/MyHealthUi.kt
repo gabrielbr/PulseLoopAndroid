@@ -189,7 +189,7 @@ private fun Sparkline(values: List<Double>, color: Color, modifier: Modifier = M
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}, onPostpartum: () -> Unit = {}, onLabReports: () -> Unit = {}) {
+fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () -> Unit = {}, onRadar: () -> Unit = {}, onCycle: () -> Unit = {}, onMeds: () -> Unit = {}, onPostpartum: () -> Unit = {}, onLabReports: () -> Unit = {}) {
     val context = LocalContext.current
     val db = remember { PulseLoopDatabase.getInstance(context) }
     var refresh by remember { mutableIntStateOf(0) }
@@ -252,7 +252,9 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
                 // Programs (cycle, meds, postpartum) live on Today and in "+ Log" now, and the
                 // day's sleep, heart and stress detail on their own tabs.
                 item {
-                    RadarSection(s.radar, restUntil) { days ->
+                    // The new look gives the radar its own screen; this row is its door.
+                    if (com.pulseloop.ui.calm.NewLook.on) RadarEntryRow(s.radar, restUntil, onRadar)
+                    else RadarSection(s.radar, restUntil) { days ->
                         RestMode.set(context, days); restUntil = RestMode.until(context)
                     }
                 }
@@ -291,6 +293,24 @@ fun MyHealthScreen(onBack: () -> Unit, onBreathe: () -> Unit, onWhatChanged: () 
 /** A row that opens a deeper My Health screen. */
 @Composable
 private fun MyHealthLink(title: String, subtitle: String, onClick: () -> Unit) = MyHealthEntryCard(title, subtitle, onClick)
+
+@Composable
+private fun RadarEntryRow(r: SymptomRadar.Result?, restUntil: java.time.LocalDate?, onOpen: () -> Unit) {
+    val line = when {
+        r == null || r.baselineNights < SymptomRadar.MIN_BASELINE -> trf("Learning your normal: {0} of {1} nights.", r?.baselineNights ?: 0, SymptomRadar.MIN_BASELINE)
+        else -> r.level.label
+    } + if (restUntil != null) " · " + tr("Rest Mode on") else ""
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onOpen).padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(tr("Symptom Radar"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+            Text(line, fontSize = 14.sp, color = PulseColors.textSecondary)
+        }
+        com.pulseloop.ui.components.Chevron()
+    }
+}
 
 @Composable
 private fun RadarSection(r: SymptomRadar.Result?, restUntil: java.time.LocalDate?, onRest: (Int?) -> Unit) {

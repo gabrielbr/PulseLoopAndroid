@@ -124,6 +124,21 @@ class HealthInsightsTest {
         assertTrue(r.signals.isEmpty())
     }
 
+    @Test
+    fun `the radar's history runs oldest first, skips days with no night, and never reads ahead`() {
+        val nights = baseline() + strained(today)
+        val h = SymptomRadar.history(nights, today, 3)
+        // The day before yesterday and yesterday are baseline nights; today is strained.
+        assertEquals(listOf(today.minusDays(2), today.minusDays(1), today), h.map { it.first })
+        assertEquals(SymptomRadar.Level.NONE, h[1].second.level)
+        assertEquals(SymptomRadar.Level.MINOR, h[2].second.level)
+        // Yesterday's result is what compute gives as of yesterday: today's strained night is not in it.
+        assertEquals(SymptomRadar.compute(nights, today.minusDays(1)), h[1].second)
+
+        val gap = SymptomRadar.history(nights.filter { it.day != today.minusDays(1) }, today, 3)
+        assertEquals(listOf(today.minusDays(2), today), gap.map { it.first })
+    }
+
     // ── Stress ───────────────────────────────────────────────────────────────────────────────
 
     @Test
