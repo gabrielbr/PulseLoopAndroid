@@ -187,9 +187,14 @@ class LiveWorkoutManager(
             totalPauseSeconds = session.totalPauseSeconds + pauseCarry,
             updatedAt = now,
         )
-        val summarized = ActivityAggregates.recompute(db, finished)
+        // Saved as finished first: if the summary below fails, the workout still shows on the
+        // Activity tab (with its duration) instead of staying "recording" for good.
+        db.activitySessionDao().upsert(finished)
+        val summarized = runCatching { ActivityAggregates.recompute(db, finished) }
+            .onFailure { android.util.Log.w("LiveWorkoutManager", "Workout summary failed: ${it.message}") }
+            .getOrDefault(finished)
         db.activitySessionDao().upsert(summarized)
-        ActivityRollup.credit(db, summarized)
+        runCatching { ActivityRollup.credit(db, summarized) }
         coordinator.stopWorkoutHeartRate()
         finishForegroundService(summarized)
         _state.value = WorkoutState(finishedSessionId = summarized.id)
