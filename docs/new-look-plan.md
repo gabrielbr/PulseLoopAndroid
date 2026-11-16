@@ -82,4 +82,12 @@ Rest Mode line, bedtime, food and tag cards, the accuracy-check banner and the C
 
 Still old-styled inside Vitals: the Measure button and its sheet, the ring gauges' own drawing,
 the My Health entry card and the Customize controls.
+- **Sleep** (behind the switch in `SleepScreen`). Same structure: the night carousel, hypnogram,
+  stages, records and the range views stay, because they are the answer to "why". One card
+  surface for every Sleep card (`sleepCard()`), sentence-case labels (`SleepLabel`), the night's
+  duration in `CalmType.score`, no dither fade on the hero, and the page colour, gutter, 720dp cap
+  and `CalmTypography`.
+
+Still old-styled inside Sleep: the range selector, the day header, the records card, the sleep
+balance card and the My Health entry card.
 
