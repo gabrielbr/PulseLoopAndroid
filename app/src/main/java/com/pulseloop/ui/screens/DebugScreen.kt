@@ -207,6 +207,24 @@ fun DebugScreen(viewModel: DiagnosticsViewModel, onBack: () -> Unit = {}) {
                 }
             }
 
+            // ── New look ────────────────────────────────────────────────
+            // Off until every screen has moved over (docs/new-look-plan.md).
+            item {
+                val ctx = LocalContext.current
+                DebugCard(tr("New look")) {
+                    Row(
+                        Modifier.switchRow(checked = com.pulseloop.ui.calm.NewLook.on, onCheckedChange = { com.pulseloop.ui.calm.NewLook.set(ctx, it) }),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text(tr("Try the new look"), style = MaterialTheme.typography.bodyMedium)
+                            Text(tr("Screens that have moved to it so far: Symptom Radar."), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = com.pulseloop.ui.calm.NewLook.on, onCheckedChange = null)
+                    }
+                }
+            }
+
             // ── App Info ────────────────────────────────────────────────
             item {
                 DebugCard(tr("App Info")) {

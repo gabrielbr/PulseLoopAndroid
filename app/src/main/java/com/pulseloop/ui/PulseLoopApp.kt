@@ -901,6 +901,7 @@ fun PulseLoopApp() {
                         onBack = { navController.popBackStack() },
                         onBreathe = { navController.navigate("breathe") },
                         onWhatChanged = { navController.navigate("what_changed") },
+                        onRadar = { navController.navigate("radar") },
                         onCycle = { navController.navigate("cycle") },
                         onMeds = { navController.navigate("meds") },
                         onPostpartum = { navController.navigate("postpartum") },
@@ -939,6 +940,9 @@ fun PulseLoopApp() {
                 }
                 paddedComposable("cycle") {
                     com.pulseloop.ui.screens.CycleScreen(onBack = { navController.popBackStack() })
+                }
+                paddedComposable("radar") {
+                    com.pulseloop.ui.screens.SymptomRadarScreen(onBack = { navController.popBackStack() })
                 }
                 paddedComposable("what_changed") {
                     com.pulseloop.ui.screens.WhatChangedScreen(onBack = { navController.popBackStack() })

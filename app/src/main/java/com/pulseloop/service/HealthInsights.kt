@@ -182,6 +182,17 @@ object SymptomRadar {
         }
     }
 
+    /**
+     * The radar for each of the last [days] days, oldest first, by running [compute] as of each
+     * day: the "Recently" timeline. A day with no night recorded is absent, not "no signs".
+     * Pure: the nights already carry everything [compute] reads.
+     */
+    fun history(nights: List<Night>, today: LocalDate, days: Int): List<Pair<LocalDate, Result>> =
+        (days - 1 downTo 0).mapNotNull { back ->
+            val d = today.minusDays(back.toLong())
+            compute(nights, d)?.let { d to it }
+        }
+
     /** Today's radar: "major" only when the night before also showed signs. */
     fun compute(nights: List<Night>, today: LocalDate): Result? {
         val sorted = nights.sortedBy { it.day }

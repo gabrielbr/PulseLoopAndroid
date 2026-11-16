@@ -31,6 +31,7 @@ class PulseLoopApplication : Application() {
         // so a Bedtime flag left on under a switched-off schedule is cleared rather than reread.
         com.pulseloop.settings.QuietHoursPrefs.migrateIndependentBedtime(this)
         com.pulseloop.service.DrinkPrefs.init(this)
+        com.pulseloop.ui.calm.NewLook.load(this)
         com.pulseloop.service.Postpartum.init(this)
         com.pulseloop.service.LabPrefs.init(this)
         com.pulseloop.ui.theme.FairyMode.init(this)

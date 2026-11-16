@@ -130,9 +130,13 @@ object HealthInsightsRepository {
         val workoutWindows: List<LongRange>,
         /** Today's cardio load against the user's quiet waking HR; null until 3 days of data. */
         val cardioLoad: CardioLoad.Result? = null,
+        /** The radar as of each recent day, oldest first: the "Recently" timeline. */
+        val radarHistory: List<Pair<LocalDate, SymptomRadar.Result>> = emptyList(),
     )
 
     private const val DAY = 86_400_000L
+    /** Five weeks, as the timeline shows. */
+    const val RADAR_HISTORY_DAYS = 35
 
     suspend fun load(db: PulseLoopDatabase, now: Long = System.currentTimeMillis(), zone: ZoneId = ZoneId.systemDefault()): Snapshot {
         val inputs = ReadinessRepository.loadInputs(db, now, zone)
@@ -159,6 +163,7 @@ object HealthInsightsRepository {
             )
         }
         val radar = SymptomRadar.compute(radarNights, today)
+        val radarHistory = SymptomRadar.history(radarNights, today, RADAR_HISTORY_DAYS)
 
         // Stress: today's daytime readings, and 14 days for resilience.
         val stressRows = db.measurementDao().rangeReal(MeasurementKind.STRESS.name, start(today.minusDays(14)), now)
@@ -253,7 +258,7 @@ object HealthInsightsRepository {
             CardioLoad.compute(hr29, { t -> nightRanges.any { t in it } }, today, zone, profile?.age)
         }.getOrNull()
 
-        return Snapshot(nights, need, debt, radar, todayStress, resilience, bodyClock, cardio, areas, habits, hrToday, sleepWindows, workoutWindows, cardioLoad)
+        return Snapshot(nights, need, debt, radar, todayStress, resilience, bodyClock, cardio, areas, habits, hrToday, sleepWindows, workoutWindows, cardioLoad, radarHistory)
     }
 
     /** Sleep need, debt and body clock: what the Sleep tab shows under last night. */
