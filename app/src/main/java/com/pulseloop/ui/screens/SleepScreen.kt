@@ -103,10 +103,15 @@ fun SleepScreen(
     sleepClock24h = android.text.format.DateFormat.is24HourFormat(androidx.compose.ui.platform.LocalContext.current)
     val state by (viewModel?.state?.collectAsState() ?: remember { mutableStateOf(SleepViewModel.SleepState()) })
 
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // The new look (docs/new-look-plan.md, "Sleep"): page colour, gutter, 720dp cap, Inter.
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (calm) Modifier.fillMaxSize().background(com.pulseloop.ui.calm.CalmColors.page)
+            .wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
+            start = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
+            end = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
             top = 16.dp + topBarPadding, bottom = 16.dp + bottomBarPadding,
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -128,6 +133,27 @@ fun SleepScreen(
             }
         }
         item { Spacer(Modifier.height(64.dp)) }
+    }
+    }
+}
+
+/** The card surface, in whichever look is on: one place, so every Sleep card matches. */
+@Composable
+private fun Modifier.sleepCard(): Modifier {
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    val shape = RoundedCornerShape(if (calm) com.pulseloop.ui.calm.CalmShape.radius else 8.dp)
+    return this.clip(shape)
+        .background(if (calm) com.pulseloop.ui.calm.CalmColors.card else PulseColors.card)
+        .border(1.dp, if (calm) com.pulseloop.ui.calm.CalmColors.border else PulseColors.borderSubtle, shape)
+}
+
+/** A card's small label: tracked caps in the old look, a sentence-case name in the new one. */
+@Composable
+private fun SleepLabel(text: String, modifier: Modifier = Modifier) {
+    if (com.pulseloop.ui.calm.NewLook.on) {
+        Text(text, style = com.pulseloop.ui.calm.CalmType.bodySmall, color = com.pulseloop.ui.calm.CalmColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier)
+    } else {
+        Text(text.uppercase(), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = modifier)
     }
 }
 
@@ -366,23 +392,24 @@ private fun SleepHeroCard(
     scoreLabel: String?,
     noData: Boolean = false,
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val calm = com.pulseloop.ui.calm.NewLook.on
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .ditherFade(PulseColors.sleep, 0.16f, 0f)
-            .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(24.dp),
+            .sleepCard()
+            // The dither is the old look's; the new one is a plain card.
+            .then(if (calm) Modifier else Modifier.ditherFade(PulseColors.sleep, 0.16f, 0f))
+            .padding(if (calm) 20.dp else 24.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Column(Modifier.weight(1f)) {
-            Text(
-                label.uppercase(),
-                style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
-            )
-            Text(
+            SleepLabel(label)
+            if (calm) Text(
+                value,
+                style = if (noData) com.pulseloop.ui.calm.CalmType.sectionTitle else com.pulseloop.ui.calm.CalmType.score,
+                color = com.pulseloop.ui.calm.CalmColors.text,
+                modifier = Modifier.padding(top = 4.dp),
+            ) else Text(
                 value,
                 fontSize = if (noData) 24.sp else 40.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -422,23 +449,18 @@ private fun VisualizationCard(
     legend: Boolean,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(8.dp)
+    val calm = com.pulseloop.ui.calm.NewLook.on
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(16.dp),
+            .sleepCard()
+            .padding(if (calm) 20.dp else 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    eyebrow.uppercase(),
-                    style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
-                )
-                Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                SleepLabel(eyebrow)
+                Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = if (calm) com.pulseloop.ui.calm.CalmColors.text else PulseColors.textPrimary)
             }
             if (legend) {
                 // A wrapping legend capped at half the row (weight, fill = false): four translated
@@ -808,21 +830,14 @@ private fun SleepStageSummaryCards(prefix: String = "", deep: String, light: Str
 
 @Composable
 private fun StageStat(label: String, value: String, color: Color, modifier: Modifier = Modifier) {
-    val shape = RoundedCornerShape(8.dp)
     Column(
         modifier
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
+            .sleepCard()
             .padding(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Box(Modifier.size(8.dp).clip(CircleShape).background(color))
-            Text(
-                label.uppercase(),
-                style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-            )
+            SleepLabel(label)
         }
         Text(
             value,
