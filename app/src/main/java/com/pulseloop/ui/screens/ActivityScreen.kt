@@ -165,10 +165,15 @@ fun ActivityScreen(
         WeeklyDay(label, completed = (stepsByWeekday[i] ?: 0) >= state.stepGoal, isToday = i == todayIdx)
     }
 
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // The new look (docs/new-look-plan.md, "Activity"): page colour, gutter, 720dp cap, Inter.
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (calm) Modifier.fillMaxSize().background(com.pulseloop.ui.calm.CalmColors.page)
+            .wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
+            start = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
+            end = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
             top = 16.dp + topBarPadding, bottom = 16.dp + bottomBarPadding,
         ),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -203,7 +208,12 @@ fun ActivityScreen(
         item { DetectedActivityCard() }
 
         item {
-            Text(
+            if (calm) Text(
+                // A section heading in the new look, not a tracked-caps label.
+                if (isToday) tr("Today") else dayHeaderLabel(dayStart),
+                style = com.pulseloop.ui.calm.CalmType.sectionTitle, color = com.pulseloop.ui.calm.CalmColors.text,
+                modifier = Modifier.padding(top = 8.dp),
+            ) else Text(
                 if (isToday) tr("TODAY") else dayHeaderLabel(dayStart).uppercase(),
                 style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
             )
@@ -213,10 +223,8 @@ fun ActivityScreen(
                 Column(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
-                        .padding(vertical = 24.dp),
+                        .activityCard()
+                        .padding(vertical = 24.dp, horizontal = 16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -264,6 +272,7 @@ fun ActivityScreen(
             )
         }
         item { Spacer(Modifier.height(64.dp)) }
+    }
     }
 
     if (permissionDenied) {
@@ -400,7 +409,6 @@ private fun dayHeaderLabel(dayMillis: Long): String {
 
 @Composable
 private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, units: UnitSystem) {
-    val shape = RoundedCornerShape(8.dp)
     // The shown day's totals, not always-today: day navigation must move this card (issue #76).
     // No fallback to today: a day with no stored row is a day with no data, not today's (issue #101).
     // WeeklyGoalCard keeps reading state.today — a week widget is about the live week.
@@ -409,10 +417,8 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
-            .padding(16.dp),
+            .activityCard()
+            .padding(if (com.pulseloop.ui.calm.NewLook.on) 20.dp else 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -442,13 +448,21 @@ private fun DailyActivitySummaryCard(state: ActivityViewModel.ActivityState, uni
 @Composable
 private fun SummaryMetric(label: String, value: String, unit: String?, color: Color, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(
+        val calm = com.pulseloop.ui.calm.NewLook.on
+        if (calm) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // The metric's colour stays on its dot; the name reads as text, not a coloured caps label.
+            Box(Modifier.size(8.dp).clip(androidx.compose.foundation.shape.CircleShape).background(color))
+            Text(label, style = com.pulseloop.ui.calm.CalmType.bodySmall, color = com.pulseloop.ui.calm.CalmColors.textSecondary, maxLines = 1)
+        } else Text(
             label.uppercase(),
             style = com.pulseloop.ui.theme.PulseType.eyebrow, color = color, maxLines = 1,
         )
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             // weight(fill = false): bounded so the unit beside it is never squeezed off.
-            Text(
+            if (calm) Text(
+                value, style = com.pulseloop.ui.calm.CalmType.display, color = com.pulseloop.ui.calm.CalmColors.text,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+            ) else Text(
                 value, fontSize = 32.sp, fontWeight = FontWeight.SemiBold,
                 color = PulseColors.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
@@ -466,16 +480,14 @@ private fun SummaryMetric(label: String, value: String, unit: String?, color: Co
 @Composable
 fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap: () -> Unit) {
     val corrections = rememberAccuracyCorrections()
-    val shape = RoundedCornerShape(8.dp)
+    val calm = com.pulseloop.ui.calm.NewLook.on
     val durationSec = session.endedAt?.let { ((it - session.startedAt) / 1000 - session.totalPauseSeconds).toInt() }
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
+            .activityCard()
             .clickable(role = Role.Button, onClick = onTap)
-            .padding(12.dp),
+            .padding(if (calm) 16.dp else 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -483,7 +495,8 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
             Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .dither(PulseColors.accent, 0.18f),
+                // A plain raised tile in the new look; the dither is the old look's.
+                .then(if (calm) Modifier.background(com.pulseloop.ui.calm.CalmColors.cardRaised) else Modifier.dither(PulseColors.accent, 0.18f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(ActivityMeta.icon(session.type), null, tint = PulseColors.accent, modifier = Modifier.size(20.dp))
@@ -494,7 +507,8 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
                 // ellipsizes instead of squeezing the start time.
                 Text(
                     ActivityMeta.label(session.type),
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary,
+                    fontSize = if (calm) 16.sp else 14.sp, fontWeight = FontWeight.SemiBold,
+                    color = if (calm) com.pulseloop.ui.calm.CalmColors.text else PulseColors.textPrimary,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
@@ -522,6 +536,16 @@ fun ActivityWorkoutRow(session: ActivitySessionEntity, units: UnitSystem, onTap:
     }
 }
 
+/** The card surface, in whichever look is on, so every Activity card matches. */
+@Composable
+private fun Modifier.activityCard(): Modifier {
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    val shape = RoundedCornerShape(if (calm) com.pulseloop.ui.calm.CalmShape.radius else 8.dp)
+    return this.clip(shape)
+        .background(if (calm) com.pulseloop.ui.calm.CalmColors.card else PulseColors.card)
+        .border(1.dp, if (calm) com.pulseloop.ui.calm.CalmColors.border else PulseColors.borderSubtle, shape)
+}
+
 private fun durationLabel(seconds: Int): String = Formats.durationCompact(seconds / 60)
 
 // ─────────────────── Weekly goal widget ───────────────────
@@ -530,17 +554,15 @@ data class WeeklyDay(val label: String, val completed: Boolean, val isToday: Boo
 
 @Composable
 private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<WeeklyDay>, onTap: () -> Unit) {
-    val shape = RoundedCornerShape(8.dp)
+    val calm = com.pulseloop.ui.calm.NewLook.on
     val activeMinutes = state.today?.activeMinutes ?: 0
     val activeDayCount = days.count { it.completed }
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(shape)
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, shape)
+            .activityCard()
             .clickable(role = Role.Button, onClick = onTap)
-            .padding(16.dp),
+            .padding(if (calm) 20.dp else 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -551,15 +573,22 @@ private fun WeeklyGoalCard(state: ActivityViewModel.ActivityState, days: List<We
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$activeMinutes", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
-                    Text(tr("MIN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+                    if (calm) Text(tr("min"), style = com.pulseloop.ui.calm.CalmType.label, color = com.pulseloop.ui.calm.CalmColors.textSecondary)
+                    else Text(tr("MIN"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    tr("WEEKLY GOAL"),
-                    style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
-                )
-                Text(trf("{0} of 7 active days", activeDayCount), fontSize = 16.sp, color = PulseColors.textPrimary)
+                if (calm) {
+                    // The heading is the card's name; the count follows it (no kicker over a heading).
+                    Text(tr("Weekly goal"), style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.CalmColors.text)
+                    Text(trf("{0} of 7 active days", activeDayCount), style = com.pulseloop.ui.calm.CalmType.bodySmall, color = com.pulseloop.ui.calm.CalmColors.textSecondary)
+                } else {
+                    Text(
+                        tr("WEEKLY GOAL"),
+                        style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary,
+                    )
+                    Text(trf("{0} of 7 active days", activeDayCount), fontSize = 16.sp, color = PulseColors.textPrimary)
+                }
             }
         }
         WeeklyPillCalendar(days)

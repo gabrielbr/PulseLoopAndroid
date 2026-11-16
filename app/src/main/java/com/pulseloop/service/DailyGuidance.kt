@@ -20,7 +20,14 @@ import kotlin.math.roundToInt
  */
 
 /** One overnight signal outside the user's typical range. */
-data class OffSignal(val title: String, val detail: String)
+data class OffSignal(val title: String, val detail: String) {
+    /**
+     * The title inside a running sentence ("Outside your usual: resting heart rate, HRV"):
+     * lower-cased, except an acronym, which a plain lowercase() turned into "hrv".
+     */
+    val inSentence: String get() =
+        if (title.length > 1 && title[0].isUpperCase() && title[1].isUpperCase()) title else title.lowercase()
+}
 
 object VitalsCheck {
     /** Nights needed before a typical range means anything. */

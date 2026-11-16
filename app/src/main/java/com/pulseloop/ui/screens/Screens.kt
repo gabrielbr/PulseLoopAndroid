@@ -1417,7 +1417,7 @@ private fun VitalsStatusLine() {
                 when {
                     off == null -> " "
                     off.isEmpty() -> tr("All within your usual range")
-                    else -> trf("Outside your usual: {0}", off.joinToString(", ") { it.title.lowercase() })
+                    else -> trf("Outside your usual: {0}", off.joinToString(", ") { it.inSentence })
                 },
                 style = com.pulseloop.ui.calm.CalmType.sectionTitle,
                 color = if (off.isNullOrEmpty()) com.pulseloop.ui.calm.CalmColors.text else PulseColors.warning,
@@ -1431,7 +1431,7 @@ private fun VitalsStatusLine() {
         when {
             off == null -> " "
             off.isEmpty() -> tr("Last night: all within your usual range")
-            else -> trf("Outside your usual last night: {0}", off.joinToString(", ") { it.title.lowercase() })
+            else -> trf("Outside your usual last night: {0}", off.joinToString(", ") { it.inSentence })
         },
         style = MaterialTheme.typography.bodySmall,
         color = if (off.isNullOrEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else PulseColors.warning,

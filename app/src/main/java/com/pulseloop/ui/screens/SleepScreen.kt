@@ -459,8 +459,11 @@ private fun VisualizationCard(
     ) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                SleepLabel(eyebrow)
+                // The new look leads with the title and puts the category under it: a label over a
+                // heading is a kicker, which the craft floor bans (impeccable pass).
+                if (!calm) SleepLabel(eyebrow)
                 Text(title, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = if (calm) com.pulseloop.ui.calm.CalmColors.text else PulseColors.textPrimary)
+                if (calm) SleepLabel(eyebrow)
             }
             if (legend) {
                 // A wrapping legend capped at half the row (weight, fill = false): four translated

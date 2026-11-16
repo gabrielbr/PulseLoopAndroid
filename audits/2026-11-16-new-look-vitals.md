@@ -5,6 +5,10 @@ the skill loaded (context with PRODUCT.md, `audit.native.md`, `critique.md`, `cr
 `android.md`); ux-user-flows, graphic-design-fundamentals and less-is-more were applied by hand from
 their SKILL.md files.
 
+> **Correction (2026-11-16):** the impeccable scores below were written from source with the
+> playbook loaded earlier in the session, not from a fresh audit, critique and polish pass on this
+> screen. That pass was done afterwards: `audits/2026-11-16-impeccable-pass-vitals-sleep-activity.md`.
+
 ## Scope
 
 Vitals, behind Debug → New look. Today's pattern (statement first, calm cards) carried over, but

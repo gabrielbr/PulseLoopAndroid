@@ -106,7 +106,7 @@ fun TodayGlance(
             ) {
                 Icon(Icons.Filled.Warning, null, Modifier.size(16.dp), tint = PulseColors.warning)
                 Text(
-                    tr("Unusual last night: ") + alert.joinToString(", ") { it.title.lowercase() },
+                    tr("Unusual last night: ") + alert.joinToString(", ") { it.inSentence },
                     fontSize = 14.sp, color = PulseColors.textPrimary,
                     maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
