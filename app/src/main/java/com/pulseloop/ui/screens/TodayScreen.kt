@@ -5,6 +5,7 @@ import com.pulseloop.ui.i18n.trf
 import com.pulseloop.ui.i18n.tr
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.draw.clip
 import com.pulseloop.ui.theme.dither
@@ -219,7 +220,134 @@ fun TodayScreen(
     }
 
     Box(Modifier.fillMaxSize().pullRefresh(pullRefreshState)) {
-        androidx.compose.foundation.lazy.LazyColumn(
+        if (com.pulseloop.ui.calm.NewLook.on) com.pulseloop.ui.calm.CalmTypography { androidx.compose.foundation.lazy.LazyColumn(
+            // The new look (docs/new-look-plan.md, "Today"): one statement, its two scores, then one
+            // row per card. Content caps at 720dp on wide windows, like the tab content elsewhere.
+            modifier = Modifier.fillMaxSize().background(com.pulseloop.ui.calm.CalmColors.page)
+                .wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth(),
+            contentPadding = PaddingValues(
+                start = com.pulseloop.ui.calm.CalmShape.gutter, end = com.pulseloop.ui.calm.CalmShape.gutter,
+                top = 16.dp + topBarPadding, bottom = 16.dp + bottomBarPadding,
+            ),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            item { CalmReadinessHero(readiness, readinessLoad.loaded) { navController?.navigate("readiness") } }
+            item {
+                val alert = guidance?.offSignals?.takeIf { com.pulseloop.service.VitalsCheck.shouldAlert(it) }
+                val summary = state.coachSummary
+                CalmGlance(
+                    alert = alert?.let { tr("Unusual last night: ") + it.joinToString(", ") { s -> s.title.lowercase() } },
+                    insight = if (coachEnabled && summary != null) listOf(summary.title, summary.body).filter { it.isNotBlank() }.joinToString(". ")
+                        else if (readinessLoad.loaded && readiness == null) hero.summary else null,
+                    insightPending = coachEnabled && summary == null && !readinessLoad.loaded,
+                    onAlert = { navController?.navigate("readiness") },
+                    onInsight = { briefSheet = true },
+                )
+            }
+            // Sleep and Activity are the scores readiness is built from, so they sit right under it
+            // instead of in the list. Customize cards still decides whether each one shows; while
+            // editing they join the list below, so they can be hidden like any other card.
+            if (!editState.editing) item {
+                val stepsNow = state.steps?.let { s -> stepFactor?.let { (s * it).toInt() } ?: s }
+                CalmScoresCard(buildList {
+                    if (DashboardCard.SLEEP in visibleOrdered) add(CalmScore(
+                        name = tr("Sleep"),
+                        value = sleep.score?.score ?: sleep.lastNight?.score,
+                        detail = sleep.lastNight?.let { trf("{0} asleep", Formats.hoursMinutes(it.totalMinutes)) },
+                        loaded = sleepLoaded,
+                        onOpen = { navController?.navigate("sleep") },
+                    ))
+                    if (DashboardCard.ACTIVITY in visibleOrdered) add(CalmScore(
+                        name = tr("Activity"),
+                        value = activityScore?.value,
+                        detail = stepsNow?.let { (if (stepFactor != null) "≈ " else "") + trf("{0} steps", Formats.count(it)) },
+                        loaded = activityLoad.loaded,
+                        onOpen = { navController?.navigate("activity_score") },
+                    ))
+                })
+            }
+            accuracyOpen?.let { c -> item { AccuracyCheckBanner(c) { navController?.navigate("settings/accuracy-check") } } }
+            item { DetectedActivityLine { navController?.navigate("activity") { launchSingleTop = true } } }
+            item {
+                ProgramsRow(
+                    db = db,
+                    onCycle = { navController?.navigate("cycle") },
+                    onMeds = { navController?.navigate("meds") },
+                    onPostpartum = { navController?.navigate("postpartum") },
+                )
+            }
+            item {
+                val unusual = guidance?.offSignals?.let { com.pulseloop.service.VitalsCheck.shouldAlert(it) } == true
+                RestModeLine(offerIt = unusual)
+            }
+            // Time-of-day cards: the evening ones still earn their place. Last night's card only
+            // shows to add what the Sleep row can't (what last night's drinks did to the night).
+            TodayMoments.at(
+                hour = java.time.LocalTime.now().hour,
+                hasSleep = sleep.lastNight != null && drinks?.morningAfter != null,
+                mealsToday = if (DashboardCard.NUTRITION in visibleOrdered) -1 else mealsToday ?: -1,
+                hasBedtime = guidance?.bedtime != null,
+            ).forEach { moment ->
+                when (moment) {
+                    TodayMoments.Moment.LAST_NIGHT -> sleep.lastNight?.let { night ->
+                        item {
+                            LastNightCard(
+                                durationText = Formats.hoursMinutes(night.totalMinutes),
+                                score = sleep.score?.score ?: night.score,
+                                window = null,
+                                onOpen = { navController?.navigate("sleep") },
+                                drinksLine = drinks?.morningAfter?.let { com.pulseloop.service.DrinksRepository.morningAfterLine(it) },
+                                onDrinks = { navController?.navigate("drinks") },
+                                drinksOnly = true,
+                            )
+                        }
+                    }
+                    TodayMoments.Moment.FOOD -> item {
+                        FoodCard(db = db, burned = state.calories, onOpen = { navController?.navigate("nutrition") }, onLog = { start -> navController?.navigate("nutrition/$start") })
+                    }
+                    TodayMoments.Moment.TONIGHT -> guidance?.let { g -> g.bedtime?.let { b -> item { TonightCard(b, g.sleepGoalMinutes) } } }
+                    TodayMoments.Moment.TAG_DAY -> item {
+                        JournalTagsCard(
+                            db, java.time.LocalDate.now(), tr("Tag your day"),
+                            tags = com.pulseloop.service.JournalInsights.Tag.entries.take(6),
+                            allowYesterday = true,
+                        ) {
+                            Text(
+                                tr("See what affects you"),
+                                style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.CalmColors.accent,
+                                modifier = Modifier.heightIn(min = 48.dp).clickable(role = Role.Button) { navController?.navigate("journal") }
+                                    .wrapContentHeight(Alignment.CenterVertically),
+                            )
+                        }
+                    }
+                }
+            }
+            // One row per card the user kept, in their order. Same loading rule as the grid: no
+            // rows until vitals and sleep have loaded, so nothing reads "No data" while it's read.
+            val listed = if (vitalsLoaded && sleepLoaded) visibleOrdered.filter {
+                editState.editing || (it != DashboardCard.SLEEP && it != DashboardCard.ACTIVITY)
+            } else emptyList()
+            items(listed.size, key = { listed[it].name }) { i ->
+                val card = listed[i]
+                EditableCard(editState, card, Modifier.fillMaxWidth()) {
+                    CalmTodayCardRow(card, cards, vitals, sleep, state, food, foodLoaded, drinks, drinksLoaded, stepFactor, units,
+                        open = { route -> navController?.navigate(route) },
+                        onLogMeal = { openLog(LogStep.MEAL) },
+                        onAddDrink = {
+                            scope.launch {
+                                com.pulseloop.service.DrinksRepository.log(db, com.pulseloop.service.DrinkPrefs.lastType)
+                                drinkTick++
+                            }
+                        },
+                    )
+                }
+            }
+            if (editState.editing) {
+                item { HiddenMetricsTray(hiddenCards) { editState.setHidden(it, false) } }
+            }
+            item { CustomizeCardsFooter(editState) }
+            item { Spacer(Modifier.height(64.dp)) }
+        } } else androidx.compose.foundation.lazy.LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp, end = 16.dp,
@@ -759,8 +887,15 @@ private fun DetectedActivityLine(onOpen: () -> Unit) {
             .format(java.time.format.DateTimeFormatter.ofPattern(if (is24) "EEE HH:mm" else "EEE h:mm a"))
     }
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
-            .background(PulseColors.card).clickable(role = Role.Button, onClickLabel = tr("Review"), onClick = onOpen)
+        Modifier.fillMaxWidth().heightIn(min = 48.dp)
+            .then(
+                if (com.pulseloop.ui.calm.NewLook.on) {
+                    val shape = androidx.compose.foundation.shape.RoundedCornerShape(com.pulseloop.ui.calm.CalmShape.radius)
+                    Modifier.clip(shape).background(com.pulseloop.ui.calm.CalmColors.card)
+                        .border(1.dp, com.pulseloop.ui.calm.CalmColors.border, shape)
+                } else Modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp)).background(PulseColors.card),
+            )
+            .clickable(role = Role.Button, onClickLabel = tr("Review"), onClick = onOpen)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),

@@ -57,8 +57,36 @@ object CalmType {
     val title = TextStyle(fontFamily = Inter, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, lineHeight = 1.35.em)
     val body = TextStyle(fontFamily = Inter, fontSize = 16.sp, lineHeight = 1.5.em)
     val bodySmall = TextStyle(fontFamily = Inter, fontSize = 14.sp, lineHeight = 1.5.em)
+    /** A screen's one headline number (Today's readiness). 40 is the top of the scale. */
+    val score = TextStyle(fontFamily = Inter, fontSize = 40.sp, fontWeight = FontWeight.SemiBold, lineHeight = 1.05.em, letterSpacing = (-0.02).em)
     val value = TextStyle(fontFamily = Inter, fontSize = 28.sp, fontWeight = FontWeight.SemiBold, lineHeight = 1.1.em)
     val label = TextStyle(fontFamily = Inter, fontSize = 12.sp, fontWeight = FontWeight.Medium, lineHeight = 1.3.em)
     /** The small capitals over a card ("RESPIRATORY RATE"). */
     val eyebrow = TextStyle(fontFamily = Inter, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.08.em, lineHeight = 1.3.em)
+}
+
+/**
+ * Runs [content] with Inter as the text family: Material's whole type scale and the ambient text
+ * style. A converted screen still reuses some shared pieces (a program chip, the bedtime card);
+ * inside this scope their text comes out in Inter too, so the screen keeps one family. Text that
+ * names its own family explicitly (PulseType's styles) is unchanged until its piece is converted.
+ */
+@androidx.compose.runtime.Composable
+fun CalmTypography(content: @androidx.compose.runtime.Composable () -> Unit) {
+    val t = androidx.compose.material3.MaterialTheme.typography
+    fun TextStyle.inter() = copy(fontFamily = Inter)
+    val typography = t.copy(
+        displayLarge = t.displayLarge.inter(), displayMedium = t.displayMedium.inter(), displaySmall = t.displaySmall.inter(),
+        headlineLarge = t.headlineLarge.inter(), headlineMedium = t.headlineMedium.inter(), headlineSmall = t.headlineSmall.inter(),
+        titleLarge = t.titleLarge.inter(), titleMedium = t.titleMedium.inter(), titleSmall = t.titleSmall.inter(),
+        bodyLarge = t.bodyLarge.inter(), bodyMedium = t.bodyMedium.inter(), bodySmall = t.bodySmall.inter(),
+        labelLarge = t.labelLarge.inter(), labelMedium = t.labelMedium.inter(), labelSmall = t.labelSmall.inter(),
+    )
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = androidx.compose.material3.MaterialTheme.colorScheme,
+        shapes = androidx.compose.material3.MaterialTheme.shapes,
+        typography = typography,
+    ) {
+        androidx.compose.material3.ProvideTextStyle(androidx.compose.material3.LocalTextStyle.current.inter(), content)
+    }
 }
