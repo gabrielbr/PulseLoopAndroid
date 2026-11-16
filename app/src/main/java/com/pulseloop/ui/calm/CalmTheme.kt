@@ -72,7 +72,8 @@ object CalmType {
  * names its own family explicitly (PulseType's styles) is unchanged until its piece is converted.
  */
 @androidx.compose.runtime.Composable
-fun CalmTypography(content: @androidx.compose.runtime.Composable () -> Unit) {
+fun CalmTypography(enabled: Boolean = true, content: @androidx.compose.runtime.Composable () -> Unit) {
+    if (!enabled) { content(); return }
     val t = androidx.compose.material3.MaterialTheme.typography
     fun TextStyle.inter() = copy(fontFamily = Inter)
     val typography = t.copy(

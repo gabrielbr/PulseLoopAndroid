@@ -291,16 +291,22 @@ fun VitalsScreen(
         }
     }
 
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    // The new look (docs/new-look-plan.md, "Vitals"): page colour, wider gutter, a 720dp cap and
+    // Inter for the whole tab. The structure stays: Vitals is where the charts live.
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
+        modifier = if (calm) Modifier.fillMaxSize().background(com.pulseloop.ui.calm.CalmColors.page)
+            .wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            start = 16.dp, end = 16.dp,
+            start = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
+            end = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp,
             top = 16.dp + topBarPadding, bottom = 16.dp + bottomBarPadding,
         ),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().then(if (calm) Modifier.padding(bottom = 12.dp) else Modifier), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     // No title: the tab bar names the screen, as on the other tabs.
                     // The answer first: is anything outside this person's usual range? The
@@ -558,6 +564,7 @@ fun VitalsScreen(
 
         item { Spacer(Modifier.height(32.dp)) }
     }
+    }
 }
 
 /**
@@ -650,11 +657,12 @@ private fun BpGaugeColumn(
             size = 130.dp,
             lineWidth = 11.dp,
         )
+        val calm = com.pulseloop.ui.calm.NewLook.on
         Text(
-            title.uppercase(),
-            style = com.pulseloop.ui.theme.PulseType.eyebrow,
+            if (calm) title else title.uppercase(),
+            style = if (calm) com.pulseloop.ui.calm.CalmType.bodySmall else com.pulseloop.ui.theme.PulseType.eyebrow,
             fontWeight = FontWeight.SemiBold,
-            color = PulseColors.textSecondary,
+            color = if (calm) com.pulseloop.ui.calm.CalmColors.textSecondary else PulseColors.textSecondary,
         )
     }
 }
@@ -1401,6 +1409,24 @@ private fun VitalsStatusLine() {
     val db = remember { com.pulseloop.data.PulseLoopDatabase.getInstance(context) }
     val guidance = rememberGuidance(db, Unit)
     val off = guidance?.offSignals
+    if (com.pulseloop.ui.calm.NewLook.on) {
+        // The new look: the answer is the screen's statement, not a caption.
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(tr("Last night"), style = com.pulseloop.ui.calm.CalmType.title, color = com.pulseloop.ui.calm.CalmColors.textSecondary)
+            Text(
+                when {
+                    off == null -> " "
+                    off.isEmpty() -> tr("All within your usual range")
+                    else -> trf("Outside your usual: {0}", off.joinToString(", ") { it.title.lowercase() })
+                },
+                style = com.pulseloop.ui.calm.CalmType.sectionTitle,
+                color = if (off.isNullOrEmpty()) com.pulseloop.ui.calm.CalmColors.text else PulseColors.warning,
+                maxLines = 3,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            )
+        }
+        return
+    }
     Text(
         when {
             off == null -> " "
