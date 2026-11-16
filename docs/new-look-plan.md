@@ -70,4 +70,16 @@ couldn't reach that repo, so it is recorded here until it is moved there.
 
 Still in the old style inside the new Today (convert with their own screens): the program chips,
 Rest Mode line, bedtime, food and tag cards, the accuracy-check banner and the Customize controls.
+- **Vitals** (behind the switch in `VitalsScreen`, `VitalCard`). The pattern Today set, without
+  taking the charts away: Vitals is the tab people open for the *why*, so each vital keeps its
+  full chart or gauge.
+  - "Last night" and the answer ("All within your usual range" / "Outside your usual: HRV") are
+    the screen's statement (20sp), beside the Measure button.
+  - `VitalCard` takes the calm card when the look is on: 12dp radius, hairline, 20dp padding,
+    sentence-case title and verdict, the value in Inter 32sp, and a quiet "Estimated" badge
+    (no dither) wherever a value is estimated.
+  - Page colour, the 20dp gutter, the 720dp cap and `CalmTypography` for the whole tab.
+
+Still old-styled inside Vitals: the Measure button and its sheet, the ring gauges' own drawing,
+the My Health entry card and the Customize controls.
 

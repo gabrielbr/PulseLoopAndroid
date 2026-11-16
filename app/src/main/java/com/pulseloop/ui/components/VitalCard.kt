@@ -51,22 +51,24 @@ fun VitalCard(
     onTap: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val shape = RoundedCornerShape(8.dp) // one card radius app-wide (was 24/30dp)
+    // The new look (docs/new-look-plan.md, "Vitals"): the calm card, Inter, sentence case.
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    val shape = RoundedCornerShape(if (calm) com.pulseloop.ui.calm.CalmShape.radius else 8.dp) // one card radius app-wide (was 24/30dp)
     val footerText = footerOverride ?: state.lastUpdatedText
 
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .clip(shape)
-            .border(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), shape)
+            .border(1.dp, if (calm) com.pulseloop.ui.calm.CalmColors.border else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f), shape)
             .then(if (onTap != null) Modifier.clickable(role = Role.Button, onClick = onTap) else Modifier),
         shape = shape,
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = if (calm) com.pulseloop.ui.calm.CalmColors.card else MaterialTheme.colorScheme.surfaceVariant,
     ) {
         Column(
             modifier = Modifier.padding(
-                horizontal = if (compact) 16.dp else 24.dp,
-                vertical = 16.dp,
+                horizontal = if (compact) 16.dp else if (calm) 20.dp else 24.dp,
+                vertical = if (calm) 20.dp else 16.dp,
             ),
             verticalArrangement = Arrangement.spacedBy(if (compact) 4.dp else 8.dp),
         ) {
@@ -95,11 +97,11 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
         )
         // The title takes the free width (instead of a Spacer) and the footer is bounded: both
         // used to be unweighted, so a long translated title could squeeze the footer to nothing.
+        val calm = com.pulseloop.ui.calm.NewLook.on
         Text(
-            state.title.uppercase(),
-            style = com.pulseloop.ui.theme.PulseType.eyebrow,
-            
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            if (calm) state.title else state.title.uppercase(),
+            style = if (calm) com.pulseloop.ui.calm.CalmType.title else com.pulseloop.ui.theme.PulseType.eyebrow,
+            color = if (calm) com.pulseloop.ui.calm.CalmColors.text else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -110,7 +112,7 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
             Text(
                 footerText,
                 fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (calm) com.pulseloop.ui.calm.CalmColors.textMuted else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.widthIn(max = 160.dp),
@@ -122,6 +124,18 @@ private fun CardHeader(state: VitalCardState, compact: Boolean, footerText: Stri
 
 @Composable
 private fun EstimatedChip() {
+    if (com.pulseloop.ui.calm.NewLook.on) {
+        Text(
+            tr("Estimated"),
+            style = com.pulseloop.ui.calm.CalmType.label,
+            color = ZonePalette.ZoneAmber,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(com.pulseloop.ui.calm.CalmColors.cardRaised)
+                .padding(horizontal = 10.dp, vertical = 6.dp),
+        )
+        return
+    }
     Text(
         tr("ESTIMATED"),
         style = com.pulseloop.ui.theme.PulseType.eyebrow,
@@ -141,7 +155,9 @@ private fun EstimatedChip() {
 private fun ValueRow(state: VitalCardState) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(
+            val calm = com.pulseloop.ui.calm.NewLook.on
+            if (calm) Text(state.valueText, style = com.pulseloop.ui.calm.CalmType.display, color = com.pulseloop.ui.calm.CalmColors.text)
+            else Text(
                 state.valueText,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.SemiBold,
@@ -159,9 +175,10 @@ private fun ValueRow(state: VitalCardState) {
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            val calmStatus = com.pulseloop.ui.calm.NewLook.on
             Text(
-                state.statusText.uppercase(),
-                style = com.pulseloop.ui.theme.PulseType.eyebrow,
+                if (calmStatus) state.statusText else state.statusText.uppercase(),
+                style = if (calmStatus) com.pulseloop.ui.calm.CalmType.title else com.pulseloop.ui.theme.PulseType.eyebrow,
                 fontWeight = FontWeight.SemiBold,
                 
                 color = state.statusToken.toColor(),
