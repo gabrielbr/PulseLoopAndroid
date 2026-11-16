@@ -28,6 +28,7 @@ import com.pulseloop.ui.components.DeviceHeroCard
 import com.pulseloop.ui.components.SettingsRowItem
 import com.pulseloop.ui.components.SettingsSection
 import com.pulseloop.ui.theme.PulseColors
+import com.pulseloop.ui.calm.lookCard
 import kotlinx.coroutines.flow.map
 
 /**
@@ -99,11 +100,17 @@ fun SettingsScreen(
 
     // Settings is pushed from the header's gear, so it wears the shared pushed-screen bar
     // (centred title + back) like its own sub-screens, instead of a bare headline.
-    Column(Modifier.fillMaxSize()) {
-    com.pulseloop.ui.components.PulseTopBar(title = tr("Settings"), onBack = { navController?.popBackStack() })
+    // The new look (docs/new-look-plan.md, "Settings"): calm bar, page, gutter, 720dp cap, Inter.
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    com.pulseloop.ui.calm.CalmTypography(enabled = calm) {
+    Column(Modifier.fillMaxSize().then(if (calm) Modifier.background(com.pulseloop.ui.calm.CalmColors.page) else Modifier)) {
+    if (calm) com.pulseloop.ui.calm.CalmTopBar(tr("Settings"), onBack = { navController?.popBackStack() })
+    else com.pulseloop.ui.components.PulseTopBar(title = tr("Settings"), onBack = { navController?.popBackStack() })
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+            .then(if (calm) Modifier.wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier)
+            .padding(horizontal = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp, vertical = if (calm) 8.dp else 16.dp),
+        verticalArrangement = Arrangement.spacedBy(if (calm) 28.dp else 24.dp),
     ) {
 
         val hcSource by remember { com.pulseloop.health.source.HealthConnectSource.activeSource(context) }.collectAsState()
@@ -115,10 +122,8 @@ fun SettingsScreen(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(160.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(PulseColors.card)
-                    .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp)),
+                    .height(if (calm) 176.dp else 160.dp)
+                    .lookCard(),
             )
         } else DeviceHeroCard(
             bleState = bleState,
@@ -245,6 +250,7 @@ fun SettingsScreen(
         )
 
         Spacer(Modifier.height(32.dp))
+    }
     }
     }
 }
