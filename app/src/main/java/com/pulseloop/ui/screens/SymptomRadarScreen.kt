@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +34,7 @@ import com.pulseloop.service.SymptomRadar
 import com.pulseloop.ui.calm.CalmBadge
 import com.pulseloop.ui.calm.CalmCard
 import com.pulseloop.ui.calm.CalmColors
+import com.pulseloop.ui.calm.CalmOutlinedButton
 import com.pulseloop.ui.calm.CalmSection
 import com.pulseloop.ui.calm.CalmShape
 import com.pulseloop.ui.calm.CalmTopBar
@@ -70,7 +73,8 @@ fun SymptomRadarScreen(onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().background(CalmColors.page)) {
         CalmTopBar(tr("Symptom Radar"), onBack)
         LazyColumn(
-            Modifier.fillMaxSize(),
+            // Tab content caps at 720dp on wide windows, as the rest of the app does.
+            Modifier.fillMaxSize().wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth(),
             contentPadding = PaddingValues(start = CalmShape.gutter, end = CalmShape.gutter, bottom = 48.dp),
         ) {
             val s = snap
@@ -148,9 +152,9 @@ fun SymptomRadarScreen(onBack: () -> Unit) {
                             CalmCard {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(sig.metric.title, style = CalmType.title, color = CalmColors.text, modifier = Modifier.weight(1f))
-                                    CalmBadge(if (sig.metric.strainUp) tr("Higher") else tr("Lower"))
+                                    CalmBadge(signalBadge(sig))
                                 }
-                                Text(sig.detail, style = CalmType.bodySmall, color = CalmColors.textSecondary)
+                                Text(signalDetail(sig), style = CalmType.bodySmall, color = CalmColors.textSecondary)
                             }
                         }
                     }
@@ -191,13 +195,30 @@ private val LEVEL_COLORS get() = listOf(PulseColors.info, PulseColors.warning, P
 @Composable
 private fun RestModeAction(restUntil: LocalDate?, onRest: (Int?) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        PulseButton(PulseButtonStyle.Outlined, onClick = { onRest(if (restUntil != null) null else 3) }, modifier = Modifier.fillMaxWidth()) {
-            Text(if (restUntil != null) tr("End Rest Mode") else tr("Turn on Rest Mode"))
-        }
+        CalmOutlinedButton(if (restUntil != null) tr("End Rest Mode") else tr("Turn on Rest Mode"), onClick = { onRest(if (restUntil != null) null else 3) })
         Text(
             restUntil?.let { trf("On until {0}: activity nudges paused, the coach eases off.", it.format(DateTimeFormatter.ofPattern("EEE d MMM"))) }
                 ?: tr("Feeling unwell? Pause activity nudges for 3 days."),
             style = CalmType.bodySmall, color = CalmColors.textMuted,
         )
     }
+}
+
+/**
+ * "Inactivity" flags fewer steps, so a plain "Lower" beside it would read as less inactive:
+ * the badge names the direction of the measured value.
+ */
+private fun signalBadge(sig: SymptomRadar.Signal): String = when {
+    sig.metric == SymptomRadar.Metric.INACTIVE -> tr("Fewer steps")
+    sig.value > sig.usual -> tr("Higher")
+    else -> tr("Lower")
+}
+
+/** The value against the usual, in the app's language (Signal.detail is English-only). */
+private fun signalDetail(sig: SymptomRadar.Signal): String {
+    val steps = sig.metric == SymptomRadar.Metric.INACTIVE
+    fun fmt(v: Double) = if (steps) "%,d".format(kotlin.math.round(v).toInt()) else "%.1f".format(v)
+    val unit = if (steps) tr("steps") else sig.metric.unit
+    return if (sig.value > sig.usual) trf("{0} {1}, higher than your usual {2}", fmt(sig.value), unit, fmt(sig.usual))
+    else trf("{0} {1}, lower than your usual {2}", fmt(sig.value), unit, fmt(sig.usual))
 }

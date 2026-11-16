@@ -1,6 +1,7 @@
 package com.pulseloop.ui.calm
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,12 +19,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
+import com.pulseloop.ui.i18n.tr
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -86,30 +93,57 @@ fun StateTimeline(
     val summary = levelNames.indices.joinToString(", ") { l -> "${levels.count { it == l }} ${levelNames[l]}" }
     val description = if (selected in days.indices && levels.getOrNull(selected) != null)
         summary + ". " + selectedLabel(days[selected], levelNames[levels[selected]!!]) else summary
+    // The label column fits the longest level name at the user's font size, so a longer
+    // translation or a larger font never runs off the edge.
+    val density = LocalDensity.current
+    val labelColPx = remember(levelNames, density) {
+        levelNames.maxOfOrNull { measurer.measure(it, labelStyle).size.width }?.toFloat()?.plus(with(density) { 12.dp.toPx() }) ?: 0f
+    }
+    val withValue = remember(levels) { levels.indices.filter { levels[it] != null } }
+    /** The day with a value nearest to [x] across the chart. */
+    fun dayAt(x: Float, width: Float): Int? {
+        val step = (width - labelColPx) / days.size.coerceAtLeast(1)
+        val i = (x / step).toInt().coerceIn(0, (days.size - 1).coerceAtLeast(0))
+        return withValue.minByOrNull { kotlin.math.abs(it - i) }
+    }
+    fun move(by: Int): Boolean {
+        val pos = withValue.indexOf(selected)
+        val next = withValue.getOrNull(pos + by) ?: return false
+        selected = next
+        return true
+    }
 
     Box(
         modifier
             .fillMaxWidth()
             .height((48 + 56 * levelNames.size + 28).dp)
-            .semantics { contentDescription = description },
+            // A day is a few dp wide, so TalkBack steps through them with actions instead.
+            .semantics {
+                contentDescription = description
+                liveRegion = LiveRegionMode.Polite
+                customActions = listOf(
+                    CustomAccessibilityAction(tr("Previous day")) { move(-1) },
+                    CustomAccessibilityAction(tr("Next day")) { move(1) },
+                )
+            },
     ) {
         Canvas(
-            Modifier.fillMaxWidth().height((48 + 56 * levelNames.size + 28).dp).pointerInput(days.size) {
-                detectTapGestures { pos ->
-                    val labelW = 96.dp.toPx()
-                    val step = (size.width - labelW) / days.size.coerceAtLeast(1)
-                    val i = (pos.x / step).toInt().coerceIn(0, days.size - 1)
+            Modifier.fillMaxWidth().height((48 + 56 * levelNames.size + 28).dp)
+                .pointerInput(levels, labelColPx) {
                     // Snap to the nearest day that has a value, so a tap never selects nothing.
-                    val near = levels.indices.filter { levels[it] != null }.minByOrNull { kotlin.math.abs(it - i) }
-                    if (near != null) selected = near
+                    detectTapGestures { pos -> dayAt(pos.x, size.width.toFloat())?.let { selected = it } }
+                }
+                .pointerInput(levels, labelColPx) {
+                    // Days are narrow: sliding a finger along the chart is the reliable way to pick one.
+                    detectHorizontalDragGestures { change, _ ->
+                        dayAt(change.position.x, size.width.toFloat())?.let { selected = it }
+                    }
                 },
-            },
         ) {
             if (days.isEmpty()) return@Canvas
             val top = 48.dp.toPx()
             val laneH = 56.dp.toPx()
-            val labelW = 96.dp.toPx()
-            val chartW = size.width - labelW
+            val chartW = size.width - labelColPx
             val step = chartW / days.size
             val bar = 10.dp.toPx()
             fun x(i: Int) = step * i + step / 2
@@ -149,7 +183,7 @@ fun StateTimeline(
                 val sx = x(selected)
                 drawLine(
                     CalmColors.textSecondary, Offset(sx, top - 6.dp.toPx()), Offset(sx, top + laneH * levelNames.size),
-                    strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)),
+                    strokeWidth = 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx())),
                 )
                 drawCircle(CalmColors.page, radius = bar, center = Offset(sx, y(sl)))
                 drawCircle(levelColors[sl], radius = bar * 0.7f, center = Offset(sx, y(sl)))

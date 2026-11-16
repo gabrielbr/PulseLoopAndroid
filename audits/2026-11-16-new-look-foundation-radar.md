@@ -1,6 +1,6 @@
 # Audit: new look foundation and Symptom Radar screen (2.16.5)
 
-Date: 2026-11-16 · PR: see the PR linking this file · Auditor: Claude Code (the four skills applied by hand from their SKILL.md files)
+Date: 2026-11-16 · PR: see the PR linking this file · Auditor: Claude Code (ux-user-flows, graphic-design-fundamentals and less-is-more applied by hand from their SKILL.md files; impeccable run with the skill loaded)
 
 ## Scope
 
@@ -62,17 +62,46 @@ Fixed: it now says "No night to read" and why.
 
 ## impeccable (audit, native / Android)
 
-| # | Dimension | Score | Key finding |
-|---|---|---|---|
-| 1 | Accessibility | 3 | Timeline is described as a whole; individual days are tap-only (P2). |
-| 2 | Performance | 4 | 35 `compute` calls over at most a few months of nights; one Canvas, no recomposition per frame. |
-| 3 | Appearance & theming | 4 | Tokens only; no literals in the screen. |
-| 4 | Platform conformance | 4 | M3 top bar, predictive back unchanged, `PulseButton` for the action. |
-| 5 | Adaptivity | 3 | Lazy column scales to tablets; no 720dp cap yet on this screen (P3). |
-| | **Total** | **18/20** | |
+Run with the vendored skill loaded (`impeccable context`, `audit.native.md`, `critique.md`, `polish.md`,
+`craft-floor.md`, `android.md`). No PRODUCT.md or DESIGN.md exists, so the code and
+`docs/new-look-plan.md` were the context. No Android SDK or emulator in this environment: the pass is
+from source and the canvas mock, not device screenshots. The device check (dark, font scale 1.3,
+TalkBack) is owed on the release build.
 
-Findings: P2 — per-day timeline access for TalkBack (carry forward, NL-1). P3 — tablet width cap
-(NL-2, part of the Settings/rest PR).
+### Audit, before → after the polish pass
+
+| # | Dimension | Before | After | Key finding |
+|---|---|---|---|---|
+| 1 | Accessibility | 2 | 3 | Timeline days were tap-only and ~7dp wide; label column fixed at 96dp clipped at large font scale. Now: drag to scrub, TalkBack "Previous day / Next day" actions with a polite live region, column measured from the labels. |
+| 2 | Performance | 4 | 4 | One repository read, 35 pure computes, one Canvas. |
+| 3 | Appearance & theming | 3 | 4 | Rest Mode was Material's pill with the mint outline, off the new look. Now `CalmOutlinedButton` (12dp radius, hairline border, still a `PulseButton`). |
+| 4 | Platform conformance | 4 | 4 | M3 top bar, system Back, Material button underneath. |
+| 5 | Adaptivity | 2 | 3 | No width cap: on a tablet the text ran 1000dp+ wide. Now capped at 720dp and centred like the tabs. |
+| | **Total** | **15/20** | **18/20** | |
+
+### Critique (design review only; detector not applicable, native platform)
+
+| # | Heuristic | Score | Key issue |
+|---|---|---|---|
+| 1 | Visibility of status | 3 | Headline and scale say the level; the timeline's selected day is shown. |
+| 2 | Match real world | 3 | "Inactivity · Lower" read as *less* inactive: fixed to "Fewer steps". |
+| 3 | User control | 3 | Rest Mode is reversible from the same button. |
+| 4 | Consistency | 3 | Signal detail was English-only beside translated text: now `trf`, pt-BR added. |
+| 5 | Error prevention | 3 | No destructive action on the screen. |
+| 6 | Recognition | 4 | Every level visible on the scale and the lanes. |
+| 7 | Flexibility | 2 | Tabs and timeline don't talk: picking Yesterday doesn't select it on the chart (P3, NL-3). |
+| 8 | Minimalist | 3 | Only flagged signals; explanation folded to two lines. |
+| 9 | Error recovery | 3 | Load failure says so and retries. |
+| 10 | Help | 3 | Explanation and the not-a-diagnosis line are on the screen. |
+| | **Total** | **30/40** | Good |
+
+Design specificity: the lanes-and-steps timeline and the three-dot scale are the radar's own
+shapes, not generic cards. The rest is deliberately quiet (Operate mode).
+
+Priority issues found and fixed: [P1] timeline unusable with TalkBack and hard to aim;
+[P1] "Inactivity · Lower" contradicts itself; [P2] untranslated signal detail; [P2] off-look pill
+button; [P2] no width cap. Left: [P3] NL-3 tab ↔ timeline selection; [P3] temperature shown in °C
+regardless of unit setting (pre-existing, the radar's own model).
 
 ## less-is-more
 
@@ -101,5 +130,6 @@ Findings: P2 — per-day timeline access for TalkBack (carry forward, NL-1). P3 
 
 ## Verdict
 
-Merge. Carried forward: NL-1 per-day TalkBack on the timeline; NL-2 tablet width cap; divergence to
-be recorded in the design-system repo.
+Merge. NL-1 (per-day TalkBack) and NL-2 (width cap) were fixed in the impeccable polish pass. Carried
+forward: NL-3 tab ↔ timeline selection; the on-device check; the divergence to be recorded in the
+design-system repo.

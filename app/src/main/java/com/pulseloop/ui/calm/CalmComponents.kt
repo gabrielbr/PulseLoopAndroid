@@ -1,6 +1,7 @@
 package com.pulseloop.ui.calm
 
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -44,6 +46,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pulseloop.ui.components.Chevron
+import com.pulseloop.ui.components.PulseButton
+import com.pulseloop.ui.components.PulseButtonStyle
 import com.pulseloop.ui.i18n.tr
 
 /** A pushed screen's bar in the new look: back arrow, an Inter title, optional actions. */
@@ -174,4 +178,18 @@ fun CalmMetricRow(name: String, value: String, unit: String, badge: String?, det
         }
         if (detail != null) Text(detail, style = CalmType.bodySmall, color = CalmColors.textMuted)
     }
+}
+
+/**
+ * The new look's secondary action: a [PulseButton] (so its height and press rules hold) with the
+ * card radius and the hairline border, instead of Material's pill and mint outline.
+ */
+@Composable
+fun CalmOutlinedButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    PulseButton(
+        PulseButtonStyle.Outlined, onClick = onClick, modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(CalmShape.radius),
+        border = BorderStroke(1.dp, CalmColors.border),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = CalmColors.text),
+    ) { Text(text, style = CalmType.title) }
 }
