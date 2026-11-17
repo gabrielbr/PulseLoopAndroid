@@ -246,10 +246,17 @@ class JringSyncEngine(
             val mode = encoder.jringSportMode(activityType)
             workoutSportMode = mode
             writer?.enqueue(encoder.makeWorkoutHeartRateStartCommand(mode))
+            log("jring workout start: sport mode $mode, continuous")
         } else {
             workoutSportMode = null
             startHeartRate()
+            log(if (bandCapabilities == null) "jring workout start: 180 s check until the ring reports its features (0x20)"
+                else "jring workout start: 180 s check (ring doesn't set bit 56)")
         }
+    }
+
+    private fun log(message: String) {
+        PulseEventBus.publishBlocking(PulseEvent.Diagnostic(message, RingDeviceType.JRING))
     }
 
     override fun stopWorkoutHeartRate() {

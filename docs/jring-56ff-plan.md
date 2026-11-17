@@ -410,3 +410,23 @@ two minutes.
 
 Source: JRing 2.0.8 (`com.jaga.ibraceletplus.jyring`), decompiled locally with jadx 1.5.1 into the
 gitignored `decompiled-jring-offical/`.
+
+**Follow-up, 17 Nov gym session (2.16.17).**
+- **What the export showed:** the summary still read 76 bpm, with readings covering 12 of 57
+  minutes. The export (`-full`, unmasked) only held the four minutes before it was taken, but it
+  included the ring's own minute log for the morning:
+  - 06:56–07:00: live, varying readings, 71–89 bpm;
+  - 07:00 onwards: only the routine single checks, 71 at 07:00, 75 at 07:30, 77 at 07:44.
+- **So the ring stopped measuring about four minutes in, and nothing asked it again.** What
+  stopped it isn't in the export. Two candidates: a start sent before the ring's `0x20` reply,
+  which falls back to the 180 s check, or a later command ending the live mode.
+- **What changed (`RingSyncCoordinator`):**
+  - **Reconnect:** a real reconnect mid-workout re-sends the start, as the vendor's run screen
+    does on BLE state 2.
+  - **Started while disconnected:** a workout started with the ring away now starts the stream
+    when it connects (the start used to be dropped).
+  - **Silence:** a connected ring silent for 60 s mid-workout gets the start again.
+- **Background sync (`RingSyncWorker`):** it no longer runs during a recording. It used to open
+  a second client, re-run the whole startup and broadcast DISCONNECTED.
+- **Diagnostics:** each start, restart and stop goes to the diagnostics log, with the command
+  jring chose. The next export then says which start was sent and when the ring went quiet.
