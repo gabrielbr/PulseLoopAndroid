@@ -83,6 +83,12 @@ class RingSyncWorker(
         // runs startup sync anyway so history is still pulled without fighting over GATT (issue #103).
         if (ScheduledSpo2Worker.isMeasuring) return Result.success()
 
+        // A workout is recording with the screen off: the app's own client holds the ring and its
+        // heart-rate stream. This worker would open a second client, re-run the whole startup
+        // (settings writes included) and then broadcast DISCONNECTED, which is the opposite of
+        // what a workout needs. The vendor runs no sync during its run screen either.
+        if (com.pulseloop.AppServices.peek()?.liveWorkout?.state?.value?.isRecording == true) return Result.success()
+
         val keyStore = ApiKeyStore(applicationContext)
         val db = PulseLoopDatabase.getInstance(applicationContext)
 

@@ -228,6 +228,9 @@ class RingSyncCoordinator(
     private val combinedMeasureSeconds = COMBINED_MEASURE_SECONDS.toLong()
 
     companion object {
+        /** A connected ring silent this long mid-workout gets its start again. */
+        const val WORKOUT_SILENCE_MS = 60_000L
+        const val WORKOUT_WATCHDOG_TICK_MS = 15_000L
         /** Duration of a combined spot measurement (0x23→0x24); also drives the UI countdown. */
         const val COMBINED_MEASURE_SECONDS = 45
         /** Default window for the live-HR leg of a spot measurement. A family that ends its own
@@ -430,18 +433,62 @@ class RingSyncCoordinator(
     /** The activity type of the workout whose stream is running — what a restart re-sends. */
     private var workoutActivityType: String = "other"
 
+    /** A workout is recording and wants its heart-rate stream, whether or not the ring is
+     *  connected right now. [workoutHRActive] is whether the stream was started on this link. */
+    private var workoutWanted = false
+    /** When the workout stream last produced a sample, or was last (re)started. */
+    @Volatile private var lastWorkoutSampleAt = 0L
+    private var workoutWatchdog: kotlinx.coroutines.Job? = null
+
     fun startWorkoutHeartRate(activityType: String = "other") {
-        if (!isConnected) return
         workoutActivityType = activityType
-        engine?.startWorkoutHeartRate(activityType)
-        workoutHRActive = true
+        workoutWanted = true
+        startWorkoutWatchdog()
+        // Not connected yet: the stream starts when the ring connects (see DeviceStateChanged).
+        if (!isConnected) { workoutLog("Workout started while the ring is disconnected; stream waits for the connection"); return }
+        sendWorkoutStart("start")
     }
 
     fun stopWorkoutHeartRate() {
+        workoutWanted = false
+        workoutWatchdog?.cancel(); workoutWatchdog = null
         if (!workoutHRActive) return
         engine?.stopWorkoutHeartRate()
         workoutHRActive = false
+        workoutLog("Workout heart rate stopped")
         engine?.syncVitalsHistory()
+    }
+
+    private fun sendWorkoutStart(reason: String) {
+        engine?.startWorkoutHeartRate(workoutActivityType)
+        workoutHRActive = true
+        lastWorkoutSampleAt = System.currentTimeMillis()
+        workoutLog("Workout heart rate $reason ($workoutActivityType)")
+    }
+
+    /**
+     * The 17 Nov gym session: the ring's own minute log shows live readings for the first four
+     * minutes and then only its routine checks, so the ring stopped measuring and nothing asked
+     * it to start again. The vendor's run screen re-sends its start whenever the ring reconnects
+     * (`RunRecordActivity`, BLE state 2 → `startHeartrateMode(true)`); this also re-sends it when
+     * a connected ring has gone quiet for [WORKOUT_SILENCE_MS], whatever stopped it. Colmi's sport
+     * session ignores a repeated start mid-session, so this is safe for it too.
+     */
+    private fun startWorkoutWatchdog() {
+        if (workoutWatchdog?.isActive == true) return
+        workoutWatchdog = scope.launch {
+            while (workoutWanted) {
+                kotlinx.coroutines.delay(WORKOUT_WATCHDOG_TICK_MS)
+                if (!workoutWanted || !isConnected) continue
+                if (System.currentTimeMillis() - lastWorkoutSampleAt >= WORKOUT_SILENCE_MS) {
+                    sendWorkoutStart("restarted after ${WORKOUT_SILENCE_MS / 1000} s of silence")
+                }
+            }
+        }
+    }
+
+    private fun workoutLog(message: String) {
+        PulseEventBus.publishBlocking(PulseEvent.Diagnostic(message, client.state.value.activeDeviceType))
     }
 
     /**
@@ -1033,6 +1080,7 @@ class RingSyncCoordinator(
             is PulseEvent.LiveSampleGate -> Unit   // our own; consumed by EventPersistenceSubscriber
             is PulseEvent.HeartRateSample -> {
                 if (event.spot) return   // our own settled reading, not a ring sample
+                if (workoutWanted && event.bpm > 0) lastWorkoutSampleAt = System.currentTimeMillis()
                 // During a spot measure the window decides what counts: a sample it rejects is the
                 // ring's cached echo (a bpm from hours ago, stamped now), so it must not become the
                 // live value either — that echo is exactly the number issue #59 saw on the card
@@ -1120,12 +1168,20 @@ class RingSyncCoordinator(
             }
             is PulseEvent.DeviceStateChanged -> {
                 when (event.state) {
-                    RingConnectionState.CONNECTED -> lastSyncAt = System.currentTimeMillis()
+                    RingConnectionState.CONNECTED -> {
+                        lastSyncAt = System.currentTimeMillis()
+                        // Only the BLE client's own connect carries a deviceType; decoder Status
+                        // replies also map to CONNECTED and recur all session (see AGENTS.md).
+                        // A real (re)connect mid-workout restarts the stream, as the vendor does.
+                        if (event.deviceType != null && workoutWanted) sendWorkoutStart("restarted after reconnect")
+                    }
                     RingConnectionState.DISCONNECTED,
                     RingConnectionState.FAILED,
                     RingConnectionState.IDLE -> {
                         clearSyncProgress()
                         startupEngine = null
+                        if (workoutWanted && workoutHRActive) workoutLog("Ring disconnected during a workout")
+                        workoutHRActive = false
                     }
                     else -> {}
                 }
