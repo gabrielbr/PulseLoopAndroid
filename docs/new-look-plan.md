@@ -114,3 +114,21 @@ and Sleep had theirs redone in `audits/2026-11-16-impeccable-pass-vitals-sleep-a
   These are the shared `SettingsSection` / `SettingsRow` / `DeviceHeroCard`, so they follow the
   look wherever they appear. Still old-styled: every sub-screen (`SettingsSubScreens.kt`), next.
   Audit: `audits/2026-11-16-new-look-settings.md`.
+- **Settings sub-screens** (every route under `settings/`, plus the AI tools, accuracy check and
+  data-source screens). Converted at their shared parts rather than one by one:
+  - `SettingsSubScreen` (the scaffold) gives its subtree the calm bar, page, gutter and 720dp cap,
+    and `CalmMaterial`: the new look's neutrals in Material's colour roles plus Inter. Most of these
+    screens read `MaterialTheme` (captions in `onSurfaceVariant`, switches, fields, dialogs), so
+    they follow without edits. Input outlines use `textMuted`, since the hairline is too faint for
+    a control's boundary. It also sets the tonal-button role the app's scheme never set (Material's
+    default lavender showed through).
+  - `SubScreenCard`, the profile and goal editors (`Editors.kt`), the language list and the AI
+    tools screen read `Look` for their neutrals, radius and title styles. In the old look `Look`
+    returns the same `PulseColors` values, so the old look is unchanged.
+  - Caps labels become sentence case through `LookLabel`, which `SectionHeaderCaps` now uses
+    everywhere. `PulseSegmented` (also on Sleep and Vitals) and the profile's segmented rows mark
+    the choice with a raised surface instead of a mint fill.
+
+  Still old-styled: the coach's provider dropdowns keep mint text, the About version tile's tap
+  effect, and Lab reports' own section labels (it shares the scaffold but is My Health's screen).
+  Audit: `audits/2026-11-17-new-look-settings-subscreens.md`.

@@ -241,14 +241,9 @@ fun greetingForHour(): String = when (Calendar.getInstance().get(Calendar.HOUR_O
 @Composable
 fun SectionHeaderCaps(title: String, modifier: Modifier = Modifier, action: (@Composable () -> Unit)? = null) {
     Row(modifier = modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(
-            title.uppercase(),
-            // The one eyebrow style (12sp, 1sp tracking), not a hand-rolled 14sp variant.
-            style = PulseType.eyebrow,
-            color = PulseColors.textSecondary,
-            // Takes the free width (instead of a Spacer) so a long title wraps beside the action.
-            modifier = Modifier.weight(1f),
-        )
+        // Takes the free width (instead of a Spacer) so a long title wraps beside the action. The
+        // new look writes it in sentence case (LookLabel): no caps kicker over content.
+        com.pulseloop.ui.calm.LookLabel(title, modifier = Modifier.weight(1f))
         action?.invoke()
     }
 }

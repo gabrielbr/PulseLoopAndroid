@@ -83,7 +83,7 @@ fun ProfileEditor(
                         tr("Measurement units"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = PulseColors.textPrimary,
+                        color = com.pulseloop.ui.calm.Look.text,
                     )
                     SegmentedRow(
                         options = listOf(tr("Metric"), tr("Imperial")),
@@ -108,11 +108,11 @@ fun ProfileEditor(
                         tr("Name"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = PulseColors.textPrimary,
+                        color = com.pulseloop.ui.calm.Look.text,
                     )
                     Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
                         if (draft.name.isEmpty()) {
-                            Text(tr("Optional"), fontSize = 14.sp, color = PulseColors.textMuted)
+                            Text(tr("Optional"), fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textMuted)
                         }
                         BasicTextField(
                             value = draft.name,
@@ -120,7 +120,7 @@ fun ProfileEditor(
                             singleLine = true,
                             textStyle = TextStyle(
                                 fontSize = 14.sp,
-                                color = PulseColors.textPrimary,
+                                color = com.pulseloop.ui.calm.Look.text,
                                 textAlign = TextAlign.End,
                             ),
                             cursorBrush = SolidColor(PulseColors.accent),
@@ -130,7 +130,7 @@ fun ProfileEditor(
                     }
                 }
 
-                HorizontalDivider(color = PulseColors.borderSubtle)
+                HorizontalDivider(color = com.pulseloop.ui.calm.Look.border)
 
                 Column(
                     Modifier.padding(vertical = 12.dp),
@@ -140,7 +140,7 @@ fun ProfileEditor(
                         tr("Sex"),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        color = PulseColors.textPrimary,
+                        color = com.pulseloop.ui.calm.Look.text,
                     )
                     SegmentedRow(
                         options = listOf(tr("Not set"), tr("Female"), tr("Male"), tr("Other")),
@@ -166,7 +166,7 @@ fun ProfileEditor(
         }
 
         SectionHeaderCaps(tr("Body metrics"), action = {
-            Text(tr("Optional"), fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("Optional"), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
         })
         FormCard {
             Column {
@@ -175,13 +175,13 @@ fun ProfileEditor(
                     value = draft.age?.let { trf("{0} years", it) },
                     onClick = { activePicker = ProfilePickerKind.AGE },
                 )
-                HorizontalDivider(color = PulseColors.borderSubtle)
+                HorizontalDivider(color = com.pulseloop.ui.calm.Look.border)
                 PickerRow(
                     title = tr("Height"),
                     value = heightLabel(draft),
                     onClick = { activePicker = ProfilePickerKind.HEIGHT },
                 )
-                HorizontalDivider(color = PulseColors.borderSubtle)
+                HorizontalDivider(color = com.pulseloop.ui.calm.Look.border)
                 PickerRow(
                     title = tr("Weight"),
                     value = weightLabel(draft),
@@ -241,9 +241,9 @@ private fun FormCard(content: @Composable () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
+            .background(com.pulseloop.ui.calm.Look.card)
+            .border(1.dp, com.pulseloop.ui.calm.Look.border, RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
             .padding(horizontal = 16.dp, vertical = 8.dp),
     ) {
         content()
@@ -260,7 +260,7 @@ private fun SegmentedRow(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(4.dp))
-            .background(PulseColors.cardSoft)
+            .background(if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.CalmColors.cardRaised else PulseColors.cardSoft)
             .padding(3.dp)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -273,7 +273,7 @@ private fun SegmentedRow(
                     // 48dp: each segment is a target (it was about 36dp).
                     .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(if (selected) PulseColors.accent else Color.Transparent)
+                    .background(if (selected) (if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.CalmColors.page else PulseColors.accent) else Color.Transparent)
                     .selectable(selected = selected, role = Role.RadioButton) { onSelect(index) }
                     .padding(vertical = 8.dp),
                 contentAlignment = Alignment.Center,
@@ -282,7 +282,7 @@ private fun SegmentedRow(
                     option,
                     fontSize = 14.sp,
                     fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                    color = if (selected) PulseColors.onAccent else PulseColors.textSecondary,
+                    color = if (selected) (if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.Look.text else PulseColors.onAccent) else com.pulseloop.ui.calm.Look.textSecondary,
                     maxLines = 1,
                     // Four translated options share the width; ellipsize rather than clip mid-glyph.
                     overflow = TextOverflow.Ellipsis,
@@ -308,13 +308,13 @@ private fun PickerRow(title: String, value: String?, onClick: () -> Unit) {
             title,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
-            color = PulseColors.textPrimary,
+            color = com.pulseloop.ui.calm.Look.text,
             modifier = Modifier.weight(1f),
         )
         Text(
             value ?: tr("Not set"),
             fontSize = 14.sp,
-            color = if (value == null) PulseColors.textMuted else PulseColors.textSecondary,
+            color = if (value == null) com.pulseloop.ui.calm.Look.textMuted else com.pulseloop.ui.calm.Look.textSecondary,
             maxLines = 1, overflow = TextOverflow.Ellipsis,
             modifier = Modifier.widthIn(max = 160.dp),
         )
@@ -353,13 +353,13 @@ private fun NumberPickerSheet(
                 PulseButton(PulseButtonStyle.Text, onClick = {
                     onSave(null)
                     onDismiss()
-                }) { Text(tr("Clear"), color = PulseColors.textSecondary) }
+                }) { Text(tr("Clear"), color = com.pulseloop.ui.calm.Look.textSecondary) }
                 Spacer(Modifier.weight(1f))
                 Text(
                     title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = PulseColors.textPrimary,
+                    color = com.pulseloop.ui.calm.Look.text,
                 )
                 Spacer(Modifier.weight(1f))
                 PulseButton(PulseButtonStyle.Text, onClick = {
@@ -386,7 +386,7 @@ private fun NumberPickerSheet(
                             label(value),
                             fontSize = 16.sp,
                             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                            color = if (selected) PulseColors.textPrimary else PulseColors.textSecondary,
+                            color = if (selected) com.pulseloop.ui.calm.Look.text else com.pulseloop.ui.calm.Look.textSecondary,
                         )
                     }
                 }
@@ -428,13 +428,13 @@ private fun DecimalValueSheet(
                 PulseButton(PulseButtonStyle.Text, onClick = {
                     onSave(null)
                     onDismiss()
-                }) { Text(tr("Clear"), color = PulseColors.textSecondary) }
+                }) { Text(tr("Clear"), color = com.pulseloop.ui.calm.Look.textSecondary) }
                 Spacer(Modifier.weight(1f))
                 Text(
                     title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
-                    color = PulseColors.textPrimary,
+                    color = com.pulseloop.ui.calm.Look.text,
                 )
                 Spacer(Modifier.weight(1f))
                 PulseButton(PulseButtonStyle.Text,
@@ -446,7 +446,7 @@ private fun DecimalValueSheet(
                 ) {
                     Text(
                         tr("Done"),
-                        color = if (parsedValue != null) PulseColors.accent else PulseColors.textMuted,
+                        color = if (parsedValue != null) PulseColors.accent else com.pulseloop.ui.calm.Look.textMuted,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -460,15 +460,15 @@ private fun DecimalValueSheet(
                     trf("Enter your weight in {0}", unit),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PulseColors.textPrimary,
+                    color = com.pulseloop.ui.calm.Look.text,
                 )
 
                 Box(
                     Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(PulseColors.card)
-                        .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
+                        .clip(RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
+                        .background(com.pulseloop.ui.calm.Look.card)
+                        .border(1.dp, com.pulseloop.ui.calm.Look.border, RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
                         .padding(16.dp),
                 ) {
                     if (text.isEmpty()) {
@@ -476,7 +476,7 @@ private fun DecimalValueSheet(
                             LocalizedDecimalInput.format(70.5),
                             fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = PulseColors.textMuted,
+                            color = com.pulseloop.ui.calm.Look.textMuted,
                         )
                     }
                     BasicTextField(
@@ -486,7 +486,7 @@ private fun DecimalValueSheet(
                         textStyle = TextStyle(
                             fontSize = 20.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = PulseColors.textPrimary,
+                            color = com.pulseloop.ui.calm.Look.text,
                         ),
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal,
@@ -510,7 +510,7 @@ private fun DecimalValueSheet(
                 Text(
                     tr("You can use either a comma or a period as the decimal separator."),
                     fontSize = 12.sp,
-                    color = PulseColors.textMuted,
+                    color = com.pulseloop.ui.calm.Look.textMuted,
                 )
 
                 if (text.isNotEmpty() && parsedValue == null) {
@@ -623,9 +623,9 @@ private fun GoalSliderCard(
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(PulseColors.card)
-            .border(1.dp, PulseColors.borderSubtle, RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
+            .background(com.pulseloop.ui.calm.Look.card)
+            .border(1.dp, com.pulseloop.ui.calm.Look.border, RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -634,7 +634,7 @@ private fun GoalSliderCard(
                 Modifier
                     .size(30.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .dither(tint, 0.14f),
+                    .then(if (com.pulseloop.ui.calm.Look.calm) Modifier.background(com.pulseloop.ui.calm.CalmColors.cardRaised) else Modifier.dither(tint, 0.14f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(icon, contentDescription = null, Modifier.size(16.dp), tint = tint)
@@ -644,14 +644,14 @@ private fun GoalSliderCard(
                 title,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Medium,
-                color = PulseColors.textPrimary,
+                color = com.pulseloop.ui.calm.Look.text,
                 modifier = Modifier.weight(1f),
             )
             Text(
                 label,
                 fontSize = 16.sp,
                 fontWeight = FontWeight.SemiBold,
-                fontFamily = com.pulseloop.ui.theme.UbuntuMono,
+                fontFamily = if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.Inter else com.pulseloop.ui.theme.UbuntuMono,
                 color = tint,
             )
         }
@@ -671,7 +671,7 @@ private fun GoalSliderCard(
             colors = SliderDefaults.colors(
                 thumbColor = tint,
                 activeTrackColor = tint,
-                inactiveTrackColor = PulseColors.elevated,
+                inactiveTrackColor = if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.CalmColors.cardRaised else PulseColors.elevated,
             ),
         )
     }

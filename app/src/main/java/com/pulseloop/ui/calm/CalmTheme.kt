@@ -91,3 +91,39 @@ fun CalmTypography(enabled: Boolean = true, content: @androidx.compose.runtime.C
         androidx.compose.material3.ProvideTextStyle(androidx.compose.material3.LocalTextStyle.current.inter(), content)
     }
 }
+
+/**
+ * [CalmTypography] plus the new look's neutrals in Material's colour roles, for a screen whose
+ * content reads `MaterialTheme` rather than naming colours (the Settings sub-screens: switches,
+ * text fields, `onSurfaceVariant` captions, dialogs). Brand and status roles (primary, error) are
+ * left as they are. Input outlines use [CalmColors.textMuted], since the hairline [CalmColors.border]
+ * is too faint for a control's boundary (3:1).
+ */
+@androidx.compose.runtime.Composable
+fun CalmMaterial(enabled: Boolean = true, content: @androidx.compose.runtime.Composable () -> Unit) {
+    if (!enabled) { content(); return }
+    val c = androidx.compose.material3.MaterialTheme.colorScheme
+    val scheme = c.copy(
+        background = CalmColors.page,
+        onBackground = CalmColors.text,
+        surface = CalmColors.card,
+        onSurface = CalmColors.text,
+        surfaceVariant = CalmColors.card,
+        onSurfaceVariant = CalmColors.textSecondary,
+        surfaceContainerLowest = CalmColors.page,
+        surfaceContainerLow = CalmColors.card,
+        surfaceContainer = CalmColors.card,
+        surfaceContainerHigh = CalmColors.cardRaised,
+        surfaceContainerHighest = CalmColors.cardRaised,
+        outline = CalmColors.textMuted,
+        outlineVariant = CalmColors.border,
+        // Tonal buttons: the app's scheme never set these, so Material's default lavender showed.
+        secondaryContainer = CalmColors.cardRaised,
+        onSecondaryContainer = CalmColors.text,
+    )
+    androidx.compose.material3.MaterialTheme(
+        colorScheme = scheme,
+        shapes = androidx.compose.material3.MaterialTheme.shapes,
+        typography = androidx.compose.material3.MaterialTheme.typography,
+    ) { CalmTypography(content = content) }
+}

@@ -49,7 +49,7 @@ fun LanguageSettingsScreen(onBack: () -> Unit) {
     SettingsSubScreen(title = tr("Language"), onBack = onBack) {
         Column(
             // A radio group: TalkBack reads "selected, 1 of 5" and each row is one 48dp target.
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).selectableGroup(),
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(com.pulseloop.ui.calm.Look.radius)).background(com.pulseloop.ui.calm.Look.card).selectableGroup(),
         ) {
             AppLanguage.entries.forEach { lang ->
                 Row(
@@ -69,16 +69,16 @@ fun LanguageSettingsScreen(onBack: () -> Unit) {
                     Column(Modifier.padding(start = 12.dp, top = 8.dp, bottom = 8.dp)) {
                         Text(
                             if (lang == AppLanguage.SYSTEM) tr("System default") else lang.label,
-                            fontSize = 16.sp, color = PulseColors.textPrimary,
+                            fontSize = 16.sp, color = com.pulseloop.ui.calm.Look.text,
                         )
-                        lang.caption?.let { Text(tr(it), fontSize = 12.sp, color = PulseColors.textMuted) }
+                        lang.caption?.let { Text(tr(it), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted) }
                     }
                 }
             }
         }
         Text(
             tr("The coach also replies in the language you choose."),
-            fontSize = 12.sp, color = PulseColors.textMuted,
+            fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted,
         )
     }
 
