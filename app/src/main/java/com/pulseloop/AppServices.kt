@@ -1,5 +1,6 @@
 package com.pulseloop
 
+import com.pulseloop.service.ComparisonRing
 import android.content.Context
 import com.pulseloop.coach.config.CoachProviderSettingsStore
 import com.pulseloop.coach.summaries.CoachSummaryCoordinator
@@ -36,7 +37,9 @@ class AppServices private constructor(context: Context) {
     val apiKeyStore = ApiKeyStore(context)
     val coordinator = RingSyncCoordinator(bleClient, db, apiKeyStore)
     val gpsRecorder = GpsRouteRecorder(context, db)
-    val liveWorkout = LiveWorkoutManager(coordinator, db, gpsRecorder, context)
+    /** A second ring worn only to compare with this one (docs/ring-comparison.md). */
+    val comparison = ComparisonRing(context, db)
+    val liveWorkout = LiveWorkoutManager(coordinator, db, gpsRecorder, context, comparison)
 
     /** Process-wide, not per-[AppServices]: background workers need it without the UI's services. */
     val persistence = EventPersistenceSubscriber.shared(context)

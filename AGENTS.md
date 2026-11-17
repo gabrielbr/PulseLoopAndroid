@@ -93,6 +93,23 @@ A unit that sets bit 10 is granted TEMPERATURE at runtime. Details: `docs/jring-
 duration 0 and the sport's mode when `0x20` bit 56 (`FUNCTION_SPORT_FROM_APP`) is set, as
 `RunRecordActivity` does. Details: `docs/jring-56ff-plan.md`, "Workout heart rate".
 
+## A second ring is for comparison only, and its data never reaches the app's
+
+**Read this before touching `RingBLEClient`'s publishing, `ComparisonRing` or any driver that
+publishes events itself.** Full design: `docs/ring-comparison.md`.
+
+- **The comparison ring publishes to `ComparisonBus`, never `PulseEventBus`.** The app's bus feeds
+  persistence, the device row, the accuracy watcher, Health Connect, Strava and the sync
+  coordinator, all of which are the main ring's. Only diagnostics cross over, marked
+  `[comparison ring]`.
+- **A driver publishes through `RingCommandWriter.publish`, not `PulseEventBus` directly.** The
+  comparison client overrides it. A direct `PulseEventBus.publishBlocking` in a driver leaks a
+  second ring of that family into the user's history.
+- **`comparison_readings` is read by the comparison screen only.** Never by a score, chart,
+  export or the coach, and not in the backup.
+- **Stop comparing forgets without unbinding** (`clearSavedRing`, not `forget`), so the ring stays
+  paired to its own app.
+
 ## Colmi/Yawell OS-bonding is a hand-curated allowlist — not "match QRing exactly"
 
 **This is the one rule in this file most likely to get silently reverted by a future "generalize

@@ -714,7 +714,7 @@ class ColmiSyncEngine(
         // degrades for Colmi rings: the coach check-in skip gate and done-wait (#61c), the
         // >12h staleness warning, the morning sleep-sync gate (#65f), the summary
         // coordinator's sync recheck, and the post-workout vitals reconcile (#57e).
-        PulseEventBus.publishBlocking(PulseEvent.SyncProgress("done"))
+        writer?.publish(PulseEvent.SyncProgress("done")) ?: PulseEventBus.publishBlocking(PulseEvent.SyncProgress("done"))
     }
 
     // MARK: Measurement actions

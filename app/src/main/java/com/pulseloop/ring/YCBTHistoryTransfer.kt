@@ -15,7 +15,7 @@ class YCBTHistoryTransfer(
     private val onOutOfBandEvents: (List<RingDecodedEvent>) -> Unit = { events ->
         for (event in events) {
             for (pulseEvent in RingEventBridge.eventsFor(event)) {
-                PulseEventBus.publishBlocking(pulseEvent)
+                writer?.publish(pulseEvent) ?: PulseEventBus.publishBlocking(pulseEvent)
             }
         }
     },

@@ -6,6 +6,11 @@ package com.pulseloop.ring
  */
 fun interface RingCommandWriter {
     fun enqueue(command: ByteArray)
+
+    /** Where this connection's own events go. The app's ring publishes to [PulseEventBus]; a
+     *  ring connected only for comparison overrides this, so nothing a driver publishes on its own
+     *  (history progress, out-of-band readings) can reach the app's data. */
+    fun publish(event: PulseEvent) { PulseEventBus.publishBlocking(event) }
 }
 
 enum class SubscriptionMode { NOTIFICATION, INDICATION }

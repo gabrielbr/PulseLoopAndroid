@@ -22,6 +22,8 @@ class LiveWorkoutManager(
     private val db: PulseLoopDatabase,
     val gps: GpsRouteRecorder,
     private val context: Context,
+    /** The second ring, if one is set up to compare: it streams heart rate during a workout too. */
+    private val comparison: ComparisonRing? = null,
 ) {
     data class WorkoutState(
         val isRecording: Boolean = false,
@@ -89,6 +91,7 @@ class LiveWorkoutManager(
         db.activitySessionDao().upsert(session)
 
         coordinator.startWorkoutHeartRate(type)
+        comparison?.startWorkout(type)
         if (useGps) gps.start(session.id, type)
         polling.start(session.id)
         startForegroundService(session.type)
@@ -196,6 +199,7 @@ class LiveWorkoutManager(
         db.activitySessionDao().upsert(summarized)
         runCatching { ActivityRollup.credit(db, summarized) }
         coordinator.stopWorkoutHeartRate()
+        comparison?.stopWorkout()
         finishForegroundService(summarized)
         _state.value = WorkoutState(finishedSessionId = summarized.id)
         uploadToStravaIfConnected()
@@ -228,6 +232,7 @@ class LiveWorkoutManager(
             statusRaw = "cancelled", endedAt = System.currentTimeMillis(), updatedAt = System.currentTimeMillis()
         ))
         coordinator.stopWorkoutHeartRate()
+        comparison?.stopWorkout()
         _state.value = WorkoutState()
     }
 

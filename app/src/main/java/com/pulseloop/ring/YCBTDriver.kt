@@ -159,7 +159,7 @@ class YCBTDriver(
         for (event in events.filter(::isSupported)) {
             syncEngine?.handle(event)
             for (pulseEvent in RingEventBridge.eventsFor(event)) {
-                PulseEventBus.publishBlocking(pulseEvent)
+                writer.publish(pulseEvent)
             }
         }
     }

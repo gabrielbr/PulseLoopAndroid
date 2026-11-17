@@ -58,8 +58,9 @@ import com.pulseloop.data.entity.*
         AccuracyCorrectionEntity::class,
         LabReportEntity::class,
         LabResultEntity::class,
+        ComparisonReadingEntity::class,
     ],
-    version = 37,
+    version = 38,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -109,6 +110,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
     abstract fun journalDao(): JournalDao
     /** Lab reports the user added as PDFs, and the markers read from them (v37). */
     abstract fun labDao(): LabDao
+    abstract fun comparisonDao(): ComparisonDao
 
     /**
      * Empty every table, atomically. Goes through Room's [withTransaction] rather than a raw
@@ -716,6 +718,18 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** The comparison ring's readings (docs/ring-comparison.md). */
+        private val MIGRATION_37_38 = object : Migration(37, 38) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `comparison_readings` (`id` TEXT NOT NULL, `deviceAddress` TEXT NOT NULL, " +
+                        "`kind` TEXT NOT NULL, `value` REAL NOT NULL, `timestamp` INTEGER NOT NULL, `source` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`id`))"
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_comparison_readings_deviceAddress_kind_timestamp` ON `comparison_readings` (`deviceAddress`, `kind`, `timestamp`)")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -819,6 +833,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_34_35,
                         MIGRATION_35_36,
                         MIGRATION_36_37,
+                        MIGRATION_37_38,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

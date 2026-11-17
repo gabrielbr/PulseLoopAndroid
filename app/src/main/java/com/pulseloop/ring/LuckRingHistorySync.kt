@@ -69,7 +69,7 @@ class LuckRingHistorySync(
     val isRunning: Boolean get() = currentType != null
 
     private fun publish(event: PulseEvent) {
-        if (progressSink != null) progressSink.invoke(event) else PulseEventBus.publishBlocking(event)
+        if (progressSink != null) progressSink.invoke(event) else writer?.publish(event) ?: PulseEventBus.publishBlocking(event)
     }
 
     /** Seed the queue and request the first type. A pass already in flight wins -- a re-entrant
