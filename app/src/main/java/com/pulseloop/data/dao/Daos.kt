@@ -1197,3 +1197,19 @@ interface LabDao {
     @Query("DELETE FROM lab_reports WHERE id = :id")
     suspend fun deleteReport(id: String)
 }
+
+/** The comparison ring's readings (docs/ring-comparison.md). Read only by the comparison screen. */
+@Dao
+interface ComparisonDao {
+    @Upsert
+    suspend fun upsert(rows: List<ComparisonReadingEntity>)
+
+    @Query("SELECT * FROM comparison_readings WHERE deviceAddress = :address AND kind = :kind AND timestamp BETWEEN :start AND :end ORDER BY timestamp")
+    suspend fun range(address: String, kind: String, start: Long, end: Long): List<ComparisonReadingEntity>
+
+    @Query("SELECT * FROM comparison_readings WHERE deviceAddress = :address AND timestamp BETWEEN :start AND :end ORDER BY timestamp")
+    fun rangeFlow(address: String, start: Long, end: Long): Flow<List<ComparisonReadingEntity>>
+
+    @Query("DELETE FROM comparison_readings WHERE deviceAddress = :address")
+    suspend fun clear(address: String)
+}

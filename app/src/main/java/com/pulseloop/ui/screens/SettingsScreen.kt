@@ -94,6 +94,12 @@ fun SettingsScreen(
         } else tr("Report ready")
     } ?: tr("Adjusting your ring").takeIf { !accuracyCorrections.isEmpty }
 
+    val comparison = remember { com.pulseloop.AppServices.get(context).comparison }
+    val comparisonState by comparison.state.collectAsState()
+    val compareTrailing = if (comparison.isSetUp) {
+        if (comparisonState.connectionState == com.pulseloop.ring.RingConnectionState.CONNECTED) tr("Connected") else tr("On")
+    } else null
+
     fun navigate(route: String) {
         navController?.navigate(route)
     }
@@ -160,6 +166,10 @@ fun SettingsScreen(
                         navigate("settings/calibration")
                     })
                 }
+                // A second ring worn only to compare with this one (docs/ring-comparison.md).
+                add(SettingsRowItem(Icons.Filled.CompareArrows, PulseColors.info, tr("Compare rings"), compareTrailing) {
+                    navigate("settings/compare")
+                })
                 add(SettingsRowItem(Icons.Filled.Watch, PulseColors.info, tr("Use without a ring")) {
                     navigate("settings/hc-source")
                 })

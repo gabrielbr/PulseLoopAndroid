@@ -35,6 +35,10 @@ import java.util.UUID
 class RingBLEClient(
     private val context: Context,
     private val transientOwner: Boolean = false,
+    /** [RingRole.COMPARISON]: a second ring connected only to compare with the app's own. It has
+     *  its own connection slot and saved ring, and publishes to [ComparisonBus] instead of
+     *  [PulseEventBus], so its readings never reach the app's data (docs/ring-comparison.md). */
+    val role: RingRole = RingRole.PRIMARY,
 ) {
 
     /** Registry of supported wearables. Adding a wearable = append one entry.
@@ -197,7 +201,8 @@ class RingBLEClient(
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("ring_ble", Context.MODE_PRIVATE)
+        // Its own file per role, so the comparison ring never overwrites the app's saved ring.
+        context.getSharedPreferences(if (role == RingRole.COMPARISON) "ring_ble_compare" else "ring_ble", Context.MODE_PRIVATE)
 
     // MARK: Liveness watchdog
     //
@@ -243,7 +248,7 @@ class RingBLEClient(
         onPending = {
             recordDiagnostic("CRP reconnect scheduled in 3000ms")
             updateState { copy(connectionState = RingConnectionState.RECONNECTING) }
-            PulseEventBus.publishBlocking(
+            publish(
                 PulseEvent.DeviceStateChanged(RingConnectionState.RECONNECTING, lastKnownIdentifier)
             )
         },
@@ -647,7 +652,7 @@ class RingBLEClient(
         releaseConnectionOwnership()
         connectingStartedAt = 0
         updateState { copy(connectionState = RingConnectionState.FAILED, lastError = reason) }
-        PulseEventBus.publishBlocking(
+        publish(
             PulseEvent.DeviceStateChanged(RingConnectionState.DISCONNECTED, null)
         )
         scheduleCrpRecovery()
@@ -726,7 +731,7 @@ class RingBLEClient(
         }
         updateState { copy(connectionState = RingConnectionState.DISCONNECTED) }
         if (shouldPublishDisconnect) {
-            PulseEventBus.publishBlocking(
+            publish(
                 PulseEvent.DeviceStateChanged(RingConnectionState.DISCONNECTED, null)
             )
         }
@@ -821,7 +826,7 @@ class RingBLEClient(
         val waitState = if (userInitiated) RingConnectionState.CONNECTING
             else RingConnectionState.RECONNECTING
         updateState { copy(connectionState = waitState) }
-        PulseEventBus.publishBlocking(
+        publish(
             PulseEvent.DeviceStateChanged(waitState, target.address)
         )
         teardownWaitAddress = target.address
@@ -951,7 +956,7 @@ class RingBLEClient(
                     activeCapabilities = emptySet(),
                 )
             }
-            PulseEventBus.publishBlocking(PulseEvent.DeviceForgotten)
+            publish(PulseEvent.DeviceForgotten)
         } finally {
             synchronized(forgetLock) {
                 if (forgetCompletion === completion) forgetCompletion = null
@@ -1006,6 +1011,20 @@ class RingBLEClient(
     /** A previously connected ring identity is stored — enables "Reconnect last ring". */
     val hasLastKnownRing: Boolean
         get() = lastKnownIdentifier != null
+
+    /** The saved ring's address, or null. The comparison screen uses it to tell the two apart. */
+    val lastKnownAddress: String? get() = lastKnownIdentifier
+
+    /** Forgets the saved ring without unbinding it, so the ring stays usable by the app that owns
+     *  it. Used to stop comparing: [forget] would send the vendor's unbind. */
+    fun clearSavedRing() {
+        prefs.edit()
+            .remove(LAST_PERIPHERAL_KEY)
+            .remove(LAST_DEVICE_TYPE_KEY)
+            .remove(LAST_WEARABLE_MODEL_KEY)
+            .remove(USER_DISCONNECTED_KEY)
+            .apply()
+    }
 
     private val lastKnownIdentifier: String?
         get() = prefs.getString(LAST_PERIPHERAL_KEY, null)
@@ -1099,7 +1118,7 @@ class RingBLEClient(
         updateState { copy(connectionState = RingConnectionState.CONNECTING) }
         // Mirror the attempt to the persisted state so the Today/Settings views show
         // "Connecting…" rather than a stale "Connected" while autoConnect is pending.
-        PulseEventBus.publishBlocking(
+        publish(
             PulseEvent.DeviceStateChanged(RingConnectionState.CONNECTING, target.address)
         )
 
@@ -1229,7 +1248,10 @@ class RingBLEClient(
             forgetPending = false
             forgetFinalizing = false
         }
-        val driver = coordinator.makeDriver { enqueueWrite(it) }
+        val driver = coordinator.makeDriver(object : RingCommandWriter {
+            override fun enqueue(command: ByteArray) = enqueueWrite(command)
+            override fun publish(event: PulseEvent) = this@RingBLEClient.publish(event)
+        })
         activeCoordinator = coordinator
         activeDriver = driver
         driver.connectionDidStart()
@@ -1261,7 +1283,7 @@ class RingBLEClient(
         val granted = reported.intersect(coordinator.bitmapGatedCapabilities)
         if (granted.isEmpty() || granted.all { it in _state.value.activeCapabilities }) return
         updateState { copy(activeCapabilities = activeCapabilities + granted) }
-        PulseEventBus.publishBlocking(
+        publish(
             PulseEvent.DeviceIdentified(
                 deviceType = coordinator.deviceType,
                 wearableModelID = _state.value.activeWearableModelID,
@@ -1392,7 +1414,7 @@ class RingBLEClient(
                         // asks for transport detail gets every attempt; capture retention bounds it.
                         val verbose = activeDriver?.verboseTransportDiagnostics == true
                         if (op.attempts == 0 || verbose) {
-                            PulseEventBus.publishBlocking(
+                            publish(
                                 PulseEvent.RawPacket(PacketDirection.OUTGOING, op.data,
                                     RingDecodedEvent.CommandAck(commandId = if (op.data.isNotEmpty()) op.data[0].toUByte() else 0u),
                                     deviceType = activeCoordinator?.deviceType,
@@ -1537,7 +1559,7 @@ class RingBLEClient(
     ) {
         // `generation` is the forget generation: it separates one pairing's traffic from the next,
         // not one reconnect from another.
-        PulseEventBus.publishBlocking(PulseEvent.Diagnostic(
+        publish(PulseEvent.Diagnostic(
             "generation=$forgetGeneration $message", activeCoordinator?.deviceType, error, traffic,
         ))
         Log.i("RingBLEClient", message)
@@ -1557,7 +1579,7 @@ class RingBLEClient(
      */
     private fun captureAuxiliary(uuid: String, bytes: ByteArray) {
         val copy = bytes.copyOf()
-        PulseEventBus.publishBlocking(PulseEvent.RawPacket(PacketDirection.INCOMING, copy,
+        publish(PulseEvent.RawPacket(PacketDirection.INCOMING, copy,
             RingDecodedEvent.FramePending(copy, startsFrame = false), activeCoordinator?.deviceType,
             transportJSON = packetMetadata(uuid)))
     }
@@ -1927,7 +1949,7 @@ class RingBLEClient(
                 if (value != null && value.isNotEmpty()) {
                     val pct = value[0].toInt() and 0xFF
                     updateState { copy(batteryPercent = pct) }
-                    PulseEventBus.publishBlocking(PulseEvent.BatteryLevel(pct))
+                    publish(PulseEvent.BatteryLevel(pct))
                 }
             } else if (characteristic.uuid == FW_REV_UUID ||
                        characteristic.uuid.toString().startsWith("00002a26") ||
@@ -1978,7 +2000,7 @@ class RingBLEClient(
                     val systolic = decodeSFLOAT(value[1], value[2])
                     val diastolic = decodeSFLOAT(value[3], value[4])
                     if (acceptsCallback(callbackForgetGeneration)) {
-                        PulseEventBus.publishBlocking(
+                        publish(
                             PulseEvent.BloodPressureSample(
                                 systolic = systolic.toInt(),
                                 diastolic = diastolic.toInt(),
@@ -1994,7 +2016,7 @@ class RingBLEClient(
                 if (value.size >= 12) {
                     val glucoseKgL = decodeSFLOAT(value[10], value[11])
                     if (acceptsCallback(callbackForgetGeneration)) {
-                        PulseEventBus.publishBlocking(PulseEvent.HistoryMeasurement(MeasurementKind.BLOOD_SUGAR, glucoseKgL * 100000.0, java.time.Instant.now()))
+                        publish(PulseEvent.HistoryMeasurement(MeasurementKind.BLOOD_SUGAR, glucoseKgL * 100000.0, java.time.Instant.now()))
                     }
                 }
                 return
@@ -2020,7 +2042,7 @@ class RingBLEClient(
                     commandId = captured.firstOrNull()?.toUByte() ?: 0u,
                     raw = captured,
                 )
-                PulseEventBus.publishBlocking(
+                publish(
                     PulseEvent.RawPacket(PacketDirection.INCOMING, captured, diagnostic,
                         deviceType = activeCoordinator?.deviceType, capturedAt = capturedAt,
                         transportJSON = packetMetadata(uuid))
@@ -2037,7 +2059,7 @@ class RingBLEClient(
                     }
                     for (event in RingEventBridge.eventsFor(decoded)) {
                         if (!acceptsCallback(callbackForgetGeneration)) break
-                        PulseEventBus.publishBlocking(event)
+                        publish(event)
                     }
                     if (acceptsCallback(callbackForgetGeneration)) activeSyncEngine?.handle(decoded)
                 }
@@ -2119,7 +2141,7 @@ class RingBLEClient(
             else editor.remove(LAST_WEARABLE_MODEL_KEY)
             editor.apply()
 
-            PulseEventBus.publishBlocking(
+            publish(
                 PulseEvent.DeviceStateChanged(
                     RingConnectionState.CONNECTED,
                     device.address,
@@ -2128,7 +2150,7 @@ class RingBLEClient(
                 )
             )
             activeCoordinator?.let { coord ->
-                PulseEventBus.publishBlocking(
+                publish(
                     PulseEvent.DeviceIdentified(
                         deviceType = coord.deviceType,
                         wearableModelID = modelID,
@@ -2202,7 +2224,7 @@ class RingBLEClient(
         closeGattQuietly(gatt)
         releaseConnectionOwnership()
 
-        PulseEventBus.publishBlocking(
+        publish(
             PulseEvent.DeviceStateChanged(RingConnectionState.DISCONNECTED, null)
         )
 
@@ -2254,7 +2276,7 @@ class RingBLEClient(
         if (shown == RingConnectionState.RECONNECTING ||
             (pairingWait && shown == RingConnectionState.CONNECTING)) {
             updateState { copy(connectionState = RingConnectionState.DISCONNECTED) }
-            PulseEventBus.publishBlocking(
+            publish(
                 PulseEvent.DeviceStateChanged(RingConnectionState.DISCONNECTED, null)
             )
         }
@@ -2286,13 +2308,27 @@ class RingBLEClient(
         return releasedConnection
     }
 
+    /** The app's ring and the comparison ring each have their own slot: a ring has one command
+     *  stream, but two different rings are two streams. */
+    private val ownerSlot get() = if (role == RingRole.COMPARISON) comparisonConnectionOwner else processConnectionOwner
+
     private fun claimConnectionOwnership(): Boolean {
-        val owner = processConnectionOwner.get()
-        return owner === this || (owner == null && processConnectionOwner.compareAndSet(null, this))
+        val owner = ownerSlot.get()
+        return owner === this || (owner == null && ownerSlot.compareAndSet(null, this))
     }
 
     private fun releaseConnectionOwnership(): Boolean =
-        processConnectionOwner.compareAndSet(this, null)
+        ownerSlot.compareAndSet(this, null)
+
+    /** Routes this client's events: the app's ring to [PulseEventBus]; the comparison ring to
+     *  [ComparisonBus], except its diagnostics, which go to the app's log marked as the second ring. */
+    private fun publish(event: PulseEvent) {
+        if (role == RingRole.PRIMARY) { PulseEventBus.publishBlocking(event); return }
+        when (event) {
+            is PulseEvent.Diagnostic -> PulseEventBus.publishBlocking(event.copy(message = "[comparison ring] " + event.message))
+            else -> ComparisonBus.publish(event)
+        }
+    }
 
     companion object {
         private const val LAST_PERIPHERAL_KEY = "ring.lastPeripheralIdentifier"
@@ -2303,6 +2339,8 @@ class RingBLEClient(
         private const val USER_DISCONNECTED_KEY = "ring.userDisconnected"
         /** A ring has one command stream; never let this process open competing GATT clients. */
         private val processConnectionOwner =
+            java.util.concurrent.atomic.AtomicReference<RingBLEClient?>(null)
+        private val comparisonConnectionOwner =
             java.util.concurrent.atomic.AtomicReference<RingBLEClient?>(null)
         /** Foreground retry delay while a short-lived background client yields ownership. */
         private const val PROCESS_OWNER_RETRY_MS = 1_000L

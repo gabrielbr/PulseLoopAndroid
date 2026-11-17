@@ -256,7 +256,8 @@ class JringSyncEngine(
     }
 
     private fun log(message: String) {
-        PulseEventBus.publishBlocking(PulseEvent.Diagnostic(message, RingDeviceType.JRING))
+        val event = PulseEvent.Diagnostic(message, RingDeviceType.JRING)
+        writer?.publish(event) ?: PulseEventBus.publishBlocking(event)
     }
 
     override fun stopWorkoutHeartRate() {

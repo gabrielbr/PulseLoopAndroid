@@ -223,6 +223,7 @@ fun PulseLoopApp() {
                 persistence.start()
                 batteryAlerts.start()
                 coordinator.start()
+                services.comparison.start()
                 summaryCoordinator.start()
                 checkinDataTrigger.start()
 
@@ -827,6 +828,12 @@ fun PulseLoopApp() {
                 }
                 paddedComposable("settings/accuracy-check") {
                     AccuracyCheckSettingsScreen(onBack = { navController.popBackStack() })
+                }
+                paddedComposable("settings/compare") {
+                    RingComparisonScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenAccuracyCheck = { navController.navigate("settings/accuracy-check") },
+                    )
                 }
                 paddedComposable("settings/mcp") {
                     McpSettingsScreen(onBack = { navController.popBackStack() })
