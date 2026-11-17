@@ -99,8 +99,8 @@ fun McpSettingsScreen(onBack: () -> Unit) {
     SettingsSubScreen(title = tr("AI tools on your network"), onBack = onBack) {
         Text(
             tr("Let AI tools on your computer, like Claude Desktop or Cursor, read your PulseLoop data over your Wi-Fi or Tailscale. They can only read: nothing can be changed or deleted."),
-            style = PulseType.body,
-            color = PulseColors.textSecondary,
+            style = com.pulseloop.ui.calm.Look.bodyStyle,
+            color = com.pulseloop.ui.calm.Look.textSecondary,
         )
 
         McpCard {
@@ -111,7 +111,7 @@ fun McpSettingsScreen(onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(tr("Share with AI tools on this network"), style = PulseType.title, color = PulseColors.textPrimary, modifier = Modifier.weight(1f))
+                Text(tr("Share with AI tools on this network"), style = com.pulseloop.ui.calm.Look.titleStyle, color = com.pulseloop.ui.calm.Look.text, modifier = Modifier.weight(1f))
                 Switch(checked = on, onCheckedChange = null)
             }
             Text(
@@ -122,10 +122,10 @@ fun McpSettingsScreen(onBack: () -> Unit) {
                     status.unreachable -> tr("Not on Wi-Fi or Tailscale, so nothing could reach it. Connect and try again.")
                     else -> tr("Off")
                 },
-                style = PulseType.body,
-                color = if (status.unreachable && !on) PulseColors.warning else PulseColors.textSecondary,
+                style = com.pulseloop.ui.calm.Look.bodyStyle,
+                color = if (status.unreachable && !on) PulseColors.warning else com.pulseloop.ui.calm.Look.textSecondary,
             )
-            Text(tr("Stays on for"), style = PulseType.eyebrow, color = PulseColors.textSecondary)
+            if (com.pulseloop.ui.calm.Look.calm) com.pulseloop.ui.calm.LookLabel(tr("Stays on for")) else Text(tr("Stays on for"), style = PulseType.eyebrow, color = com.pulseloop.ui.calm.Look.textSecondary)
             PulseSegmented(
                 options = McpPrefs.HOURS_CHOICES.map { it to trf("{0} h", it) } + (ALWAYS to tr("Always")),
                 selected = if (alwaysOn) ALWAYS else hours,
@@ -134,8 +134,8 @@ fun McpSettingsScreen(onBack: () -> Unit) {
             if (alwaysOn && !batteryExempt) {
                 Text(
                     tr("Android may pause it while the phone sleeps. Allow it to run in the background so your tools can always reach it."),
-                    style = PulseType.label,
-                    color = PulseColors.textSecondary,
+                    style = com.pulseloop.ui.calm.Look.labelStyle,
+                    color = com.pulseloop.ui.calm.Look.textSecondary,
                 )
                 PulseButton(PulseButtonStyle.Outlined, onClick = { requestBatteryExemption(context) }, modifier = Modifier.fillMaxWidth()) {
                     Text(tr("Allow background running"))
@@ -144,17 +144,17 @@ fun McpSettingsScreen(onBack: () -> Unit) {
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(tr("Connect to").uppercase(), style = PulseType.eyebrow, color = PulseColors.textSecondary)
+            com.pulseloop.ui.calm.LookLabel(tr("Connect to"))
             if (urls.isEmpty()) {
-                Text(tr("Connect the phone to Wi-Fi or Tailscale to get an address."), style = PulseType.body, color = PulseColors.textSecondary)
+                Text(tr("Connect the phone to Wi-Fi or Tailscale to get an address."), style = com.pulseloop.ui.calm.Look.bodyStyle, color = com.pulseloop.ui.calm.Look.textSecondary)
             } else {
                 SelectionContainer {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         urls.forEach { u ->
                             Text(
                                 if (u.startsWith("http://100.")) trf("{0} (Tailscale)", u) else u,
-                                style = PulseType.body,
-                                color = PulseColors.textPrimary,
+                                style = com.pulseloop.ui.calm.Look.bodyStyle,
+                                color = com.pulseloop.ui.calm.Look.text,
                             )
                         }
                     }
@@ -162,15 +162,15 @@ fun McpSettingsScreen(onBack: () -> Unit) {
             }
             Text(
                 tr("Paired tools on this network can read your health data while this is on. Nothing is sent anywhere by itself."),
-                style = PulseType.body,
-                color = PulseColors.textSecondary,
+                style = com.pulseloop.ui.calm.Look.bodyStyle,
+                color = com.pulseloop.ui.calm.Look.textSecondary,
             )
         }
 
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text(tr("Paired tools").uppercase(), style = PulseType.eyebrow, color = PulseColors.textSecondary)
+            com.pulseloop.ui.calm.LookLabel(tr("Paired tools"))
             if (paired.isEmpty()) {
-                Text(tr("No tools paired yet."), style = PulseType.body, color = PulseColors.textSecondary)
+                Text(tr("No tools paired yet."), style = com.pulseloop.ui.calm.Look.bodyStyle, color = com.pulseloop.ui.calm.Look.textSecondary)
             }
             paired.forEach { t ->
                 Row(
@@ -178,12 +178,12 @@ fun McpSettingsScreen(onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(Modifier.weight(1f)) {
-                        Text(t.label, style = PulseType.title, color = PulseColors.textPrimary)
+                        Text(t.label, style = com.pulseloop.ui.calm.Look.titleStyle, color = com.pulseloop.ui.calm.Look.text)
                         Text(
                             t.lastUsedAt?.let { trf("Paired {0} · last used {1}", day(t.createdAt), day(it)) }
                                 ?: trf("Paired {0} · not used yet", day(t.createdAt)),
-                            style = PulseType.label,
-                            color = PulseColors.textSecondary,
+                            style = com.pulseloop.ui.calm.Look.labelStyle,
+                            color = com.pulseloop.ui.calm.Look.textSecondary,
                         )
                     }
                     PulseButton(PulseButtonStyle.Text, onClick = { revoking = t }) { Text(tr("Revoke")) }
@@ -202,7 +202,7 @@ fun McpSettingsScreen(onBack: () -> Unit) {
             text = {
                 Text(
                     tr("Paired tools on this network will be able to read your health data at any time, also after the phone restarts, until you turn it off here or tap Stop in its notification. The notification stays while it's on."),
-                    style = PulseType.body,
+                    style = com.pulseloop.ui.calm.Look.bodyStyle,
                 )
             },
             confirmButton = {
@@ -221,7 +221,7 @@ fun McpSettingsScreen(onBack: () -> Unit) {
             title = { Text(tr("Pair a tool")) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(tr("Name it so you'll recognise it later, like the app and the computer."), style = PulseType.body)
+                    Text(tr("Name it so you'll recognise it later, like the app and the computer."), style = com.pulseloop.ui.calm.Look.bodyStyle)
                     OutlinedTextField(
                         value = label,
                         onValueChange = { label = it.take(McpTokens.MAX_LABEL) },
@@ -255,27 +255,27 @@ fun McpSettingsScreen(onBack: () -> Unit) {
             title = { Text(trf("{0} is paired", label)) },
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(tr("Copy this now. It won't be shown again."), style = PulseType.body, color = PulseColors.warning)
-                    SelectionContainer { Text(token, style = PulseType.body, color = PulseColors.textPrimary) }
+                    Text(tr("Copy this now. It won't be shown again."), style = com.pulseloop.ui.calm.Look.bodyStyle, color = PulseColors.warning)
+                    SelectionContainer { Text(token, style = com.pulseloop.ui.calm.Look.bodyStyle, color = com.pulseloop.ui.calm.Look.text) }
                     PulseButton(PulseButtonStyle.Text, onClick = { copySecret(context, token) }) { Text(tr("Copy token")) }
 
-                    Text(tr("Claude Desktop or Cursor").uppercase(), style = PulseType.eyebrow, color = PulseColors.textSecondary)
+                    com.pulseloop.ui.calm.LookLabel(tr("Claude Desktop or Cursor"))
                     Text(
                         tr("Add this to claude_desktop_config.json or .cursor/mcp.json, then restart the app. It needs Node.js on the computer."),
-                        style = PulseType.label,
-                        color = PulseColors.textSecondary,
+                        style = com.pulseloop.ui.calm.Look.labelStyle,
+                        color = com.pulseloop.ui.calm.Look.textSecondary,
                     )
-                    SelectionContainer { Text(bridge, style = PulseType.label, color = PulseColors.textPrimary) }
+                    SelectionContainer { Text(bridge, style = com.pulseloop.ui.calm.Look.labelStyle, color = com.pulseloop.ui.calm.Look.text) }
                     PulseButton(PulseButtonStyle.Text, onClick = { copySecret(context, bridge) }) { Text(tr("Copy config")) }
 
-                    Text(tr("Tools that connect over HTTP").uppercase(), style = PulseType.eyebrow, color = PulseColors.textSecondary)
-                    SelectionContainer { Text(direct, style = PulseType.label, color = PulseColors.textPrimary) }
+                    com.pulseloop.ui.calm.LookLabel(tr("Tools that connect over HTTP"))
+                    SelectionContainer { Text(direct, style = com.pulseloop.ui.calm.Look.labelStyle, color = com.pulseloop.ui.calm.Look.text) }
                     PulseButton(PulseButtonStyle.Text, onClick = { copySecret(context, direct) }) { Text(tr("Copy address and header")) }
                     if (urls.isEmpty()) {
                         Text(
                             tr("Replace PHONE-ADDRESS with the phone's address once it is on Wi-Fi or Tailscale."),
-                            style = PulseType.label,
-                            color = PulseColors.textSecondary,
+                            style = com.pulseloop.ui.calm.Look.labelStyle,
+                            color = com.pulseloop.ui.calm.Look.textSecondary,
                         )
                     }
                 }
@@ -290,7 +290,7 @@ fun McpSettingsScreen(onBack: () -> Unit) {
         AlertDialog(
             onDismissRequest = { revoking = null },
             title = { Text(trf("Revoke {0}?", t.label)) },
-            text = { Text(tr("It won't be able to read your data any more. Pair it again to reconnect."), style = PulseType.body) },
+            text = { Text(tr("It won't be able to read your data any more. Pair it again to reconnect."), style = com.pulseloop.ui.calm.Look.bodyStyle) },
             confirmButton = {
                 PulseButton(PulseButtonStyle.Text, onClick = {
                     tokens.revoke(t.id)
@@ -310,7 +310,7 @@ private fun McpCard(content: @Composable () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
-            .background(PulseColors.card, RoundedCornerShape(8.dp))
+            .background(com.pulseloop.ui.calm.Look.card, RoundedCornerShape(com.pulseloop.ui.calm.Look.radius))
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) { content() }

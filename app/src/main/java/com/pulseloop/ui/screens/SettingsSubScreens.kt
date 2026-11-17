@@ -121,8 +121,13 @@ internal fun SettingsSubScreen(
     bottomOverlay: (@Composable BoxScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // The new look (docs/new-look-plan.md, "Settings"): the calm bar, page, gutter and 720dp cap,
+    // and calm Material roles plus Inter for everything inside, since most of these screens read
+    // MaterialTheme (onSurfaceVariant captions, switches, fields) rather than naming colours.
+    val calm = com.pulseloop.ui.calm.NewLook.on
+    com.pulseloop.ui.calm.CalmMaterial(enabled = calm) {
     Scaffold(
-        containerColor = PulseColors.background,
+        containerColor = if (calm) com.pulseloop.ui.calm.CalmColors.page else PulseColors.background,
         // The NavHost route wrapper (PulseLoopApp's paddedComposable) has ALREADY applied the
         // outer Scaffold's system-bar padding to this whole subtree. Consuming the insets a
         // second time here — once via contentWindowInsets, once via TopAppBar's own default —
@@ -131,13 +136,16 @@ internal fun SettingsSubScreen(
         topBar = {
             // The shared pushed-screen bar (centred title, one back arrow), like every other
             // pushed screen; it applies no insets of its own either.
-            com.pulseloop.ui.components.PulseTopBar(title = title, onBack = onBack)
+            if (calm) com.pulseloop.ui.calm.CalmTopBar(title, onBack)
+            else com.pulseloop.ui.components.PulseTopBar(title = title, onBack = onBack)
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             Column(
                 // imePadding: the app is edge-to-edge, so without it the keyboard covers fields.
-                Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
+                Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState())
+                    .then(if (calm) Modifier.wrapContentWidth().widthIn(max = 720.dp).fillMaxWidth() else Modifier)
+                    .padding(horizontal = if (calm) com.pulseloop.ui.calm.CalmShape.gutter else 16.dp, vertical = if (calm) 8.dp else 16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 content()
@@ -145,6 +153,7 @@ internal fun SettingsSubScreen(
             }
             bottomOverlay?.invoke(this)
         }
+    }
     }
 }
 
@@ -225,7 +234,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
         // AI Coach section — ported from CoachSettingsSection.swift
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("AI Coach"), style = PulseType.title)
+                Text(tr("AI Coach"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 // Readiness differs by provider: the local mode is gated by the server address,
                 // not a key, so the old key-only check told a correctly-configured user their
@@ -882,7 +891,7 @@ fun CoachSettingsScreen(onBack: () -> Unit) {
             SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text(tr("Coach Memory"), style = PulseType.title, modifier = Modifier.weight(1f))
+                        Text(tr("Coach Memory"), style = com.pulseloop.ui.calm.Look.titleStyle, modifier = Modifier.weight(1f))
                         PulseButton(PulseButtonStyle.Text, onClick = { showMemory = !showMemory }) {
                             Text(if (showMemory) tr("Hide") else trf("Show ({0})", memories.size))
                         }
@@ -1033,7 +1042,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
 
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Detected workouts"), style = PulseType.title)
+                Text(tr("Detected workouts"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("After a sync, what your ring saw you doing (a walk, a ride, strength training), to add with a tap. Nothing is logged without you."),
@@ -1053,7 +1062,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
         // NotificationsSettingsView section): a local notification at <20% / <10%, once per day.
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Ring battery alerts"), style = PulseType.title)
+                Text(tr("Ring battery alerts"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("Get notified when your ring drops below 20% and 10%, so tracking doesn't stop mid-day."),
@@ -1078,7 +1087,7 @@ fun CheckInsSettingsScreen(onBack: () -> Unit) {
 
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Daily check-ins"), style = PulseType.title)
+                Text(tr("Daily check-ins"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 if (!coachEnabled) {
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -1187,7 +1196,7 @@ private fun DailyGuidanceSettingsCard() {
 
     SubScreenCard {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(tr("Daily guidance"), style = PulseType.title)
+            Text(tr("Daily guidance"), style = com.pulseloop.ui.calm.Look.titleStyle)
             Text(
                 tr("Built on your phone from your ring's data. No AI key needed."),
                 style = MaterialTheme.typography.bodySmall,
@@ -1770,7 +1779,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     SettingsSubScreen(title = tr("Measurement frequency"), onBack = onBack) {
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Measurement"), style = PulseType.title)
+                Text(tr("Measurement"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("How often the ring measures in the background. Shorter heart-rate intervals give finer history at the cost of battery."),
@@ -1970,7 +1979,7 @@ private fun QuietHoursCard() {
 
     SubScreenCard {
         Column(Modifier.padding(16.dp)) {
-            Text(tr("Sleep trimming"), style = PulseType.title)
+            Text(tr("Sleep trimming"), style = com.pulseloop.ui.calm.Look.titleStyle)
             Text(
                 tr("A still wrist reads as sleep, so an evening on the sofa can run the night high. " +
                     "Trimmed minutes are never imported — changing these later won't bring them back."),
@@ -2292,7 +2301,7 @@ fun WearableSettingsScreen(
         if (device != null) {
             SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Ring management"), style = PulseType.title)
+                    Text(tr("Ring management"), style = com.pulseloop.ui.calm.Look.titleStyle)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         tr("Restart reboots the ring if it supports that, reconnects it, and sends it " +
@@ -2462,7 +2471,7 @@ private fun BackgroundSyncCard() {
 
     SubScreenCard {
         Column(Modifier.padding(16.dp)) {
-            Text(tr("Reliable background sync"), style = PulseType.title)
+            Text(tr("Reliable background sync"), style = com.pulseloop.ui.calm.Look.titleStyle)
             Spacer(Modifier.height(8.dp))
             Text(
                 if (exempt) {
@@ -2541,7 +2550,7 @@ private fun BatteryHistorySection(db: PulseLoopDatabase) {
     SubScreenCard {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Battery history"), style = PulseType.title, modifier = Modifier.weight(1f))
+                Text(tr("Battery history"), style = com.pulseloop.ui.calm.Look.titleStyle, modifier = Modifier.weight(1f))
                 SingleChoiceSegmentedButtonRow {
                     BatteryHistoryRange.entries.forEachIndexed { i, r ->
                         SegmentedButton(
@@ -2694,7 +2703,7 @@ fun PrivacyDataSettingsScreen(
         // Data Backup — export/import full app data as JSON.
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Data backup"), style = PulseType.title)
+                Text(tr("Data backup"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Export all your data to a single JSON file for backup, device migration, or external analysis. Import restores everything — replacing all current data."),
@@ -2762,7 +2771,7 @@ fun PrivacyDataSettingsScreen(
         // App data — destructive reset/restore actions.
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("App data"), style = PulseType.title)
+                Text(tr("App data"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(8.dp))
                 // Unpairing lives on Ring & sync only (one place for the ring); this card only
                 // erases the app's own data.
@@ -2787,7 +2796,7 @@ fun PrivacyDataSettingsScreen(
         // Demo data — Android-only (iOS seeds via the Simulator's SeedData).
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Demo data"), style = PulseType.title)
+                Text(tr("Demo data"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Explore the app without a ring. Seeds activity, HR, SpO2, sleep, and a coach conversation."),
@@ -2812,7 +2821,7 @@ fun PrivacyDataSettingsScreen(
                 // The unmasked export is for protocol debugging: only offered once developer
                 // options are unlocked, so nobody shares raw health frames by accident.
                 val developer = remember { ApiKeyStore(context).developerUnlocked }
-                Text(tr("Diagnostics"), style = PulseType.title)
+                Text(tr("Diagnostics"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     tr("Export app, device, and wearable logs as JSON for bug reports."),
@@ -3050,13 +3059,13 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
                     message,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PulseColors.textPrimary,
+                    color = com.pulseloop.ui.calm.Look.text,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(bottom = 28.dp)
                         .clip(CircleShape)
                         .background(PulseColors.elevated)
-                        .border(1.dp, PulseColors.borderSubtle, CircleShape)
+                        .border(1.dp, com.pulseloop.ui.calm.Look.border, CircleShape)
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                         .semantics { liveRegion = LiveRegionMode.Polite },
                 )
@@ -3065,7 +3074,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
     ) {
         // Version row: tap 7× to unlock Developer options; a tint/border builds with progress.
         SubScreenCard(
-            Modifier.border(1.5.dp, PulseColors.accent.copy(alpha = tapProgress * 0.9f), RoundedCornerShape(8.dp)),
+            Modifier.border(1.5.dp, PulseColors.accent.copy(alpha = tapProgress * 0.9f), RoundedCornerShape(com.pulseloop.ui.calm.Look.radius)),
             onClick = { registerVersionTap() },
         ) {
             Column(
@@ -3074,7 +3083,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
                     .dither(PulseColors.accent, tapProgress * 0.22f)
                     .padding(16.dp),
             ) {
-                Text(tr("Version"), style = PulseType.title)
+                Text(tr("Version"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     trf("PulseLoop v{0} ({1})", com.pulseloop.BuildConfig.VERSION_NAME, com.pulseloop.BuildConfig.VERSION_CODE),
@@ -3085,7 +3094,7 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
 
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("PulseLoop"), style = PulseType.title)
+                Text(tr("PulseLoop"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("An LLM-native health app that turns a cheap Bluetooth smart ring into a real, " +
@@ -3109,20 +3118,20 @@ fun AboutSettingsScreen(onOpenDebug: () -> Unit, onBack: () -> Unit) {
         }) {
             Row(Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("Source on GitHub"), style = PulseType.title)
+                    Text(tr("Source on GitHub"), style = com.pulseloop.ui.calm.Look.titleStyle)
                     Text(
                         REPO_URL.removePrefix("https://"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Icon(Icons.Filled.OpenInNew, null, Modifier.size(16.dp), tint = PulseColors.textMuted)
+                Icon(Icons.Filled.OpenInNew, null, Modifier.size(16.dp), tint = com.pulseloop.ui.calm.Look.textMuted)
             }
         }
 
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("License"), style = PulseType.title)
+                Text(tr("License"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("Open-source health tracker. Ported from iOS.\nCC BY 4.0 · Free to share and " +
@@ -3267,7 +3276,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
         if (!isConfigured) {
             SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Strava Not Configured"), style = PulseType.title)
+                    Text(tr("Strava Not Configured"), style = com.pulseloop.ui.calm.Look.titleStyle)
                     Spacer(Modifier.height(8.dp))
                     Text(
                         tr("Add stravaClientId and stravaClientSecret to local.properties to enable Strava integration."),
@@ -3281,7 +3290,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
 
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Strava Integration"), style = PulseType.title)
+                Text(tr("Strava Integration"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(8.dp))
                 Text(
                     if (isConnected) trf("Connected as {0}. Workouts sync automatically when finished.", athleteName)
@@ -3353,7 +3362,7 @@ fun StravaSettingsScreen(onBack: () -> Unit) {
         if (isConnected) {
             SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Auto Upload"), style = PulseType.title)
+                    Text(tr("Auto Upload"), style = com.pulseloop.ui.calm.Look.titleStyle)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         "Finished workouts are automatically uploaded to Strava. GPS routes, heart rate data, and sport type are included.",
@@ -3540,7 +3549,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
     SettingsSubScreen(title = tr("Health Connect"), onBack = onBack) {
         SubScreenCard {
             Column(Modifier.padding(16.dp)) {
-                Text(tr("Health Connect"), style = PulseType.title)
+                Text(tr("Health Connect"), style = com.pulseloop.ui.calm.Look.titleStyle)
                 Spacer(Modifier.height(4.dp))
                 Text(
                     tr("Export ring data to Health Connect so other apps and dashboards can show it. Exporting only writes. PulseLoop reads Health Connect only for features you turn on: body data in your profile, Use without a ring, and the accuracy check."),
@@ -3624,7 +3633,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).clickable(role = androidx.compose.ui.semantics.Role.Button) { typesOpen = !typesOpen },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(tr("Data Types"), style = PulseType.title, modifier = Modifier.weight(1f))
+                        Text(tr("Data Types"), style = com.pulseloop.ui.calm.Look.titleStyle, modifier = Modifier.weight(1f))
                         Text(
                             if (typesOpen) tr("Hide") else tr("Show"),
                             style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
@@ -3759,7 +3768,7 @@ fun HealthConnectSettingsScreen(onBack: () -> Unit) {
             // stamp so the export state matches an empty Health store.
             SubScreenCard {
                 Column(Modifier.padding(16.dp)) {
-                    Text(tr("Remove exported data"), style = PulseType.title)
+                    Text(tr("Remove exported data"), style = com.pulseloop.ui.calm.Look.titleStyle)
                     Spacer(Modifier.height(4.dp))
                     Text(
                         tr("Delete every record PulseLoop wrote to Health Connect and reset the export to start fresh. Your ring data in PulseLoop is untouched."),
@@ -4016,7 +4025,7 @@ private fun AutoBackupCard() {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(tr("Automatic backups"), style = PulseType.title)
+                    Text(tr("Automatic backups"), style = com.pulseloop.ui.calm.Look.titleStyle)
                     Text(
                         tr("Saves the same file as Export to a folder you choose, and keeps the latest 5."),
                         style = MaterialTheme.typography.bodySmall,
@@ -4081,20 +4090,28 @@ private fun backupStatus(context: android.content.Context): String {
 @Composable
 private fun SubScreenCard(
     modifier: Modifier = Modifier,
-    color: androidx.compose.ui.graphics.Color = PulseColors.card,
-    borderColor: androidx.compose.ui.graphics.Color = PulseColors.borderSubtle,
+    /** Null: the look's card. A caller's `PulseColors.cardSoft` (an inset, raised card) maps to
+     *  the new look's raised surface. */
+    color: androidx.compose.ui.graphics.Color? = null,
+    borderColor: androidx.compose.ui.graphics.Color? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape = RoundedCornerShape(8.dp)
-    CompositionLocalProvider(LocalContentColor provides PulseColors.textPrimary) {
+    val calm = com.pulseloop.ui.calm.Look.calm
+    val shape = RoundedCornerShape(com.pulseloop.ui.calm.Look.radius)
+    val surface = when {
+        color == null -> com.pulseloop.ui.calm.Look.card
+        calm && color == PulseColors.cardSoft -> com.pulseloop.ui.calm.CalmColors.cardRaised
+        else -> color
+    }
+    CompositionLocalProvider(LocalContentColor provides com.pulseloop.ui.calm.Look.text) {
         Column(
             modifier
                 .fillMaxWidth()
                 .clip(shape)
-                .background(color)
+                .background(surface)
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-                .border(1.dp, borderColor, shape),
+                .border(1.dp, borderColor ?: com.pulseloop.ui.calm.Look.border, shape),
             content = content,
         )
     }

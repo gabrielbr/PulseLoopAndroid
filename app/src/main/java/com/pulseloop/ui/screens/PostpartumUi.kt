@@ -75,16 +75,16 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
     }
 
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(com.pulseloop.ui.calm.Look.radius)).background(com.pulseloop.ui.calm.Look.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(tr("LIFE STAGE"), style = com.pulseloop.ui.theme.PulseType.eyebrow, color = PulseColors.textSecondary)
+        com.pulseloop.ui.calm.LookLabel(tr("Life stage"))
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("Postpartum / breastfeeding"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = PulseColors.textPrimary)
+                Text(tr("Postpartum / breastfeeding"), fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = com.pulseloop.ui.calm.Look.text)
                 Text(
                     tr("Pauses cycle predictions while breastfeeding, adds an alcohol-to-feeding estimate, a mood check-in and warning signs, and tells the coach."),
-                    fontSize = 12.sp, color = PulseColors.textMuted,
+                    fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted,
                 )
             }
             Switch(checked = enabled, onCheckedChange = {
@@ -95,10 +95,10 @@ fun PostpartumProfileCard(onOpen: () -> Unit) {
         }
         if (enabled) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(tr("Baby's birth date"), fontSize = 14.sp, color = PulseColors.textSecondary, modifier = Modifier.weight(1f))
+                Text(tr("Baby's birth date"), fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary, modifier = Modifier.weight(1f))
                 PulseButton(PulseButtonStyle.Text, onClick = { picking = true }) { Text(birth?.format(fmt) ?: tr("Set")) }
             }
-            Text(tr("Feeding"), fontSize = 14.sp, color = PulseColors.textSecondary)
+            Text(tr("Feeding"), fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
             FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(
                     Postpartum.Feeding.EXCLUSIVE to tr("Breastfeeding only"),

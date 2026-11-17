@@ -104,7 +104,7 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
     }
 
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(PulseColors.card).padding(16.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(com.pulseloop.ui.calm.Look.radius)).background(com.pulseloop.ui.calm.Look.card).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(Modifier.switchRow(checked = enabled, enabled = available && !busy, onCheckedChange = { on ->
@@ -112,16 +112,16 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
                     else { enabled = false; HealthConnectBodyImport.setEnabled(context, false) }
                 }), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(tr("Sync from your scale"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
+                Text(tr("Sync from your scale"), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = com.pulseloop.ui.calm.Look.text)
                 Text(
                     tr("Weight, height and body composition from Health Connect (Fitdays and other scale apps)."),
-                    fontSize = 12.sp, color = PulseColors.textSecondary,
+                    fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textSecondary,
                 )
             }
             Switch(checked = enabled, enabled = available && !busy, onCheckedChange = null)
         }
         if (!available) {
-            Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(tr("Health Connect isn't available on this phone."), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
         }
 
         val s = snapshot
@@ -130,19 +130,19 @@ fun HealthConnectBodyCard(onUpdated: () -> Unit) {
             val whenText = Instant.ofEpochMilli(w.measuredAt).atZone(ZoneId.systemDefault())
                 .format(DateTimeFormatter.ofPattern("d MMM, HH:mm"))
             Row(verticalAlignment = androidx.compose.ui.Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("%.1f".format(UnitConverter.weight(w.value, units)), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = PulseColors.textPrimary)
-                Text("$unit · $whenText", fontSize = 12.sp, color = PulseColors.textMuted, modifier = Modifier.padding(bottom = 4.dp))
+                Text("%.1f".format(UnitConverter.weight(w.value, units)), fontSize = 28.sp, fontWeight = FontWeight.Bold, color = com.pulseloop.ui.calm.Look.text)
+                Text("$unit · $whenText", fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted, modifier = Modifier.padding(bottom = 4.dp))
             }
             val facts = buildList {
                 s.bodyFatPct?.let { add(trf("Body fat {0}%", "%.1f".format(it))) }
                 s.leanMassKg?.let { add(trf("Lean {0} {1}", "%.1f".format(UnitConverter.weight(it, units)), unit)) }
                 s.heightCm?.takeIf { it > 0 }?.let { h -> add(trf("BMI {0}", "%.1f".format(w.value / ((h / 100) * (h / 100))))) }
             }
-            if (facts.isNotEmpty()) Text(facts.joinToString(" · "), fontSize = 14.sp, color = PulseColors.textSecondary)
+            if (facts.isNotEmpty()) Text(facts.joinToString(" · "), fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
             if (s.trend.size >= 2) WeightLine(s.trend, units)
-            Text(trf("From {0}", w.source), fontSize = 12.sp, color = PulseColors.textMuted)
+            Text(trf("From {0}", w.source), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
         }
-        note?.let { Text(it, fontSize = 12.sp, color = PulseColors.textMuted) }
+        note?.let { Text(it, fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted) }
         if (enabled) {
             PulseButton(PulseButtonStyle.Text, onClick = { importNow() }, enabled = !busy) { Text(if (busy) tr("Syncing…") else tr("Sync now")) }
         }
