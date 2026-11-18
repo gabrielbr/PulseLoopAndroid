@@ -35,7 +35,15 @@ data class AccuracyCheckEntity(
     val scoredAt: Long? = null,
     /** The ring's firmware when the check started, so a correction can tell it went stale. */
     val firmware: String? = null,
+    /**
+     * Where grading starts when the check also covers past days ([startedAt] is still when the
+     * check, and the export pause, began). Null = from [startedAt].
+     */
+    val historyFrom: Long? = null,
 ) {
+    /** The first moment the check grades: [historyFrom] when it reaches back, else [startedAt]. */
+    val gradeFrom: Long get() = historyFrom?.coerceAtMost(startedAt) ?: startedAt
+
     val isOpen: Boolean get() = state == STATE_RUNNING || state == STATE_AWAITING_RESUME
 
     companion object {

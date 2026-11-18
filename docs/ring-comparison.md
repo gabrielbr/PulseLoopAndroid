@@ -74,6 +74,15 @@ The report opens with **Both rings against [reference]**:
 
 The per-measure cards and corrections below stay the main ring's.
 
+**Past days count too** (owner, 2026-11-18: "make sure you grab historical data"). A check can
+also grade days already stored: the start dialog's **Include past days** (none, 7, 14 or 30;
+14 by default), or the same button on a running check. Grading then starts at local midnight
+that many days back (`AccuracyCheckEntity.historyFrom`, DB v39), never before the main ring was
+paired, since ring rows carry no device id. `startedAt` stays the real start, so the day count
+and the export pause are unchanged: past days were exported long ago, and the reference reads
+filter on `DataOrigin`, so those exports can't come back as the reference. The second ring
+contributes whatever `comparison_readings` holds (its own backfill, about a week on a Colmi).
+
 ## Not yet ⬜
 
 - The background sync worker syncs only the main ring. The second ring catches up whenever the app

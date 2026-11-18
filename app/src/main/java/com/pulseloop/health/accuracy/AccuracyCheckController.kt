@@ -17,6 +17,7 @@ import com.pulseloop.health.HealthConnectPrefsStore
 import com.pulseloop.health.HealthConnectSdk
 import kotlinx.coroutines.sync.withLock
 import java.time.Instant
+import java.time.ZoneId
 import kotlin.reflect.KClass
 
 /** Which ring a check or a correction belongs to. */
@@ -45,6 +46,9 @@ object AccuracyCheckController {
     private const val TAG = "AccuracyCheck"
     val DURATIONS_DAYS = listOf(3, 5, 7, 14)
     const val DEFAULT_DAYS = 7
+    /** Past days a check can also grade, from what the app and Health Connect already hold. */
+    val LOOK_BACK_DAYS = listOf(0, 7, 14, 30)
+    const val DEFAULT_LOOK_BACK_DAYS = 14
     private const val DAY_MS = 86_400_000L
 
     sealed interface StartResult {
@@ -59,6 +63,7 @@ object AccuracyCheckController {
         source: ReferenceSourceSurvey,
         referenceLabel: String,
         days: Int,
+        lookBackDays: Int = 0,
         now: Long = System.currentTimeMillis(),
     ): StartResult {
         val db = PulseLoopDatabase.getInstance(context)
@@ -76,12 +81,45 @@ object AccuracyCheckController {
             plannedEndAt = now + days.coerceAtLeast(DURATIONS_DAYS.first()) * DAY_MS,
             pauseRefreshedAt = now,
             firmware = ring.firmwareVersion,
+            historyFrom = historyStart(now, lookBackDays, ring.createdAt),
         )
         dao.upsert(check)
         dao.insertPausedUnits(units.map { AccuracyPausedUnitEntity(check.id, it.name, pausedFrom = now) })
         AccuracyCheckWorker.schedule(context, check.plannedEndAt)
         Log.i(TAG, "started ${check.id}: ${check.referencePackage}, ${units.joinToString()} paused until ${Instant.ofEpochMilli(check.plannedEndAt)}")
         return StartResult.Started(check)
+    }
+
+    /**
+     * Where grading starts for a check that also covers [lookBackDays] past days: local midnight
+     * that many days ago, but never before this ring was paired ([ringPairedAt]), because ring
+     * rows carry no device id and an earlier ring's days would be graded as this one's. Null when
+     * there is nothing to reach back over. The export pause is unaffected: past days were
+     * exported long ago, and the reference reads filter on `DataOrigin`, so those exports can't
+     * come back as the reference.
+     */
+    fun historyStart(now: Long, lookBackDays: Int, ringPairedAt: Long, zone: ZoneId = ZoneId.systemDefault()): Long? {
+        if (lookBackDays <= 0) return null
+        val midnight = Instant.ofEpochMilli(now).atZone(zone).toLocalDate().minusDays(lookBackDays.toLong())
+            .atStartOfDay(zone).toInstant().toEpochMilli()
+        return maxOf(midnight, ringPairedAt).takeIf { it < now }
+    }
+
+    /**
+     * Widens a running check to also grade [lookBackDays] past days. Only ever moves grading
+     * earlier; the end and the export pause stay as they are. Returns the widened check.
+     */
+    suspend fun includePastDays(context: Context, lookBackDays: Int, now: Long = System.currentTimeMillis()): AccuracyCheckEntity? {
+        val db = PulseLoopDatabase.getInstance(context)
+        val dao = db.accuracyDao()
+        val check = dao.open()?.takeIf { it.state == AccuracyCheckEntity.STATE_RUNNING } ?: return null
+        val ring = db.deviceDao().currentReal() ?: return null
+        val start = historyStart(now, lookBackDays, ring.createdAt) ?: return check
+        if (start >= check.gradeFrom) return check
+        val widened = check.copy(historyFrom = start, scoredAt = null)
+        dao.upsert(widened)
+        Log.i(TAG, "${check.id} now grades from ${Instant.ofEpochMilli(start)}")
+        return widened
     }
 
     /** RUNNING → AWAITING_RESUME. Export stays paused until [resolve]. */
