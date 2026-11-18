@@ -1591,6 +1591,8 @@ class RingBLEClient(
             put("characteristic", uuid)
             put("generation", forgetGeneration)
             if (attempt > 0) put("attempt", attempt)
+            // The second ring's packets share the diagnostics table; this says whose they are.
+            if (role == RingRole.COMPARISON) put("ring", "comparison")
         }.toString()
 
     // MARK: Scan callback
