@@ -1,5 +1,11 @@
 package com.pulseloop.ui.screens
 
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import com.pulseloop.ui.i18n.trf
 import com.pulseloop.ui.components.PulseButtonStyle
 import com.pulseloop.ui.components.PulseButton
@@ -166,6 +172,8 @@ internal fun AccuracyReportSection(
             Text(tr("Everything compared agrees within its band."), fontSize = 14.sp, color = PulseColors.success)
         }
     }
+
+    BothRingsCard(check, days, bands)
 
     summaries.forEach { s ->
         MetricCard(
@@ -455,5 +463,67 @@ internal fun AccuracyCorrectionsCard() {
             }
         }
         Text(tr("Applied to what PulseLoop shows, never to stored readings or Health Connect."), fontSize = 12.sp, color = PulseColors.textMuted)
+    }
+}
+
+
+/**
+ * Both rings against the reference (docs/ring-comparison.md, "Graded against a watch"): each
+ * ring's typical gap from it, metric by metric, the closer one in bold, and the tally in words.
+ * Shown only when a second ring was worn during the check. The cards below stay the main ring's.
+ */
+@Composable
+internal fun BothRingsCard(check: AccuracyCheckEntity, days: List<AccuracyCheckDayEntity>, bands: Map<ComparisonMetric, Double>) {
+    val cmpDays = com.pulseloop.health.accuracy.ComparisonRingScoring.comparisonRows(days)
+    if (cmpDays.none { it.valid }) return
+    val metrics = listOf(
+        ComparisonMetric.HR_REST, ComparisonMetric.HR_ACTIVE, ComparisonMetric.STEPS, ComparisonMetric.SPO2,
+        ComparisonMetric.SLEEP_ASLEEP, ComparisonMetric.SLEEP_ONSET, ComparisonMetric.SLEEP_WAKE,
+    ).filter { m -> cmpDays.any { it.metric == m.name } || days.any { it.metric == m.name } }
+    val rows = metrics.map { m ->
+        val band = bands[m] ?: m.band
+        val main = days.takeIf { d -> d.any { it.metric == m.name } }?.let { AccuracyComparison.summarize(m, it, band) }
+        val cmp = cmpDays.takeIf { d -> d.any { it.metric == m.name } }?.let { AccuracyComparison.summarize(m, it, band) }
+        Triple(m, main to cmp, com.pulseloop.health.accuracy.ComparisonRingScoring.closer(main, cmp))
+    }
+    val c = com.pulseloop.health.accuracy.ComparisonRingScoring.Closer.entries.associateWith { k -> rows.count { it.third == k } }
+    AccuracyCard {
+        Text(trf("Both rings against {0}", check.referenceLabel), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = com.pulseloop.ui.calm.Look.text)
+        Text(trf("Each ring's typical gap from {0}. Lower is closer.", check.referenceLabel), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textMuted)
+        Row(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.weight(1f))
+            Text(tr("Main"), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textSecondary, textAlign = TextAlign.End, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(104.dp))
+            Text(tr("Second"), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textSecondary, textAlign = TextAlign.End, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(104.dp))
+        }
+        rows.forEach { (m, pair, closer) ->
+            val (main, cmp) = pair
+            fun cell(s: AccuracyComparison.Summary?) =
+                if (s == null || s.verdict == Verdict.NOT_ENOUGH_DATA) "—" else AccuracyReportText.magnitude(m, s.mae)
+            val mainWins = closer == com.pulseloop.health.accuracy.ComparisonRingScoring.Closer.MAIN
+            val cmpWins = closer == com.pulseloop.health.accuracy.ComparisonRingScoring.Closer.COMPARISON
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 40.dp).semantics(mergeDescendants = true) {
+                    contentDescription = m.label + ": " + tr("main") + " " + cell(main) + ", " + tr("second") + " " + cell(cmp) +
+                        when { mainWins -> ". " + tr("Main ring is closer"); cmpWins -> ". " + tr("Second ring is closer"); else -> "" }
+                },
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(m.label, fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.text, modifier = Modifier.weight(1f))
+                Text(cell(main), fontSize = 14.sp, fontWeight = if (mainWins) FontWeight.Bold else FontWeight.Normal,
+                    color = if (mainWins) com.pulseloop.ui.calm.Look.text else com.pulseloop.ui.calm.Look.textSecondary,
+                    textAlign = TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(104.dp))
+                Text(cell(cmp), fontSize = 14.sp, fontWeight = if (cmpWins) FontWeight.Bold else FontWeight.Normal,
+                    color = if (cmpWins) com.pulseloop.ui.calm.Look.text else com.pulseloop.ui.calm.Look.textSecondary,
+                    textAlign = TextAlign.End, maxLines = 1, softWrap = false, modifier = Modifier.width(104.dp))
+            }
+        }
+        val main = c[com.pulseloop.health.accuracy.ComparisonRingScoring.Closer.MAIN] ?: 0
+        val second = c[com.pulseloop.health.accuracy.ComparisonRingScoring.Closer.COMPARISON] ?: 0
+        val same = c[com.pulseloop.health.accuracy.ComparisonRingScoring.Closer.SIMILAR] ?: 0
+        Text(
+            if (main + second + same == 0) tr("Not enough days from both rings yet to say which is closer.")
+            else trf("Closer to {0}: the main ring on {1}, the second ring on {2}, about the same on {3}.", check.referenceLabel, main, second, same),
+            fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.text,
+        )
     }
 }
