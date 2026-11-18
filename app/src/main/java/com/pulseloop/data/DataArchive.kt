@@ -93,6 +93,7 @@ data class PulseArchive(
     val state: String, val endReason: String? = null, val resumeChoice: String? = null,
     val bandsRaw: String? = null, val pauseRefreshedAt: Long? = null, val scoredAt: Long? = null,
     val firmware: String? = null,
+    val historyFrom: Long? = null,
 )
 
 @Serializable data class AccuracyPausedUnitDTO(val checkId: String, val unit: String, val pausedFrom: Long)

@@ -247,9 +247,9 @@ fun AccuracyCheckSettingsScreen(onBack: () -> Unit) {
             context = context,
             source = src,
             onDismiss = { starting = null },
-            onStart = { label, days ->
+            onStart = { label, days, lookBack ->
                 scope.launch {
-                    note = when (AccuracyCheckController.start(context, src, label, days)) {
+                    note = when (AccuracyCheckController.start(context, src, label, days, lookBack)) {
                         is AccuracyCheckController.StartResult.Started -> null
                         AccuracyCheckController.StartResult.AlreadyOpen -> tr("A check is already open.")
                         AccuracyCheckController.StartResult.NoRing -> tr("Pair your ring first.")
@@ -267,7 +267,8 @@ internal object AccuracyUiText {
     /** "Oct 21" / "21 de out.": the locale's own order and month names, never a forced "d MMM". */
     fun date(ms: Long): String = com.pulseloop.ui.components.PhoneFormat.date("MMMd", ms)
 
-    fun span(c: AccuracyCheckEntity): String = "${date(c.startedAt)} – ${date(c.endedAt ?: c.plannedEndAt)}"
+    /** What the check grades: from its earliest past day when it reaches back. */
+    fun span(c: AccuracyCheckEntity): String = "${date(c.gradeFrom)} – ${date(c.endedAt ?: c.plannedEndAt)}"
 
     fun dayOf(c: AccuracyCheckEntity, now: Long = System.currentTimeMillis()): Pair<Int, Int> {
         val total = ((c.plannedEndAt - c.startedAt + 43_200_000L) / 86_400_000L).toInt().coerceAtLeast(1)
@@ -285,6 +286,20 @@ internal object AccuracyUiText {
         ExportUnit.entries.filter { it in units }.joinToString(", ") { it.metric.label.lowercase() }.replaceFirstChar { it.uppercase() }
 }
 
+/** Past-days choice: none (from today), or 7 / 14 / 30 days back. Wraps, like "How long". */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun LookBackChips(selected: Int, includeNone: Boolean = true, onPick: (Int) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        AccuracyCheckController.LOOK_BACK_DAYS.filter { includeNone || it > 0 }.forEach { d ->
+            FilterChip(
+                selected = selected == d, onClick = { onPick(d) },
+                label = { Text(if (d == 0) tr("None") else trf("{0} days", d)) },
+            )
+        }
+    }
+}
+
 @Composable
 private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.CoroutineScope) {
     val context = LocalContext.current
@@ -292,12 +307,39 @@ private fun RunningCard(check: AccuracyCheckEntity, scope: kotlinx.coroutines.Co
     val paused by remember(db) { db.accuracyDao().allPausedUnitsFlow() }.collectAsState(initial = emptyList())
     val units = paused.filter { it.checkId == check.id }.mapNotNull { ExportUnit.byName(it.unit) }
     var confirmEnd by remember { mutableStateOf(false) }
+    var pickPast by remember { mutableStateOf(false) }
     val (day, total) = AccuracyUiText.dayOf(check)
     AccuracyCard {
         Text(trf("Accuracy check · day {0} of {1}", day, total), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = com.pulseloop.ui.calm.Look.text)
         Text(trf("{0} vs {1}, until {2}.", check.deviceLabel, check.referenceLabel, AccuracyUiText.date(check.plannedEndAt)), fontSize = 14.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
         Text(trf("Wear both as usual. Health Connect export paused for: {0}.", AccuracyUiText.units(units)), fontSize = 12.sp, color = PulseColors.warning)
+        if (check.historyFrom == null) {
+            Text(tr("Your ring and the reference already hold past days. Grading them too gives an answer sooner."), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
+            PulseButton(PulseButtonStyle.Tonal, onClick = { pickPast = true }) { Text(tr("Include past days")) }
+        } else {
+            Text(trf("Also grading the days since {0}.", AccuracyUiText.date(check.gradeFrom)), fontSize = 12.sp, color = com.pulseloop.ui.calm.Look.textSecondary)
+        }
         PulseButton(PulseButtonStyle.Outlined, onClick = { confirmEnd = true }) { Text(tr("End now")) }
+    }
+    if (pickPast) {
+        var lookBack by remember { mutableStateOf(AccuracyCheckController.DEFAULT_LOOK_BACK_DAYS) }
+        AlertDialog(
+            onDismissRequest = { pickPast = false },
+            title = { Text(tr("Include past days")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LookBackChips(lookBack, includeNone = false) { lookBack = it }
+                    Text(tr("Only days since this ring was paired. The Health Connect export isn't affected: those days were exported already."), fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                PulseButton(PulseButtonStyle.Text, onClick = {
+                    pickPast = false
+                    scope.launch { AccuracyCheckController.includePastDays(context, lookBack) }
+                }) { Text(tr("Include")) }
+            },
+            dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = { pickPast = false }) { Text(tr("Cancel")) } },
+        )
     }
     if (confirmEnd) {
         AlertDialog(
@@ -347,7 +389,7 @@ private fun StartDialog(
     context: Context,
     source: ReferenceSourceSurvey,
     onDismiss: () -> Unit,
-    onStart: (label: String, days: Int) -> Unit,
+    onStart: (label: String, days: Int, lookBackDays: Int) -> Unit,
 ) {
     val defaultLabel = remember(source) {
         val app = ReferenceAppLabels.label(context, source.packageName)
@@ -356,6 +398,7 @@ private fun StartDialog(
     }
     var label by remember { mutableStateOf(defaultLabel) }
     var days by remember { mutableStateOf(AccuracyCheckController.DEFAULT_DAYS) }
+    var lookBack by remember { mutableStateOf(AccuracyCheckController.DEFAULT_LOOK_BACK_DAYS) }
     val units = source.metrics.map { ExportUnit.of(it.metric) }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -376,6 +419,8 @@ private fun StartDialog(
                         FilterChip(selected = days == d, onClick = { days = d }, label = { Text(trf("{0} days", d)) })
                     }
                 }
+                Text(tr("Include past days"), fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                LookBackChips(lookBack) { lookBack = it }
                 Text(
                     trf("Compared: {0}. These stop exporting to Health Connect until the check ends and you choose what to do with those days.", AccuracyUiText.units(units)),
                     fontSize = 12.sp,
@@ -383,7 +428,7 @@ private fun StartDialog(
                 Text(tr("Wear both devices as you normally would, including at night."), fontSize = 12.sp)
             }
         },
-        confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { onStart(label.trim(), days) }) { Text(tr("Start")) } },
+        confirmButton = { PulseButton(PulseButtonStyle.Text, onClick = { onStart(label.trim(), days, lookBack) }) { Text(tr("Start")) } },
         dismissButton = { PulseButton(PulseButtonStyle.Text, onClick = onDismiss) { Text(tr("Cancel")) } },
     )
 }

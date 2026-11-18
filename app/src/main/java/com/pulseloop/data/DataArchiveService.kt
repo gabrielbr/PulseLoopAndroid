@@ -343,6 +343,7 @@ object DataArchiveService {
                     state = c.str("state"), endReason = c.strOrNull("endReason"), resumeChoice = c.strOrNull("resumeChoice"),
                     bandsRaw = c.strOrNull("bandsRaw"), pauseRefreshedAt = c.longOrNull("pauseRefreshedAt"),
                     scoredAt = c.longOrNull("scoredAt"), firmware = c.strOrNull("firmware"),
+                    historyFrom = c.longOrNull("historyFrom"),
                 )
             },
             accuracyPausedUnits = collect("accuracy_paused_units") { c ->
@@ -506,6 +507,7 @@ object DataArchiveService {
                     referenceLabel = a.referenceLabel, startedAt = a.startedAt, plannedEndAt = a.plannedEndAt,
                     endedAt = a.endedAt, state = a.state, endReason = a.endReason, resumeChoice = a.resumeChoice,
                     bandsRaw = a.bandsRaw, pauseRefreshedAt = a.pauseRefreshedAt, scoredAt = a.scoredAt, firmware = a.firmware,
+                    historyFrom = a.historyFrom,
                 ))
             }
             if (archive.accuracyPausedUnits.isNotEmpty()) {

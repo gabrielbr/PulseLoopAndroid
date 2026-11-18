@@ -60,7 +60,7 @@ import com.pulseloop.data.entity.*
         LabResultEntity::class,
         ComparisonReadingEntity::class,
     ],
-    version = 38,
+    version = 39,
     exportSchema = false,
 )
 abstract class PulseLoopDatabase : RoomDatabase() {
@@ -730,6 +730,13 @@ abstract class PulseLoopDatabase : RoomDatabase() {
             }
         }
 
+        /** v39: an accuracy check can grade past days (`historyFrom`). */
+        private val MIGRATION_38_39 = object : Migration(38, 39) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `accuracy_checks` ADD COLUMN `historyFrom` INTEGER")
+            }
+        }
+
         private fun adoptStableMeasurementIdentities(db: SupportSQLiteDatabase) {
             db.execSQL("DROP INDEX IF EXISTS `index_measurements_kindRaw_timestamp_sourceRaw`")
             db.execSQL(
@@ -834,6 +841,7 @@ abstract class PulseLoopDatabase : RoomDatabase() {
                         MIGRATION_35_36,
                         MIGRATION_36_37,
                         MIGRATION_37_38,
+                        MIGRATION_38_39,
                     )
                     // Downgrades only (sideloading an older APK). A blanket destructive
                     // fallback would silently wipe every measurement, sleep session, and

@@ -1142,6 +1142,9 @@ because breaking it fails silently:
   `AccuracyScorer.SCORING_VERSION`: finished checks otherwise keep their stored result forever,
   and an outdated one is re-scored once by itself (app launch, or opening the accuracy screen).
   Corrections already accepted are not touched by a re-score.
+- **Reaching back over past days moves grading, never the pause** (`historyFrom`, v39). Grading
+  starts at `gradeFrom`; `startedAt`, the day count and every `pausedFrom` stay at the real start.
+  Never before the ring was paired, for the same no-device-id reason as the next rule.
 - **A running check ends the moment a different ring is paired** (`AccuracyRingWatcher`, started
   from `PulseLoopApplication`). Ring rows carry no device id, so a later sweep could not split
   the two rings' data.

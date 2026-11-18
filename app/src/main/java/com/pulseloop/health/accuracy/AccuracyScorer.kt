@@ -102,7 +102,7 @@ object AccuracyScorer {
         val dao = db.accuracyDao()
         val client = HealthConnectClient.getOrCreate(context)
         val zone = ZoneId.systemDefault()
-        val from = check.startedAt
+        val from = check.gradeFrom
         val to = check.endedAt ?: minOf(now, check.plannedEndAt)
         val readable = AccuracyCheckPermissions.readable(ReferenceSourceScanner.grantedPermissions(context))
         val compared = dao.pausedUnits(check.id).mapNotNull { ExportUnit.byName(it.unit)?.metric }.toSet() intersect readable
@@ -125,7 +125,7 @@ object AccuracyScorer {
                 out += r.records
                 token = r.pageToken
                 pages++
-            } while (token != null && pages < 40)
+            } while (token != null && pages < 150) // a check reaching 30 days back reads a month of samples
             return out
         }
 
