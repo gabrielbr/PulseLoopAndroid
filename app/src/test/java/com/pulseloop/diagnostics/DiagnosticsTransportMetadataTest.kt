@@ -11,6 +11,11 @@ class DiagnosticsTransportMetadataTest {
         assertEquals(expected, DiagnosticsExporter.transportMetadata(metadata))
     }
 
+    @Test fun `the second ring's packets say so`() {
+        val metadata = """{"characteristic":"6e400003-b5a3-f393-e0a9-e50e24dcca9e","generation":1,"ring":"comparison"}"""
+        assertEquals(Json.parseToJsonElement(metadata), DiagnosticsExporter.transportMetadata(metadata))
+    }
+
     @Test fun `older rows with only decoder values do not export transport metadata`() {
         assertNull(DiagnosticsExporter.transportMetadata("""{"bpm":72}"""))
         assertNull(DiagnosticsExporter.transportMetadata(null))

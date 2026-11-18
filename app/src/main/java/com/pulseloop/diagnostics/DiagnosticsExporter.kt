@@ -17,7 +17,7 @@ import java.time.Instant
  */
 object DiagnosticsExporter {
     /** The keys `RingBLEClient` stores in `raw_packets.decodedJSON` for each packet. */
-    private val TRANSPORT_KEYS = setOf("characteristic", "generation", "attempt")
+    private val TRANSPORT_KEYS = setOf("characteristic", "generation", "attempt", "ring")
 
     /**
      * The transport facts of one stored packet, or null if it has none. Older rows may hold decoder

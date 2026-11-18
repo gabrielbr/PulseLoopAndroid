@@ -42,7 +42,9 @@ class McpServerSocketTest {
         assertEquals(first, server.rebind(listOf(loopback, InetAddress.getByName("8.8.8.8")), 0))
         // The address went away: nothing listens there any more.
         assertTrue(server.rebind(emptyList(), 0).isEmpty())
-        assertFalse(runCatching { Socket().use { it.connect(first[0], 500) } }.isSuccess)
+        // Asked of the server, not of the port: the freed ephemeral port can be taken at once by
+        // another test's listener in the same run, so "nothing answers there" was a race.
+        assertFalse(server.isRunning())
         // It came back: listening again, and answering.
         val again = server.rebind(listOf(loopback), 0)
         assertEquals(1, again.size)

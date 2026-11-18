@@ -33,15 +33,39 @@ class DiagnosticsSubscriber(
     fun start(scope: CoroutineScope) {
         if (job != null) return
         job = scope.launch(start = CoroutineStart.UNDISPATCHED) {
-            PulseEventBus.events.collect { event ->
-                try {
-                    record(event)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    Log.e("Diagnostics", "Could not persist diagnostic event", e)
-                }
+            // The second ring's bus too (docs/ring-comparison.md): without it an export showed
+            // the comparison ring's requests and none of its replies, so "it sent nothing" and
+            // "we dropped what it sent" looked the same. Only the packets and a few status lines
+            // are taken; its readings still go nowhere but `comparison_readings`.
+            launch(start = CoroutineStart.UNDISPATCHED) {
+                ComparisonBus.events.collect { event -> safely { recordComparison(event) } }
             }
+            PulseEventBus.events.collect { event -> safely { record(event) } }
+        }
+    }
+
+    private suspend fun safely(block: suspend () -> Unit) {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("Diagnostics", "Could not persist diagnostic event", e)
+        }
+    }
+
+    private suspend fun recordComparison(event: PulseEvent) {
+        when (event) {
+            // Stored like the main ring's packets: masked on export by their own family's header,
+            // and marked `"ring":"comparison"` in their transport facts by the client.
+            is PulseEvent.RawPacket -> record(event)
+            is PulseEvent.SyncProgress ->
+                log(WearableLogCategory.SYNC, WearableLogLevel.INFO, "[comparison ring] Sync: ${event.stage}", deviceType = null)
+            is PulseEvent.BatteryLevel ->
+                log(WearableLogCategory.BATTERY, WearableLogLevel.INFO, "[comparison ring] Battery ${event.percent}%")
+            is PulseEvent.DeviceStateChanged ->
+                log(WearableLogCategory.CONNECTION, WearableLogLevel.INFO, "[comparison ring] Connection state: ${event.state.name}")
+            else -> { /* readings stay on the comparison bus */ }
         }
     }
 
