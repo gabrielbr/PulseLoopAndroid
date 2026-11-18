@@ -1210,6 +1210,10 @@ interface ComparisonDao {
     @Query("SELECT * FROM comparison_readings WHERE deviceAddress = :address AND timestamp BETWEEN :start AND :end ORDER BY timestamp")
     fun rangeFlow(address: String, start: Long, end: Long): Flow<List<ComparisonReadingEntity>>
 
+    /** The comparison ring that recorded most in [start, end]: the one an accuracy check grades. */
+    @Query("SELECT deviceAddress FROM comparison_readings WHERE timestamp BETWEEN :start AND :end GROUP BY deviceAddress ORDER BY COUNT(*) DESC LIMIT 1")
+    suspend fun mostRecordedAddress(start: Long, end: Long): String?
+
     @Query("DELETE FROM comparison_readings WHERE deviceAddress = :address")
     suspend fun clear(address: String)
 }

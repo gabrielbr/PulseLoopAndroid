@@ -50,6 +50,30 @@ Per local day:
 
 It says plainly that neither ring is known to be right, and links the accuracy check for a watch.
 
+## Graded against a watch ✅
+
+The owner asked (2026-11-18) for the accuracy check to grade both rings. A running check now
+scores the comparison ring against the same reference, in the same pass (`AccuracyScorer` →
+`scoreComparisonRing`):
+- **Measures:** heart rate at rest and when active (paired with the reference, same tolerance and
+  rest/active rule as the main ring), steps per day, SpO₂, and time asleep, fell asleep and woke
+  up.
+- **Off time:** the comparison ring's off stretches come from its own data, and a day or night
+  either it or the reference was off is cut or dropped by the main ring's rules.
+- **Storage:** its rows are stored as `CMP:<metric>` in `accuracy_check_days`, so nothing that
+  reads the main ring's rows sees them (`ComparisonRingScoring`).
+- **Which ring:** the comparison ring that recorded most during the check
+  (`ComparisonDao.mostRecordedAddress`).
+
+The report opens with **Both rings against [reference]**:
+- each ring's typical gap from the reference per measure (lower is closer), with the closer one
+  in bold;
+- a one-line tally of which ring was closer on how many measures, with "about the same" when the
+  two gaps are within a fifth of the measure's band or 10 % of each other
+  (`ComparisonRingScoring.closer`).
+
+The per-measure cards and corrections below stay the main ring's.
+
 ## Not yet ⬜
 
 - The background sync worker syncs only the main ring. The second ring catches up whenever the app

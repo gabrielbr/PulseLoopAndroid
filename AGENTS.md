@@ -105,8 +105,12 @@ publishes events itself.** Full design: `docs/ring-comparison.md`.
 - **A driver publishes through `RingCommandWriter.publish`, not `PulseEventBus` directly.** The
   comparison client overrides it. A direct `PulseEventBus.publishBlocking` in a driver leaks a
   second ring of that family into the user's history.
-- **`comparison_readings` is read by the comparison screen only.** Never by a score, chart,
-  export or the coach, and not in the backup.
+- **`comparison_readings` is read by the comparison screen and the accuracy check only.** The
+  check grades the second ring against the same reference and stores its rows as
+  `CMP:<metric>` (`ComparisonRingScoring`), so the main ring's report cards, corrections and
+  export pause never see them. Never read by a score, chart, export or the coach, and not in the
+  backup. Corrections stay the main ring's: the second ring's numbers aren't used anywhere to
+  correct.
 - **Stop comparing forgets without unbinding** (`clearSavedRing`, not `forget`), so the ring stays
   paired to its own app.
 
