@@ -52,7 +52,8 @@ object JringCoordinator : WearableCoordinator {
         // [bitmapGatedCapabilities] when the 0x20 reply sets the bit (RingDecoder.decodeBandFunction).
     )
 
-    override val bitmapGatedCapabilities: Set<WearableCapability> = setOf(WearableCapability.TEMPERATURE)
+    override val bitmapGatedCapabilities: Set<WearableCapability> =
+        setOf(WearableCapability.TEMPERATURE, WearableCapability.MEASUREMENT_INTERVAL)
 
     override val iconSystemName = "circle.hexagongrid.circle.fill"
 
@@ -139,7 +140,7 @@ class JringSyncEngine(
         // 0x19 arms the ring's continuous background sensor logging. The vendor app sends this on
         // every connect; without it the ring records almost nothing, which is why users previously
         // had to initialise with the vendor app first.
-        writer?.enqueue(encoder.makeAutomaticHeartRateCommand(enabled = true, cadenceMinutes = 30))
+        writer?.enqueue(automaticHeartRateCommand())
         writer?.enqueue(encoder.makeBandFunctionCommand())
         // History is paged rather than enqueued: [JringHistorySync] sends one day's 0x10, holds
         // the rest until that day's stream goes quiet, and asks for each day's 0x16 HR itself.
@@ -265,13 +266,32 @@ class JringSyncEngine(
         val mode = workoutSportMode ?: return stopHeartRate()
         workoutSportMode = null
         writer?.enqueue(encoder.makeWorkoutHeartRateStopCommand(mode))
-        writer?.enqueue(encoder.makeAutomaticHeartRateCommand(enabled = true, cadenceMinutes = 30))
+        writer?.enqueue(automaticHeartRateCommand())
     }
 
     override fun stopHeartRate() {
         writer?.enqueue(encoder.makeHeartRateStopCommand())
-        writer?.enqueue(encoder.makeAutomaticHeartRateCommand(enabled = true, cadenceMinutes = 30))
+        writer?.enqueue(automaticHeartRateCommand())
     }
+
+    /** The user's saved background schedule, or the vendor's default when none was saved. */
+    private var measurementSettings: MeasurementSettings? = null
+
+    override fun setMeasurementSettings(settings: MeasurementSettings?) {
+        measurementSettings = settings
+    }
+
+    override fun applyMeasurementSettings(settings: MeasurementSettings) {
+        measurementSettings = settings
+        writer?.enqueue(automaticHeartRateCommand())
+    }
+
+    /** `0x19` with the saved interval, snapped to the vendor's choices ([JringHeartRateInterval]).
+     *  Sent on connect and again after any live stream, which the ring's schedule yields to. */
+    private fun automaticHeartRateCommand(): ByteArray = encoder.makeAutomaticHeartRateCommand(
+        enabled = measurementSettings?.hrEnabled ?: true,
+        cadenceMinutes = JringHeartRateInterval.snap(measurementSettings?.hrIntervalMinutes),
+    )
 
     /** Spot HR using live HR streaming (0x14), same as workout HR. */
     override fun measureHeartRateSpot() {
@@ -332,4 +352,18 @@ class JringSyncEngine(
         writer?.enqueue(encoder.makeDeviceModeCommand(JringDeviceMode.RESTART))
         return true
     }
+}
+
+/**
+ * The jring's background heart-rate interval (`0x19` byte 6). The vendor app offers exactly
+ * 15, 30, 45 and 60 minutes (`HeartrateTestActivity`) and defaults to 30 (`HEARTRATE_SNOOZE_REPEAT`);
+ * nothing shorter is offered there, so nothing shorter is sent here.
+ */
+object JringHeartRateInterval {
+    val CHOICES = listOf(15, 30, 45, 60)
+    const val DEFAULT = 30
+
+    /** A saved interval mapped onto the vendor's choices; null (never saved) is the default. */
+    fun snap(minutes: Int?): Int =
+        if (minutes == null || minutes <= 0) DEFAULT else CHOICES.minByOrNull { kotlin.math.abs(it - minutes) }!!
 }

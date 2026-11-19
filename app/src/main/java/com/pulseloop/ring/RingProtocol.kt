@@ -81,6 +81,11 @@ data class JringBandCapabilities(val bytes: ByteArray) {
 
     val hasTemperature: Boolean get() = bit(10)
 
+    /** `FUNCTION_HEART_SHOW_AUTO_INTERVAL` (`DupMainActivity`, zArr[18]): the vendor shows its
+     *  background heart-rate interval picker (15/30/45/60 min, `HeartrateTestActivity`) only when
+     *  the ring sets this bit. */
+    val hasAutoHeartRateInterval: Boolean get() = bit(18)
+
     /** SpO₂ uses the dedicated 0x3E command rather than the 0x23 mode selector. */
     val separateBloodOxygenMode: Boolean get() = bit(65)
     val hasOxygenOfflineHistory: Boolean get() = bit(81)

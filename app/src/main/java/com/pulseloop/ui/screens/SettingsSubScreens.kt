@@ -1693,7 +1693,8 @@ fun GoalsSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
 
 /**
  * Measurement Frequency detail screen: the old inline "Measurement" card (iOS #19 content).
- * The hub only shows the row for rings declaring MEASUREMENT_INTERVAL (Colmi).
+ * The hub only shows the row for rings declaring MEASUREMENT_INTERVAL (Colmi, YCBT, LuckRing, and a jring
+ * whose 0x20 reply sets bit 18).
  */
 @Composable
 fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> Unit) {
@@ -1710,17 +1711,26 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     // [com.pulseloop.ring.YCBTDriver], so its ring can carry the same settings (issue #103,
     // Albabit's `colmi-smarthealth` unit was capped at 5–60 until 2026-10-23).
     val isYcbtProtocol = device?.deviceType in setOf(RingDeviceType.YCBT, RingDeviceType.COLMI_SMART_HEALTH)
-    val minimumInterval = if (isYcbtProtocol) 30 else 5
+    // The jring takes the vendor's four choices only (JringHeartRateInterval), and its one
+    // background command carries heart rate alone: no per-vital switch reaches the wire.
+    val isJring = device?.deviceType == RingDeviceType.JRING
+    val minimumInterval = when {
+        isJring -> com.pulseloop.ring.JringHeartRateInterval.CHOICES.first()
+        isYcbtProtocol -> 30
+        else -> 5
+    }
+    val intervalStep = if (isJring) 15 else 5
+    val defaultInterval = if (isJring) com.pulseloop.ring.JringHeartRateInterval.DEFAULT else minimumInterval
     // 120 min is the only interval beyond the vendor app's own menu (which stops at 60) that is
     // tested on hardware: the ring ACKed `01 0c 01 78` and read at 10:00 and 12:00 (issue #103,
     // 2026-10-22). Nothing longer until someone tries it, and YCBT-protocol rings only — it is
     // not the vendor app's behaviour, it is one ring's.
     val maximumHrInterval = if (isYcbtProtocol) 120 else 60
-    val intervalSteps = ((maximumHrInterval - minimumInterval) / 5 - 1).coerceAtLeast(0)
+    val intervalSteps = ((maximumHrInterval - minimumInterval) / intervalStep - 1).coerceAtLeast(0)
     // Only offered where the ring's protocol actually carries a separate blood-oxygen interval —
     // elsewhere the slider moved, the value saved, and "Saved & sent to ring ✓" appeared over a
     // setting nothing on the wire could express (issue #66).
-    val supportsSpo2Interval = device?.deviceType?.supportsSeparateSpo2Interval == true
+    val supportsSpo2Interval = device?.deviceType?.supportsSeparateSpo2Interval == true && !isJring
     // The SpO₂ slider runs five minutes lower than the HR one (its floor is "follow heart rate"),
     // so it needs its own step count: reusing the HR one put ticks 5.45 min apart, none of which
     // the 5-minute snap could land on.
@@ -1730,7 +1740,7 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
     // only), so a toggle here would be a no-op the ring never sees — the capability bit alone
     // is not enough to offer it.
     val supportsStressSetting = WearableCapability.STRESS in capabilities &&
-        !isYcbtProtocol
+        !isYcbtProtocol && !isJring
 
     var cfgHrEnabled by remember { mutableStateOf(true) }
     var cfgHrInterval by remember { mutableStateOf(5) }
@@ -1753,7 +1763,9 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
         cfgLoaded = false
         val config = db.deviceMeasurementConfigDao().byDevice(id)
         cfgHrEnabled = config?.hrEnabled ?: true
-        cfgHrInterval = (config?.hrIntervalMinutes ?: minimumInterval).coerceIn(minimumInterval, maximumHrInterval)
+        cfgHrInterval = (config?.hrIntervalMinutes ?: defaultInterval).let {
+            if (isJring) com.pulseloop.ring.JringHeartRateInterval.snap(it) else it
+        }.coerceIn(minimumInterval, maximumHrInterval)
         cfgSpo2 = (config?.spo2Enabled ?: true) && WearableCapability.SPO2 in capabilities
         cfgSpo2Interval = (config?.spo2IntervalMinutes ?: 0).let {
             if (it <= 0) 0 else it.coerceIn(minimumInterval, 60)
@@ -1807,13 +1819,20 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                         Slider(
                             enabled = cfgLoaded,
                             value = cfgHrInterval.toFloat(),
-                            onValueChange = { cfgHrInterval = ((it / 5).toInt() * 5).coerceIn(minimumInterval, maximumHrInterval); cfgSavedMsg = null },
+                            onValueChange = { cfgHrInterval = (kotlin.math.round(it / intervalStep).toInt() * intervalStep).coerceIn(minimumInterval, maximumHrInterval); cfgSavedMsg = null },
                             valueRange = minimumInterval.toFloat()..maximumHrInterval.toFloat(),
                             steps = intervalSteps,
                         )
                     }
-                    HorizontalDivider(Modifier.padding(vertical = 8.dp))
-                    if (WearableCapability.SPO2 in capabilities) {
+                    if (isJring) {
+                        Text(
+                            tr("Each reading takes about two minutes. A workout you record measures continuously, whatever this is set to."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (!isJring) HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                    if (WearableCapability.SPO2 in capabilities && !isJring) {
                         VitalToggle(tr("Blood oxygen (SpO₂)"), cfgSpo2) { cfgSpo2 = it }
                         // The monitor command takes the same shape for every vital
                         // (`01 <key> {enable, interval}`), so blood oxygen always had an interval —
@@ -1891,10 +1910,10 @@ fun MeasurementSettingsScreen(coordinator: RingSyncCoordinator?, onBack: () -> U
                     if (supportsStressSetting) {
                         VitalToggle(tr("Stress"), cfgStress) { cfgStress = it }
                     }
-                    if (WearableCapability.HRV in capabilities) {
+                    if (WearableCapability.HRV in capabilities && !isJring) {
                         VitalToggle("HRV", cfgHrv) { cfgHrv = it }
                     }
-                    if (WearableCapability.TEMPERATURE in capabilities) {
+                    if (WearableCapability.TEMPERATURE in capabilities && !isJring) {
                         VitalToggle(tr("Temperature"), cfgTemp) { cfgTemp = it }
                     }
 

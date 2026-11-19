@@ -464,7 +464,12 @@ class RingDecoder(private val clock: JringClock? = null) {
         val caps = JringBandCapabilities(bytes.copyOfRange(1, bytes.size))
         // A unit that sets bit 10 has a temperature log the app can read (0x39), so it gets the
         // card; the family baseline leaves TEMPERATURE out because most of these rings don't.
-        val reported = buildSet { if (caps.hasTemperature) add(WearableCapability.TEMPERATURE) }
+        val reported = buildSet {
+            if (caps.hasTemperature) add(WearableCapability.TEMPERATURE)
+            // The vendor's interval picker appears only on rings that set bit 18; the same bit
+            // opens Measurement frequency here (JringHeartRateInterval).
+            if (caps.hasAutoHeartRateInterval) add(WearableCapability.MEASUREMENT_INTERVAL)
+        }
         return listOfNotNull(
             RingDecodedEvent.BandFunction(caps),
             reported.takeIf { it.isNotEmpty() }?.let { RingDecodedEvent.SupportFunctions(it) },

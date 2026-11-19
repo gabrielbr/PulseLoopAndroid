@@ -430,3 +430,25 @@ gitignored `decompiled-jring-offical/`.
   a second client, re-run the whole startup and broadcast DISCONNECTED.
 - **Diagnostics:** each start, restart and stop goes to the diagnostics log, with the command
   jring chose. The next export then says which start was sent and when the ring went quiet.
+
+## Background heart-rate interval: the vendor's 15/30/45/60 (2026-11-19)
+
+The owner asked for a 15-minute option after an export showed the ring reading only every
+30 minutes in the daytime. That was our own `0x19` (byte 6 = 30), hardcoded on connect and
+after every stream. The vendor's `HeartrateTestActivity` offers exactly 15, 30, 45 and 60 minutes
+(default `HEARTRATE_SNOOZE_REPEAT` = 30), and shows the picker only when the ring's `0x20` reply
+sets bit 18 (`FUNCTION_HEART_SHOW_AUTO_INTERVAL`).
+
+- Bit 18 grants `MEASUREMENT_INTERVAL` per unit, like bit 10 grants `TEMPERATURE`, so the
+  Measurement frequency row appears only on rings the vendor would offer it on. The owner's ring
+  sets it (payload byte 2 = `0x07`).
+- The screen offers only the four vendor stops for a jring, and only the heart-rate switch: the ring
+  has no per-vital opcode, so SpO₂, stress, HRV and temperature switches would reach nothing.
+- `JringHeartRateInterval.snap` maps a saved value onto those stops; never saved = 30. The value goes
+  out on connect, on Save, and after a spot or workout stream ends.
+- Observed on the owner's ring before this change: at night it reads every ~15 minutes whatever
+  `0x19` says, in 2–6 minute runs of 10-second samples; by day it followed the 30-minute setting
+  with one 2-minute run.
+- iOS (saksham2001/PulseLoopiOS) exposes 5–60 minutes and also tightens the interval during a
+  workout as a backstop to the stream. Not ported: nothing below 15 is offered by the vendor, and
+  the backstop is a separate change.
