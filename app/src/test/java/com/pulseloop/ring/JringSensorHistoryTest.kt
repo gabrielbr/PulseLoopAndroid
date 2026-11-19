@@ -95,8 +95,9 @@ class JringSensorHistoryTest {
         val caps = events.filterIsInstance<RingDecodedEvent.BandFunction>().single().capabilities
         assertTrue(caps.hasTemperature && caps.hasOxygenOfflineHistory && caps.hasPressureHistory)
         val granted = events.filterIsInstance<RingDecodedEvent.SupportFunctions>().single().capabilities
-        assertEquals(setOf(WearableCapability.TEMPERATURE), granted)
-        assertTrue(WearableCapability.TEMPERATURE in JringCoordinator.bitmapGatedCapabilities)
+        // Bit 18 too: this ring offers the vendor's heart-rate interval picker (JringHeartRateInterval).
+        assertEquals(setOf(WearableCapability.TEMPERATURE, WearableCapability.MEASUREMENT_INTERVAL), granted)
+        assertTrue(granted.all { it in JringCoordinator.bitmapGatedCapabilities })
     }
 
     @Test fun spotMeasurementKeepsItsHrvByte() {
